@@ -2,19 +2,19 @@
 // NAV — Navegação entre views, ripple e contadores animados
 // =============================================================================
 
-/** Troca a view ativa e atualiza sidebar + breadcrumb */
+/** Troca a view ativa e atualiza topnav */
 function switchView(viewId) {
   document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById(viewId).classList.add('active');
-  const nav = document.querySelector(`.nav-item[data-view="${viewId}"]`);
+  document.querySelectorAll('.topnav-link').forEach(n => n.classList.remove('active'));
+  const view = document.getElementById(viewId);
+  if (view) view.classList.add('active');
+  const nav = document.querySelector(`.topnav-link[data-view="${viewId}"]`);
   if (nav) nav.classList.add('active');
-  document.getElementById('breadcrumbCurrent').textContent = BREADCRUMB[viewId] || 'Início';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Listeners de navegação — sidebar
-document.querySelectorAll('.nav-item[data-view]').forEach(item => {
+// Listeners de navegação — topnav
+document.querySelectorAll('.topnav-link[data-view]').forEach(item => {
   item.addEventListener('click', () => switchView(item.dataset.view));
 });
 
@@ -54,22 +54,9 @@ function animateCounters() {
       const eased  = 1 - Math.pow(1 - p, 3);
       el.textContent = `${prefix}${Math.floor(target * eased)}${suffix}`;
       if (p < 1) requestAnimationFrame(tick);
-      else {
-        if (prefix === 'v' && target === 0) el.textContent = 'v1.0';
-        else el.textContent = `${prefix}${target}${suffix}`;
-      }
+      else el.textContent = `${prefix}${target}${suffix}`;
     }
     requestAnimationFrame(tick);
   });
 }
 setTimeout(animateCounters, 300);
-
-// ── Atalho de teclado ⌘K / Ctrl+K ────────────────────────────────────────────
-document.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-    e.preventDefault();
-    const s = document.querySelector('.topbar-search');
-    s.style.borderColor = 'var(--brand-red)';
-    setTimeout(() => s.style.borderColor = '', 800);
-  }
-});
