@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RESUTE — Sistema de Gestão Comercial</title>
+  <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-brand">RESU<span>TE</span></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" data-view="view-home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9.5 12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1V9.5z"/></svg>
+      <span>Início</span>
+    </div>
+    <div class="nav-item" data-view="view-tools">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Ferramentas</span>
+    </div>
+    <div class="nav-section">Análise</div>
+    <div class="nav-item" data-view="view-app">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+      <span>Análise de Vendas</span>
+    </div>
+    <div class="nav-item" data-view="view-uniao">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 3H3v5"/><path d="M21 8V3h-5"/><path d="M3 16v5h5"/><path d="M16 21h5v-5"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/></svg>
+      <span>União de Planilhas</span>
+    </div>
+    <div class="nav-item" style="opacity:0.5;cursor:default;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 1 1 0 7H6"/></svg>
+      <span>Conciliação</span>
+    </div>
+    <div class="nav-item" style="opacity:0.5;cursor:default;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      <span>Precificação</span>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <span class="sidebar-footer-dot"></span>
+    <span>Sistema operacional</span>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <div class="breadcrumb">
+      <span class="breadcrumb-root">RESUTE</span>
+      <span class="breadcrumb-sep">/</span>
+      <span class="breadcrumb-current" id="breadcrumbCurrent">Início</span>
+    </div>
+    <div class="topbar-actions">
+      <div class="topbar-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <span>Pesquisar no sistema…</span>
+        <kbd>⌘K</kbd>
+      </div>
+      <div class="topbar-user">
+        <div class="avatar">BC</div>
+        <div class="topbar-user-name">BPO Comercial</div>
+      </div>
+    </div>
+  </header>
+
+  <div id="loader">
+    <div class="loader-box">
+      <div class="loader-progress"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20"/></svg></div>
+      <h3>Processando</h3>
+      <p id="loaderMsg">Analisando base de dados…</p>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- VIEW: INÍCIO -->
+    <div id="view-home" class="page-view active">
+      <section class="hero">
+        <div class="hero-kicker"><span class="hero-kicker-dot"></span>Plataforma RESUTE</div>
+        <h1 class="hero-title">Sistema de Gestão <span class="italic">Comercial</span><br>Dados que viram decisão.</h1>
+        <p class="hero-subtitle">Plataforma universal de análise. Suba a planilha de qualquer empresa, escolha as colunas relevantes e obtenha relatórios gerenciais automaticamente.</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary btn-lg" data-nav="view-tools">Acessar Ferramentas <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
+          <button class="btn btn-ghost btn-lg" data-nav="view-app">Ir direto para Análise</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- VIEW: FERRAMENTAS -->
+    <div id="view-tools" class="page-view">
+      <div class="page-header">
+        <h1 class="page-title">Ferramentas</h1>
+        <p class="page-subtitle">Módulos disponíveis no ecossistema RESUTE.</p>
+      </div>
+      <div class="tools-grid">
+        <div class="tool-card" data-status="active" data-nav="view-app">
+          <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg></div>
+          <h3>Análise de Vendas</h3>
+          <p>Importe planilhas de pedidos de qualquer empresa, selecione as colunas que importam e gere relatórios consolidados automaticamente.</p>
+          <div class="tool-meta"><span class="badge badge-active"><span class="badge-dot"></span>Disponível</span><div class="tool-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div></div>
+        </div>
+        <div class="tool-card" data-status="active" data-nav="view-uniao">
+          <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 3H3v5"/><path d="M21 8V3h-5"/><path d="M3 16v5h5"/><path d="M16 21h5v-5"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/></svg></div>
+          <h3>União de Planilhas</h3>
+          <p>Consolide múltiplas planilhas em um único arquivo. Detecta a coluna de data automaticamente e ordena os registros do mais antigo ao mais recente.</p>
+          <div class="tool-meta"><span class="badge badge-active"><span class="badge-dot"></span>Disponível</span><div class="tool-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div></div>
+        </div>
+        <div class="tool-card" data-status="soon"><div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 1 1 0 7H6"/></svg></div><h3>Conciliação Financeira</h3><p>Mapeamento de extratos bancários contra gateways de pagamento.</p><div class="tool-meta"><span class="badge badge-soon">Em breve</span></div></div>
+        <div class="tool-card" data-status="soon"><div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div><h3>Precificação Inteligente</h3><p>Calculadora de markup com custos, impostos e taxas de marketplace.</p><div class="tool-meta"><span class="badge badge-soon">Em breve</span></div></div>
+        <div class="tool-card" data-status="soon"><div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 7L9 18l-5-5"/></svg></div><h3>Conferência de Estoque</h3><p>Comparativo físico vs sistema com apontamento automático.</p><div class="tool-meta"><span class="badge badge-soon">Em breve</span></div></div>
+        <div class="tool-card" data-status="soon"><div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7h18M3 12h18M3 17h18"/></svg></div><h3>Controle de Comissões</h3><p>Cálculo automático de comissões por vendedor.</p><div class="tool-meta"><span class="badge badge-soon">Em breve</span></div></div>
+        <div class="tool-card" data-status="soon"><div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><h3>Relatórios Gerenciais</h3><p>Dashboards consolidados para gestão executiva.</p><div class="tool-meta"><span class="badge badge-soon">Em breve</span></div></div>
+      </div>
+    </div>
+
+    <!-- VIEW: ANÁLISE DE VENDAS -->
+    <div id="view-app" class="page-view">
+      <div class="page-header">
+        <h1 class="page-title">Análise de Vendas</h1>
+        <p class="page-subtitle">Sistema universal — adapta-se a qualquer formato de planilha.</p>
+      </div>
+
+      <div class="step-indicator">
+        <div class="step active" data-step="1"><div class="step-circle">1</div><div class="step-label">Upload</div></div>
+        <div class="step-bar" data-bar="1"></div>
+        <div class="step" data-step="2"><div class="step-circle">2</div><div class="step-label">Mapear colunas</div></div>
+        <div class="step-bar" data-bar="2"></div>
+        <div class="step" data-step="3"><div class="step-circle">3</div><div class="step-label">Relatórios</div></div>
+      </div>
+
+      <!-- STEP 1 -->
+      <div id="step-upload" class="step-content">
+        <div class="upload-grid">
+          <div class="upload-zone" id="zoneProd" onclick="document.getElementById('fileProd').click()">
+            <div class="upload-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="upload-info"><h4>Cadastro de Produtos <span class="tag-tiny opt" id="tagProd">Opcional</span></h4><p id="lblProd">Clique ou arraste a planilha (.csv, .xlsx)</p></div>
+            <input type="file" id="fileProd" style="display:none" accept=".csv,.xlsx,.xls">
+          </div>
+          <div class="upload-zone required" id="zonePed" onclick="document.getElementById('filePed').click()">
+            <div class="upload-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M3 16v5h5"/><path d="M16 21h5v-5"/></svg></div>
+            <div class="upload-info"><h4>Pedidos de Venda <span class="tag-tiny req" id="tagPed">Obrigatório</span></h4><p id="lblPed">Clique ou arraste a planilha (.csv, .xlsx)</p></div>
+            <input type="file" id="filePed" style="display:none" accept=".csv,.xlsx,.xls">
+          </div>
+        </div>
+        <div class="settings-panel">
+          <div class="settings-panel-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 4.6a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 .33H9a1.65 1.65 0 0 0 1-1.51V0"/></svg>
+            <span>Configurações do sistema</span>
+          </div>
+          <div class="settings-panel-items">
+            <label class="setting-toggle">
+              <div class="setting-toggle-info"><div class="setting-toggle-title">Análise de Status / Situação</div><div class="setting-toggle-desc">Habilitar reconhecimento e relatórios por status do pedido</div></div>
+              <div class="switch"><input type="checkbox" id="toggleStatus" onchange="toggleStatusFeature(this.checked)"><span class="switch-slider"></span></div>
+            </label>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:var(--s-3);margin-top:var(--s-5);">
+          <button class="btn btn-ghost" onclick="limparTudo()">Apagar tudo</button>
+          <button class="btn btn-primary" id="btnGoMapping" onclick="goToMapping()" disabled>Avançar para mapeamento <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div id="step-mapping" class="step-content" style="display:none;">
+        <div class="mapping-section" id="mappingPedSection">
+          <div class="mapping-header">
+            <div class="mapping-header-info">
+              <div class="mapping-header-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M3 16v5h5"/><path d="M16 21h5v-5"/></svg></div>
+              <div><h3>Planilha de Pedidos de Venda</h3><p id="mappingPedInfo">Selecione o papel de cada coluna</p></div>
+            </div>
+            <div class="mapping-stats">
+              <div class="mapping-stat"><div class="mapping-stat-val" id="mappingPedTotalCols">0</div><div class="mapping-stat-lbl">colunas</div></div>
+              <div class="mapping-stat"><div class="mapping-stat-val" id="mappingPedMapped">0</div><div class="mapping-stat-lbl">mapeadas</div></div>
+              <div class="mapping-stat"><div class="mapping-stat-val" id="mappingPedRows">0</div><div class="mapping-stat-lbl">linhas</div></div>
+            </div>
+          </div>
+          <div class="role-legend" id="roleLegend"></div>
+          <div class="mapping-toolbar">
+            <div class="mapping-toolbar-left"><span class="mapping-status"><span class="mapping-status-num" id="mapStatusPed">0</span> de <span class="mapping-status-num" id="mapTotalPed">0</span> colunas mapeadas</span></div>
+            <div class="mapping-toolbar-right">
+              <div class="pill-group">
+                <button class="pill active" data-view="all" onclick="setGridView('pedidos','all',this)">Todas as colunas</button>
+                <button class="pill" data-view="mapped-only" onclick="setGridView('pedidos','mapped-only',this)">Só mapeadas</button>
+              </div>
+              <button class="btn btn-sm" onclick="ignorarRestante('pedidos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>Ignorar restante</button>
+            </div>
+          </div>
+          <div class="sheet-viewport" id="viewportPed">
+            <button class="scroll-nav left" onclick="scrollSheet('pedidos',-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 18L9 12l6-6"/></svg></button>
+            <button class="scroll-nav right" onclick="scrollSheet('pedidos',1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 18l6-6-6-6"/></svg></button>
+            <div class="scroll-minimap" id="minimapPed">
+              <span class="scroll-minimap-info"><kbd>Shift</kbd> + scroll do mouse rola horizontal</span>
+              <div class="scroll-minimap-track" onclick="jumpToScroll('pedidos',event)"><div class="scroll-minimap-thumb" id="minimapThumbPed" style="left:0%;width:30%;"></div></div>
+              <span class="scroll-minimap-info" id="minimapLabelPed">Col. 1–8 de 8</span>
+            </div>
+            <div class="sheet-topscroll" id="topscrollPed"><div class="sheet-topscroll-inner" id="topscrollInnerPed"></div></div>
+            <div class="sheet-container" id="containerPed"><div class="sheet-grid" id="sheetGridPed"></div></div>
+          </div>
+          <div class="mapping-footer">
+            <div class="mapping-footer-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Colunas marcadas como "personalizada" viram rankings próprios no relatório.</span></div>
+          </div>
+        </div>
+        <div class="mapping-section" id="mappingProdSection" style="display:none;">
+          <div class="mapping-header">
+            <div class="mapping-header-info">
+              <div class="mapping-header-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+              <div><h3>Cadastro de Produtos</h3><p id="mappingProdInfo">Selecione SKU e Produto para enriquecer os dados</p></div>
+            </div>
+            <div class="mapping-stats">
+              <div class="mapping-stat"><div class="mapping-stat-val" id="mappingProdTotalCols">0</div><div class="mapping-stat-lbl">colunas</div></div>
+              <div class="mapping-stat"><div class="mapping-stat-val" id="mappingProdMapped">0</div><div class="mapping-stat-lbl">mapeadas</div></div>
+              <div class="mapping-stat"><div class="mapping-stat-val" id="mappingProdRows">0</div><div class="mapping-stat-lbl">linhas</div></div>
+            </div>
+          </div>
+          <div class="mapping-toolbar">
+            <div class="mapping-toolbar-left"><span class="mapping-status"><span class="mapping-status-num" id="mapStatusProd">0</span> de <span class="mapping-status-num" id="mapTotalProd">0</span> colunas mapeadas</span></div>
+            <div class="mapping-toolbar-right">
+              <div class="pill-group">
+                <button class="pill active" data-view="all" onclick="setGridView('produtos','all',this)">Todas as colunas</button>
+                <button class="pill" data-view="mapped-only" onclick="setGridView('produtos','mapped-only',this)">Só mapeadas</button>
+              </div>
+              <button class="btn btn-sm" onclick="ignorarRestante('produtos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>Ignorar restante</button>
+            </div>
+          </div>
+          <div class="sheet-viewport" id="viewportProd">
+            <button class="scroll-nav left" onclick="scrollSheet('produtos',-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 18L9 12l6-6"/></svg></button>
+            <button class="scroll-nav right" onclick="scrollSheet('produtos',1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 18l6-6-6-6"/></svg></button>
+            <div class="scroll-minimap" id="minimapProd">
+              <span class="scroll-minimap-info"><kbd>Shift</kbd> + scroll do mouse rola horizontal</span>
+              <div class="scroll-minimap-track" onclick="jumpToScroll('produtos',event)"><div class="scroll-minimap-thumb" id="minimapThumbProd" style="left:0%;width:30%;"></div></div>
+              <span class="scroll-minimap-info" id="minimapLabelProd">Col. 1–8 de 8</span>
+            </div>
+            <div class="sheet-topscroll" id="topscrollProd"><div class="sheet-topscroll-inner" id="topscrollInnerProd"></div></div>
+            <div class="sheet-container" id="containerProd"><div class="sheet-grid" id="sheetGridProd"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BARRA FIXA DE AÇÃO -->
+      <div class="sticky-actions" id="fixedActionBar">
+        <div class="sticky-actions-info">
+          <div class="sticky-actions-title" id="stickyTitle">Aguardando mapeamento</div>
+          <div class="sticky-actions-sub" id="stickySub">Marque ao menos uma coluna para continuar</div>
+        </div>
+        <div class="sticky-actions-right">
+          <button class="btn btn-ghost" onclick="goToUpload()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar</button>
+          <button class="btn" onclick="autoMapping()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/><circle cx="12" cy="12" r="10"/></svg>Sugestão automática</button>
+          <button class="btn btn-primary btn-lg" id="btnConfirmMapping" onclick="confirmarMapeamento()">Finalizar parametrização <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div id="step-dashboard" class="step-content" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--s-5);flex-wrap:wrap;gap:var(--s-3);">
+          <button class="btn btn-ghost" onclick="goToMapping()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Reajustar mapeamento</button>
+          <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">
+            <button class="btn" onclick="exportarCSV()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Exportar CSV</button>
+            <button class="btn btn-ghost" onclick="window.print()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir</button>
+            <button class="btn btn-danger" onclick="limparTudo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Apagar</button>
+          </div>
+        </div>
+        <div class="panel"><div class="panel-title">Filtros</div><div class="filter-grid" id="filterGrid"></div></div>
+        <div class="tabs" id="dashTabs"></div>
+        <div id="dashContent"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: UNIÃO DE PLANILHAS -->
+    <div id="view-uniao" class="page-view">
+      <div class="page-header">
+        <h1 class="page-title">União de Planilhas</h1>
+        <p class="page-subtitle">Consolide múltiplas planilhas com a mesma estrutura em um único arquivo ordenado por data.</p>
+      </div>
+      <div class="uniao-dropzone" id="uniaoDropzone" onclick="document.getElementById('uniaoFiles').click()">
+        <div class="uniao-dropzone-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+        <h3>Arraste suas planilhas aqui ou clique para selecionar</h3>
+        <p>Aceita múltiplos arquivos .csv e .xlsx · sem limite de quantidade</p>
+        <p class="uniao-dropzone-hint">O cabeçalho da <strong>primeira planilha</strong> será usado para todas</p>
+        <input type="file" id="uniaoFiles" multiple accept=".csv,.xlsx,.xls" style="display:none">
+      </div>
+      <div class="uniao-files-section" id="uniaoFilesSection" style="display:none;">
+        <div class="uniao-section-header">
+          <div class="uniao-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>Planilhas carregadas</span><span class="uniao-count" id="uniaoCount">0</span></div>
+          <div style="display:flex;gap:var(--s-2);">
+            <button class="btn btn-sm" onclick="document.getElementById('uniaoFiles').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Adicionar mais</button>
+            <button class="btn btn-sm btn-danger" onclick="uniaoLimparTudo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Apagar todas</button>
+          </div>
+        </div>
+        <div class="uniao-files-list" id="uniaoFilesList"></div>
+      </div>
+      <div class="uniao-summary" id="uniaoSummary" style="display:none;">
+        <div class="uniao-summary-grid">
+          <div class="uniao-summary-kpi"><div class="uniao-summary-label">Arquivos</div><div class="uniao-summary-val" id="summaryArquivos">0</div></div>
+          <div class="uniao-summary-kpi"><div class="uniao-summary-label">Linhas totais</div><div class="uniao-summary-val" id="summaryLinhas">0</div></div>
+          <div class="uniao-summary-kpi"><div class="uniao-summary-label">Colunas</div><div class="uniao-summary-val" id="summaryColunas">0</div></div>
+          <div class="uniao-summary-kpi"><div class="uniao-summary-label">Coluna de data detectada</div><div class="uniao-summary-val uniao-summary-val-text" id="summaryDataCol">—</div></div>
+          <div class="uniao-summary-kpi"><div class="uniao-summary-label">Período</div><div class="uniao-summary-val uniao-summary-val-text" id="summaryPeriodo">—</div></div>
+        </div>
+        <div id="uniaoWarnings"></div>
+      </div>
+      <div class="uniao-preview-section" id="uniaoPreviewSection" style="display:none;">
+        <div class="uniao-section-header">
+          <div class="uniao-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span>Prévia do arquivo consolidado</span><span class="uniao-count" id="uniaoPreviewCount">0 linhas</span></div>
+          <label style="display:flex;align-items:center;gap:var(--s-2);font-size:12px;color:var(--text-tertiary);user-select:none;cursor:pointer;">
+            <div class="switch" style="width:36px;height:20px;"><input type="checkbox" id="toggleOrdenar" checked onchange="uniaoReprocessar()"><span class="switch-slider"></span></div>
+            Ordenar por data (antigo → recente)
+          </label>
+        </div>
+        <div class="uniao-preview-viewport" id="uniaoPreviewViewport">
+          <div class="scroll-minimap">
+            <span class="scroll-minimap-info"><kbd>Shift</kbd> + scroll rola horizontal</span>
+            <div class="scroll-minimap-track" onclick="uniaoJumpScroll(event)"><div class="scroll-minimap-thumb" id="uniaoMinimapThumb" style="left:0%;width:30%;"></div></div>
+            <span class="scroll-minimap-info" id="uniaoMinimapLabel">—</span>
+          </div>
+          <div class="sheet-topscroll" id="uniaoTopscroll"><div id="uniaoTopscrollInner"></div></div>
+          <div class="sheet-container" id="uniaoPreviewContainer"><div class="sheet-grid" id="uniaoPreviewGrid"></div></div>
+        </div>
+      </div>
+      <div class="uniao-actions" id="uniaoActions" style="display:none;">
+        <div class="uniao-actions-info">
+          <div class="uniao-actions-title">Pronto para exportar</div>
+          <div class="uniao-actions-sub" id="uniaoActionsSub">Consolidação finalizada com sucesso</div>
+        </div>
+        <div style="display:flex;gap:var(--s-3);flex-wrap:wrap;">
+          <button class="btn btn-primary btn-lg" onclick="uniaoExportarXLSX()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Exportar Excel (.xlsx)</button>
+          <button class="btn btn-lg" onclick="uniaoExportarCSV()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Exportar CSV</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- Scripts (carregados no fim do body — DOM já disponível) -->
+<script src="js/utils.js"></script>
+<script src="js/constants.js"></script>
+<script src="js/state.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/upload.js"></script>
+<script src="js/autodetect.js"></script>
+<script src="js/mapping.js"></script>
+<script src="js/process.js"></script>
+<script src="js/filters.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/actions.js"></script>
+<script src="js/uniao.js"></script>
+
+</body>
+</html>

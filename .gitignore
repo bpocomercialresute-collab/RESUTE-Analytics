@@ -1,0 +1,16 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.bak
+
+# Editor
+.vscode/settings.json
+.idea/
+
+# Temporários
+*.tmp
+*.log
