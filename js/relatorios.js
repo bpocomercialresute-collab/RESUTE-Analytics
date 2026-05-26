@@ -1,44 +1,43 @@
 // =============================================================================
-// RELATÓRIOS — Gerenciamento de abas e menus
+// RELATÓRIOS — Navegação entre menus e abas
 // =============================================================================
 
-document.querySelectorAll('.relatorio-menu-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const menu = btn.dataset.menu;
-    
-    // Remove active de todos os botões
-    document.querySelectorAll('.relatorio-menu-btn').forEach(b => {
-      b.classList.remove('active');
-    });
-    
-    // Remove active de todos os conteúdos
-    document.querySelectorAll('.relatorio-content').forEach(c => {
-      c.classList.remove('active');
-    });
-    
-    // Marca como ativo
-    btn.classList.add('active');
-    document.querySelector(`.relatorio-content[data-menu="${menu}"]`).classList.add('active');
-  });
-});
+function relGoHome() {
+  document.getElementById('rel-menu-inicial').style.display = 'block';
+  document.getElementById('rel-bd-area').style.display = 'none';
+  document.getElementById('rel-vendas-area').style.display = 'none';
+}
 
-document.querySelectorAll('.relatorio-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    const tabName = tab.dataset.tab;
-    const container = tab.closest('.relatorio-tabs-container');
-    
-    // Remove active de todos os tabs neste container
-    container.querySelectorAll('.relatorio-tab').forEach(t => {
-      t.classList.remove('active');
-    });
-    
-    // Remove active de todos os conteúdos neste container
-    container.querySelectorAll('.relatorio-tab-content').forEach(c => {
-      c.classList.remove('active');
-    });
-    
-    // Marca como ativo
-    tab.classList.add('active');
-    container.querySelector(`.relatorio-tab-content[data-tab="${tabName}"]`).classList.add('active');
-  });
+function relShowBD() {
+  document.getElementById('rel-menu-inicial').style.display = 'none';
+  document.getElementById('rel-bd-area').style.display = 'block';
+  document.getElementById('rel-vendas-area').style.display = 'none';
+}
+
+function relShowRelatorios(tipo) {
+  document.getElementById('rel-menu-inicial').style.display = 'none';
+  document.getElementById('rel-bd-area').style.display = 'none';
+  document.getElementById('rel-vendas-area').style.display = 'block';
+  const titles = {
+    'relatorios': 'RELATÓRIOS',
+    'relat-produtos': 'RELAT PRODUTOS',
+    'relat-representantes': 'RELAT REPRESENTANTES'
+  };
+  document.getElementById('rel-vendas-title').textContent = titles[tipo] || 'RELATÓRIOS';
+}
+
+// Abas
+document.addEventListener('click', (e) => {
+  const tab = e.target.closest('.rel-tab');
+  if (!tab) return;
+  const target = tab.dataset.target;
+  const bar = tab.closest('.rel-tabs-bar');
+  
+  bar.querySelectorAll('.rel-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  
+  const area = bar.nextElementSibling;
+  const panes = area.parentElement.querySelectorAll('.rel-tab-pane');
+  panes.forEach(p => p.classList.remove('active'));
+  document.getElementById(target).classList.add('active');
 });

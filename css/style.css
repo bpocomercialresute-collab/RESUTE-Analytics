@@ -683,3 +683,279 @@ canvas{max-height:320px !important;width:100% !important;}
   text-align: center;
   color: var(--text-tertiary);
 }
+
+/* ============================================================
+   RELATÓRIOS — Visual idêntico ao Excel VBA
+   ============================================================ */
+
+/* Menu home com 2 quadros EXIBIR */
+.rel-home {
+  padding: var(--s-8) 0;
+}
+.rel-home-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-6);
+  max-width: 700px;
+}
+.rel-exibir-box {
+  background: #c8c8c8;
+  border: 2px solid #999;
+  border-radius: 4px;
+  padding: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.rel-exibir-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #222;
+  text-align: center;
+  margin-bottom: var(--s-2);
+  letter-spacing: 0.06em;
+}
+.rel-exibir-btn {
+  background: #fff;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #222;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  transition: all 120ms;
+  letter-spacing: 0.02em;
+}
+.rel-exibir-btn:hover {
+  background: #e8e8f0;
+  border-color: var(--brand-blue);
+  color: var(--brand-blue);
+}
+.rel-exibir-btn:active {
+  background: var(--brand-blue);
+  color: #fff;
+}
+
+/* Área com abas */
+.rel-area {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.rel-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-3) var(--s-5);
+  background: var(--brand-navy);
+  border-bottom: 1px solid var(--border-default);
+}
+.rel-back-btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: var(--r-sm);
+  color: var(--text-secondary);
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--dur-fast);
+}
+.rel-back-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+.rel-area-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.08em;
+}
+
+/* Abas estilo Excel (barra inferior) */
+.rel-tabs-bar {
+  display: flex;
+  background: var(--surface-2);
+  border-bottom: 2px solid var(--border-default);
+  overflow-x: auto;
+  padding: 0 var(--s-3);
+  gap: 2px;
+}
+.rel-tab {
+  padding: 9px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: var(--surface-3);
+  border: 1px solid var(--border-default);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  transition: all var(--dur-fast);
+  white-space: nowrap;
+  margin-top: 6px;
+  font-family: inherit;
+}
+.rel-tab:hover {
+  background: var(--surface-4);
+  color: var(--text-primary);
+}
+.rel-tab.active {
+  background: #1a7f3c;
+  color: #fff;
+  border-color: #1a7f3c;
+}
+
+/* Painéis de conteúdo das abas */
+.rel-tab-pane {
+  display: none;
+}
+.rel-tab-pane.active {
+  display: block;
+}
+
+/* Tabelas estilo Excel */
+.rel-table-wrap {
+  overflow: auto;
+  max-height: calc(100vh - 280px);
+  background: var(--surface-0);
+}
+.rel-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
+  font-size: 12px;
+}
+.rel-table thead tr {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.rel-table th {
+  background: #0d1b3e;
+  color: #fff;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  border-right: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 2px solid var(--brand-blue);
+  text-align: left;
+  cursor: default;
+  letter-spacing: 0.03em;
+}
+.rel-table th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  background: #0a1430;
+}
+.rel-table td {
+  padding: 7px 12px;
+  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--surface-1);
+}
+.rel-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--surface-2);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.rel-table tr:hover td {
+  background: var(--surface-2);
+}
+.rel-table tr:nth-child(even) td {
+  background: rgba(255,255,255,0.02);
+}
+.rel-placeholder-row td {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* Cards de info da aba CLIENTES */
+.rel-clientes-info {
+  display: flex;
+  gap: 2px;
+  padding: var(--s-3) var(--s-4);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-default);
+  flex-wrap: wrap;
+}
+.rel-info-card {
+  background: var(--surface-3);
+  border: 1px solid var(--border-default);
+  border-radius: 3px;
+  padding: 5px 10px;
+  min-width: 100px;
+}
+.rel-info-card.rel-info-blue { border-top: 3px solid #4a90d9; }
+.rel-info-card.rel-info-green { border-top: 3px solid #1a7f3c; }
+.rel-info-card.rel-info-yellow { border-top: 3px solid #f59e0b; }
+.rel-info-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 2px;
+}
+.rel-info-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Filtros aba PRODUTO SERVIÇO */
+.rel-produto-filtros {
+  display: flex;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-default);
+  flex-wrap: wrap;
+}
+.rel-filtro-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rel-filtro-item label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.rel-filtro-item input {
+  width: 160px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+/* Placeholder relatorios vendas */
+.rel-placeholder-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+@media(max-width:768px) {
+  .rel-home-grid { grid-template-columns: 1fr; }
+}
