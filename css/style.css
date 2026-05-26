@@ -959,3 +959,152 @@ canvas{max-height:320px !important;width:100% !important;}
 @media(max-width:768px) {
   .rel-home-grid { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   BOTÃO VOLTAR — global
+   ============================================================ */
+.voltar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-md);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out);
+  margin-bottom: var(--s-4);
+}
+.voltar-btn svg { width: 16px; height: 16px; stroke-width: 2; }
+.voltar-btn:hover {
+  background: var(--surface-2);
+  border-color: var(--brand-blue);
+  color: var(--text-primary);
+  transform: translateX(-2px);
+}
+
+/* ============================================================
+   ANÁLISE DE VENDAS — Menu premium (av-menu-*)
+   ============================================================ */
+.av-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--s-5);
+  max-width: 900px;
+}
+
+.av-menu-card {
+  position: relative;
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-xl);
+  padding: var(--s-8);
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  transition: all var(--dur-base) var(--ease-out);
+}
+.av-menu-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Glow de fundo ao hover */
+.av-card-glow {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity var(--dur-base);
+  pointer-events: none;
+  border-radius: inherit;
+}
+.av-menu-card:hover .av-card-glow { opacity: 1; }
+
+.av-card-bd {
+  border-color: rgba(46,116,192,0.25);
+}
+.av-card-bd:hover { border-color: var(--brand-blue); }
+.av-card-bd .av-card-glow {
+  background: radial-gradient(ellipse at top left, rgba(46,116,192,0.12), transparent 70%);
+}
+.av-card-bd .av-card-icon { color: var(--brand-blue-2); background: var(--brand-blue-soft); }
+
+.av-card-rel {
+  border-color: rgba(16,185,129,0.2);
+}
+.av-card-rel:hover { border-color: var(--success); }
+.av-card-rel .av-card-glow {
+  background: radial-gradient(ellipse at top left, rgba(16,185,129,0.10), transparent 70%);
+}
+.av-card-rel .av-card-icon { color: var(--success); background: var(--success-soft); }
+
+.av-card-icon {
+  width: 56px; height: 56px;
+  border-radius: var(--r-lg);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.av-card-icon svg { width: 26px; height: 26px; stroke-width: 1.6; }
+
+.av-card-body { flex: 1; }
+.av-card-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: var(--s-2);
+}
+.av-card-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin-bottom: var(--s-3);
+  text-transform: uppercase;
+}
+.av-card-desc {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin-bottom: var(--s-4);
+}
+.av-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.av-card-tags span {
+  padding: 3px 10px;
+  border-radius: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--surface-3);
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-subtle);
+}
+
+.av-card-arrow {
+  display: flex; align-items: center; justify-content: flex-end;
+}
+.av-card-arrow svg {
+  width: 20px; height: 20px; stroke-width: 2;
+  color: var(--text-tertiary);
+  transition: all var(--dur-fast);
+}
+.av-menu-card:hover .av-card-arrow svg {
+  color: var(--text-primary);
+  transform: translateX(4px);
+}
+
+@media(max-width:768px) {
+  .av-menu-grid { grid-template-columns: 1fr; }
+}
