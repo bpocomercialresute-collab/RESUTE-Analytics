@@ -587,3 +587,99 @@ canvas{max-height:320px !important;width:100% !important;}
   .kpi-grid{grid-template-columns:1fr;}
   .step-label{display:none;}
 }
+
+/* ============================================================
+   RELATÓRIOS — Interface estilo Excel
+   ============================================================ */
+.relatorio-menu {
+  display: flex;
+  gap: var(--s-3);
+  margin-bottom: var(--s-6);
+  flex-wrap: wrap;
+}
+.relatorio-menu-btn {
+  padding: 10px 20px;
+  border-radius: var(--r-md);
+  border: 2px solid var(--border-default);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--dur-base);
+  font-size: 13px;
+  letter-spacing: 0.05em;
+}
+.relatorio-menu-btn:hover {
+  border-color: var(--brand-blue);
+  background: var(--surface-2);
+}
+.relatorio-menu-btn.active {
+  background: var(--brand-blue);
+  border-color: var(--brand-blue);
+  color: #fff;
+}
+
+.relatorio-content {
+  display: none;
+}
+.relatorio-content.active {
+  display: block;
+}
+
+.relatorio-tabs-container {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.relatorio-tabs {
+  display: flex;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-default);
+  overflow-x: auto;
+}
+.relatorio-tab {
+  padding: 12px 18px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--dur-fast);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.relatorio-tab:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.03);
+}
+.relatorio-tab.active {
+  color: var(--brand-blue);
+  border-bottom-color: var(--brand-blue);
+  background: var(--surface-1);
+}
+
+.relatorio-tab-content {
+  display: none;
+  padding: var(--s-6);
+}
+.relatorio-tab-content.active {
+  display: block;
+}
+
+.relatorio-table-placeholder {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+.relatorio-placeholder {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-tertiary);
+}

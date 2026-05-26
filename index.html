@@ -23,6 +23,7 @@
   <div class="topnav-links">
     <button class="topnav-link active" data-view="view-home" onclick="switchView('view-home')">Início</button>
     <button class="topnav-link" data-view="view-tools" onclick="switchView('view-tools')">Ferramentas</button>
+    <button class="topnav-link" data-view="view-relatorios" onclick="switchView('view-relatorios')">Relatórios</button>
   </div>
   <div class="topnav-right">
     <div class="topnav-user">
@@ -298,6 +299,60 @@
     </div>
 
   </div>
+    <!-- VIEW: RELATÓRIOS -->
+    <div id="view-relatorios" class="page-view">
+      <div class="content">
+        <div class="page-header">
+          <h1 class="page-title">RELATÓRIOS</h1>
+          <p class="page-subtitle">Análise de dados por categoria</p>
+        </div>
+
+        <!-- Menu de seleção -->
+        <div class="relatorio-menu">
+          <button class="relatorio-menu-btn active" data-menu="bd-cadastros">BD E CADASTROS</button>
+          <button class="relatorio-menu-btn" data-menu="relatorios-vendas">RELATÓRIOS</button>
+        </div>
+
+        <!-- Conteúdo BD E CADASTROS -->
+        <div class="relatorio-content active" data-menu="bd-cadastros">
+          <div class="relatorio-tabs-container">
+            <div class="relatorio-tabs">
+              <button class="relatorio-tab active" data-tab="bd">BD</button>
+              <button class="relatorio-tab" data-tab="clientes">CLIENTES</button>
+              <button class="relatorio-tab" data-tab="representantes">REPRESENTANTES</button>
+              <button class="relatorio-tab" data-tab="grupos">GRUPOS</button>
+              <button class="relatorio-tab" data-tab="marca">MARCA</button>
+              <button class="relatorio-tab" data-tab="produto-servico">PRODUTO SERVIÇO</button>
+            </div>
+            
+            <div class="relatorio-tab-content active" data-tab="bd">
+              <div class="relatorio-table-placeholder">Aba BD</div>
+            </div>
+            <div class="relatorio-tab-content" data-tab="clientes">
+              <div class="relatorio-table-placeholder">Aba CLIENTES</div>
+            </div>
+            <div class="relatorio-tab-content" data-tab="representantes">
+              <div class="relatorio-table-placeholder">Aba REPRESENTANTES</div>
+            </div>
+            <div class="relatorio-tab-content" data-tab="grupos">
+              <div class="relatorio-table-placeholder">Aba GRUPOS</div>
+            </div>
+            <div class="relatorio-tab-content" data-tab="marca">
+              <div class="relatorio-table-placeholder">Aba MARCA</div>
+            </div>
+            <div class="relatorio-tab-content" data-tab="produto-servico">
+              <div class="relatorio-table-placeholder">Aba PRODUTO SERVIÇO</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conteúdo RELATÓRIOS VENDAS -->
+        <div class="relatorio-content" data-menu="relatorios-vendas">
+          <div class="relatorio-placeholder">Relatórios de vendas</div>
+        </div>
+      </div>
+    </div>
+
 </main>
 
 <!-- Scripts (carregados no fim do body — DOM já disponível) -->
@@ -314,6 +369,7 @@
 <script src="js/dashboard.js"></script>
 <script src="js/actions.js"></script>
 <script src="js/uniao.js"></script>
+  <script src="js/relatorios.js"></script>
 
 </body>
 </html>
