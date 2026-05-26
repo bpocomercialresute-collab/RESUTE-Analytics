@@ -4,14 +4,30 @@
 
 /** Troca a view ativa e atualiza topnav */
 function switchView(viewId) {
-  document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active'));
+  // Esconde todas as views via style direto (garante funcionamento mesmo sem CSS)
+  document.querySelectorAll('.page-view').forEach(v => {
+    v.style.display = 'none';
+    v.classList.remove('active');
+  });
   document.querySelectorAll('.topnav-link').forEach(n => n.classList.remove('active'));
+
+  // Mostra a view correta
   const view = document.getElementById(viewId);
-  if (view) view.classList.add('active');
+  if (view) {
+    view.style.display = 'block';
+    view.classList.add('active');
+  }
   const nav = document.querySelector(`.topnav-link[data-view="${viewId}"]`);
   if (nav) nav.classList.add('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+// Inicializa: esconde todas e mostra só view-home
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.page-view').forEach(v => { v.style.display = 'none'; });
+  const home = document.getElementById('view-home');
+  if (home) home.style.display = 'block';
+});
 
 // Listeners de navegação — topnav
 document.querySelectorAll('.topnav-link[data-view]').forEach(item => {
