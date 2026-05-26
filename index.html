@@ -23,7 +23,6 @@
   <div class="topnav-links">
     <button class="topnav-link active" data-view="view-home" onclick="switchView('view-home')">Início</button>
     <button class="topnav-link" data-view="view-tools" onclick="switchView('view-tools')">Ferramentas</button>
-    <button class="topnav-link" data-view="view-relatorios" onclick="switchView('view-relatorios')">Relatórios</button>
   </div>
   <div class="topnav-right">
     <div class="topnav-user">
@@ -79,161 +78,177 @@
           <div class="tool-meta"><span class="badge badge-active"><span class="badge-dot"></span>Disponível</span><div class="tool-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div></div>
         </div>
 
-        <div class="tool-card" data-status="soon"><div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><h3>Relatórios Gerenciais</h3><p>Dashboards consolidados para gestão executiva.</p><div class="tool-meta"><span class="badge badge-soon">Em breve</span></div></div>
+        <h3>Relatórios Gerenciais</h3><p>Dashboards consolidados para gestão executiva.</p><div class="tool-meta"><span class="badge badge-soon">Em breve</span></div></div>
       </div>
     </div>
 
     <!-- VIEW: ANÁLISE DE VENDAS -->
     <div id="view-app" class="page-view">
-      <div class="page-header">
-        <h1 class="page-title">Análise de Vendas</h1>
-        <p class="page-subtitle">Sistema universal — adapta-se a qualquer formato de planilha.</p>
-      </div>
+      <div class="content">
 
-      <div class="step-indicator">
-        <div class="step active" data-step="1"><div class="step-circle">1</div><div class="step-label">Upload</div></div>
-        <div class="step-bar" data-bar="1"></div>
-        <div class="step" data-step="2"><div class="step-circle">2</div><div class="step-label">Mapear colunas</div></div>
-        <div class="step-bar" data-bar="2"></div>
-        <div class="step" data-step="3"><div class="step-circle">3</div><div class="step-label">Relatórios</div></div>
-      </div>
+        <!-- MENU INICIAL ANÁLISE DE VENDAS — 2 quadros EXIBIR (igual ao Excel) -->
+        <div id="rel-menu-inicial">
+          <div class="page-header">
+            <h1 class="page-title">Análise de Vendas</h1>
+            <p class="page-subtitle">Relatórios e cadastros da operação RESUTE</p>
+          </div>
+          <div class="rel-home-grid">
+            <div class="rel-exibir-box">
+              <div class="rel-exibir-title">EXIBIR</div>
+              <button class="rel-exibir-btn" onclick="relShowBD()">BD E CADASTROS</button>
+            </div>
+            <div class="rel-exibir-box">
+              <div class="rel-exibir-title">EXIBIR</div>
+              <button class="rel-exibir-btn" onclick="relShowVendas('relatorios')">RELATÓRIOS</button>
+              <button class="rel-exibir-btn" onclick="relShowVendas('relat-produtos')">RELAT PRODUTOS</button>
+              <button class="rel-exibir-btn" onclick="relShowVendas('relat-representantes')">RELAT REPRESENTANTES</button>
+            </div>
+          </div>
+        </div>
 
-      <!-- STEP 1 -->
-      <div id="step-upload" class="step-content">
-        <div class="upload-grid">
-          <div class="upload-zone" id="zoneProd" onclick="document.getElementById('fileProd').click()">
-            <div class="upload-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
-            <div class="upload-info"><h4>Cadastro de Produtos <span class="tag-tiny opt" id="tagProd">Opcional</span></h4><p id="lblProd">Clique ou arraste a planilha (.csv, .xlsx)</p></div>
-            <input type="file" id="fileProd" style="display:none" accept=".csv,.xlsx,.xls">
+        <!-- BD E CADASTROS -->
+        <div id="rel-bd-area" class="rel-area" style="display:none;">
+          <div class="rel-topbar">
+            <button class="rel-back-btn" onclick="relGoHome()">← Voltar</button>
+            <span class="rel-area-title">BD E CADASTROS</span>
           </div>
-          <div class="upload-zone required" id="zonePed" onclick="document.getElementById('filePed').click()">
-            <div class="upload-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M3 16v5h5"/><path d="M16 21h5v-5"/></svg></div>
-            <div class="upload-info"><h4>Pedidos de Venda <span class="tag-tiny req" id="tagPed">Obrigatório</span></h4><p id="lblPed">Clique ou arraste a planilha (.csv, .xlsx)</p></div>
-            <input type="file" id="filePed" style="display:none" accept=".csv,.xlsx,.xls">
+          <div class="rel-tabs-bar">
+            <button class="rel-tab active" data-target="rel-tab-bd">BD</button>
+            <button class="rel-tab" data-target="rel-tab-clientes">CLIENTES</button>
+            <button class="rel-tab" data-target="rel-tab-representantes">REPRESENTANTES</button>
+            <button class="rel-tab" data-target="rel-tab-grupos">GRUPOS</button>
+            <button class="rel-tab" data-target="rel-tab-marca">MARCA</button>
+            <button class="rel-tab" data-target="rel-tab-produto">PRODUTO SERVIÇO</button>
           </div>
-        </div>
-        <div class="settings-panel">
-          <div class="settings-panel-header">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 4.6a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 .33H9a1.65 1.65 0 0 0 1-1.51V0"/></svg>
-            <span>Configurações do sistema</span>
-          </div>
-          <div class="settings-panel-items">
-            <label class="setting-toggle">
-              <div class="setting-toggle-info"><div class="setting-toggle-title">Análise de Status / Situação</div><div class="setting-toggle-desc">Habilitar reconhecimento e relatórios por status do pedido</div></div>
-              <div class="switch"><input type="checkbox" id="toggleStatus" onchange="toggleStatusFeature(this.checked)"><span class="switch-slider"></span></div>
-            </label>
-          </div>
-        </div>
-        <div style="display:flex;justify-content:flex-end;gap:var(--s-3);margin-top:var(--s-5);">
-          <button class="btn btn-ghost" onclick="limparTudo()">Apagar tudo</button>
-          <button class="btn btn-primary" id="btnGoMapping" onclick="goToMapping()" disabled>Avançar para mapeamento <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
-        </div>
-      </div>
 
-      <!-- STEP 2 -->
-      <div id="step-mapping" class="step-content" style="display:none;">
-        <div class="mapping-section" id="mappingPedSection">
-          <div class="mapping-header">
-            <div class="mapping-header-info">
-              <div class="mapping-header-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M3 16v5h5"/><path d="M16 21h5v-5"/></svg></div>
-              <div><h3>Planilha de Pedidos de Venda</h3><p id="mappingPedInfo">Selecione o papel de cada coluna</p></div>
-            </div>
-            <div class="mapping-stats">
-              <div class="mapping-stat"><div class="mapping-stat-val" id="mappingPedTotalCols">0</div><div class="mapping-stat-lbl">colunas</div></div>
-              <div class="mapping-stat"><div class="mapping-stat-val" id="mappingPedMapped">0</div><div class="mapping-stat-lbl">mapeadas</div></div>
-              <div class="mapping-stat"><div class="mapping-stat-val" id="mappingPedRows">0</div><div class="mapping-stat-lbl">linhas</div></div>
-            </div>
-          </div>
-          <div class="role-legend" id="roleLegend"></div>
-          <div class="mapping-toolbar">
-            <div class="mapping-toolbar-left"><span class="mapping-status"><span class="mapping-status-num" id="mapStatusPed">0</span> de <span class="mapping-status-num" id="mapTotalPed">0</span> colunas mapeadas</span></div>
-            <div class="mapping-toolbar-right">
-              <div class="pill-group">
-                <button class="pill active" data-view="all" onclick="setGridView('pedidos','all',this)">Todas as colunas</button>
-                <button class="pill" data-view="mapped-only" onclick="setGridView('pedidos','mapped-only',this)">Só mapeadas</button>
-              </div>
-              <button class="btn btn-sm" onclick="ignorarRestante('pedidos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>Ignorar restante</button>
+          <!-- ABA BD -->
+          <div id="rel-tab-bd" class="rel-tab-pane active">
+            <div class="rel-table-wrap">
+              <table class="rel-table">
+                <thead><tr>
+                  <th>ID ▼</th><th>N° PEDIDO ▼</th><th>PRODUTO OU SERVIÇO ▼</th>
+                  <th>QTD ▼</th><th>Dt. Emissão ▼</th><th>Data de Saída ▼</th>
+                  <th>VALOR ▼</th><th>Vendedor ▼</th><th>Indústria ▼</th>
+                  <th>Cliente ▼</th><th>ANO ▼</th><th>MÊS ▼</th>
+                  <th>GRUPO ▼</th><th>SEM ▼</th><th>tipo mercado ▼</th>
+                  <th>SETOR ▼</th><th>CIDADE ▼</th><th>UF ▼</th>
+                  <th>TIPO VENDEDOR ▼</th><th>Dias Sem Compra ▼</th>
+                  <th>NOTA F ▼</th><th>ROTA ▼</th><th>DESCONTO ▼</th>
+                  <th>EMPRESA ▼</th><th>cnpj ▼</th><th>grupo_produto ▼</th>
+                  <th>GRUPO PAI ▼</th><th>subgrupo_produto ▼</th>
+                  <th>marca ▼</th><th>familia_produto ▼</th><th>classes ▼</th>
+                </tr></thead>
+                <tbody><tr class="rel-placeholder-row"><td colspan="31">Dados serão carregados aqui</td></tr></tbody>
+              </table>
             </div>
           </div>
-          <div class="sheet-viewport" id="viewportPed">
-            <button class="scroll-nav left" onclick="scrollSheet('pedidos',-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 18L9 12l6-6"/></svg></button>
-            <button class="scroll-nav right" onclick="scrollSheet('pedidos',1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 18l6-6-6-6"/></svg></button>
-            <div class="scroll-minimap" id="minimapPed">
-              <span class="scroll-minimap-info"><kbd>Shift</kbd> + scroll do mouse rola horizontal</span>
-              <div class="scroll-minimap-track" onclick="jumpToScroll('pedidos',event)"><div class="scroll-minimap-thumb" id="minimapThumbPed" style="left:0%;width:30%;"></div></div>
-              <span class="scroll-minimap-info" id="minimapLabelPed">Col. 1–8 de 8</span>
-            </div>
-            <div class="sheet-topscroll" id="topscrollPed"><div class="sheet-topscroll-inner" id="topscrollInnerPed"></div></div>
-            <div class="sheet-container" id="containerPed"><div class="sheet-grid" id="sheetGridPed"></div></div>
-          </div>
-          <div class="mapping-footer">
-            <div class="mapping-footer-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Colunas marcadas como "personalizada" viram rankings próprios no relatório.</span></div>
-          </div>
-        </div>
-        <div class="mapping-section" id="mappingProdSection" style="display:none;">
-          <div class="mapping-header">
-            <div class="mapping-header-info">
-              <div class="mapping-header-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
-              <div><h3>Cadastro de Produtos</h3><p id="mappingProdInfo">Selecione SKU e Produto para enriquecer os dados</p></div>
-            </div>
-            <div class="mapping-stats">
-              <div class="mapping-stat"><div class="mapping-stat-val" id="mappingProdTotalCols">0</div><div class="mapping-stat-lbl">colunas</div></div>
-              <div class="mapping-stat"><div class="mapping-stat-val" id="mappingProdMapped">0</div><div class="mapping-stat-lbl">mapeadas</div></div>
-              <div class="mapping-stat"><div class="mapping-stat-val" id="mappingProdRows">0</div><div class="mapping-stat-lbl">linhas</div></div>
-            </div>
-          </div>
-          <div class="mapping-toolbar">
-            <div class="mapping-toolbar-left"><span class="mapping-status"><span class="mapping-status-num" id="mapStatusProd">0</span> de <span class="mapping-status-num" id="mapTotalProd">0</span> colunas mapeadas</span></div>
-            <div class="mapping-toolbar-right">
-              <div class="pill-group">
-                <button class="pill active" data-view="all" onclick="setGridView('produtos','all',this)">Todas as colunas</button>
-                <button class="pill" data-view="mapped-only" onclick="setGridView('produtos','mapped-only',this)">Só mapeadas</button>
-              </div>
-              <button class="btn btn-sm" onclick="ignorarRestante('produtos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>Ignorar restante</button>
-            </div>
-          </div>
-          <div class="sheet-viewport" id="viewportProd">
-            <button class="scroll-nav left" onclick="scrollSheet('produtos',-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 18L9 12l6-6"/></svg></button>
-            <button class="scroll-nav right" onclick="scrollSheet('produtos',1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 18l6-6-6-6"/></svg></button>
-            <div class="scroll-minimap" id="minimapProd">
-              <span class="scroll-minimap-info"><kbd>Shift</kbd> + scroll do mouse rola horizontal</span>
-              <div class="scroll-minimap-track" onclick="jumpToScroll('produtos',event)"><div class="scroll-minimap-thumb" id="minimapThumbProd" style="left:0%;width:30%;"></div></div>
-              <span class="scroll-minimap-info" id="minimapLabelProd">Col. 1–8 de 8</span>
-            </div>
-            <div class="sheet-topscroll" id="topscrollProd"><div class="sheet-topscroll-inner" id="topscrollInnerProd"></div></div>
-            <div class="sheet-container" id="containerProd"><div class="sheet-grid" id="sheetGridProd"></div></div>
-          </div>
-        </div>
-      </div>
 
-      <!-- BARRA FIXA DE AÇÃO -->
-      <div class="sticky-actions" id="fixedActionBar">
-        <div class="sticky-actions-info">
-          <div class="sticky-actions-title" id="stickyTitle">Aguardando mapeamento</div>
-          <div class="sticky-actions-sub" id="stickySub">Marque ao menos uma coluna para continuar</div>
-        </div>
-        <div class="sticky-actions-right">
-          <button class="btn btn-ghost" onclick="goToUpload()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar</button>
-          <button class="btn" onclick="autoMapping()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/><circle cx="12" cy="12" r="10"/></svg>Sugestão automática</button>
-          <button class="btn btn-primary btn-lg" id="btnConfirmMapping" onclick="confirmarMapeamento()">Finalizar parametrização <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
-        </div>
-      </div>
+          <!-- ABA CLIENTES -->
+          <div id="rel-tab-clientes" class="rel-tab-pane">
+            <div class="rel-clientes-info">
+              <div class="rel-info-card"><div class="rel-info-label">vem do BD</div><div class="rel-info-val">—</div></div>
+              <div class="rel-info-card rel-info-blue"><div class="rel-info-label">do cad cliente</div><div class="rel-info-val">—</div></div>
+              <div class="rel-info-card"><div class="rel-info-label">vem do BD</div><div class="rel-info-val">—</div></div>
+              <div class="rel-info-card rel-info-green"><div class="rel-info-label">sem compra</div><div class="rel-info-val">—</div></div>
+              <div class="rel-info-card rel-info-green"><div class="rel-info-label">sem compra</div><div class="rel-info-val">—</div></div>
+              <div class="rel-info-card rel-info-yellow"><div class="rel-info-label">FLUXO MEDIO</div><div class="rel-info-val">—</div></div>
+              <div class="rel-info-card rel-info-yellow"><div class="rel-info-label">DATA</div><div class="rel-info-val">—</div></div>
+            </div>
+            <div class="rel-table-wrap">
+              <table class="rel-table">
+                <thead><tr>
+                  <th>ID ▼</th><th>COD_CLI ▼</th><th>CLIENTES ▼</th>
+                  <th>TIPO ▼</th><th>ORIG ▼</th><th>CNPJ / CPF ▼</th>
+                  <th>RG/IE ▼</th><th>CEP ▼</th><th>Cidade ▼</th>
+                  <th>UF ▼</th><th>Endereço ▼</th><th>Endereço Nro ▼</th>
+                  <th>Complemento ▼</th><th>Bairro ▼</th><th>Telefone ▼</th>
+                  <th>Celular ▼</th><th>E-mail ▼</th><th>Fantasia ▼</th>
+                  <th>VENDEDOR ▼</th><th>Ult Compra ▼</th><th>Zona de Venda ▼</th>
+                  <th>dias sem venda ▼</th><th>meses sem venda ▼</th>
+                  <th>DIAS_CICLO ▼</th><th>LIGAR ▼</th><th>ULT_VD_BD ▼</th>
+                  <th>dias&gt;ciclo ▼</th><th>dt_penu ▼</th>
+                </tr></thead>
+                <tbody><tr class="rel-placeholder-row"><td colspan="28">Dados serão carregados aqui</td></tr></tbody>
+              </table>
+            </div>
+          </div>
 
-      <!-- STEP 3 -->
-      <div id="step-dashboard" class="step-content" style="display:none;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--s-5);flex-wrap:wrap;gap:var(--s-3);">
-          <button class="btn btn-ghost" onclick="goToMapping()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Reajustar mapeamento</button>
-          <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">
-            <button class="btn" onclick="exportarCSV()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Exportar CSV</button>
-            <button class="btn btn-ghost" onclick="window.print()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir</button>
-            <button class="btn btn-danger" onclick="limparTudo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Apagar</button>
+          <!-- ABA REPRESENTANTES -->
+          <div id="rel-tab-representantes" class="rel-tab-pane">
+            <div class="rel-table-wrap">
+              <table class="rel-table">
+                <thead><tr>
+                  <th>ID ▼</th><th>COD ▼</th><th>REPRESENTANTE ▼</th>
+                  <th>TIPO ▼</th><th>Fantasia ▼</th><th>Fone ▼</th>
+                  <th>% CRESCIMENTO ▼</th><th>email ▼</th><th>obs ▼</th><th>tipo_produto ▼</th>
+                </tr></thead>
+                <tbody><tr class="rel-placeholder-row"><td colspan="10">Dados serão carregados aqui</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ABA GRUPOS -->
+          <div id="rel-tab-grupos" class="rel-tab-pane">
+            <div class="rel-table-wrap">
+              <table class="rel-table">
+                <thead><tr>
+                  <th>ID ▼</th><th>COD ▼</th><th>GRUPO ▼</th><th>GRUPO PAI ▼</th>
+                </tr></thead>
+                <tbody><tr class="rel-placeholder-row"><td colspan="4">Dados serão carregados aqui</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ABA MARCA -->
+          <div id="rel-tab-marca" class="rel-tab-pane">
+            <div class="rel-table-wrap">
+              <table class="rel-table">
+                <thead><tr>
+                  <th>ID ▼</th><th>COD MARCA ▼</th><th>MARCA ▼</th>
+                </tr></thead>
+                <tbody><tr class="rel-placeholder-row"><td colspan="3">Dados serão carregados aqui</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ABA PRODUTO SERVIÇO -->
+          <div id="rel-tab-produto" class="rel-tab-pane">
+            <div class="rel-produto-filtros">
+              <div class="rel-filtro-item"><label>VENDEDOR</label><input type="text" placeholder="Selecione..." disabled></div>
+              <div class="rel-filtro-item"><label>DT_IN</label><input type="date" disabled></div>
+              <div class="rel-filtro-item"><label>DT_FIM</label><input type="date" disabled></div>
+              <div class="rel-filtro-item"><label>TIPO VENDA</label><input type="text" placeholder="Selecione..." disabled></div>
+            </div>
+            <div class="rel-table-wrap">
+              <table class="rel-table">
+                <thead><tr>
+                  <th>ID ▼</th><th>CODPROD ▼</th><th>DESCRIÇÃO ▼</th>
+                  <th>GRUPO ▼</th><th>MARCA ▼</th><th>UNID ▼</th>
+                  <th>PERCOMISSAO ▼</th><th>PERCDESCMAX ▼</th>
+                  <th>CUSTOCOMPRA ▼</th><th>PRECOVENDA ▼</th>
+                  <th>SEM 1 ▼</th><th>SEM 2 ▼</th><th>SEM 3 ▼</th>
+                  <th>SEM 4 ▼</th><th>SEM 5 ▼</th><th>SEM 6 ▼</th><th>SEM 7 ▼</th>
+                </tr></thead>
+                <tbody><tr class="rel-placeholder-row"><td colspan="17">Dados serão carregados aqui</td></tr></tbody>
+              </table>
+            </div>
           </div>
         </div>
-        <div class="panel"><div class="panel-title">Filtros</div><div class="filter-grid" id="filterGrid"></div></div>
-        <div class="tabs" id="dashTabs"></div>
-        <div id="dashContent"></div>
+
+        <!-- RELATÓRIOS DE VENDAS -->
+        <div id="rel-vendas-area" class="rel-area" style="display:none;">
+          <div class="rel-topbar">
+            <button class="rel-back-btn" onclick="relGoHome()">← Voltar</button>
+            <span class="rel-area-title" id="rel-vendas-title">RELATÓRIOS</span>
+          </div>
+          <div class="rel-placeholder-box">
+            <p>Interface de relatórios em desenvolvimento</p>
+          </div>
+        </div>
+
       </div>
     </div>
+
 
     <!-- VIEW: UNIÃO DE PLANILHAS -->
     <div id="view-uniao" class="page-view">
@@ -342,25 +357,7 @@
           <div class="relatorio-placeholder">Relatórios de vendas</div>
         </div>
       </div>
-    </div>
-
-
-    <!-- ============================================================
-         VIEW: RELATÓRIOS (espelho da ferramenta Excel)
-         ============================================================ -->
-    <div id="view-relatorios" class="page-view">
-      <div class="content">
-
-        <!-- MENU INICIAL — 2 quadros EXIBIR (imagem 1) -->
-        <div id="rel-menu-inicial" class="rel-home">
-          <div class="rel-home-grid">
-
-            <div class="rel-exibir-box">
-              <div class="rel-exibir-title">EXIBIR</div>
-              <button class="rel-exibir-btn" onclick="relShowBD()">BD E CADASTROS</button>
-            </div>
-
-            <div class="rel-exibir-box">
+    </div>            <div class="rel-exibir-box">
               <div class="rel-exibir-title">EXIBIR</div>
               <button class="rel-exibir-btn" onclick="relShowRelatorios('relatorios')">RELATÓRIOS</button>
               <button class="rel-exibir-btn" onclick="relShowRelatorios('relat-produtos')">RELAT PRODUTOS</button>
@@ -569,7 +566,6 @@
 <script src="js/dashboard.js"></script>
 <script src="js/actions.js"></script>
 <script src="js/uniao.js"></script>
-  <script src="js/relatorios.js"></script>
   <script src="js/relatorios.js"></script>
 
 </body>
