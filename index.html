@@ -88,53 +88,41 @@
     <div id="view-app" class="page-view" style="display:none">
       <div class="content">
 
-        <!-- ── TELA INICIAL ──────────────────────────────────── -->
+        <!-- HOME: 2 quadros EXIBIR -->
         <div id="av-home">
           <button class="voltar-btn" onclick="switchView('view-tools')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-            Ferramentas
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Ferramentas
           </button>
           <div class="page-header" style="margin-top:var(--s-4)">
             <h1 class="page-title">Análise de Vendas</h1>
             <p class="page-subtitle">Selecione o módulo que deseja acessar</p>
           </div>
-
           <div class="av-exibir-grid">
-
-            <!-- Quadro 1: BD E CADASTROS -->
             <div class="av-exibir-box">
               <div class="av-exibir-header">EXIBIR</div>
               <button class="av-exibir-btn av-btn-bd" onclick="avShowBD()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
-                BD E CADASTROS
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>BD E CADASTROS
               </button>
             </div>
-
-            <!-- Quadro 2: RELATÓRIOS -->
             <div class="av-exibir-box">
               <div class="av-exibir-header">EXIBIR</div>
               <button class="av-exibir-btn av-btn-rel" onclick="avShowRel('laudo-grupo')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
-                RELATÓRIOS
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>RELATÓRIOS
               </button>
               <button class="av-exibir-btn av-btn-rel" onclick="avShowRel('relat-produtos')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-                RELAT PRODUTOS
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>RELAT PRODUTOS
               </button>
               <button class="av-exibir-btn av-btn-rel" onclick="avShowRel('relat-representantes')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                RELAT REPRESENTANTES
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>RELAT REPRESENTANTES
               </button>
             </div>
-
           </div>
         </div>
 
-        <!-- ── BD E CADASTROS ─────────────────────────────────── -->
+        <!-- BD E CADASTROS -->
         <div id="av-bd-area" style="display:none">
           <button class="voltar-btn" onclick="avGoHome()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-            Voltar
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar
           </button>
           <div class="av-tabs-bar">
             <button class="av-tab active" data-target="av-tab-bd">BD</button>
@@ -145,98 +133,46 @@
             <button class="av-tab" data-target="av-tab-produto">PRODUTO SERVIÇO</button>
           </div>
 
-          <!-- ABA BD — GRADE EXCEL EMBUTIDA -->
+          <!-- ABA BD — GRADE EXCEL -->
           <div id="av-tab-bd" class="av-tab-pane active">
             <div id="excel-grid-container" class="eg-root"></div>
-          </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span id="bd-status" class="bd-status">Aguardando dados...</span>
-                <button id="bd-clear-btn" onclick="bdClear()" style="display:none;padding:5px 12px;border-radius:6px;border:1px solid rgba(239,68,68,0.4);background:rgba(239,68,68,0.08);color:#ef4444;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">
-                  🗑 Limpar BD
-                </button>
-              </div>
-            </div>
-            <div id="bd-paste-zone" class="bd-paste-zone" tabindex="0">
-              <div class="bd-paste-zone-inner">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-3"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
-                <p>Clique aqui e cole (Ctrl+V) — os dados serão adicionados ao BD</p>
-                <span>Ctrl + V</span>
-              </div>
-            </div>
-            <div class="av-table-wrap">
-              <table class="av-table" id="bd-main-table">
-                <thead><tr><th>ID</th><th>N° PEDIDO</th><th>PRODUTO OU SERVIÇO</th><th>QTD</th><th>Dt. Emissão</th><th>Data de Saída</th><th>VALOR</th><th>Vendedor</th><th>Indústria</th><th>Cliente</th><th>ANO</th><th>MÊS</th><th>GRUPO</th><th>SEM</th><th>tipo mercado</th><th>SETOR</th><th>CIDADE</th><th>UF</th><th>TIPO VENDEDOR</th><th>Dias Sem Compra</th><th>NOTA F</th><th>ROTA</th><th>DESCONTO</th><th>EMPRESA</th><th>cnpj</th><th>grupo_produto</th><th>GRUPO PAI</th><th>subgrupo_produto</th><th>marca</th><th>familia_produto</th><th>classes</th></tr></thead>
-                <tbody><tr class="av-empty"><td colspan="31">Nenhum dado carregado — cole os dados acima</td></tr></tbody>
-              </table>
-            </div>
           </div>
 
           <!-- ABA MARCA -->
           <div id="av-tab-marca" class="av-tab-pane">
             <div class="av-table-wrap">
-              <table class="av-table">
-                <thead><tr>
-                  <th>ID</th><th>COD MARCA</th><th>MARCA</th>
-                </tr></thead>
-                <tbody><tr class="av-empty"><td colspan="3">Nenhum dado carregado</td></tr></tbody>
-              </table>
+              <table class="av-table"><thead><tr><th>#</th><th>MARCA</th><th>Total Vendas R$</th></tr></thead>
+              <tbody><tr class="av-empty"><td colspan="3">Cole dados no BD e clique em Processar</td></tr></tbody></table>
             </div>
           </div>
 
           <!-- ABA CLIENTES -->
           <div id="av-tab-clientes" class="av-tab-pane">
             <div class="av-clientes-kpis">
-              <div class="av-kpi"><div class="av-kpi-label">vem do BD</div><div class="av-kpi-val">—</div></div>
-              <div class="av-kpi av-kpi-blue"><div class="av-kpi-label">do cad cliente</div><div class="av-kpi-val">—</div></div>
-              <div class="av-kpi"><div class="av-kpi-label">vem do BD</div><div class="av-kpi-val">—</div></div>
-              <div class="av-kpi av-kpi-green"><div class="av-kpi-label">sem compra</div><div class="av-kpi-val">—</div></div>
+              <div class="av-kpi"><div class="av-kpi-label">vem do BD</div><div class="av-kpi-val" id="kpi-bd-total">—</div></div>
+              <div class="av-kpi av-kpi-blue"><div class="av-kpi-label">do cad cliente</div><div class="av-kpi-val" id="kpi-cli-total">—</div></div>
               <div class="av-kpi av-kpi-green"><div class="av-kpi-label">sem compra</div><div class="av-kpi-val">—</div></div>
               <div class="av-kpi av-kpi-yellow"><div class="av-kpi-label">FLUXO MEDIO</div><div class="av-kpi-val">—</div></div>
-              <div class="av-kpi av-kpi-yellow"><div class="av-kpi-label">DATA</div><div class="av-kpi-val">—</div></div>
             </div>
             <div class="av-table-wrap">
-              <table class="av-table">
-                <thead><tr>
-                  <th>ID</th><th>COD_CLI</th><th>CLIENTES</th>
-                  <th>TIPO</th><th>ORIG</th><th>CNPJ / CPF</th>
-                  <th>RG/IE</th><th>CEP</th><th>Cidade</th>
-                  <th>UF</th><th>Endereço</th><th>Endereço Nro</th>
-                  <th>Complemento</th><th>Bairro</th><th>Telefone</th>
-                  <th>Celular</th><th>E-mail</th><th>Fantasia</th>
-                  <th>VENDEDOR</th><th>Ult Compra</th><th>Zona de Venda</th>
-                  <th>dias sem venda</th><th>meses sem venda</th>
-                  <th>DIAS_CICLO</th><th>LIGAR</th><th>ULT_VD_BD</th>
-                  <th>dias&gt;ciclo</th><th>dt_penu</th>
-                </tr></thead>
-                <tbody><tr class="av-empty"><td colspan="28">Nenhum dado carregado</td></tr></tbody>
-              </table>
+              <table class="av-table"><thead><tr><th>#</th><th>CLIENTE</th><th>CIDADE</th><th>UF</th><th>VENDEDOR</th><th>Pedidos</th><th>Total R$</th></tr></thead>
+              <tbody><tr class="av-empty"><td colspan="7">Cole dados no BD e clique em Processar</td></tr></tbody></table>
             </div>
           </div>
 
           <!-- ABA REPRESENTANTES -->
           <div id="av-tab-representantes" class="av-tab-pane">
             <div class="av-table-wrap">
-              <table class="av-table">
-                <thead><tr>
-                  <th>ID</th><th>COD</th><th>REPRESENTANTE</th>
-                  <th>TIPO</th><th>Fantasia</th><th>Fone</th>
-                  <th>% CRESCIMENTO</th><th>email</th><th>obs</th><th>tipo_produto</th>
-                </tr></thead>
-                <tbody><tr class="av-empty"><td colspan="10">Nenhum dado carregado</td></tr></tbody>
-              </table>
+              <table class="av-table"><thead><tr><th>#</th><th>VENDEDOR</th><th>Pedidos</th><th>Clientes</th><th>Total R$</th></tr></thead>
+              <tbody><tr class="av-empty"><td colspan="5">Cole dados no BD e clique em Processar</td></tr></tbody></table>
             </div>
           </div>
 
           <!-- ABA GRUPOS -->
           <div id="av-tab-grupos" class="av-tab-pane">
             <div class="av-table-wrap">
-              <table class="av-table">
-                <thead><tr>
-                  <th>ID</th><th>COD</th><th>GRUPO</th><th>GRUPO PAI</th>
-                </tr></thead>
-                <tbody><tr class="av-empty"><td colspan="4">Nenhum dado carregado</td></tr></tbody>
-              </table>
+              <table class="av-table"><thead><tr><th>#</th><th>GRUPO</th><th>GRUPO PAI</th><th>Total R$</th></tr></thead>
+              <tbody><tr class="av-empty"><td colspan="4">Cole dados no BD e clique em Processar</td></tr></tbody></table>
             </div>
           </div>
 
@@ -246,28 +182,18 @@
               <div class="av-filtro"><label>VENDEDOR</label><select disabled><option>Todos</option></select></div>
               <div class="av-filtro"><label>DT_IN</label><input type="date" disabled></div>
               <div class="av-filtro"><label>DT_FIM</label><input type="date" disabled></div>
-              <div class="av-filtro"><label>TIPO VENDA</label><select disabled><option>Todos</option></select></div>
             </div>
             <div class="av-table-wrap">
-              <table class="av-table">
-                <thead><tr>
-                  <th>ID</th><th>CODPROD</th><th>DESCRIÇÃO</th>
-                  <th>GRUPO</th><th>subgrupo</th><th>familia</th>
-                  <th>ATIV_INAT</th><th>tipo_produto</th>
-                  <th>DT_1</th><th>DT_2</th><th>DT_3</th>
-                  <th>DT_4</th><th>DT_5</th><th>DT_6</th><th>DT_7</th>
-                </tr></thead>
-                <tbody><tr class="av-empty"><td colspan="15">Nenhum dado carregado</td></tr></tbody>
-              </table>
+              <table class="av-table"><thead><tr><th>PRODUTO</th><th>GRUPO</th><th>MARCA</th><th>Qtd Vendida</th><th>Total R$</th></tr></thead>
+              <tbody><tr class="av-empty"><td colspan="5">Cole dados no BD e clique em Processar</td></tr></tbody></table>
             </div>
           </div>
         </div>
 
-        <!-- ── RELATÓRIOS ──────────────────────────────────────── -->
+        <!-- RELATÓRIOS -->
         <div id="av-rel-area" style="display:none">
           <button class="voltar-btn" onclick="avGoHome()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-            Voltar
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar
           </button>
           <div class="av-tabs-bar">
             <button class="av-tab active" data-target="av-rel-laudo-grupo">LAUDO_GRUPO</button>
@@ -276,59 +202,34 @@
             <button class="av-tab av-tab-highlight" data-target="av-rel-venda-produto">VENDA POR PRODUTO</button>
             <button class="av-tab" data-target="av-rel-laudo-marca">LAUDO_GRUPO_MARCA</button>
           </div>
-
           <div id="av-rel-laudo-grupo" class="av-tab-pane active">
             <div class="av-rel-placeholder">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
-              <p>LAUDO_GRUPO</p>
-              <span>Gráfico de desempenho por grupo de produtos</span>
+              <p>LAUDO_GRUPO</p><span>Cole dados no BD → Processar → os dados aparecem aqui</span>
             </div>
           </div>
           <div id="av-rel-laudo-ano" class="av-tab-pane">
             <div class="av-rel-placeholder">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-              <p>LAUDO_GRUPOS_ANO</p>
-              <span>Análise anual por grupo</span>
+              <p>LAUDO_GRUPOS_ANO</p><span>Cole dados no BD → Processar</span>
             </div>
           </div>
           <div id="av-rel-laudo-ano02" class="av-tab-pane">
             <div class="av-rel-placeholder">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-              <p>LAUDO_GRUPOS_ANO_01_ANO_02</p>
-              <span>Comparativo entre dois anos</span>
+              <p>LAUDO_GRUPOS_ANO_01_ANO_02</p><span>Cole dados no BD → Processar</span>
             </div>
           </div>
           <div id="av-rel-venda-produto" class="av-tab-pane">
-            <div class="av-venda-filtros">
-              <div class="av-filtro"><label>PRODUTO</label><select disabled><option>Todos</option></select></div>
-              <div class="av-filtro"><label>GRUPO</label><select disabled><option>Todos</option></select></div>
-              <div class="av-filtro"><label>MARCA</label><select disabled><option>Todas</option></select></div>
-              <div class="av-filtro"><label>FAMÍLIA</label><select disabled><option>Todas</option></select></div>
-            </div>
-            <div class="av-table-wrap">
-              <table class="av-table">
-                <thead>
-                  <tr class="av-th-top">
-                    <th colspan="2">QTD - VALOR</th>
-                    <th class="av-th-year" colspan="12">2026</th>
-                  </tr>
-                  <tr>
-                    <th>PRODUTO</th><th>GRUPO</th>
-                    <th>Jan</th><th>Fev</th><th>Mar</th><th>Abr</th>
-                    <th>Mai</th><th>Jun</th><th>Jul</th><th>Ago</th>
-                    <th>Set</th><th>Out</th><th>Nov</th><th>Dez</th>
-                    <th>MEDIA</th><th>TOT</th><th>%</th>
-                  </tr>
-                </thead>
-                <tbody><tr class="av-empty"><td colspan="17">Nenhum dado carregado</td></tr></tbody>
-              </table>
+            <div class="av-rel-placeholder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+              <p>VENDA POR PRODUTO</p><span>Cole dados no BD → Processar</span>
             </div>
           </div>
           <div id="av-rel-laudo-marca" class="av-tab-pane">
             <div class="av-rel-placeholder">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-              <p>LAUDO_GRUPO_MARCA</p>
-              <span>Análise de desempenho por marca</span>
+              <p>LAUDO_GRUPO_MARCA</p><span>Cole dados no BD → Processar</span>
             </div>
           </div>
         </div>
