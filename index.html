@@ -96,46 +96,26 @@
           </button>
           <div class="page-header" style="margin-top:var(--s-5)">
             <h1 class="page-title">Análise de Vendas</h1>
-            <p class="page-subtitle">Selecione o módulo que deseja acessar</p>
+            <p class="page-subtitle">Selecione o que deseja acessar</p>
           </div>
-          <div class="av-menu-grid">
+          <div class="exibir-grid">
 
-            <!-- Card BD E CADASTROS -->
-            <div class="av-menu-card av-card-bd" onclick="relShowBD()">
-              <div class="av-card-glow"></div>
-              <div class="av-card-icon">
+            <div class="exibir-box">
+              <div class="exibir-box-header">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
+                EXIBIR
               </div>
-              <div class="av-card-body">
-                <div class="av-card-label">MÓDULO 01</div>
-                <h2 class="av-card-title">BD E CADASTROS</h2>
-                <p class="av-card-desc">Visualize e gerencie o banco de dados, clientes, representantes, grupos, marcas e produtos.</p>
-                <div class="av-card-tags">
-                  <span>BD</span><span>Clientes</span><span>Produtos</span>
-                </div>
-              </div>
-              <div class="av-card-arrow">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-              </div>
+              <button class="exibir-btn" onclick="relShowBD()">BD E CADASTROS</button>
             </div>
 
-            <!-- Card RELATÓRIOS -->
-            <div class="av-menu-card av-card-rel" onclick="relShowVendas('relatorios')">
-              <div class="av-card-glow"></div>
-              <div class="av-card-icon">
+            <div class="exibir-box">
+              <div class="exibir-box-header">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+                EXIBIR
               </div>
-              <div class="av-card-body">
-                <div class="av-card-label">MÓDULO 02</div>
-                <h2 class="av-card-title">RELATÓRIOS</h2>
-                <p class="av-card-desc">Dashboards consolidados com análise de vendas por período, produto e representante.</p>
-                <div class="av-card-tags">
-                  <span>Relatórios</span><span>Produtos</span><span>Representantes</span>
-                </div>
-              </div>
-              <div class="av-card-arrow">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-              </div>
+              <button class="exibir-btn" onclick="relShowVendas('relatorios')">RELATÓRIOS</button>
+              <button class="exibir-btn" onclick="relShowVendas('relat-produtos')">RELAT PRODUTOS</button>
+              <button class="exibir-btn" onclick="relShowVendas('relat-representantes')">RELAT REPRESENTANTES</button>
             </div>
 
           </div>

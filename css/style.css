@@ -1108,3 +1108,86 @@ canvas{max-height:320px !important;width:100% !important;}
 @media(max-width:768px) {
   .av-menu-grid { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   EXIBIR — 2 quadros da Análise de Vendas (premium)
+   ============================================================ */
+.exibir-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-5);
+  max-width: 720px;
+}
+.exibir-box {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-xl);
+  padding: var(--s-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  transition: border-color var(--dur-base);
+}
+.exibir-box:hover { border-color: var(--border-brand); }
+
+.exibir-box-header {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brand-blue-2);
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: var(--s-1);
+}
+.exibir-box-header svg {
+  width: 15px; height: 15px;
+  stroke-width: 1.8;
+}
+
+.exibir-btn {
+  width: 100%;
+  padding: 11px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-md);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: all var(--dur-fast) var(--ease-out);
+  position: relative;
+  overflow: hidden;
+}
+.exibir-btn::after {
+  content: "→";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%) translateX(4px);
+  opacity: 0;
+  transition: all var(--dur-fast);
+  font-size: 14px;
+}
+.exibir-btn:hover {
+  background: var(--brand-blue);
+  border-color: var(--brand-blue);
+  color: #fff;
+  padding-right: 36px;
+}
+.exibir-btn:hover::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+.exibir-btn:active { transform: scale(0.98); }
+
+@media(max-width:600px) {
+  .exibir-grid { grid-template-columns: 1fr; }
+}
