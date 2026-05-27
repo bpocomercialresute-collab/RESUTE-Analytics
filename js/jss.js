@@ -1,67 +1,102 @@
 // =============================================================================
-// JSS.JS — Excel embutido via jspreadsheet-ce + alimenta relatórios
+// JSS.JS — Excel embutido com jspreadsheet-ce
 // =============================================================================
 
 const JSS_COLS = [
-  'ID','N° PEDIDO','PRODUTO OU SERVIÇO','QTD','Dt. Emissão','Data de Saída',
-  'VALOR','Vendedor','Indústria','Cliente','ANO','MÊS','GRUPO','SEM',
-  'tipo mercado','SETOR','CIDADE','UF','TIPO VENDEDOR','Dias Sem Compra',
-  'NOTA F','ROTA','DESCONTO','EMPRESA','cnpj','grupo_produto',
-  'GRUPO PAI','subgrupo_produto','marca','familia_produto','classes'
+  {title:'ID',             width:55},
+  {title:'N° PEDIDO',      width:100},
+  {title:'PRODUTO OU SERVIÇO', width:220},
+  {title:'QTD',            width:65},
+  {title:'Dt. Emissão',    width:110},
+  {title:'Data de Saída',  width:110},
+  {title:'VALOR',          width:90},
+  {title:'Vendedor',       width:130},
+  {title:'Indústria',      width:100},
+  {title:'Cliente',        width:180},
+  {title:'ANO',            width:65},
+  {title:'MÊS',            width:65},
+  {title:'GRUPO',          width:130},
+  {title:'SEM',            width:70},
+  {title:'tipo mercado',   width:110},
+  {title:'SETOR',          width:130},
+  {title:'CIDADE',         width:120},
+  {title:'UF',             width:50},
+  {title:'TIPO VENDEDOR',  width:120},
+  {title:'Dias Sem Compra',width:120},
+  {title:'NOTA F',         width:80},
+  {title:'ROTA',           width:80},
+  {title:'DESCONTO',       width:90},
+  {title:'EMPRESA',        width:130},
+  {title:'cnpj',           width:140},
+  {title:'grupo_produto',  width:130},
+  {title:'GRUPO PAI',      width:120},
+  {title:'subgrupo_produto',width:140},
+  {title:'marca',          width:130},
+  {title:'familia_produto',width:140},
+  {title:'classes',        width:100},
 ];
 
 let jssInstance = null;
-let jssInited = false;
 
-// ── INICIALIZA O JSPREADSHEET ─────────────────────────────────────────────────
+// ── INICIALIZA ────────────────────────────────────────────────────────────────
 function jssInit() {
   const el = document.getElementById('jss-container');
-  if (!el || jssInited) return;
+  if (!el || jssInstance) return;
 
-  // Dados iniciais: 500 linhas vazias
-  const emptyData = Array.from({length: 500}, () => Array(JSS_COLS.length).fill(''));
+  // 500 linhas vazias
+  const emptyData = Array.from({length: 500}, () =>
+    Array(JSS_COLS.length).fill('')
+  );
 
-  const columns = JSS_COLS.map((title, i) => ({
-    title,
-    width: i === 2 ? 200 : i === 9 ? 180 : i === 6 ? 90 : 110,
-    type: 'text'
-  }));
-
-  jssInstance = jspreadsheet(el, {
-    data: emptyData,
-    columns,
-    minDimensions: [JSS_COLS.length, 500],
-    tableOverflow: true,
-    tableWidth: '100%',
-    tableHeight: 'calc(100vh - 220px)',
-    columnDrag: false,
-    allowInsertRow: true,
-    allowDeleteRow: true,
-    allowInsertColumn: false,
-    allowDeleteColumn: false,
-    freezeColumns: 1,
-    search: false,
-    lazyLoading: true,
-    loadingSpin: true,
-    onpaste: function() {
-      setTimeout(() => jssUpdateStatus(), 200);
-    },
-    onchange: function() {
-      jssUpdateStatus();
-    }
-  });
-
-  jssInited = true;
-  jssUpdateStatus();
+  try {
+    jssInstance = jspreadsheet(el, {
+      data: emptyData,
+      columns: JSS_COLS.map(c => ({
+        title: c.title,
+        width: c.width,
+        type: 'text',
+        wordWrap: false,
+      })),
+      tableOverflow: true,
+      tableWidth: '100%',
+      tableHeight: 'calc(100vh - 230px)',
+      allowInsertRow: true,
+      allowDeleteRow: true,
+      allowInsertColumn: false,
+      allowDeleteColumn: false,
+      columnSorting: true,
+      columnResize: true,
+      rowResize: false,
+      rowDrag: false,
+      editable: true,
+      allowExport: false,
+      search: false,
+      freezeColumns: 0,
+      onpaste: function() {
+        setTimeout(jssUpdateStatus, 300);
+      },
+      onchange: function() {
+        setTimeout(jssUpdateStatus, 100);
+      },
+    });
+    jssUpdateStatus();
+  } catch(e) {
+    console.error('jspreadsheet error:', e);
+  }
 }
 
 // ── STATUS ────────────────────────────────────────────────────────────────────
 function jssUpdateStatus() {
   if (!jssInstance) return;
-  const data = jssInstance.getData();
-  const filled = data.filter(r => r.some(c => c !== '' && c !== null && c !== undefined)).length;
-  const el = document.getElementById('jss-status');
-  if (el) el.textContent = filled > 0 ? `${filled.toLocaleString('pt-BR')} linhas com dados` : '';
+  try {
+    const data = jssInstance.getData();
+    const filled = data.filter(r => r && r.some(c => c !== '' && c !== null && c !== undefined)).length;
+    const el = document.getElementById('jss-status');
+    if (el) {
+      el.textContent = filled > 0 ? `${filled.toLocaleString('pt-BR')} linhas com dados` : 'Grade pronta — cole os dados do Excel com Ctrl+V';
+      el.style.color = filled > 0 ? 'var(--success)' : 'var(--text-tertiary)';
+    }
+  } catch(e) {}
 }
 
 // ── LIMPAR ────────────────────────────────────────────────────────────────────
@@ -71,24 +106,20 @@ function jssClear() {
   const empty = Array.from({length: 500}, () => Array(JSS_COLS.length).fill(''));
   jssInstance.setData(empty);
   jssUpdateStatus();
-  const el = document.getElementById('jss-status');
-  if (el) { el.textContent = 'BD limpo'; el.style.color = 'var(--warning)'; }
 }
 
-// ── PROCESSAR — alimenta todos os relatórios ─────────────────────────────────
+// ── PROCESSAR ────────────────────────────────────────────────────────────────
 function jssProcess() {
-  if (!jssInstance) return;
+  if (!jssInstance) { alert('Aguarde a grade carregar.'); return; }
   const raw = jssInstance.getData();
+  const rows = raw.filter(r => r && r.some(c => c !== '' && c !== null && c !== undefined));
 
-  // Filtra linhas com dados
-  const rows = raw.filter(r => r.some(c => c !== '' && c !== null && c !== undefined));
   if (!rows.length) {
-    alert('Nenhum dado encontrado. Cole os dados primeiro.');
+    alert('Nenhum dado encontrado. Cole os dados do Excel na grade primeiro.');
     return;
   }
 
-  // Alimenta BD_DATA
-  BD_DATA.headers = [...JSS_COLS];
+  BD_DATA.headers = JSS_COLS.map(c => c.title);
   BD_DATA.rows = rows;
   BD_DATA.count = rows.length;
   bdMapColumns();
@@ -101,14 +132,16 @@ function jssProcess() {
   }
 }
 
-// ── INICIALIZA AO ABRIR BD E CADASTROS ───────────────────────────────────────
-// Chamado pelo relatorios.js quando avShowBD() é executado
+// ── GARANTE INIT AO ABRIR ─────────────────────────────────────────────────────
 function jssEnsureInit() {
-  setTimeout(jssInit, 100);
+  if (!jssInstance) {
+    setTimeout(jssInit, 150);
+  }
 }
 
-// Também inicializa se o tab BD for clicado diretamente
+// Também dispara ao clicar na aba BD
 document.addEventListener('click', e => {
-  const tab = e.target.closest('.av-tab[data-target="av-tab-bd"]');
-  if (tab) setTimeout(jssInit, 100);
+  if (e.target.closest('.av-tab[data-target="av-tab-bd"]')) {
+    setTimeout(jssInit, 150);
+  }
 });
