@@ -145,15 +145,10 @@
             <button class="av-tab" data-target="av-tab-produto">PRODUTO SERVIÇO</button>
           </div>
 
-          <!-- ABA BD -->
+          <!-- ABA BD — GRADE EXCEL EMBUTIDA -->
           <div id="av-tab-bd" class="av-tab-pane active">
-            <div class="bd-paste-header">
-              <div class="bd-paste-instrucao">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-3"/></svg>
-                <div>
-                  <strong>Cole os dados do Excel em partes — cada colagem ADICIONA ao BD</strong>
-                  <span>No Excel: selecione um bloco de linhas → Ctrl+C → clique abaixo → Ctrl+V. Repita quantas vezes precisar.</span>
-                </div>
+            <div id="excel-grid-container" class="eg-root"></div>
+          </div>
               </div>
               <div style="display:flex;align-items:center;gap:8px">
                 <span id="bd-status" class="bd-status">Aguardando dados...</span>
@@ -429,6 +424,7 @@
 <script src="js/actions.js"></script>
 <script src="js/uniao.js"></script>
   <script src="js/bd.js"></script>
+  <script src="js/excel-grid.js"></script>
   <script src="js/relatorios.js"></script>
 
 </body>
