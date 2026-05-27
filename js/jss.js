@@ -1,5 +1,5 @@
 // =============================================================================
-// JSS.JS — Excel embutido (jspreadsheet-ce) para aba BD
+// JSS.JS — Excel embutido (jspreadsheet-ce) — suporte a 500.000 linhas
 // =============================================================================
 
 const JSS_COLS = [
@@ -36,21 +36,16 @@ const JSS_COLS = [
   {title:'classes',         width:100},
 ];
 
+const MAX_ROWS = 500000;
 let jssInstance = null;
-const INIT_ROWS = 1000;
 
-// ── INICIALIZA ────────────────────────────────────────────────────────────────
 function jssInit() {
   const el = document.getElementById('jss-container');
   if (!el || jssInstance) return;
 
-  const emptyData = Array.from({length: INIT_ROWS}, () =>
-    Array(JSS_COLS.length).fill('')
-  );
-
   try {
     jssInstance = jspreadsheet(el, {
-      data: emptyData,
+      data: [Array(JSS_COLS.length).fill('')],
       columns: JSS_COLS.map(c => ({
         title: c.title,
         width: c.width,
@@ -58,15 +53,17 @@ function jssInit() {
         wordWrap: false,
         align: 'left',
       })),
+      minDimensions: [JSS_COLS.length, MAX_ROWS],
       tableOverflow: true,
       tableWidth: '100%',
       tableHeight: 'calc(100vh - 250px)',
-      minHeight: '400px',
+      lazyLoading: true,
+      loadingSpin: true,
       allowInsertRow: true,
       allowDeleteRow: true,
       allowInsertColumn: false,
       allowDeleteColumn: false,
-      columnSorting: true,
+      columnSorting: false,
       columnResize: true,
       rowResize: false,
       editable: true,
@@ -75,80 +72,52 @@ function jssInit() {
       defaultColAlign: 'left',
       onselection: function(el, x1, y1) {
         const ref = document.getElementById('jss-ref');
-        if (ref) {
-          const letter = jssColLetter(x1);
-          ref.textContent = `${letter}${y1 + 1}`;
-        }
+        if (ref) ref.textContent = jssColLetter(x1) + (y1+1);
       },
-      onpaste: function() {
-        setTimeout(jssUpdateStatus, 400);
-      },
-      onchange: function() {
-        setTimeout(jssUpdateStatus, 150);
-      },
+      onpaste: function() { setTimeout(jssUpdateStatus, 500); },
+      onchange: function() { setTimeout(jssUpdateStatus, 200); },
     });
-
     jssUpdateStatus();
-  } catch(e) {
-    console.error('jspreadsheet init error:', e);
-  }
+  } catch(e) { console.error('jss error:', e); }
 }
 
 function jssColLetter(i) {
-  let s = ''; i++;
-  while (i > 0) { let m = (i-1)%26; s = String.fromCharCode(65+m)+s; i = Math.floor((i-1)/26); }
+  let s=''; i++;
+  while(i>0){let m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26);}
   return s;
 }
 
-// ── STATUS ────────────────────────────────────────────────────────────────────
 function jssUpdateStatus() {
   if (!jssInstance) return;
   try {
     const data = jssInstance.getData();
-    const filled = data.filter(r => r && r.some(c => c !== '' && c !== null && c !== undefined)).length;
+    const filled = data.filter(r=>r&&r.some(c=>c!==''&&c!==null&&c!==undefined)).length;
     const el = document.getElementById('jss-status');
-    if (el) {
-      if (filled > 0) {
-        el.textContent = `✓ ${filled.toLocaleString('pt-BR')} linhas`;
-        el.className = 'jss-status-badge jss-status-ok';
-      } else {
-        el.textContent = 'Sem dados';
-        el.className = 'jss-status-badge';
-      }
+    if (!el) return;
+    if (filled > 0) {
+      el.textContent = '✓ ' + filled.toLocaleString('pt-BR') + ' linhas com dados';
+      el.className = 'jss-status-badge jss-status-ok';
+    } else {
+      el.textContent = MAX_ROWS.toLocaleString('pt-BR') + ' linhas disponíveis';
+      el.className = 'jss-status-badge';
     }
   } catch(e) {}
 }
 
-// ── ADICIONAR LINHAS ─────────────────────────────────────────────────────────
-function jssAddRows() {
-  if (!jssInstance) return;
-  jssInstance.insertRow(500, jssInstance.getData().length);
-  const el = document.getElementById('jss-status');
-  if (el) { el.textContent = '+500 linhas adicionadas'; el.className = 'jss-status-badge jss-status-ok'; }
-  setTimeout(jssUpdateStatus, 300);
-}
-
-// ── LIMPAR ────────────────────────────────────────────────────────────────────
 function jssClear() {
   if (!jssInstance) return;
   if (!confirm('Limpar todos os dados do BD?')) return;
-  const empty = Array.from({length: INIT_ROWS}, () => Array(JSS_COLS.length).fill(''));
-  jssInstance.setData(empty);
+  jssInstance.setData([Array(JSS_COLS.length).fill('')]);
   jssUpdateStatus();
 }
 
-// ── PROCESSAR → alimenta relatórios ──────────────────────────────────────────
 function jssProcess() {
-  if (!jssInstance) { alert('Aguarde a grade carregar.'); return; }
+  if (!jssInstance) { alert('Aguarde carregar.'); return; }
   const raw = jssInstance.getData();
-  const rows = raw.filter(r => r && r.some(c => c !== '' && c !== null && c !== undefined));
+  const rows = raw.filter(r=>r&&r.some(c=>c!==''&&c!==null&&c!==undefined));
+  if (!rows.length) { alert('Sem dados. Cole os dados do Excel na grade (Ctrl+V).'); return; }
 
-  if (!rows.length) {
-    alert('Sem dados. Cole os dados do Excel na grade primeiro (Ctrl+V).');
-    return;
-  }
-
-  BD_DATA.headers = JSS_COLS.map(c => c.title);
+  BD_DATA.headers = JSS_COLS.map(c=>c.title);
   BD_DATA.rows = rows;
   BD_DATA.count = rows.length;
   bdMapColumns();
@@ -156,27 +125,19 @@ function jssProcess() {
 
   const el = document.getElementById('jss-status');
   if (el) {
-    el.textContent = `✓ ${rows.length.toLocaleString('pt-BR')} processadas`;
+    el.textContent = '✓ ' + rows.length.toLocaleString('pt-BR') + ' processadas — relatórios atualizados!';
     el.className = 'jss-status-badge jss-status-ok';
   }
-
-  // Feedback visual
   const btn = document.querySelector('.jss-btn-success');
   if (btn) {
+    const orig = btn.innerHTML;
     btn.textContent = '✓ Relatórios atualizados!';
-    setTimeout(() => {
-      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 5l7 7-7 7"/></svg> Processar Relatórios`;
-    }, 2500);
+    setTimeout(() => btn.innerHTML = orig, 2500);
   }
 }
 
-// ── GARANTE INIT ──────────────────────────────────────────────────────────────
-function jssEnsureInit() {
-  setTimeout(jssInit, 150);
-}
+function jssEnsureInit() { setTimeout(jssInit, 150); }
 
 document.addEventListener('click', e => {
-  if (e.target.closest('.av-tab[data-target="av-tab-bd"]')) {
-    setTimeout(jssInit, 150);
-  }
+  if (e.target.closest('.av-tab[data-target="av-tab-bd"]')) setTimeout(jssInit, 150);
 });
