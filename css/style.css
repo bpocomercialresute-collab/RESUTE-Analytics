@@ -1428,3 +1428,96 @@ canvas{max-height:320px !important;width:100% !important;}
 @media(max-width:600px) {
   .av-exibir-grid { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   BD — Zona de cola estilo Excel
+   ============================================================ */
+.bd-paste-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s-4) var(--s-5);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-bottom: none;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+.bd-paste-instrucao {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  color: var(--text-secondary);
+}
+.bd-paste-instrucao svg {
+  width: 20px; height: 20px;
+  stroke-width: 1.8;
+  color: var(--brand-blue-2);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.bd-paste-instrucao strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.bd-paste-instrucao span {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.bd-status {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  padding: 4px 12px;
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  border: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.bd-paste-zone {
+  min-height: 90px;
+  background: var(--surface-1);
+  border: 2px dashed var(--border-default);
+  cursor: pointer;
+  transition: all var(--dur-base) var(--ease-out);
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bd-paste-zone:focus,
+.bd-paste-zone:hover {
+  border-color: var(--brand-blue);
+  background: var(--brand-blue-soft);
+}
+.bd-paste-zone-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  pointer-events: none;
+  color: var(--text-tertiary);
+}
+.bd-paste-zone:focus .bd-paste-zone-inner,
+.bd-paste-zone:hover .bd-paste-zone-inner {
+  color: var(--brand-blue-2);
+}
+.bd-paste-zone-inner svg {
+  width: 28px; height: 28px; stroke-width: 1.4;
+}
+.bd-paste-zone-inner p {
+  font-size: 13px; font-weight: 600;
+}
+.bd-paste-zone-inner span {
+  font-size: 11px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-default);
+  padding: 3px 10px;
+  border-radius: var(--r-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
