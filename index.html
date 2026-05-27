@@ -171,52 +171,111 @@
 
           <!-- ABA MARCA -->
           <div id="av-tab-marca" class="av-tab-pane">
-            <div class="av-table-wrap">
-              <table class="av-table"><thead><tr><th>#</th><th>MARCA</th><th>Total Vendas R$</th></tr></thead>
-              <tbody><tr class="av-empty"><td colspan="3">Cole dados no BD e clique em Processar</td></tr></tbody></table>
+            <div class="jss-wrap">
+              <div class="jss-info-bar">
+                <div class="jss-info-left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="15" height="15"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-3"/></svg>
+                  <span>Cole os dados de <strong>MARCA</strong> com <kbd>Ctrl+V</kbd></span>
+                </div>
+                <span id="jss-status-marca" class="jss-status-badge">200 linhas disponíveis</span>
+              </div>
+              <div class="jss-toolbar">
+                <div class="jss-toolbar-left"><span class="jss-cell-ref" id="jss-ref-marca">A1</span></div>
+                <div class="jss-toolbar-right">
+                  <button class="jss-btn jss-btn-danger" onclick="jssClearGrid('marca')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Limpar
+                  </button>
+                </div>
+              </div>
+              <div id="jss-container-marca"></div>
             </div>
           </div>
 
           <!-- ABA CLIENTES -->
           <div id="av-tab-clientes" class="av-tab-pane">
-            <div class="av-clientes-kpis">
-              <div class="av-kpi"><div class="av-kpi-label">vem do BD</div><div class="av-kpi-val" id="kpi-bd-total">—</div></div>
-              <div class="av-kpi av-kpi-blue"><div class="av-kpi-label">do cad cliente</div><div class="av-kpi-val" id="kpi-cli-total">—</div></div>
-              <div class="av-kpi av-kpi-green"><div class="av-kpi-label">sem compra</div><div class="av-kpi-val">—</div></div>
-              <div class="av-kpi av-kpi-yellow"><div class="av-kpi-label">FLUXO MEDIO</div><div class="av-kpi-val">—</div></div>
-            </div>
-            <div class="av-table-wrap">
-              <table class="av-table"><thead><tr><th>#</th><th>CLIENTE</th><th>CIDADE</th><th>UF</th><th>VENDEDOR</th><th>Pedidos</th><th>Total R$</th></tr></thead>
-              <tbody><tr class="av-empty"><td colspan="7">Cole dados no BD e clique em Processar</td></tr></tbody></table>
+            <div class="jss-wrap">
+              <div class="jss-info-bar">
+                <div class="jss-info-left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="15" height="15"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-3"/></svg>
+                  <span>Cole os dados de <strong>CLIENTES</strong> com <kbd>Ctrl+V</kbd></span>
+                </div>
+                <span id="jss-status-clientes" class="jss-status-badge">10.000 linhas disponíveis</span>
+              </div>
+              <div class="jss-toolbar">
+                <div class="jss-toolbar-left"><span class="jss-cell-ref" id="jss-ref-clientes">A1</span></div>
+                <div class="jss-toolbar-right">
+                  <button class="jss-btn jss-btn-danger" onclick="jssClearGrid('clientes')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Limpar
+                  </button>
+                </div>
+              </div>
+              <div id="jss-container-clientes"></div>
             </div>
           </div>
 
           <!-- ABA REPRESENTANTES -->
           <div id="av-tab-representantes" class="av-tab-pane">
-            <div class="av-table-wrap">
-              <table class="av-table"><thead><tr><th>#</th><th>VENDEDOR</th><th>Pedidos</th><th>Clientes</th><th>Total R$</th></tr></thead>
-              <tbody><tr class="av-empty"><td colspan="5">Cole dados no BD e clique em Processar</td></tr></tbody></table>
+            <div class="jss-wrap">
+              <div class="jss-info-bar">
+                <div class="jss-info-left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="15" height="15"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-3"/></svg>
+                  <span>Cole os dados de <strong>REPRESENTANTES</strong> com <kbd>Ctrl+V</kbd></span>
+                </div>
+                <span id="jss-status-representantes" class="jss-status-badge">200 linhas disponíveis</span>
+              </div>
+              <div class="jss-toolbar">
+                <div class="jss-toolbar-left"><span class="jss-cell-ref" id="jss-ref-representantes">A1</span></div>
+                <div class="jss-toolbar-right">
+                  <button class="jss-btn jss-btn-danger" onclick="jssClearGrid('representantes')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Limpar
+                  </button>
+                </div>
+              </div>
+              <div id="jss-container-representantes"></div>
             </div>
           </div>
 
           <!-- ABA GRUPOS -->
           <div id="av-tab-grupos" class="av-tab-pane">
-            <div class="av-table-wrap">
-              <table class="av-table"><thead><tr><th>#</th><th>GRUPO</th><th>GRUPO PAI</th><th>Total R$</th></tr></thead>
-              <tbody><tr class="av-empty"><td colspan="4">Cole dados no BD e clique em Processar</td></tr></tbody></table>
+            <div class="jss-wrap">
+              <div class="jss-info-bar">
+                <div class="jss-info-left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="15" height="15"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-3"/></svg>
+                  <span>Cole os dados de <strong>GRUPOS</strong> com <kbd>Ctrl+V</kbd></span>
+                </div>
+                <span id="jss-status-grupos" class="jss-status-badge">200 linhas disponíveis</span>
+              </div>
+              <div class="jss-toolbar">
+                <div class="jss-toolbar-left"><span class="jss-cell-ref" id="jss-ref-grupos">A1</span></div>
+                <div class="jss-toolbar-right">
+                  <button class="jss-btn jss-btn-danger" onclick="jssClearGrid('grupos')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Limpar
+                  </button>
+                </div>
+              </div>
+              <div id="jss-container-grupos"></div>
             </div>
           </div>
 
           <!-- ABA PRODUTO SERVIÇO -->
           <div id="av-tab-produto" class="av-tab-pane">
-            <div class="av-produto-filtros">
-              <div class="av-filtro"><label>VENDEDOR</label><select disabled><option>Todos</option></select></div>
-              <div class="av-filtro"><label>DT_IN</label><input type="date" disabled></div>
-              <div class="av-filtro"><label>DT_FIM</label><input type="date" disabled></div>
-            </div>
-            <div class="av-table-wrap">
-              <table class="av-table"><thead><tr><th>PRODUTO</th><th>GRUPO</th><th>MARCA</th><th>Qtd Vendida</th><th>Total R$</th></tr></thead>
-              <tbody><tr class="av-empty"><td colspan="5">Cole dados no BD e clique em Processar</td></tr></tbody></table>
+            <div class="jss-wrap">
+              <div class="jss-info-bar">
+                <div class="jss-info-left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="15" height="15"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-3"/></svg>
+                  <span>Cole os dados de <strong>PRODUTO SERVIÇO</strong> com <kbd>Ctrl+V</kbd></span>
+                </div>
+                <span id="jss-status-produto" class="jss-status-badge">2.000 linhas disponíveis</span>
+              </div>
+              <div class="jss-toolbar">
+                <div class="jss-toolbar-left"><span class="jss-cell-ref" id="jss-ref-produto">A1</span></div>
+                <div class="jss-toolbar-right">
+                  <button class="jss-btn jss-btn-danger" onclick="jssClearGrid('produto')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Limpar
+                  </button>
+                </div>
+              </div>
+              <div id="jss-container-produto"></div>
             </div>
           </div>
         </div>
