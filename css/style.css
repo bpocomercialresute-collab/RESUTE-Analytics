@@ -1757,11 +1757,80 @@ canvas{max-height:320px !important;width:100% !important;}
   background: var(--surface-2);
   border-bottom: 1px solid var(--border-default);
 }
-/* Override cores do jspreadsheet para combinar com tema dark */
-.jss, .jss_container { background: var(--surface-1) !important; }
-.jss thead td { background: var(--brand-navy) !important; color: #fff !important; font-size: 11px !important; font-weight: 700 !important; }
-.jss tbody tr:nth-child(odd) td { background: var(--surface-1) !important; }
-.jss tbody tr:nth-child(even) td { background: rgba(255,255,255,0.02) !important; }
-.jss tbody td { color: var(--text-secondary) !important; font-size: 12px !important; border-color: var(--border-subtle) !important; }
-.jss tbody td.highlight { background: rgba(46,116,192,0.12) !important; }
-.jss_border_main { border-color: var(--brand-blue) !important; }
+/* ── JSPREADSHEET — override completo para tema dark ── */
+/* Container */
+#jss-container, #jss-container * { box-sizing: border-box; }
+#jss-container .jss_container,
+#jss-container table { background: #0d1b3e !important; }
+
+/* HEADER DE COLUNAS (linha com nomes) */
+#jss-container thead td,
+#jss-container table thead td {
+  background: #0a1430 !important;
+  color: #e8f0ff !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  border-right: 1px solid rgba(255,255,255,0.08) !important;
+  border-bottom: 2px solid #2e74c0 !important;
+  padding: 6px 8px !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+}
+
+/* Coluna de número de linha (primeiro td do thead = corner) */
+#jss-container thead td:first-child,
+#jss-container tbody td:first-child {
+  background: #080f24 !important;
+  color: #5a7399 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-align: right !important;
+  border-right: 1px solid #2e74c0 !important;
+  padding: 4px 8px !important;
+  min-width: 40px !important;
+}
+
+/* CÉLULAS DO CORPO */
+#jss-container tbody td {
+  background: #0d1b3e !important;
+  color: #c8d8f0 !important;
+  font-size: 12px !important;
+  border-right: 1px solid rgba(255,255,255,0.06) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  padding: 3px 8px !important;
+}
+#jss-container tbody tr:nth-child(even) td {
+  background: rgba(255,255,255,0.02) !important;
+}
+#jss-container tbody tr:hover td {
+  background: rgba(46,116,192,0.08) !important;
+}
+
+/* CÉLULA SELECIONADA */
+#jss-container td.highlight,
+#jss-container td.selected {
+  background: rgba(46,116,192,0.15) !important;
+  outline: 2px solid #2e74c0 !important;
+  outline-offset: -1px !important;
+}
+#jss-container .jss_border_main,
+#jss-container .jss_border {
+  border-color: #2e74c0 !important;
+  box-shadow: 0 0 0 2px #2e74c020 !important;
+}
+
+/* Input de edição */
+#jss-container input.editor {
+  background: #112248 !important;
+  color: #fff !important;
+  border: 2px solid #2e74c0 !important;
+  padding: 2px 6px !important;
+}
+
+/* Scrollbar */
+#jss-container ::-webkit-scrollbar { width: 10px; height: 10px; }
+#jss-container ::-webkit-scrollbar-track { background: #0a1430; }
+#jss-container ::-webkit-scrollbar-thumb { background: #1a2d5a; border-radius: 5px; }
+#jss-container ::-webkit-scrollbar-thumb:hover { background: #2e74c0; }
