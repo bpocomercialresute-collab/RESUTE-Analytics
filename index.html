@@ -10,6 +10,10 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.12.1/dist/jspreadsheet.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.css">
+  <script src="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.12.1/dist/index.js"></script>
 </head>
 <body>
 
@@ -135,7 +139,18 @@
 
           <!-- ABA BD — GRADE EXCEL -->
           <div id="av-tab-bd" class="av-tab-pane active">
-            <div id="excel-grid-container" class="eg-root"></div>
+            <div class="jss-toolbar">
+              <button class="eg-btn eg-btn-primary" onclick="jssProcess()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
+                Processar Relatórios
+              </button>
+              <button class="eg-btn eg-btn-danger" onclick="jssClear()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                Limpar
+              </button>
+              <span id="jss-status" class="eg-status"></span>
+            </div>
+            <div id="jss-container" style="width:100%;overflow:auto;"></div>
           </div>
 
           <!-- ABA MARCA -->
@@ -325,7 +340,7 @@
 <script src="js/actions.js"></script>
 <script src="js/uniao.js"></script>
   <script src="js/bd.js"></script>
-  <script src="js/excel-grid.js"></script>
+  <script src="js/jss.js"></script>
   <script src="js/relatorios.js"></script>
 
 </body>

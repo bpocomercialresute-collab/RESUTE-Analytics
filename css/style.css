@@ -1747,3 +1747,21 @@ canvas{max-height:320px !important;width:100% !important;}
   color: var(--text-tertiary);
   flex-shrink: 0;
 }
+
+/* jspreadsheet toolbar */
+.jss-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-default);
+}
+/* Override cores do jspreadsheet para combinar com tema dark */
+.jss, .jss_container { background: var(--surface-1) !important; }
+.jss thead td { background: var(--brand-navy) !important; color: #fff !important; font-size: 11px !important; font-weight: 700 !important; }
+.jss tbody tr:nth-child(odd) td { background: var(--surface-1) !important; }
+.jss tbody tr:nth-child(even) td { background: rgba(255,255,255,0.02) !important; }
+.jss tbody td { color: var(--text-secondary) !important; font-size: 12px !important; border-color: var(--border-subtle) !important; }
+.jss tbody td.highlight { background: rgba(46,116,192,0.12) !important; }
+.jss_border_main { border-color: var(--brand-blue) !important; }

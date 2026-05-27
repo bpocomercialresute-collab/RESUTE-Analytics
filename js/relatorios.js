@@ -12,6 +12,7 @@ function avShowBD() {
   document.getElementById('av-home').style.display = 'none';
   document.getElementById('av-bd-area').style.display = 'block';
   document.getElementById('av-rel-area').style.display = 'none';
+  if (typeof jssEnsureInit === 'function') jssEnsureInit();
 }
 
 function avShowRel(tipo) {
