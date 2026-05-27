@@ -1757,80 +1757,218 @@ canvas{max-height:320px !important;width:100% !important;}
   background: var(--surface-2);
   border-bottom: 1px solid var(--border-default);
 }
-/* ── JSPREADSHEET — override completo para tema dark ── */
-/* Container */
-#jss-container, #jss-container * { box-sizing: border-box; }
-#jss-container .jss_container,
-#jss-container table { background: #0d1b3e !important; }
+/* ============================================================
+   EXCEL BD — Wrapper e toolbar
+   ============================================================ */
+.jss-wrap {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 180px);
+  min-height: 480px;
+  background: #060e24;
+  border: 1px solid rgba(255,255,255,0.08);
+}
 
-/* HEADER DE COLUNAS (linha com nomes) */
-#jss-container thead td,
+/* Barra de instrução */
+.jss-info-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: #0a1430;
+  border-bottom: 1px solid rgba(46,116,192,0.3);
+  font-size: 12.5px;
+  color: #7a9cc8;
+  flex-shrink: 0;
+}
+.jss-info-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.jss-info-left kbd {
+  padding: 2px 7px;
+  background: #1a2d5a;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #c8d8f0;
+  font-family: monospace;
+}
+.jss-status-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 10px;
+  background: #1a2d5a;
+  color: #5a7399;
+  white-space: nowrap;
+}
+.jss-status-badge.jss-status-ok {
+  background: rgba(16,185,129,0.12);
+  color: #10b981;
+}
+
+/* Toolbar de ações */
+.jss-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: #0d1b3e;
+  border-bottom: 2px solid #2e74c0;
+  flex-shrink: 0;
+  gap: 8px;
+}
+.jss-toolbar-left { display: flex; align-items: center; }
+.jss-toolbar-right { display: flex; align-items: center; gap: 6px; }
+.jss-cell-ref {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  color: #c8d8f0;
+  background: #060e24;
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 4px 10px;
+  border-radius: 4px;
+  min-width: 60px;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+.jss-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 13px;
+  border-radius: 5px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: #1a2d5a;
+  color: #a8bcd8;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 120ms;
+  white-space: nowrap;
+}
+.jss-btn svg { width: 13px; height: 13px; stroke-width: 2; flex-shrink: 0; }
+.jss-btn:hover { background: #22396e; color: #fff; }
+.jss-btn-success {
+  background: #2e74c0;
+  border-color: #2e74c0;
+  color: #fff;
+}
+.jss-btn-success:hover { background: #4a90d9; }
+.jss-btn-ghost { background: transparent; }
+.jss-btn-ghost:hover { background: #1a2d5a; }
+.jss-btn-danger {
+  background: transparent;
+  border-color: rgba(239,68,68,0.25);
+  color: #ef4444;
+}
+.jss-btn-danger:hover { background: rgba(239,68,68,0.1); }
+
+/* Container do jspreadsheet */
+#jss-container {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── JSPREADSHEET — override completo ── */
+#jss-container .jss_container { background: #060e24 !important; border: none !important; }
+
+/* Cabeçalho de colunas */
 #jss-container table thead td {
   background: #0a1430 !important;
-  color: #e8f0ff !important;
+  color: #e0ecff !important;
   font-size: 11px !important;
   font-weight: 800 !important;
-  letter-spacing: 0.04em !important;
+  letter-spacing: 0.05em !important;
   text-transform: uppercase !important;
-  border-right: 1px solid rgba(255,255,255,0.08) !important;
+  border-right: 1px solid rgba(255,255,255,0.07) !important;
   border-bottom: 2px solid #2e74c0 !important;
-  padding: 6px 8px !important;
+  padding: 7px 8px !important;
   white-space: nowrap !important;
+  text-align: left !important;
+  cursor: default !important;
+}
+
+/* Canto superior esquerdo (corner) */
+#jss-container table thead td:first-child {
+  background: #060e24 !important;
+  border-right: 2px solid #2e74c0 !important;
+  color: #3d5070 !important;
+  min-width: 48px !important;
+  width: 48px !important;
   text-align: center !important;
 }
 
-/* Coluna de número de linha (primeiro td do thead = corner) */
-#jss-container thead td:first-child,
-#jss-container tbody td:first-child {
-  background: #080f24 !important;
-  color: #5a7399 !important;
+/* Células do corpo */
+#jss-container table tbody td {
+  background: #0d1b3e !important;
+  color: #b8ccec !important;
+  font-size: 12px !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+  border-right: 1px solid rgba(255,255,255,0.05) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+  padding: 4px 8px !important;
+  height: 24px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Número de linha */
+#jss-container table tbody td:first-child {
+  background: #0a1430 !important;
+  color: #3d5070 !important;
   font-size: 11px !important;
   font-weight: 600 !important;
   text-align: right !important;
-  border-right: 1px solid #2e74c0 !important;
+  border-right: 2px solid rgba(46,116,192,0.3) !important;
   padding: 4px 8px !important;
-  min-width: 40px !important;
+  width: 48px !important;
+  min-width: 48px !important;
+  font-family: monospace !important;
 }
 
-/* CÉLULAS DO CORPO */
-#jss-container tbody td {
-  background: #0d1b3e !important;
-  color: #c8d8f0 !important;
-  font-size: 12px !important;
-  border-right: 1px solid rgba(255,255,255,0.06) !important;
-  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
-  padding: 3px 8px !important;
+/* Linhas alternadas */
+#jss-container table tbody tr:nth-child(even) td {
+  background: rgba(255,255,255,0.015) !important;
 }
-#jss-container tbody tr:nth-child(even) td {
-  background: rgba(255,255,255,0.02) !important;
-}
-#jss-container tbody tr:hover td {
-  background: rgba(46,116,192,0.08) !important;
+#jss-container table tbody tr:nth-child(even) td:first-child {
+  background: #0a1430 !important;
 }
 
-/* CÉLULA SELECIONADA */
-#jss-container td.highlight,
-#jss-container td.selected {
-  background: rgba(46,116,192,0.15) !important;
-  outline: 2px solid #2e74c0 !important;
-  outline-offset: -1px !important;
+/* Hover na linha */
+#jss-container table tbody tr:hover td { background: rgba(46,116,192,0.07) !important; }
+#jss-container table tbody tr:hover td:first-child { background: #112248 !important; color: #7a9cc8 !important; }
+
+/* Célula selecionada */
+#jss-container table tbody td.highlight {
+  background: rgba(46,116,192,0.14) !important;
 }
-#jss-container .jss_border_main,
-#jss-container .jss_border {
-  border-color: #2e74c0 !important;
-  box-shadow: 0 0 0 2px #2e74c020 !important;
+#jss-container .jss_border_main {
+  border: 2px solid #2e74c0 !important;
+  box-shadow: 0 0 0 1px rgba(46,116,192,0.3) !important;
 }
 
-/* Input de edição */
-#jss-container input.editor {
+/* Input de edição inline */
+#jss-container input {
   background: #112248 !important;
   color: #fff !important;
-  border: 2px solid #2e74c0 !important;
+  border: 2px solid #4a90d9 !important;
+  border-radius: 2px !important;
+  font-size: 12px !important;
   padding: 2px 6px !important;
+  outline: none !important;
 }
 
 /* Scrollbar */
 #jss-container ::-webkit-scrollbar { width: 10px; height: 10px; }
-#jss-container ::-webkit-scrollbar-track { background: #0a1430; }
-#jss-container ::-webkit-scrollbar-thumb { background: #1a2d5a; border-radius: 5px; }
+#jss-container ::-webkit-scrollbar-track { background: #060e24; }
+#jss-container ::-webkit-scrollbar-thumb { background: #1a2d5a; border-radius: 5px; border: 2px solid #060e24; }
 #jss-container ::-webkit-scrollbar-thumb:hover { background: #2e74c0; }
+#jss-container ::-webkit-scrollbar-corner { background: #060e24; }
