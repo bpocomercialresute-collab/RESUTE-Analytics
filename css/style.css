@@ -2060,3 +2060,86 @@ canvas{max-height:320px !important;width:100% !important;}
   font-size: 11px;
 }
 .laudo-tbl tr.laudo-cresc td:first-child { color: #7a9cc8; font-weight: 600; }
+
+/* ── LAUDO_GRUPO — filtros e gráficos ── */
+.laudo-filtros {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.laudo-filtro-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.laudo-filtro-item label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #5a7399;
+}
+.laudo-filtro-item select {
+  background: #060e24;
+  border: 1px solid rgba(46,116,192,0.35);
+  border-radius: 5px;
+  color: #c8d8f0;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  font-family: inherit;
+  cursor: pointer;
+  min-width: 160px;
+  max-width: 220px;
+}
+.laudo-filtro-item select:focus { outline: none; border-color: #4a90d9; }
+
+.laudo-titulo-rel {
+  font-size: 16px;
+  font-weight: 900;
+  color: #4a90d9;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.laudo-section-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #4a90d9;
+  margin-bottom: 8px;
+  padding-left: 2px;
+  border-left: 3px solid #2e74c0;
+  padding-left: 8px;
+}
+
+.laudo-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 8px;
+}
+.laudo-chart-box {
+  background: #0a1430;
+  border: 1px solid rgba(46,116,192,0.2);
+  border-radius: 8px;
+  padding: 16px;
+  height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+.laudo-chart-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #5a7399;
+  margin-bottom: 10px;
+}
+.laudo-chart-box canvas { flex: 1; }
+
+@media(max-width:700px) {
+  .laudo-charts-row { grid-template-columns: 1fr; }
+  .laudo-chart-box  { height: 240px; }
+}

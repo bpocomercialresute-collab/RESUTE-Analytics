@@ -33,6 +33,15 @@ const MES_NOME = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','n
 const MES_IDX  = {};
 MES_NOME.forEach((m,i) => { MES_IDX[m]=i; MES_IDX[String(i+1).padStart(2,'0')]=i; MES_IDX[String(i+1)]=i; });
 
+
+// ── ESTADO DO FILTRO DO LAUDO_GRUPO ──────────────────────────────────────────
+const LG = { tipo:'', grupo:'', subgrupo:'' };
+
+function lgSetFiltro(campo, val) {
+  LG[campo] = val;
+  bdUpdateLaudoGrupo();
+}
+
 // Índices das colunas do BD (mapeados dinamicamente)
 let IDX = {};
 
@@ -471,89 +480,223 @@ function bdUpdateVendaProduto() {
   pane.innerHTML = html;
 }
 
+
 function bdUpdateLaudoGrupo() {
   const pane = document.getElementById('av-rel-laudo-grupo');
   if (!pane) return;
-  if (!BD_DATA.rows.length) return;
+  if (!BD_DATA.rows.length) {
+    pane.innerHTML = '<div class="av-rel-placeholder"><p>LAUDO_GRUPO</p><span>Cole os dados no BD e clique em Processar</span></div>';
+    return;
+  }
 
-  const anos = [...new Set(BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
+  // Listas únicas para filtros
+  const tipos    = ['Todos',...new Set(BD_DATA.rows.map(r=>g(r,'mercado')).filter(Boolean))].sort();
+  const grupos   = [...new Set(BD_DATA.rows.map(r=>g(r,'grupo')).filter(Boolean))].sort();
+  const subgrupos= [...new Set(BD_DATA.rows.map(r=>g(r,'subgrupo')).filter(Boolean))].sort();
 
-  // Pivot: grupo → ano → [12 meses]
-  const pivot = new Map();
-  let totalGeral = 0;
-  BD_DATA.rows.forEach(r => {
-    const gr = g(r,'grupo'), an = g(r,'ano');
+  // Filtra linhas
+  let rows = BD_DATA.rows;
+  if (LG.tipo && LG.tipo!=='Todos') rows = rows.filter(r=>g(r,'mercado')===LG.tipo);
+  if (LG.grupo)    rows = rows.filter(r=>g(r,'grupo')===LG.grupo);
+  if (LG.subgrupo) rows = rows.filter(r=>g(r,'subgrupo')===LG.subgrupo);
+
+  const anos = [...new Set(rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
+  const nomeGrupo = LG.grupo || 'TODOS OS GRUPOS';
+  const titulo  = LG.subgrupo ? `${LG.subgrupo} — ${LG.grupo}` : nomeGrupo;
+
+  // Pivot mês×ano
+  const pivotMesAno = {};
+  anos.forEach(a => pivotMesAno[a] = Array(12).fill(0));
+  rows.forEach(r => {
+    const an = g(r,'ano');
     const mi = MES_IDX[g(r,'mes').toLowerCase()] ?? -1;
     const v  = metrica(r);
-    if (!gr || !an || mi < 0) return;
-    if (!pivot.has(gr)) pivot.set(gr, {});
-    if (!pivot.get(gr)[an]) pivot.get(gr)[an] = Array(12).fill(0);
-    pivot.get(gr)[an][mi] += v;
-    totalGeral += v;
+    if (!an || mi<0 || !pivotMesAno[an]) return;
+    pivotMesAno[an][mi] += v;
   });
 
-  const grupos = [...pivot.keys()].sort();
-
-  // Totais por ano e mês (consolidado de todos os grupos)
-  const totPorAnoMes = {};
-  anos.forEach(an => {
-    totPorAnoMes[an] = Array(12).fill(0);
-    grupos.forEach(gr => {
-      const m = pivot.get(gr)?.[an] || Array(12).fill(0);
-      m.forEach((v,i)=>totPorAnoMes[an][i]+=v);
-    });
-  });
-
-  // Tabela por TRIMESTRE
+  // Trim×ano
   const trimData = {};
-  anos.forEach(an => {
-    const m = totPorAnoMes[an];
-    trimData[an] = [
-      m[0]+m[1]+m[2], m[3]+m[4]+m[5], m[6]+m[7]+m[8], m[9]+m[10]+m[11]
-    ];
+  anos.forEach(a => {
+    const m = pivotMesAno[a];
+    trimData[a] = [m[0]+m[1]+m[2], m[3]+m[4]+m[5], m[6]+m[7]+m[8], m[9]+m[10]+m[11]];
   });
 
-  let html = `<div class="rel-header-bar">
+  // % de cada mês sobre total anual
+  const pctMesAno = {};
+  anos.forEach(a => {
+    const tot = pivotMesAno[a].reduce((s,v)=>s+v,0);
+    pctMesAno[a] = pivotMesAno[a].map(v => tot>0 ? (v/tot)*100 : 0);
+  });
+
+  // Cores dos anos
+  const CORES = ['#4a90d9','#f59e0b','#10b981','#e05252','#a78bfa','#06b6d4'];
+  const anosColors = Object.fromEntries(anos.map((a,i)=>[a, CORES[i%CORES.length]]));
+
+  // ── HTML ──
+  pane.innerHTML = `
+    <div class="rel-header-bar">
       ${toggleBtnHtml()}
-      <div class="rel-title">LAUDO DE RESULTADOS — CONSOLIDADO POR GRUPO</div>
+      <div class="laudo-filtros">
+        <div class="laudo-filtro-item">
+          <label>TIPO</label>
+          <select onchange="lgSetFiltro('tipo',this.value)">
+            ${tipos.map(t=>`<option value="${t==='Todos'?'':t}" ${(!LG.tipo&&t==='Todos')||LG.tipo===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="laudo-filtro-item">
+          <label>SUBGRUPO</label>
+          <select onchange="lgSetFiltro('subgrupo',this.value)">
+            <option value="">Todos</option>
+            ${subgrupos.map(s=>`<option value="${s}" ${LG.subgrupo===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="laudo-filtro-item">
+          <label>GRUPO</label>
+          <select onchange="lgSetFiltro('grupo',this.value)">
+            <option value="">Todos</option>
+            ${grupos.map(s=>`<option value="${s}" ${LG.grupo===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+      </div>
     </div>
+
     <div class="laudo-doc">
       <div class="laudo-doc-head">
-        <div><div class="laudo-empresa">VARREMASTER</div>
-        <div class="laudo-sub">LAUDO DE RESULTADOS CONSOLIDADO — ${new Date().toLocaleDateString('pt-BR')}</div></div>
-      </div>`;
+        <div>
+          <div class="laudo-titulo-rel">LAUDO DE RESULTADOS — ${titulo}</div>
+          <div class="laudo-sub">Emitido em ${new Date().toLocaleDateString('pt-BR')} · ${rows.length.toLocaleString('pt-BR')} registros</div>
+        </div>
+      </div>
 
-  // === TABELA TRIMESTRE ===
-  html += `<table class="laudo-tbl"><thead><tr><th>TRIM</th>${anos.map(a=>`<th>${a}</th>`).join('')}</tr></thead><tbody>`;
-  ['1º TRIM','2º TRIM','3º TRIM','4º TRIM'].forEach((lbl,ti) => {
-    html += `<tr><td class="laudo-lbl">${lbl}</td>${anos.map(a=>`<td>${fmtMetrica(trimData[a][ti])}</td>`).join('')}</tr>`;
-  });
-  html += `<tr class="laudo-tot"><td>TOT</td>${anos.map(a=>{const t=trimData[a].reduce((s,v)=>s+v,0);return `<td>${fmtMetrica(t)}</td>`;}).join('')}</tr>`;
-  html += `<tr class="laudo-med"><td>MED</td>${anos.map(a=>{const t=trimData[a].reduce((s,v)=>s+v,0)/4;return `<td>${fmtMetrica(t)}</td>`;}).join('')}</tr>`;
-  html += '</tbody></table>';
+      <!-- TABELA TRIMESTRE -->
+      <div class="laudo-section-title">FLUXO POR TRIMESTRE</div>
+      <table class="laudo-tbl">
+        <thead><tr><th>TRIM</th>${anos.map(a=>`<th style="color:${anosColors[a]}">${a}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${['1º TRIM','2º TRIM','3º TRIM','4º TRIM'].map((lbl,ti)=>`
+          <tr><td class="laudo-lbl">${lbl}</td>${anos.map(a=>`<td>${fmtMetrica(trimData[a][ti])}</td>`).join('')}</tr>`).join('')}
+          <tr class="laudo-tot"><td>TOT</td>${anos.map(a=>`<td>${fmtMetrica(trimData[a].reduce((s,v)=>s+v,0))}</td>`).join('')}</tr>
+          <tr class="laudo-med"><td>MED</td>${anos.map(a=>`<td>${fmtMetrica(trimData[a].reduce((s,v)=>s+v,0)/4)}</td>`).join('')}</tr>
+        </tbody>
+      </table>
 
-  // === TABELA MÊS ===
-  html += `<table class="laudo-tbl" style="margin-top:16px"><thead><tr><th>MÊS</th>${anos.map(a=>`<th>${a}</th>`).join('')}</tr></thead><tbody>`;
-  MESES_LABEL.forEach((mlbl,mi) => {
-    html += `<tr><td class="laudo-lbl">${mlbl}</td>${anos.map(a=>`<td>${fmtMetrica(totPorAnoMes[a][mi])}</td>`).join('')}</tr>`;
-  });
-  html += `<tr class="laudo-tot"><td>TOT</td>${anos.map(a=>{const t=totPorAnoMes[a].reduce((s,v)=>s+v,0);return `<td>${fmtMetrica(t)}</td>`;}).join('')}</tr>`;
-  // Crescimento ano a ano
-  html += `<tr class="laudo-cresc"><td>CRESC</td>`;
-  anos.forEach((a,i) => {
-    if (i===0) { html += '<td>—</td>'; return; }
-    const atual = totPorAnoMes[a].reduce((s,v)=>s+v,0);
-    const ant = totPorAnoMes[anos[i-1]].reduce((s,v)=>s+v,0);
-    const cr = ant>0 ? ((atual-ant)/ant)*100 : 0;
-    const cor = cr>=0?'#10b981':'#ef4444';
-    const arrow = cr>=0?'▲':'▼';
-    html += `<td style="color:${cor};font-weight:700">${arrow} ${Math.abs(cr).toFixed(1)}%</td>`;
-  });
-  html += '</tr>';
-  html += '</tbody></table></div>';
+      <!-- TABELA MÊS -->
+      <div class="laudo-section-title" style="margin-top:24px">FLUXO MENSAL</div>
+      <table class="laudo-tbl">
+        <thead><tr><th>MÊS</th>${anos.map(a=>`<th style="color:${anosColors[a]}">${a}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${MESES_LABEL.map((mlbl,mi)=>`
+          <tr><td class="laudo-lbl">${mlbl}</td>${anos.map(a=>`<td>${fmtMetrica(pivotMesAno[a][mi])}</td>`).join('')}</tr>`).join('')}
+          <tr class="laudo-tot"><td>TOT</td>${anos.map(a=>`<td>${fmtMetrica(pivotMesAno[a].reduce((s,v)=>s+v,0))}</td>`).join('')}</tr>
+          <tr class="laudo-med"><td>MED</td>${anos.map(a=>`<td>${fmtMetrica(pivotMesAno[a].reduce((s,v)=>s+v,0)/12)}</td>`).join('')}</tr>
+          <tr class="laudo-cresc"><td>CRESC</td>${anos.map((a,i)=>{
+            if(i===0) return '<td>—</td>';
+            const at=pivotMesAno[a].reduce((s,v)=>s+v,0);
+            const an=pivotMesAno[anos[i-1]].reduce((s,v)=>s+v,0);
+            const cr=an>0?((at-an)/an)*100:0;
+            const cor=cr>=0?'#10b981':'#ef4444';
+            return `<td style="color:${cor};font-weight:700">${cr>=0?'▲':'▼'} ${Math.abs(cr).toFixed(1)}%</td>`;
+          }).join('')}</tr>
+        </tbody>
+      </table>
 
-  pane.innerHTML = html;
+      <!-- TABELA % MENSAL -->
+      <div class="laudo-section-title" style="margin-top:24px">% MENSAL SOBRE TOTAL ANUAL</div>
+      <table class="laudo-tbl">
+        <thead><tr><th>MÊS</th>${anos.map(a=>`<th style="color:${anosColors[a]}">${a}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${MESES_LABEL.map((mlbl,mi)=>`
+          <tr><td class="laudo-lbl">${mlbl}</td>${anos.map(a=>`<td>${pctMesAno[a][mi].toFixed(2)}%</td>`).join('')}</tr>`).join('')}
+          <tr class="laudo-med"><td>MED</td>${anos.map(a=>`<td>${(pctMesAno[a].reduce((s,v)=>s+v,0)/12).toFixed(2)}%</td>`).join('')}</tr>
+        </tbody>
+      </table>
+
+      <!-- GRÁFICOS -->
+      <div class="laudo-section-title" style="margin-top:24px">FLUXO MENSAL POR ANO</div>
+      <div class="laudo-charts-row">
+        <div class="laudo-chart-box">
+          <div class="laudo-chart-title">FLUXO ${RELATORIO_MODO==='qtd'?'QTD':'R$'} MENSAL POR ANO</div>
+          <canvas id="chart-laudo-linha" height="220"></canvas>
+        </div>
+        <div class="laudo-chart-box">
+          <div class="laudo-chart-title">BARRAS POR MÊS E ANO</div>
+          <canvas id="chart-laudo-barra" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Renderiza gráficos após o HTML estar no DOM
+  setTimeout(() => lgRenderCharts(anos, pivotMesAno, anosColors), 50);
 }
+
+function lgRenderCharts(anos, pivotMesAno, anosColors) {
+  // Destroi instâncias anteriores
+  ['chart-laudo-linha','chart-laudo-barra'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const existing = Chart.getChart(id);
+    if (existing) existing.destroy();
+  });
+
+  const labelsMes = MESES_LABEL;
+
+  // ── GRÁFICO DE LINHA ──
+  const ctxL = document.getElementById('chart-laudo-linha');
+  if (ctxL) {
+    new Chart(ctxL, {
+      type: 'line',
+      data: {
+        labels: labelsMes,
+        datasets: anos.map(a => ({
+          label: a,
+          data: pivotMesAno[a],
+          borderColor: anosColors[a],
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 3,
+          tension: 0.3,
+        }))
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color:'#c8d8f0', font:{size:11} } } },
+        scales: {
+          x: { ticks:{color:'#7a9cc8'}, grid:{color:'rgba(255,255,255,0.05)'} },
+          y: { ticks:{color:'#7a9cc8'}, grid:{color:'rgba(255,255,255,0.05)'} }
+        }
+      }
+    });
+  }
+
+  // ── GRÁFICO DE BARRAS ──
+  const ctxB = document.getElementById('chart-laudo-barra');
+  if (ctxB) {
+    new Chart(ctxB, {
+      type: 'bar',
+      data: {
+        labels: labelsMes,
+        datasets: anos.map(a => ({
+          label: a,
+          data: pivotMesAno[a],
+          backgroundColor: anosColors[a] + 'cc',
+          borderColor: anosColors[a],
+          borderWidth: 1,
+        }))
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color:'#c8d8f0', font:{size:11} } } },
+        scales: {
+          x: { ticks:{color:'#7a9cc8'}, grid:{color:'rgba(255,255,255,0.05)'} },
+          y: { ticks:{color:'#7a9cc8'}, grid:{color:'rgba(255,255,255,0.05)'} }
+        }
+      }
+    });
+  }
+}
+
 
 function bdUpdateLaudoMarca() {
   const pane = document.getElementById('av-rel-laudo-marca');
