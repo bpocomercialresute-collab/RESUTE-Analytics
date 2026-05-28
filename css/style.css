@@ -2143,3 +2143,80 @@ canvas{max-height:320px !important;width:100% !important;}
   .laudo-charts-row { grid-template-columns: 1fr; }
   .laudo-chart-box  { height: 240px; }
 }
+
+/* ============================================================
+   RELAT REPRESENTANTES — tabelas e estilos
+   ============================================================ */
+.rep-scroll-area {
+  overflow: auto;
+  max-height: calc(100vh - 200px);
+  background: #0b1628;
+}
+.rep-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+.rep-tbl {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  font-size: 11.5px;
+}
+.rep-tbl td {
+  padding: 5px 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+  color: #b8ccec;
+  background: #0d1b3e;
+  white-space: nowrap;
+  text-align: right;
+}
+.rep-tbl td.rep-lbl {
+  text-align: left;
+  background: #0f2040;
+  font-weight: 600;
+  color: #c8d8f0;
+  min-width: 150px;
+}
+.rep-th-semana td {
+  background: #060e24 !important;
+  color: #4a90d9 !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center !important;
+  border-bottom: 2px solid #2e74c0 !important;
+  padding: 8px 8px !important;
+}
+.rep-th-semana td:first-child { text-align: left !important; }
+.rep-th-sem td {
+  background: #0a1430 !important;
+  color: #5a7399 !important;
+  font-size: 10px !important;
+  font-weight: 700;
+  text-align: center !important;
+  padding: 4px 8px !important;
+  border-bottom: 1px solid rgba(46,116,192,0.2) !important;
+}
+.rep-tbl tr:nth-child(even) td { background: #0f2040; }
+.rep-tbl tr:hover td { background: #132850; }
+.rep-row-total td {
+  background: #1a1a00 !important;
+  color: #ffd24a !important;
+  font-weight: 800 !important;
+  border-top: 2px solid #4a4a00 !important;
+}
+.rep-row-total td:first-child { background: #1a1a00 !important; }
+.rep-row-pct td {
+  background: #0d1428 !important;
+  color: #7a9cc8 !important;
+  font-size: 10.5px;
+}
+.rep-row-evol td {
+  background: #0a1020 !important;
+  font-size: 10.5px;
+}
