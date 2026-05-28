@@ -484,56 +484,67 @@ function bdUpdateVendaProduto() {
 function bdUpdateLaudoGrupo() {
   const pane = document.getElementById('av-rel-laudo-grupo');
   if (!pane) return;
+
   if (!BD_DATA.rows.length) {
     pane.innerHTML = '<div class="av-rel-placeholder"><p>LAUDO_GRUPO</p><span>Cole os dados no BD e clique em Processar</span></div>';
     return;
   }
 
-  // Listas únicas para filtros
-  const tipos    = ['Todos',...new Set(BD_DATA.rows.map(r=>g(r,'mercado')).filter(Boolean))].sort();
-  const grupos   = [...new Set(BD_DATA.rows.map(r=>g(r,'grupo')).filter(Boolean))].sort();
-  const subgrupos= [...new Set(BD_DATA.rows.map(r=>g(r,'subgrupo')).filter(Boolean))].sort();
+  // ── Lê GRUPO e SUBGRUPO da aba PRODUTO SERVIÇO ──
+  const prodInfo = typeof jssGetProdutoGrupos === 'function'
+    ? jssGetProdutoGrupos()
+    : { grupos: [], subgrupos: [], tipos: [] };
 
-  // Filtra linhas
+  // Fallback: lê do BD se PRODUTO SERVIÇO estiver vazio
+  const grupos = prodInfo.grupos.length > 0
+    ? prodInfo.grupos
+    : [...new Set(BD_DATA.rows.map(r=>g(r,'grupo')).filter(Boolean))].sort();
+  const subgrupos = prodInfo.subgrupos.length > 0
+    ? prodInfo.subgrupos
+    : [...new Set(BD_DATA.rows.map(r=>g(r,'subgrupo')).filter(Boolean))].sort();
+  const tipos = prodInfo.tipos.length > 0
+    ? prodInfo.tipos
+    : [...new Set(BD_DATA.rows.map(r=>g(r,'mercado')).filter(Boolean))].sort();
+
+  // Filtra linhas conforme seleção
   let rows = BD_DATA.rows;
-  if (LG.tipo && LG.tipo!=='Todos') rows = rows.filter(r=>g(r,'mercado')===LG.tipo);
+  if (LG.tipo    && LG.tipo !== 'Todos') rows = rows.filter(r=>g(r,'mercado')===LG.tipo);
   if (LG.grupo)    rows = rows.filter(r=>g(r,'grupo')===LG.grupo);
   if (LG.subgrupo) rows = rows.filter(r=>g(r,'subgrupo')===LG.subgrupo);
 
   const anos = [...new Set(rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
-  const nomeGrupo = LG.grupo || 'TODOS OS GRUPOS';
-  const titulo  = LG.subgrupo ? `${LG.subgrupo} — ${LG.grupo}` : nomeGrupo;
+  if (!anos.length) {
+    pane.innerHTML = '<div class="av-rel-placeholder"><p>Sem dados para o filtro selecionado</p><span>Altere o filtro de GRUPO ou SUBGRUPO</span></div>';
+    return;
+  }
 
-  // Pivot mês×ano
+  const titulo = LG.grupo || 'TODOS OS GRUPOS';
+  const CORES  = ['#4a90d9','#f59e0b','#10b981','#e05252','#a78bfa','#06b6d4'];
+  const anosColors = Object.fromEntries(anos.map((a,i)=>[a, CORES[i%CORES.length]]));
+
+  // Pivot mês × ano
   const pivotMesAno = {};
   anos.forEach(a => pivotMesAno[a] = Array(12).fill(0));
   rows.forEach(r => {
     const an = g(r,'ano');
     const mi = MES_IDX[g(r,'mes').toLowerCase()] ?? -1;
     const v  = metrica(r);
-    if (!an || mi<0 || !pivotMesAno[an]) return;
+    if (!an || mi < 0 || !pivotMesAno[an]) return;
     pivotMesAno[an][mi] += v;
   });
 
-  // Trim×ano
   const trimData = {};
   anos.forEach(a => {
     const m = pivotMesAno[a];
     trimData[a] = [m[0]+m[1]+m[2], m[3]+m[4]+m[5], m[6]+m[7]+m[8], m[9]+m[10]+m[11]];
   });
 
-  // % de cada mês sobre total anual
   const pctMesAno = {};
   anos.forEach(a => {
     const tot = pivotMesAno[a].reduce((s,v)=>s+v,0);
-    pctMesAno[a] = pivotMesAno[a].map(v => tot>0 ? (v/tot)*100 : 0);
+    pctMesAno[a] = pivotMesAno[a].map(v => tot > 0 ? (v/tot)*100 : 0);
   });
 
-  // Cores dos anos
-  const CORES = ['#4a90d9','#f59e0b','#10b981','#e05252','#a78bfa','#06b6d4'];
-  const anosColors = Object.fromEntries(anos.map((a,i)=>[a, CORES[i%CORES.length]]));
-
-  // ── HTML ──
   pane.innerHTML = `
     <div class="rel-header-bar">
       ${toggleBtnHtml()}
@@ -541,7 +552,8 @@ function bdUpdateLaudoGrupo() {
         <div class="laudo-filtro-item">
           <label>TIPO</label>
           <select onchange="lgSetFiltro('tipo',this.value)">
-            ${tipos.map(t=>`<option value="${t==='Todos'?'':t}" ${(!LG.tipo&&t==='Todos')||LG.tipo===t?'selected':''}>${t}</option>`).join('')}
+            <option value="">Todos</option>
+            ${tipos.map(t=>`<option value="${t}" ${LG.tipo===t?'selected':''}>${t}</option>`).join('')}
           </select>
         </div>
         <div class="laudo-filtro-item">
@@ -564,30 +576,30 @@ function bdUpdateLaudoGrupo() {
     <div class="laudo-doc">
       <div class="laudo-doc-head">
         <div>
-          <div class="laudo-titulo-rel">LAUDO DE RESULTADOS — ${titulo}</div>
-          <div class="laudo-sub">Emitido em ${new Date().toLocaleDateString('pt-BR')} · ${rows.length.toLocaleString('pt-BR')} registros</div>
+          <div class="laudo-titulo-rel">LAUDO — ${titulo}</div>
+          <div class="laudo-sub">Emitido em ${new Date().toLocaleDateString('pt-BR')} · ${rows.length.toLocaleString('pt-BR')} registros · modo: ${RELATORIO_MODO.toUpperCase()}</div>
         </div>
       </div>
 
-      <!-- TABELA TRIMESTRE -->
       <div class="laudo-section-title">FLUXO POR TRIMESTRE</div>
       <table class="laudo-tbl">
         <thead><tr><th>TRIM</th>${anos.map(a=>`<th style="color:${anosColors[a]}">${a}</th>`).join('')}</tr></thead>
         <tbody>
-          ${['1º TRIM','2º TRIM','3º TRIM','4º TRIM'].map((lbl,ti)=>`
-          <tr><td class="laudo-lbl">${lbl}</td>${anos.map(a=>`<td>${fmtMetrica(trimData[a][ti])}</td>`).join('')}</tr>`).join('')}
+          ${['1º TRIM','2º TRIM','3º TRIM','4º TRIM'].map((lbl,ti)=>
+            `<tr><td class="laudo-lbl">${lbl}</td>${anos.map(a=>`<td>${fmtMetrica(trimData[a][ti])}</td>`).join('')}</tr>`
+          ).join('')}
           <tr class="laudo-tot"><td>TOT</td>${anos.map(a=>`<td>${fmtMetrica(trimData[a].reduce((s,v)=>s+v,0))}</td>`).join('')}</tr>
           <tr class="laudo-med"><td>MED</td>${anos.map(a=>`<td>${fmtMetrica(trimData[a].reduce((s,v)=>s+v,0)/4)}</td>`).join('')}</tr>
         </tbody>
       </table>
 
-      <!-- TABELA MÊS -->
       <div class="laudo-section-title" style="margin-top:24px">FLUXO MENSAL</div>
       <table class="laudo-tbl">
         <thead><tr><th>MÊS</th>${anos.map(a=>`<th style="color:${anosColors[a]}">${a}</th>`).join('')}</tr></thead>
         <tbody>
-          ${MESES_LABEL.map((mlbl,mi)=>`
-          <tr><td class="laudo-lbl">${mlbl}</td>${anos.map(a=>`<td>${fmtMetrica(pivotMesAno[a][mi])}</td>`).join('')}</tr>`).join('')}
+          ${MESES_LABEL.map((mlbl,mi)=>
+            `<tr><td class="laudo-lbl">${mlbl}</td>${anos.map(a=>`<td>${fmtMetrica(pivotMesAno[a][mi])}</td>`).join('')}</tr>`
+          ).join('')}
           <tr class="laudo-tot"><td>TOT</td>${anos.map(a=>`<td>${fmtMetrica(pivotMesAno[a].reduce((s,v)=>s+v,0))}</td>`).join('')}</tr>
           <tr class="laudo-med"><td>MED</td>${anos.map(a=>`<td>${fmtMetrica(pivotMesAno[a].reduce((s,v)=>s+v,0)/12)}</td>`).join('')}</tr>
           <tr class="laudo-cresc"><td>CRESC</td>${anos.map((a,i)=>{
@@ -601,22 +613,21 @@ function bdUpdateLaudoGrupo() {
         </tbody>
       </table>
 
-      <!-- TABELA % MENSAL -->
       <div class="laudo-section-title" style="margin-top:24px">% MENSAL SOBRE TOTAL ANUAL</div>
       <table class="laudo-tbl">
         <thead><tr><th>MÊS</th>${anos.map(a=>`<th style="color:${anosColors[a]}">${a}</th>`).join('')}</tr></thead>
         <tbody>
-          ${MESES_LABEL.map((mlbl,mi)=>`
-          <tr><td class="laudo-lbl">${mlbl}</td>${anos.map(a=>`<td>${pctMesAno[a][mi].toFixed(2)}%</td>`).join('')}</tr>`).join('')}
+          ${MESES_LABEL.map((mlbl,mi)=>
+            `<tr><td class="laudo-lbl">${mlbl}</td>${anos.map(a=>`<td>${pctMesAno[a][mi].toFixed(2)}%</td>`).join('')}</tr>`
+          ).join('')}
           <tr class="laudo-med"><td>MED</td>${anos.map(a=>`<td>${(pctMesAno[a].reduce((s,v)=>s+v,0)/12).toFixed(2)}%</td>`).join('')}</tr>
         </tbody>
       </table>
 
-      <!-- GRÁFICOS -->
-      <div class="laudo-section-title" style="margin-top:24px">FLUXO MENSAL POR ANO</div>
+      <div class="laudo-section-title" style="margin-top:24px">GRÁFICOS</div>
       <div class="laudo-charts-row">
         <div class="laudo-chart-box">
-          <div class="laudo-chart-title">FLUXO ${RELATORIO_MODO==='qtd'?'QTD':'R$'} MENSAL POR ANO</div>
+          <div class="laudo-chart-title">FLUXO MENSAL POR ANO</div>
           <canvas id="chart-laudo-linha" height="220"></canvas>
         </div>
         <div class="laudo-chart-box">
@@ -624,12 +635,11 @@ function bdUpdateLaudoGrupo() {
           <canvas id="chart-laudo-barra" height="220"></canvas>
         </div>
       </div>
-    </div>
-  `;
+    </div>`;
 
-  // Renderiza gráficos após o HTML estar no DOM
-  setTimeout(() => lgRenderCharts(anos, pivotMesAno, anosColors), 50);
+  setTimeout(() => lgRenderCharts(anos, pivotMesAno, anosColors), 80);
 }
+
 
 function lgRenderCharts(anos, pivotMesAno, anosColors) {
   // Destroi instâncias anteriores
