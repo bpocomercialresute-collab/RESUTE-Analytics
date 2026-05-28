@@ -401,44 +401,35 @@ function bdUpdateClientes() {
     };
   });
 
-  // Aplica nos dados do grid
-  // Índices das colunas no grid CLIENTES (baseado na definição do jss.js):
-  // 0:ID, 1:COD_CLI, 2:CLIENTES, 3:TIPO, 4:ORIG, 5:CNPJ/CPF, 6:RG/IE, 7:CEP
-  // 8:Cidade, 9:UF, 10:Endereço, 11:Endereço Nro, 12:Complemento, 13:Bairro
-  // 14:Telefone, 15:Celular, 16:E-mail, 17:Fantasia, 18:VENDEDOR
-  // 19:Ult Compra, 20:Zona de Venda
-  // AUTO: 21:dias sem venda, 22:meses sem venda, 23:DIAS_CICLO, 24:LIGAR
-  //       25:ULT_VD_BD, 26:dias>ciclo, 27:dt_penulte_ped
-  //       28:dias_ultima_recompra, 29:REATIV_inat_>6meses, 30:deletar
-  const COLS = {diasSem:21,mesesSem:22,ciclo:23,ligar:24,ultVdBd:25,
-                diasCiclo:26,penultDt:27,diasUltRecompra:28,reativ:29};
+  // Índices das 21 colunas do grid CLIENTES:
+  // 0:ID, 1:COD_CLI, 2:CLIENTES, 3:TIPO, 4:CNPJ/CPF, 5:CEP
+  // 6:Cidade, 7:UF, 8:Bairro, 9:Telefone, 10:E-mail
+  // 11:Fantasia, 12:VENDEDOR, 13:Zona de Venda
+  // AUTO: 14:dias sem venda, 15:meses sem venda, 16:DIAS_CICLO
+  //       17:LIGAR, 18:ULT_VD_BD, 19:dias>ciclo, 20:dt_penulte_ped
 
   const newData = cliData.map(r => {
     const nome = String(r[2]||'').trim();
     const newRow = [...r];
-    while (newRow.length < 31) newRow.push('');
+    while (newRow.length < 21) newRow.push('');
     const m = metricas[nome];
     if (!m) {
       // Sem compras no BD
-      newRow[21] = 'SEM';
-      newRow[22] = '';
-      newRow[23] = '1compraBD';
-      newRow[24] = 'enviar_Vendedor';
-      newRow[25] = 'SEM';
-      newRow[26] = 'enviar_Vendedor';
-      newRow[27] = '';
-      newRow[28] = '';
-      newRow[29] = '';
+      newRow[14] = 'SEM';
+      newRow[15] = '';
+      newRow[16] = '1compraBD';
+      newRow[17] = '';
+      newRow[18] = 'SEM';
+      newRow[19] = 'enviar_Vendedor';
+      newRow[20] = '';
     } else {
-      newRow[21] = m.diasSem;
-      newRow[22] = m.mesesSem;
-      newRow[23] = m.ciclo;
-      newRow[24] = m.ligar;
-      newRow[25] = m.ultVdBd;
-      newRow[26] = m.diasCiclo;
-      newRow[27] = m.penultDt;
-      newRow[28] = m.diasUltRecompra;
-      newRow[29] = m.reativ;
+      newRow[14] = m.diasSem;
+      newRow[15] = m.mesesSem;
+      newRow[16] = m.ciclo;
+      newRow[17] = m.ligar;
+      newRow[18] = m.ultVdBd;
+      newRow[19] = m.diasCiclo;
+      newRow[20] = m.penultDt;
     }
     return newRow;
   });
