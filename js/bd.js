@@ -173,7 +173,7 @@ function bdAutoFill() {
 // ── BUILDS DE LOOKUP ──────────────────────────────────────────────────────────
 function buildProdMap() {
   const map  = new Map();
-  const data = GRID_DATA_STORE?.produto || (window.GRIDS?.produto ? window.GRIDS.produto.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
+  const data = GRID_DATA_STORE?.produto || (GRIDS?.produto ? window.GRIDS.produto.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
   // Colunas PRODUTO SERVIÇO: ID, CODPROD, DESCRIÇÃO, GRUPO, subgrupo, familia, ATIV_INAT, tipo_produto
   data.forEach(r => {
     const desc   = String(r[2]||'').trim();
@@ -189,7 +189,7 @@ function buildProdMap() {
 
 function buildCliMap() {
   const map  = new Map();
-  const data = GRID_DATA_STORE?.clientes || (window.GRIDS?.clientes ? window.GRIDS.clientes.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
+  const data = GRID_DATA_STORE?.clientes || (GRIDS?.clientes ? window.GRIDS.clientes.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
   // Colunas CLIENTES: ID, COD_CLI, CLIENTES(2), TIPO, ORIG, CNPJ, RG, CEP, Cidade(8), UF(9), End, Nro, Comp, Bairro, Tel, Cel, Email, Fantasia, VENDEDOR(18), Zona(19), ...
   data.forEach(r => {
     const nome   = String(r[2]||'').trim();
@@ -205,7 +205,7 @@ function buildCliMap() {
 
 function buildRepMap() {
   const map  = new Map();
-  const data = GRID_DATA_STORE?.representantes || (window.GRIDS?.representantes ? window.GRIDS.representantes.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
+  const data = GRID_DATA_STORE?.representantes || (GRIDS?.representantes ? window.GRIDS.representantes.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
   // Colunas REP: ID, COD, REPRESENTANTE(2), TIPO(3), ...
   data.forEach(r => {
     const nome = String(r[2]||'').trim();
@@ -261,12 +261,12 @@ const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out'
 function bdUpdateMarca() {
   // Usa dados da aba MARCA ou extrai do BD
   const marcasGrid = GRID_DATA_STORE?.marca ||
-    (window.GRIDS?.marca ? window.GRIDS.marca.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
+    (GRIDS?.marca ? window.GRIDS.marca.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
 
   if (marcasGrid.length > 0) return; // Tem dados manuais, não sobrescreve
 
   const marcas = [...new Set(BD_DATA.rows.map(r => g(r,'marca')).filter(Boolean))].sort();
-  const grd = window.GRIDS?.marca;
+  const grd = GRIDS?.marca;
   if (!grd) return;
   const newData = marcas.map((m,i) => [String(i+1), m, m]);
   newData.push(...Array(Math.max(0, 200-newData.length)).fill(Array(3).fill('')));
@@ -276,7 +276,7 @@ function bdUpdateMarca() {
 // ── GRUPOS ────────────────────────────────────────────────────────────────────
 function bdUpdateGrupos() {
   const gruposGrid = GRID_DATA_STORE?.grupos ||
-    (window.GRIDS?.grupos ? window.GRIDS.grupos.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
+    (GRIDS?.grupos ? window.GRIDS.grupos.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
   if (gruposGrid.length > 0) return;
 
   const seen = new Map();
@@ -285,7 +285,7 @@ function bdUpdateGrupos() {
     if (gr && !seen.has(gr)) seen.set(gr, gp);
   });
   const lista = [...seen.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-  const grd = window.GRIDS?.grupos;
+  const grd = GRIDS?.grupos;
   if (!grd) return;
   const newData = lista.map(([gr,gp],i) => [String(i+1), '', gr, gp]);
   newData.push(...Array(Math.max(0,200-newData.length)).fill(Array(4).fill('')));
@@ -301,7 +301,7 @@ function bdUpdateRepresentantes() {
       return da-db;
     }).slice(-7);
 
-  const grd = window.GRIDS?.representantes;
+  const grd = GRIDS?.representantes;
   if (!grd) return;
   const repData = grd.getData().filter(r=>r&&r[2]&&r[2]!=='');
   if (!repData.length) return;
@@ -323,7 +323,7 @@ function bdUpdateRepresentantes() {
 
 // ── CLIENTES — calcula todas as colunas vermelhas ───────────────────────────
 function bdUpdateClientes() {
-  const grd = window.GRIDS?.clientes;
+  const grd = GRIDS?.clientes;
   if (!grd) return;
   const cliData = grd.getData().filter(r => r && (r[1] || r[2]) && String(r[1]||r[2]||'').trim() !== '');
   if (!cliData.length) return;
@@ -396,7 +396,7 @@ function bdUpdateClientes() {
     const newRow = [...r];
     while (newRow.length < 21) newRow.push('');
 
-    const datas = findCompras(nome, cod);
+    const datas = hasBD ? findCompras(nome, cod) : null;
     if (!datas || !datas.length) {
       newRow[14] = 'SEM';
       newRow[15] = '';
@@ -438,7 +438,7 @@ function bdUpdateClientes() {
 
 // ── PRODUTO SERVIÇO — COUNTIFS por produto × data ────────────────────────────
 function bdUpdateProdutoServico() {
-  const grd = window.GRIDS?.produto;
+  const grd = GRIDS?.produto;
   if (!grd) return;
   const prodData = grd.getData().filter(r=>r&&r[2]&&r[2]!=='');
   if (!prodData.length) return;
@@ -823,41 +823,95 @@ function bdUpdateLaudoMarca() {
   pane.innerHTML = html;
 }
 
-// ── LAUDO_GRUPOS_ANO — totais por grupo em cada ano ──────────────────────────
+// ── LAUDO_GRUPOS_ANO — grupos × anos × meses (como Excel) ───────────────────
 function bdUpdateLaudoGruposAno() {
   const pane = document.getElementById('av-rel-laudo-ano');
   if (!pane) return;
   if (!BD_DATA.rows.length) return;
 
-  const anos = [...new Set(BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
-  const pivot = new Map();
+  const anos   = [...new Set(BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
+  const grupos = [...new Set(BD_DATA.rows.map(r=>g(r,'grupo')).filter(Boolean))].sort();
+
+  if (!grupos.length) {
+    pane.innerHTML = '<div class="av-rel-placeholder"><p>LAUDO_GRUPOS_ANO</p><span>Cole PRODUTO SERVIÇO e processe o BD para ver grupos</span></div>';
+    return;
+  }
+
+  // Pivot: grupo → ano → [12 meses]
+  const pivot = {};
+  grupos.forEach(gr => { pivot[gr] = {}; anos.forEach(a => { pivot[gr][a] = Array(12).fill(0); }); });
+
   BD_DATA.rows.forEach(r => {
-    const gr = g(r,'grupo'), an = g(r,'ano'), v = metrica(r);
-    if (!gr || !an) return;
-    if (!pivot.has(gr)) pivot.set(gr, {});
-    pivot.get(gr)[an] = (pivot.get(gr)[an]||0) + v;
+    const gr = g(r,'grupo'), an = g(r,'ano');
+    const mi = MES_IDX[g(r,'mes').toLowerCase()] ?? -1;
+    const v  = metrica(r);
+    if (!gr || !an || mi < 0 || !pivot[gr] || !pivot[gr][an]) return;
+    pivot[gr][an][mi] += v;
   });
 
-  const grupos = [...pivot.keys()].sort();
+  // Totais por ano
   const totAno = {};
-  anos.forEach(a => totAno[a] = grupos.reduce((s,gr)=>s+(pivot.get(gr)[a]||0),0));
+  anos.forEach(a => { totAno[a] = grupos.reduce((s,gr) => s + pivot[gr][a].reduce((s2,v)=>s2+v,0), 0); });
+  const totGeral = Object.values(totAno).reduce((s,v)=>s+v,0);
+
+  const CORES = ['#4a90d9','#f59e0b','#10b981','#e05252','#a78bfa','#06b6d4'];
 
   let html = `<div class="rel-header-bar">
-      ${toggleBtnHtml()}
-      <div class="rel-title">LAUDO GRUPOS POR ANO</div>
-    </div>
-    <div class="av-table-wrap" style="border-top:none"><table class="av-table">
-    <thead><tr><th>GRUPO</th>${anos.map(a=>`<th>${a}</th>`).join('')}<th>TOTAL</th></tr></thead><tbody>`;
+    ${toggleBtnHtml()}
+    <div class="rel-title">LAUDO GRUPOS POR ANO — TODOS OS ANOS</div>
+  </div>
+  <div class="av-table-wrap" style="border-top:none">
+  <table class="av-table">
+    <thead>
+      <tr class="av-th-top">
+        <th rowspan="2" style="vertical-align:middle">GRUPO</th>
+        ${anos.map((a,i) => `<th colspan="13" style="background:#060e24;color:${CORES[i%CORES.length]};text-align:center;border-bottom:2px solid ${CORES[i%CORES.length]}">${a}</th>`).join('')}
+      </tr>
+      <tr>
+        ${anos.map(() => [...MESES_LABEL,'TOT'].map(m=>`<th>${m}</th>`).join('')).join('')}
+      </tr>
+    </thead>
+    <tbody>`;
 
   grupos.forEach(gr => {
-    const valores = anos.map(a => pivot.get(gr)[a]||0);
-    const tot = valores.reduce((s,v)=>s+v,0);
-    html += `<tr><td>${gr}</td>${valores.map(v=>`<td>${fmtMetrica(v)}</td>`).join('')}<td><strong>${fmtMetricaFull(tot)}</strong></td></tr>`;
+    const totGr = anos.reduce((s,a) => s + pivot[gr][a].reduce((s2,v)=>s2+v,0), 0);
+    if (totGr === 0) return;
+    html += `<tr>
+      <td style="font-weight:600;color:#c8d8f0;min-width:140px">${gr}</td>
+      ${anos.map(a => {
+        const meses = pivot[gr][a];
+        const tot   = meses.reduce((s,v)=>s+v,0);
+        return [...meses, tot].map(v => `<td>${fmtMetrica(v)}</td>`).join('');
+      }).join('')}
+    </tr>`;
   });
-  html += `<tr class="laudo-tot"><td>TOTAL</td>${anos.map(a=>`<td>${fmtMetrica(totAno[a])}</td>`).join('')}<td>${fmtMetricaFull(Object.values(totAno).reduce((s,v)=>s+v,0))}</td></tr>`;
-  html += '</tbody></table></div>';
+
+  // Linha TOTAL
+  html += `<tr class="laudo-tot">
+    <td>TOTAL</td>
+    ${anos.map(a => {
+      const totMes = Array(12).fill(0);
+      grupos.forEach(gr => pivot[gr][a].forEach((v,i) => totMes[i]+=v));
+      const tot = totMes.reduce((s,v)=>s+v,0);
+      return [...totMes, tot].map(v => `<td>${fmtMetrica(v)}</td>`).join('');
+    }).join('')}
+  </tr>`;
+
+  // Linha % PARTICIPAÇÃO
+  html += `<tr class="rep-row-pct">
+    <td>% PART.</td>
+    ${anos.map(a => {
+      const totMes = Array(12).fill(0);
+      grupos.forEach(gr => pivot[gr][a].forEach((v,i) => totMes[i]+=v));
+      const tot = totMes.reduce((s,v)=>s+v,0);
+      return [...totMes.map(v => totAno[a]>0?((v/totAno[a])*100).toFixed(1)+'%':'-'), totGeral>0?((tot/totGeral)*100).toFixed(1)+'%':'-'].map(v=>`<td>${v}</td>`).join('');
+    }).join('')}
+  </tr>`;
+
+  html += `</tbody></table></div>`;
   pane.innerHTML = html;
 }
+
 
 // ── LAUDO_GRUPOS_ANO_01_ANO_02 — comparativo entre 2 anos ────────────────────
 function bdUpdateLaudoGruposAno02() {

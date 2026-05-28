@@ -251,6 +251,6 @@ function jssGetProdutoGrupos() {
   // colunas: ID(0), CODPROD(1), DESCRIÇÃO(2), GRUPO(3), subgrupo(4), familia(5)
   const grupos   = [...new Set(src.map(r => String(r[3]||'').trim()).filter(Boolean))].sort();
   const subgrupos= [...new Set(src.map(r => String(r[4]||'').trim()).filter(Boolean))].sort();
-  const tipos    = [...new Set(BD_DATA.rows.map(r => { const i = (window.IDX||{}).mercado; return i>=0?String(r[i]||'').trim():''; }).filter(Boolean))].sort();
+  const tipos    = [...new Set(BD_DATA.rows.map(r => { const i = (IDX||{}).mercado; return i>=0?String(r[i]||'').trim():''; }).filter(Boolean))].sort();
   return { grupos, subgrupos, tipos };
 }
