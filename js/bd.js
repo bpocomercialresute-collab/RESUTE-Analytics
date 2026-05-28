@@ -364,16 +364,16 @@ function bdUpdateClientes() {
     const diasSem = Math.floor((today - ultima) / 86400000);
     const mesesSem = parseFloat((diasSem / 30).toFixed(2));
 
-    // dias>ciclo
-    let diasCiclo = '-';
-    if (ciclo !== '1compraBD' && typeof ciclo === 'number') {
-      diasCiclo = diasSem > ciclo ? 'ok' : 'enviar_Vendedor';
+    // dias>ciclo: "ok" = dentro do ciclo (bom), "enviar_Vendedor" = ciclo excedido
+    let diasCiclo;
+    if (ciclo === '1compraBD') {
+      diasCiclo = 'enviar_Vendedor'; // só 1 compra, sem ciclo definido
     } else {
-      diasCiclo = 'enviar_Vendedor';
+      diasCiclo = diasSem <= ciclo ? 'ok' : 'enviar_Vendedor';
     }
 
-    // LIGAR = same logic
-    const ligar = diasCiclo === 'ok' ? 'LIGAR' : 'enviar_Vendedor';
+    // LIGAR = aviso urgente quando excede 2x o ciclo
+    const ligar = (typeof ciclo === 'number' && diasSem > ciclo * 2) ? 'LIGAR' : '';
 
     // dias_ultima_recompra = dias entre penúltima e última compra
     const diasUltRecompra = penultima
