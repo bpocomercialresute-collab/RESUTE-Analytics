@@ -328,6 +328,30 @@
     </div>
 
 
+
+        <!-- RELAT REPRESENTANTES — 7 abas -->
+        <div id="av-rep-area" style="display:none">
+          <button class="voltar-btn" onclick="avGoHome()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar
+          </button>
+          <div class="av-tabs-bar">
+            <button class="av-tab active" data-area="rep" data-target="rep-tab-mix">REP_MIX</button>
+            <button class="av-tab" data-area="rep" data-target="rep-tab-positiv">REP_POSITIV</button>
+            <button class="av-tab" data-area="rep" data-target="rep-tab-semano">REP_SEM_ANO</button>
+            <button class="av-tab" data-area="rep" data-target="rep-tab-sem">REP_SEM</button>
+            <button class="av-tab" data-area="rep" data-target="rep-tab-meta">META</button>
+            <button class="av-tab" data-area="rep" data-target="rep-tab-dia">REP_DIA</button>
+            <button class="av-tab" data-area="rep" data-target="rep-tab-cresc">REP_CRESC_MES</button>
+          </div>
+          <div id="rep-tab-mix"     class="av-tab-pane active"><div class="av-rel-placeholder"><p>REP_MIX</p><span>Cole dados no BD e clique em Processar</span></div></div>
+          <div id="rep-tab-positiv" class="av-tab-pane"><div class="av-rel-placeholder"><p>REP_POSITIV</p></div></div>
+          <div id="rep-tab-semano"  class="av-tab-pane"><div class="av-rel-placeholder"><p>REP_SEM_ANO</p></div></div>
+          <div id="rep-tab-sem"     class="av-tab-pane"><div class="av-rel-placeholder"><p>REP_SEM</p></div></div>
+          <div id="rep-tab-meta"    class="av-tab-pane"><div class="av-rel-placeholder"><p>META</p></div></div>
+          <div id="rep-tab-dia"     class="av-tab-pane"><div class="av-rel-placeholder"><p>REP_DIA</p></div></div>
+          <div id="rep-tab-cresc"   class="av-tab-pane"><div class="av-rel-placeholder"><p>REP_CRESC_MES</p></div></div>
+        </div>
+
     <!-- VIEW: UNIÃO DE PLANILHAS -->
     <div id="view-uniao" class="page-view" style="display:none">
       <button class="voltar-btn" onclick="switchView('view-tools')">

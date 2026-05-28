@@ -2,36 +2,37 @@
 // ANÁLISE DE VENDAS — navegação
 // =============================================================================
 
+function _hide(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+function _show(id, type) { const el = document.getElementById(id); if (el) el.style.display = type||'block'; }
+
 function avGoHome() {
-  document.getElementById('av-home').style.display     = 'block';
-  document.getElementById('av-bd-area').style.display  = 'none';
-  document.getElementById('av-rel-area').style.display = 'none';
-  document.getElementById('av-rep-area').style.display = 'none';
+  _show('av-home');
+  _hide('av-bd-area');
+  _hide('av-rel-area');
+  _hide('av-rep-area');
 }
 
 function avShowBD() {
-  document.getElementById('av-home').style.display     = 'none';
-  document.getElementById('av-bd-area').style.display  = 'block';
-  document.getElementById('av-rel-area').style.display = 'none';
-  document.getElementById('av-rep-area').style.display = 'none';
+  _hide('av-home');
+  _show('av-bd-area');
+  _hide('av-rel-area');
+  _hide('av-rep-area');
   if (typeof jssEnsureInit === 'function') jssEnsureInit();
 }
 
 function avShowRel(tipo) {
-  document.getElementById('av-home').style.display     = 'none';
-  document.getElementById('av-bd-area').style.display  = 'none';
+  _hide('av-home');
+  _hide('av-bd-area');
 
-  // RELAT REPRESENTANTES → área própria com 7 abas
   if (tipo === 'relat-representantes') {
-    document.getElementById('av-rel-area').style.display = 'none';
-    document.getElementById('av-rep-area').style.display = 'block';
+    _hide('av-rel-area');
+    _show('av-rep-area');
     if (typeof repUpdateAll === 'function') repUpdateAll();
     return;
   }
 
-  // RELATÓRIOS / RELAT PRODUTOS → área de relatórios de produto
-  document.getElementById('av-rel-area').style.display = 'block';
-  document.getElementById('av-rep-area').style.display = 'none';
+  _show('av-rel-area');
+  _hide('av-rep-area');
 
   const mapa = {
     'laudo-grupo':    'av-rel-laudo-grupo',
@@ -57,7 +58,6 @@ document.addEventListener('click', e => {
   tab.classList.add('active');
   const pane = document.getElementById(tab.dataset.target);
   if (pane) pane.classList.add('active');
-  // Dispara render da aba de representantes
   if (tab.dataset.area === 'rep' && typeof repRenderTab === 'function') {
     repRenderTab(tab.dataset.target);
   }
