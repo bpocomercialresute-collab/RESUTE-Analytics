@@ -105,7 +105,6 @@ function jssCreateGrid(key) {
       rowResize:         false,
       editable:          true,
       search:            false,
-      filters:           true,  // ← FILTRO POR COLUNA (ícone no cabeçalho)
       freezeColumns:     0,
       defaultColAlign:   'left',
       onselection: function(inst, x1, y1) {
@@ -116,7 +115,7 @@ function jssCreateGrid(key) {
       onchange: function() { setTimeout(() => jssUpdateStatus(key), 200); },
     });
 
-    setTimeout(() => jssColorAutoHeaders(key), 400);
+    setTimeout(() => { jssColorAutoHeaders(key); jssInjectFilters(key); }, 500);
     jssUpdateStatus(key);
   } catch(e) { console.error('Grid [' + key + '] erro:', e); }
 }
@@ -314,4 +313,186 @@ function jssGetProdutoGrupos() {
     const i = IDX.mercado; return i>=0?String(r[i]||'').trim():'';
   }).filter(Boolean))].sort();
   return { grupos, subgrupos, tipos };
+}
+
+// =============================================================================
+// FILTROS POR COLUNA — dropdown em cada cabeçalho (estilo Excel)
+// =============================================================================
+
+const FILTROS_ATIVOS = {}; // key → { colIdx: value }
+
+// Injeta ícone de filtro em cada cabeçalho de coluna
+function jssInjectFilters(key) {
+  const elId = key === 'bd' ? 'jss-container' : 'jss-container-' + key;
+  const el   = document.getElementById(elId);
+  if (!el) return;
+
+  const headers = el.querySelectorAll('thead tr:first-child td');
+  // headers[0] é o corner (número de linha), headers[1..n] são as colunas
+  headers.forEach((th, i) => {
+    if (i === 0) return; // pula corner
+    const colIdx = i - 1;
+
+    // Cria o ícone de filtro
+    const btn = document.createElement('span');
+    btn.className = 'col-filter-btn';
+    btn.innerHTML = '▾';
+    btn.title = 'Filtrar coluna';
+    btn.dataset.col = colIdx;
+    btn.dataset.key = key;
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      jssShowFilterDropdown(key, colIdx, btn);
+    });
+
+    th.style.position = 'relative';
+    th.appendChild(btn);
+  });
+
+  FILTROS_ATIVOS[key] = {};
+}
+
+// Mostra o dropdown de filtro para uma coluna
+function jssShowFilterDropdown(key, colIdx, anchorEl) {
+  // Remove dropdowns existentes
+  document.querySelectorAll('.col-filter-dropdown').forEach(d => d.remove());
+
+  const grd = GRIDS[key];
+  if (!grd) return;
+
+  // Pega valores únicos da coluna (de FULL_DATA ou do grid)
+  const src = (FULL_DATA[key] || grd.getData()).filter(r => r && r.some(c => c !== '' && c !== null));
+  const vals = [...new Set(src.map(r => String(r[colIdx] || '')).filter(Boolean))].sort((a,b)=>{
+    const na = parseFloat(a), nb = parseFloat(b);
+    return (!isNaN(na) && !isNaN(nb)) ? na-nb : a.localeCompare(b);
+  });
+
+  if (!vals.length) return;
+
+  const ativo = FILTROS_ATIVOS[key]?.[colIdx];
+
+  // Cria o dropdown
+  const drop = document.createElement('div');
+  drop.className = 'col-filter-dropdown';
+
+  const rect = anchorEl.getBoundingClientRect();
+  drop.style.top  = (rect.bottom + window.scrollY) + 'px';
+  drop.style.left = (rect.left  + window.scrollX) + 'px';
+
+  drop.innerHTML = `
+    <div class="cfd-header">
+      <span>Filtrar coluna ${colIdx+1}</span>
+      <button class="cfd-clear" onclick="jssClearFilter('${key}',${colIdx})">✕ Limpar</button>
+    </div>
+    <div class="cfd-list">
+      <label class="cfd-item ${!ativo?'cfd-active':''}">
+        <input type="radio" name="cfd-${key}-${colIdx}" value="" ${!ativo?'checked':''}>
+        <span>(Todos)</span>
+      </label>
+      ${vals.map(v=>`
+      <label class="cfd-item ${ativo===v?'cfd-active':''}">
+        <input type="radio" name="cfd-${key}-${colIdx}" value="${v.replace(/"/g,'&quot;')}" ${ativo===v?'checked':''}>
+        <span>${v}</span>
+      </label>`).join('')}
+    </div>
+    <div class="cfd-footer">
+      <button class="cfd-apply" onclick="jssApplyFilter('${key}',${colIdx},this)">Aplicar</button>
+    </div>`;
+
+  document.body.appendChild(drop);
+
+  // Fecha ao clicar fora
+  setTimeout(() => {
+    document.addEventListener('click', function closeDrop(e) {
+      if (!drop.contains(e.target)) {
+        drop.remove();
+        document.removeEventListener('click', closeDrop);
+      }
+    });
+  }, 0);
+}
+
+// Aplica o filtro selecionado
+function jssApplyFilter(key, colIdx, btn) {
+  const drop = btn.closest('.col-filter-dropdown');
+  const selected = drop.querySelector('input[name="cfd-'+key+'-'+colIdx+'"]:checked');
+  const val = selected ? selected.value : '';
+
+  if (!FILTROS_ATIVOS[key]) FILTROS_ATIVOS[key] = {};
+  if (val === '') {
+    delete FILTROS_ATIVOS[key][colIdx];
+  } else {
+    FILTROS_ATIVOS[key][colIdx] = val;
+  }
+
+  jssAplicaFiltros(key);
+  drop.remove();
+
+  // Indica visualmente que a coluna tem filtro ativo
+  const elId = key === 'bd' ? 'jss-container' : 'jss-container-' + key;
+  const el = document.getElementById(elId);
+  if (el) {
+    const ths = el.querySelectorAll('thead tr:first-child td');
+    ths.forEach((th, i) => {
+      if (i === 0) return;
+      const ci = i-1;
+      const btn = th.querySelector('.col-filter-btn');
+      if (btn) {
+        btn.style.color = FILTROS_ATIVOS[key][ci] ? '#ffd24a' : '';
+        btn.innerHTML = FILTROS_ATIVOS[key][ci] ? '▾●' : '▾';
+      }
+    });
+  }
+}
+
+// Limpa filtro de uma coluna
+function jssClearFilter(key, colIdx) {
+  if (FILTROS_ATIVOS[key]) delete FILTROS_ATIVOS[key][colIdx];
+  jssAplicaFiltros(key);
+  document.querySelectorAll('.col-filter-dropdown').forEach(d => d.remove());
+}
+
+// Aplica todos os filtros ativos na grade
+function jssAplicaFiltros(key) {
+  const grd = GRIDS[key];
+  if (!grd) return;
+
+  const filtros = FILTROS_ATIVOS[key] || {};
+  const temFiltro = Object.keys(filtros).length > 0;
+
+  // Fonte de dados completa
+  const src = FULL_DATA[key] || grd.getData();
+  const def = GRID_DEFS[key];
+
+  let resultado = src.filter(r => r && r.some(c => c !== '' && c !== null));
+
+  if (temFiltro) {
+    resultado = resultado.filter(r =>
+      Object.entries(filtros).every(([ci, val]) =>
+        String(r[parseInt(ci)] || '').trim() === val
+      )
+    );
+  }
+
+  // Exibe resultado limitado ao tamanho do grid
+  const padded = resultado.slice(0, Math.max(def.rows, resultado.length));
+  while (padded.length < def.rows) padded.push(Array(def.cols.length).fill(''));
+  grd.setData(padded);
+
+  // Atualiza status
+  const el = document.getElementById('jss-status-' + key);
+  if (el) {
+    const total = (FULL_DATA[key] || []).length || 0;
+    el.textContent = temFiltro
+      ? `🔽 Filtrado: ${resultado.length.toLocaleString('pt-BR')} de ${total.toLocaleString('pt-BR')} linhas`
+      : `✓ ${resultado.length.toLocaleString('pt-BR')} linhas`;
+    el.className = 'jss-status-badge jss-status-ok';
+  }
+}
+
+// Limpa TODOS os filtros de uma grade
+function jssClearAllFilters(key) {
+  FILTROS_ATIVOS[key] = {};
+  jssAplicaFiltros(key);
 }
