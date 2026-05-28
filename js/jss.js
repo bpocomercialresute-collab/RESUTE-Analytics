@@ -90,7 +90,7 @@ function jssCreateGrid(key) {
         type:     'text',
         align:    'left',
         wordWrap: false,
-        readOnly: c.auto,
+        readOnly: false,  // usuário pode colar; cores indicam auto-calc
       })),
       tableOverflow:     true,
       tableWidth:        '100%',
