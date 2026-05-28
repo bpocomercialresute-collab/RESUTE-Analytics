@@ -4,6 +4,31 @@
 
 const BD_DATA = { headers: [], rows: [], count: 0 };
 
+// Modo dos relatórios de produto: 'valor' ou 'qtd'
+let RELATORIO_MODO = 'valor';
+function toggleModo(qual) {
+  RELATORIO_MODO = qual;
+  bdUpdateVendaProduto();
+  bdUpdateLaudoGrupo();
+  bdUpdateLaudoMarca();
+  bdUpdateLaudoGruposAno();
+  bdUpdateLaudoGruposAno02();
+}
+// Retorna o valor da métrica conforme o modo
+function metrica(row) {
+  return RELATORIO_MODO === 'qtd'
+    ? (parseFloat(g(row,'qtd')) || 0)
+    : toNum(g(row,'valor'));
+}
+function fmtMetrica(v) {
+  if (RELATORIO_MODO === 'qtd') return v > 0 ? v.toLocaleString('pt-BR',{maximumFractionDigits:0}) : '';
+  return v > 0 ? 'R$ '+v.toLocaleString('pt-BR',{maximumFractionDigits:0}) : '';
+}
+function fmtMetricaFull(v) {
+  if (RELATORIO_MODO === 'qtd') return v.toLocaleString('pt-BR',{maximumFractionDigits:0});
+  return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
+}
+
 const MES_NOME = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 const MES_IDX  = {};
 MES_NOME.forEach((m,i) => { MES_IDX[m]=i; MES_IDX[String(i+1).padStart(2,'0')]=i; MES_IDX[String(i+1)]=i; });
@@ -217,6 +242,8 @@ function bdUpdateAllTabs() {
   bdUpdateVendaProduto();
   bdUpdateLaudoGrupo();
   bdUpdateLaudoMarca();
+  bdUpdateLaudoGruposAno();
+  bdUpdateLaudoGruposAno02();
 }
 
 const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -356,9 +383,20 @@ function bdUpdateProdutoServico() {
 }
 
 // ── RELATÓRIOS ────────────────────────────────────────────────────────────────
+// ── BOTÃO TOGGLE QTD/VALOR (HTML reutilizável) ───────────────────────────────
+function toggleBtnHtml() {
+  return `<div class="rel-toggle">
+    <button class="rel-toggle-btn ${RELATORIO_MODO==='valor'?'active':''}" onclick="toggleModo('valor')">R$ VALOR</button>
+    <button class="rel-toggle-btn ${RELATORIO_MODO==='qtd'?'active':''}" onclick="toggleModo('qtd')">QTD</button>
+  </div>`;
+}
+
+// ── VENDA POR PRODUTO ─────────────────────────────────────────────────────────
 function bdUpdateVendaProduto() {
   const pane = document.getElementById('av-rel-venda-produto');
   if (!pane) return;
+  if (!BD_DATA.rows.length) return;
+
   const anos = [...new Set(BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
   const anoAtual = anos[anos.length-1] || String(new Date().getFullYear());
 
@@ -368,9 +406,8 @@ function bdUpdateVendaProduto() {
     if (g(r,'ano') !== anoAtual) return;
     const p  = g(r,'produto');
     const mi = MES_IDX[g(r,'mes').toLowerCase()] ?? -1;
-    const v  = toNum(g(r,'valor'));
-    const gr = g(r,'grupo');
-    const ma = g(r,'marca');
+    const v  = metrica(r);
+    const gr = g(r,'grupo'), ma = g(r,'marca');
     if (!p || mi < 0) return;
     if (!pivot.has(p)) pivot.set(p, {meses:Array(12).fill(0), total:0, grupo:gr, marca:ma});
     pivot.get(p).meses[mi] += v;
@@ -380,27 +417,43 @@ function bdUpdateVendaProduto() {
 
   const lista = [...pivot.entries()].sort((a,b)=>b[1].total-a[1].total);
   const totMes = Array(12).fill(0);
-  lista.forEach(([,d]) => d.meses.forEach((v,i) => totMes[i]+=v));
+  lista.forEach(([,d]) => d.meses.forEach((v,i)=>totMes[i]+=v));
 
-  let html = `<div class="av-table-wrap" style="border-top:none"><table class="av-table">
-  <thead>
-    <tr style="background:#060e24">
-      <td colspan="2" style="background:#060e24;font-size:10px;font-weight:700;color:var(--brand-blue-2);padding:6px 12px">ANO ${anoAtual}</td>
-      <td colspan="14" style="background:#060e24"></td>
-    </tr>
-    <tr>
-      <th>PRODUTO</th><th>GRUPO</th>
-      ${MESES_LABEL.map(m=>`<th>${m}</th>`).join('')}
-      <th>MEDIA</th><th>TOTAL</th><th>%</th>
-    </tr>
-    <tr style="background:#060e24">
-      <td style="font-weight:700;color:var(--text-primary);padding:7px 12px">SUBTOTAL</td><td></td>
-      ${totMes.map(v=>`<td style="font-weight:700;color:var(--brand-blue-2);padding:7px 12px">${v>0?'R$ '+v.toLocaleString('pt-BR',{maximumFractionDigits:0}):''}</td>`).join('')}
-      <td></td>
-      <td style="font-weight:700;color:var(--success);padding:7px 12px">R$ ${totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-      <td style="padding:7px 12px;color:var(--text-secondary)">100%</td>
-    </tr>
-  </thead><tbody>`;
+  // Linha de evolução mensal (% vs mês anterior)
+  const evol = totMes.map((v,i) => {
+    if (i===0 || totMes[i-1]===0) return null;
+    return ((v - totMes[i-1]) / totMes[i-1]) * 100;
+  });
+
+  let html = `<div class="rel-header-bar">
+      ${toggleBtnHtml()}
+      <div class="rel-title">VENDA POR PRODUTO — ${anoAtual}</div>
+    </div>
+    <div class="av-table-wrap" style="border-top:none"><table class="av-table">
+    <thead>
+      <tr class="rel-subtotal-row">
+        <td colspan="2" style="background:#1a1a00;color:#ffd24a;font-weight:800;padding:7px 12px">SUBTOTAL MENSAL</td>
+        ${totMes.map(v=>`<td style="background:#1a1a00;color:#ffd24a;font-weight:700;padding:7px 8px">${fmtMetrica(v)}</td>`).join('')}
+        <td style="background:#1a1a00"></td>
+        <td style="background:#1a1a00;color:#ffd24a;font-weight:800;padding:7px 8px">${fmtMetricaFull(totalGeral)}</td>
+        <td style="background:#1a1a00"></td>
+      </tr>
+      <tr class="rel-evol-row">
+        <td colspan="2" style="background:#10131f;color:#8aa;font-size:10px;padding:5px 12px">EVOLUÇÃO MENSAL</td>
+        ${evol.map(e=>{
+          if (e===null) return '<td style="background:#10131f"></td>';
+          const cor = e>=0?'#10b981':'#ef4444';
+          const arrow = e>=0?'▲':'▼';
+          return `<td style="background:#10131f;color:${cor};font-size:10px;font-weight:700;padding:5px 8px">${arrow} ${Math.abs(e).toFixed(1)}%</td>`;
+        }).join('')}
+        <td colspan="3" style="background:#10131f"></td>
+      </tr>
+      <tr>
+        <th>PRODUTO</th><th>GRUPO</th>
+        ${MESES_LABEL.map(m=>`<th>${m}</th>`).join('')}
+        <th>MEDIA</th><th>TOT</th><th>%</th>
+      </tr>
+    </thead><tbody>`;
 
   lista.forEach(([p,d]) => {
     const ativos = d.meses.filter(v=>v>0);
@@ -408,9 +461,9 @@ function bdUpdateVendaProduto() {
     const pct    = totalGeral > 0 ? ((d.total/totalGeral)*100).toFixed(1) : '0.0';
     html += `<tr>
       <td>${p}</td><td>${d.grupo}</td>
-      ${d.meses.map(v=>`<td>${v>0?'R$ '+v.toLocaleString('pt-BR',{maximumFractionDigits:0}):''}</td>`).join('')}
-      <td>${media>0?'R$ '+media.toLocaleString('pt-BR',{maximumFractionDigits:0}):''}</td>
-      <td><strong>R$ ${d.total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></td>
+      ${d.meses.map(v=>`<td>${fmtMetrica(v)}</td>`).join('')}
+      <td>${fmtMetrica(media)}</td>
+      <td><strong>${fmtMetricaFull(d.total)}</strong></td>
       <td>${pct}%</td>
     </tr>`;
   });
@@ -421,14 +474,17 @@ function bdUpdateVendaProduto() {
 function bdUpdateLaudoGrupo() {
   const pane = document.getElementById('av-rel-laudo-grupo');
   if (!pane) return;
+  if (!BD_DATA.rows.length) return;
+
   const anos = [...new Set(BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
+
+  // Pivot: grupo → ano → [12 meses]
   const pivot = new Map();
   let totalGeral = 0;
-
   BD_DATA.rows.forEach(r => {
     const gr = g(r,'grupo'), an = g(r,'ano');
     const mi = MES_IDX[g(r,'mes').toLowerCase()] ?? -1;
-    const v  = toNum(g(r,'valor'));
+    const v  = metrica(r);
     if (!gr || !an || mi < 0) return;
     if (!pivot.has(gr)) pivot.set(gr, {});
     if (!pivot.get(gr)[an]) pivot.get(gr)[an] = Array(12).fill(0);
@@ -437,37 +493,72 @@ function bdUpdateLaudoGrupo() {
   });
 
   const grupos = [...pivot.keys()].sort();
-  let html = `<div class="av-table-wrap" style="border-top:none"><table class="av-table">
-  <thead><tr><th>GRUPO</th>${MESES_LABEL.map(m=>`<th>${m}</th>`).join('')}<th>TOTAL</th><th>%</th></tr></thead><tbody>`;
 
-  anos.forEach(ano => {
-    const totMes = Array(12).fill(0); let totAno = 0;
-    grupos.forEach(gr => { const m=pivot.get(gr)?.[ano]||Array(12).fill(0); m.forEach((v,i)=>totMes[i]+=v); totAno+=m.reduce((s,v)=>s+v,0); });
-    html += `<tr style="background:var(--brand-navy-3)">
-      <td style="font-weight:800;color:var(--brand-blue-2)">${ano}</td>
-      ${totMes.map(v=>`<td style="font-weight:700;color:var(--text-primary)">${v>0?'R$ '+v.toLocaleString('pt-BR',{maximumFractionDigits:0}):''}</td>`).join('')}
-      <td style="font-weight:800;color:var(--success)">R$ ${totAno.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-      <td>${totalGeral>0?((totAno/totalGeral)*100).toFixed(1)+'%':''}</td>
-    </tr>`;
+  // Totais por ano e mês (consolidado de todos os grupos)
+  const totPorAnoMes = {};
+  anos.forEach(an => {
+    totPorAnoMes[an] = Array(12).fill(0);
     grupos.forEach(gr => {
-      const m = pivot.get(gr)?.[ano] || Array(12).fill(0);
-      const tot = m.reduce((s,v)=>s+v,0);
-      if (!tot) return;
-      html += `<tr>
-        <td style="padding-left:20px">${gr}</td>
-        ${m.map(v=>`<td>${v>0?'R$ '+v.toLocaleString('pt-BR',{maximumFractionDigits:0}):''}</td>`).join('')}
-        <td><strong>R$ ${tot.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></td>
-        <td>${totAno>0?((tot/totAno)*100).toFixed(1)+'%':''}</td>
-      </tr>`;
+      const m = pivot.get(gr)?.[an] || Array(12).fill(0);
+      m.forEach((v,i)=>totPorAnoMes[an][i]+=v);
     });
   });
+
+  // Tabela por TRIMESTRE
+  const trimData = {};
+  anos.forEach(an => {
+    const m = totPorAnoMes[an];
+    trimData[an] = [
+      m[0]+m[1]+m[2], m[3]+m[4]+m[5], m[6]+m[7]+m[8], m[9]+m[10]+m[11]
+    ];
+  });
+
+  let html = `<div class="rel-header-bar">
+      ${toggleBtnHtml()}
+      <div class="rel-title">LAUDO DE RESULTADOS — CONSOLIDADO POR GRUPO</div>
+    </div>
+    <div class="laudo-doc">
+      <div class="laudo-doc-head">
+        <div><div class="laudo-empresa">VARREMASTER</div>
+        <div class="laudo-sub">LAUDO DE RESULTADOS CONSOLIDADO — ${new Date().toLocaleDateString('pt-BR')}</div></div>
+      </div>`;
+
+  // === TABELA TRIMESTRE ===
+  html += `<table class="laudo-tbl"><thead><tr><th>TRIM</th>${anos.map(a=>`<th>${a}</th>`).join('')}</tr></thead><tbody>`;
+  ['1º TRIM','2º TRIM','3º TRIM','4º TRIM'].forEach((lbl,ti) => {
+    html += `<tr><td class="laudo-lbl">${lbl}</td>${anos.map(a=>`<td>${fmtMetrica(trimData[a][ti])}</td>`).join('')}</tr>`;
+  });
+  html += `<tr class="laudo-tot"><td>TOT</td>${anos.map(a=>{const t=trimData[a].reduce((s,v)=>s+v,0);return `<td>${fmtMetrica(t)}</td>`;}).join('')}</tr>`;
+  html += `<tr class="laudo-med"><td>MED</td>${anos.map(a=>{const t=trimData[a].reduce((s,v)=>s+v,0)/4;return `<td>${fmtMetrica(t)}</td>`;}).join('')}</tr>`;
+  html += '</tbody></table>';
+
+  // === TABELA MÊS ===
+  html += `<table class="laudo-tbl" style="margin-top:16px"><thead><tr><th>MÊS</th>${anos.map(a=>`<th>${a}</th>`).join('')}</tr></thead><tbody>`;
+  MESES_LABEL.forEach((mlbl,mi) => {
+    html += `<tr><td class="laudo-lbl">${mlbl}</td>${anos.map(a=>`<td>${fmtMetrica(totPorAnoMes[a][mi])}</td>`).join('')}</tr>`;
+  });
+  html += `<tr class="laudo-tot"><td>TOT</td>${anos.map(a=>{const t=totPorAnoMes[a].reduce((s,v)=>s+v,0);return `<td>${fmtMetrica(t)}</td>`;}).join('')}</tr>`;
+  // Crescimento ano a ano
+  html += `<tr class="laudo-cresc"><td>CRESC</td>`;
+  anos.forEach((a,i) => {
+    if (i===0) { html += '<td>—</td>'; return; }
+    const atual = totPorAnoMes[a].reduce((s,v)=>s+v,0);
+    const ant = totPorAnoMes[anos[i-1]].reduce((s,v)=>s+v,0);
+    const cr = ant>0 ? ((atual-ant)/ant)*100 : 0;
+    const cor = cr>=0?'#10b981':'#ef4444';
+    const arrow = cr>=0?'▲':'▼';
+    html += `<td style="color:${cor};font-weight:700">${arrow} ${Math.abs(cr).toFixed(1)}%</td>`;
+  });
+  html += '</tr>';
   html += '</tbody></table></div>';
+
   pane.innerHTML = html;
 }
 
 function bdUpdateLaudoMarca() {
   const pane = document.getElementById('av-rel-laudo-marca');
   if (!pane) return;
+  if (!BD_DATA.rows.length) return;
   const anos = [...new Set(BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
   const anoAtual = anos[anos.length-1] || String(new Date().getFullYear());
   const pivot = new Map(); let totalGeral = 0;
@@ -476,7 +567,7 @@ function bdUpdateLaudoMarca() {
     if (g(r,'ano') !== anoAtual) return;
     const m  = g(r,'marca');
     const mi = MES_IDX[g(r,'mes').toLowerCase()] ?? -1;
-    const v  = toNum(g(r,'valor'));
+    const v  = metrica(r);
     if (!m || mi < 0) return;
     if (!pivot.has(m)) pivot.set(m, Array(12).fill(0));
     pivot.get(m)[mi] += v;
@@ -484,17 +575,106 @@ function bdUpdateLaudoMarca() {
   });
 
   const lista = [...pivot.entries()].sort((a,b)=>b[1].reduce((s,v)=>s+v,0)-a[1].reduce((s,v)=>s+v,0));
-  let html = `<div class="av-table-wrap" style="border-top:none"><table class="av-table">
-  <thead><tr><th>MARCA</th>${MESES_LABEL.map(m=>`<th>${m}</th>`).join('')}<th>TOTAL</th><th>%</th></tr></thead><tbody>`;
+  let html = `<div class="rel-header-bar">
+      ${toggleBtnHtml()}
+      <div class="rel-title">LAUDO POR MARCA — ${anoAtual}</div>
+    </div>
+    <div class="av-table-wrap" style="border-top:none"><table class="av-table">
+    <thead><tr><th>MARCA</th>${MESES_LABEL.map(m=>`<th>${m}</th>`).join('')}<th>TOTAL</th><th>%</th></tr></thead><tbody>`;
 
   lista.forEach(([m,meses]) => {
     const tot = meses.reduce((s,v)=>s+v,0);
     const pct = totalGeral>0?((tot/totalGeral)*100).toFixed(1):'0.0';
     html += `<tr>
       <td>${m}</td>
-      ${meses.map(v=>`<td>${v>0?'R$ '+v.toLocaleString('pt-BR',{maximumFractionDigits:0}):''}</td>`).join('')}
-      <td><strong>R$ ${tot.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></td>
+      ${meses.map(v=>`<td>${fmtMetrica(v)}</td>`).join('')}
+      <td><strong>${fmtMetricaFull(tot)}</strong></td>
       <td>${pct}%</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  pane.innerHTML = html;
+}
+
+// ── LAUDO_GRUPOS_ANO — totais por grupo em cada ano ──────────────────────────
+function bdUpdateLaudoGruposAno() {
+  const pane = document.getElementById('av-rel-laudo-ano');
+  if (!pane) return;
+  if (!BD_DATA.rows.length) return;
+
+  const anos = [...new Set(BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
+  const pivot = new Map();
+  BD_DATA.rows.forEach(r => {
+    const gr = g(r,'grupo'), an = g(r,'ano'), v = metrica(r);
+    if (!gr || !an) return;
+    if (!pivot.has(gr)) pivot.set(gr, {});
+    pivot.get(gr)[an] = (pivot.get(gr)[an]||0) + v;
+  });
+
+  const grupos = [...pivot.keys()].sort();
+  const totAno = {};
+  anos.forEach(a => totAno[a] = grupos.reduce((s,gr)=>s+(pivot.get(gr)[a]||0),0));
+
+  let html = `<div class="rel-header-bar">
+      ${toggleBtnHtml()}
+      <div class="rel-title">LAUDO GRUPOS POR ANO</div>
+    </div>
+    <div class="av-table-wrap" style="border-top:none"><table class="av-table">
+    <thead><tr><th>GRUPO</th>${anos.map(a=>`<th>${a}</th>`).join('')}<th>TOTAL</th></tr></thead><tbody>`;
+
+  grupos.forEach(gr => {
+    const valores = anos.map(a => pivot.get(gr)[a]||0);
+    const tot = valores.reduce((s,v)=>s+v,0);
+    html += `<tr><td>${gr}</td>${valores.map(v=>`<td>${fmtMetrica(v)}</td>`).join('')}<td><strong>${fmtMetricaFull(tot)}</strong></td></tr>`;
+  });
+  html += `<tr class="laudo-tot"><td>TOTAL</td>${anos.map(a=>`<td>${fmtMetrica(totAno[a])}</td>`).join('')}<td>${fmtMetricaFull(Object.values(totAno).reduce((s,v)=>s+v,0))}</td></tr>`;
+  html += '</tbody></table></div>';
+  pane.innerHTML = html;
+}
+
+// ── LAUDO_GRUPOS_ANO_01_ANO_02 — comparativo entre 2 anos ────────────────────
+function bdUpdateLaudoGruposAno02() {
+  const pane = document.getElementById('av-rel-laudo-ano02');
+  if (!pane) return;
+  if (!BD_DATA.rows.length) return;
+
+  const anos = [...new Set(BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
+  if (anos.length < 2) { 
+    pane.innerHTML = '<div class="av-rel-placeholder"><p>Comparativo entre 2 anos</p><span>São necessários dados de pelo menos 2 anos diferentes</span></div>';
+    return;
+  }
+  const ano1 = anos[anos.length-2];
+  const ano2 = anos[anos.length-1];
+
+  const pivot = new Map();
+  BD_DATA.rows.forEach(r => {
+    const gr = g(r,'grupo'), an = g(r,'ano'), v = metrica(r);
+    if (!gr || (an!==ano1 && an!==ano2)) return;
+    if (!pivot.has(gr)) pivot.set(gr, {[ano1]:0,[ano2]:0});
+    pivot.get(gr)[an] += v;
+  });
+
+  const grupos = [...pivot.keys()].sort();
+  let html = `<div class="rel-header-bar">
+      ${toggleBtnHtml()}
+      <div class="rel-title">COMPARATIVO ${ano1} × ${ano2}</div>
+    </div>
+    <div class="av-table-wrap" style="border-top:none"><table class="av-table">
+    <thead><tr><th>GRUPO</th><th>${ano1}</th><th>${ano2}</th><th>DIFERENÇA</th><th>VARIAÇÃO %</th></tr></thead><tbody>`;
+
+  grupos.forEach(gr => {
+    const v1 = pivot.get(gr)[ano1]||0;
+    const v2 = pivot.get(gr)[ano2]||0;
+    const dif = v2 - v1;
+    const varp = v1>0 ? (dif/v1)*100 : 0;
+    const cor = dif>=0?'#10b981':'#ef4444';
+    const arrow = dif>=0?'▲':'▼';
+    html += `<tr>
+      <td>${gr}</td>
+      <td>${fmtMetrica(v1)}</td>
+      <td>${fmtMetrica(v2)}</td>
+      <td style="color:${cor}">${fmtMetrica(Math.abs(dif))}</td>
+      <td style="color:${cor};font-weight:700">${arrow} ${Math.abs(varp).toFixed(1)}%</td>
     </tr>`;
   });
   html += '</tbody></table></div>';

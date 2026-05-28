@@ -1941,3 +1941,122 @@ canvas{max-height:320px !important;width:100% !important;}
 [id^="jss-container"] ::-webkit-scrollbar-thumb { background: #1a2d5a; border-radius: 4px; }
 [id^="jss-container"] ::-webkit-scrollbar-thumb:hover { background: #2e74c0; }
 [id^="jss-container"] ::-webkit-scrollbar-corner { background: #060c18; }
+
+/* ============================================================
+   RELATÓRIOS — botão toggle QTD/VALOR + documento laudo
+   ============================================================ */
+.rel-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #0a1430;
+  border-bottom: 2px solid #2e74c0;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.rel-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #c8deff;
+}
+.rel-toggle {
+  display: inline-flex;
+  background: #060e24;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 7px;
+  padding: 3px;
+  gap: 2px;
+}
+.rel-toggle-btn {
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  color: #7a9cc8;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 150ms;
+}
+.rel-toggle-btn:hover { color: #c8d8f0; }
+.rel-toggle-btn.active {
+  background: #2e74c0;
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(46,116,192,0.4);
+}
+
+/* Documento de laudo */
+.laudo-doc {
+  padding: 24px;
+  background: #0b1628;
+}
+.laudo-doc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid #2e74c0;
+}
+.laudo-empresa {
+  font-size: 20px;
+  font-weight: 900;
+  color: #4a90d9;
+  letter-spacing: 0.05em;
+}
+.laudo-sub {
+  font-size: 12px;
+  color: #7a9cc8;
+  margin-top: 4px;
+}
+
+/* Tabelas do laudo */
+.laudo-tbl {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 700px;
+  font-size: 12.5px;
+}
+.laudo-tbl th {
+  background: #0a1430;
+  color: #c8deff;
+  font-weight: 800;
+  padding: 8px 14px;
+  text-align: right;
+  border: 1px solid rgba(46,116,192,0.25);
+  font-size: 11px;
+}
+.laudo-tbl th:first-child { text-align: left; }
+.laudo-tbl td {
+  padding: 6px 14px;
+  text-align: right;
+  border: 1px solid rgba(255,255,255,0.06);
+  color: #b8ccec;
+  background: #0d1b3e;
+}
+.laudo-tbl td.laudo-lbl {
+  text-align: left;
+  font-weight: 600;
+  color: #c8d8f0;
+  background: #0f2040;
+}
+.laudo-tbl tr.laudo-tot td {
+  background: #1a1a00;
+  color: #ffd24a;
+  font-weight: 800;
+}
+.laudo-tbl tr.laudo-tot td:first-child { background: #1a1a00; }
+.laudo-tbl tr.laudo-med td {
+  background: #112248;
+  color: #9fc0ec;
+  font-weight: 600;
+}
+.laudo-tbl tr.laudo-cresc td {
+  background: #0a1020;
+  font-size: 11px;
+}
+.laudo-tbl tr.laudo-cresc td:first-child { color: #7a9cc8; font-weight: 600; }
