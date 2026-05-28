@@ -321,46 +321,155 @@ function bdUpdateRepresentantes() {
   grd.setData(newData);
 }
 
-// ── CLIENTES — calcula dias sem compra, última compra ────────────────────────
+// ── CLIENTES — calcula todas as colunas vermelhas ───────────────────────────
 function bdUpdateClientes() {
   const grd = window.GRIDS?.clientes;
   if (!grd) return;
-  const cliData = grd.getData().filter(r=>r&&r[2]&&r[2]!=='');
+  const cliData = grd.getData().filter(r => r && r[2] && r[2] !== '');
   if (!cliData.length) return;
 
-  // Mapa: cliente → última data de compra
-  const ultimaCompra = {};
-  const totalCompras = {};
+  const today = new Date();
+
+  // Mapa cliente → todas as datas de compra (do BD)
+  const compras = {}; // nome → [Date, ...]
   BD_DATA.rows.forEach(row => {
-    const cli = g(row,'cliente');
+    const cli   = g(row,'cliente');
     const dtStr = g(row,'saida') || g(row,'emissao');
     if (!cli || !dtStr) return;
     const dt = parseDate(dtStr);
     if (!dt) return;
-    if (!ultimaCompra[cli] || dt > ultimaCompra[cli]) ultimaCompra[cli] = dt;
-    totalCompras[cli] = (totalCompras[cli]||0)+1;
+    if (!compras[cli]) compras[cli] = [];
+    compras[cli].push(dt);
   });
 
-  const today = new Date();
+  // Ordena e calcula métricas por cliente
+  const metricas = {};
+  Object.entries(compras).forEach(([cli, datas]) => {
+    datas.sort((a,b) => a-b);
+    const ultima    = datas[datas.length-1];
+    const penultima = datas.length > 1 ? datas[datas.length-2] : null;
+    const primeira  = datas[0];
+    const nCompras  = datas.length;
+
+    // Ciclo médio (dias entre compras)
+    let ciclo;
+    if (nCompras === 1) {
+      ciclo = '1compraBD';
+    } else {
+      const intervalo = Math.floor((ultima - primeira) / 86400000);
+      ciclo = Math.round(intervalo / (nCompras - 1));
+    }
+
+    // Dias sem venda
+    const diasSem = Math.floor((today - ultima) / 86400000);
+    const mesesSem = parseFloat((diasSem / 30).toFixed(2));
+
+    // dias>ciclo
+    let diasCiclo = '-';
+    if (ciclo !== '1compraBD' && typeof ciclo === 'number') {
+      diasCiclo = diasSem > ciclo ? 'ok' : 'enviar_Vendedor';
+    } else {
+      diasCiclo = 'enviar_Vendedor';
+    }
+
+    // LIGAR = same logic
+    const ligar = diasCiclo === 'ok' ? 'LIGAR' : 'enviar_Vendedor';
+
+    // dias_ultima_recompra = dias entre penúltima e última compra
+    const diasUltRecompra = penultima
+      ? Math.floor((ultima - penultima) / 86400000)
+      : '';
+
+    // REATIV = inativo > 6 meses
+    const reativ = diasSem > 180 ? 'REATIVAR' : '';
+
+    // Formata datas
+    const fmtDt = dt => dt
+      ? `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`
+      : '';
+
+    metricas[cli] = {
+      diasSem,
+      mesesSem,
+      ciclo,
+      ligar,
+      ultVdBd:   fmtDt(ultima),
+      diasCiclo,
+      penultDt:  fmtDt(penultima),
+      diasUltRecompra,
+      reativ,
+    };
+  });
+
+  // Aplica nos dados do grid
+  // Índices das colunas no grid CLIENTES (baseado na definição do jss.js):
+  // 0:ID, 1:COD_CLI, 2:CLIENTES, 3:TIPO, 4:ORIG, 5:CNPJ/CPF, 6:RG/IE, 7:CEP
+  // 8:Cidade, 9:UF, 10:Endereço, 11:Endereço Nro, 12:Complemento, 13:Bairro
+  // 14:Telefone, 15:Celular, 16:E-mail, 17:Fantasia, 18:VENDEDOR
+  // 19:Ult Compra, 20:Zona de Venda
+  // AUTO: 21:dias sem venda, 22:meses sem venda, 23:DIAS_CICLO, 24:LIGAR
+  //       25:ULT_VD_BD, 26:dias>ciclo, 27:dt_penulte_ped
+  //       28:dias_ultima_recompra, 29:REATIV_inat_>6meses, 30:deletar
+  const COLS = {diasSem:21,mesesSem:22,ciclo:23,ligar:24,ultVdBd:25,
+                diasCiclo:26,penultDt:27,diasUltRecompra:28,reativ:29};
+
   const newData = cliData.map(r => {
     const nome = String(r[2]||'').trim();
     const newRow = [...r];
-    const ult = ultimaCompra[nome];
-    if (ult) {
-      const dias  = Math.floor((today - ult) / 86400000);
-      const meses = Math.floor(dias / 30);
-      const ultStr = `${String(ult.getDate()).padStart(2,'0')}/${String(ult.getMonth()+1).padStart(2,'0')}/${ult.getFullYear()}`;
-      // Índices: Ult Compra=19, dias sem venda=21, meses sem venda=22, ULT_VD_BD=25
-      while (newRow.length < 28) newRow.push('');
-      newRow[19] = ultStr;
-      newRow[21] = String(dias);
-      newRow[22] = String(meses);
-      newRow[25] = ultStr;
+    while (newRow.length < 31) newRow.push('');
+    const m = metricas[nome];
+    if (!m) {
+      // Sem compras no BD
+      newRow[21] = 'SEM';
+      newRow[22] = '';
+      newRow[23] = '1compraBD';
+      newRow[24] = 'enviar_Vendedor';
+      newRow[25] = 'SEM';
+      newRow[26] = 'enviar_Vendedor';
+      newRow[27] = '';
+      newRow[28] = '';
+      newRow[29] = '';
+    } else {
+      newRow[21] = m.diasSem;
+      newRow[22] = m.mesesSem;
+      newRow[23] = m.ciclo;
+      newRow[24] = m.ligar;
+      newRow[25] = m.ultVdBd;
+      newRow[26] = m.diasCiclo;
+      newRow[27] = m.penultDt;
+      newRow[28] = m.diasUltRecompra;
+      newRow[29] = m.reativ;
     }
     return newRow;
   });
+
   grd.setData(newData);
+
+  // Atualiza KPIs
+  bdUpdateClientesKPIs(metricas, cliData.length);
 }
+
+// ── KPIs DO TOPO DO CLIENTES ──────────────────────────────────────────────────
+function bdUpdateClientesKPIs(metricas, totalCad) {
+  const totalBD     = BD_DATA.count;
+  const semCompra   = Object.values(metricas).filter(m => m.diasSem === 'SEM' || m.diasSem === undefined).length
+                    + (totalCad - Object.keys(metricas).length);
+  const fluxoMedio  = Object.values(metricas)
+    .filter(m => typeof m.ciclo === 'number')
+    .reduce((s,m,_,a) => s + m.ciclo/a.length, 0);
+
+  const kpis = [
+    {id:'kpi-bd-total',    val: totalBD.toLocaleString('pt-BR')},
+    {id:'kpi-cli-total',   val: totalCad.toLocaleString('pt-BR')},
+    {id:'kpi-sem-compra',  val: Object.values(metricas).filter(m=>m.diasSem>180).length.toLocaleString('pt-BR')},
+    {id:'kpi-fluxo',       val: fluxoMedio > 0 ? Math.round(fluxoMedio)+' dias' : '—'},
+  ];
+  kpis.forEach(k => {
+    const el = document.getElementById(k.id);
+    if (el) el.textContent = k.val;
+  });
+}
+
 
 // ── PRODUTO SERVIÇO — COUNTIFS por produto × data ────────────────────────────
 function bdUpdateProdutoServico() {

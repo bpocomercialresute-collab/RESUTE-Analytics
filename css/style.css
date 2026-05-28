@@ -2220,3 +2220,39 @@ canvas{max-height:320px !important;width:100% !important;}
   background: #0a1020 !important;
   font-size: 10.5px;
 }
+
+/* ── CLIENTES — KPIs do topo ── */
+.cli-kpis-bar {
+  display: flex;
+  gap: 2px;
+  padding: 10px 14px;
+  background: #0a1430;
+  border-bottom: 2px solid #2e74c0;
+  flex-wrap: wrap;
+}
+.cli-kpi {
+  background: #0d1b3e;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 6px;
+  padding: 8px 16px;
+  min-width: 140px;
+  border-top: 3px solid #2e74c0;
+}
+.cli-kpi-blue { border-top-color: #4a90d9; }
+.cli-kpi-red  { border-top-color: #ef4444; }
+.cli-kpi-green{ border-top-color: #10b981; }
+.cli-kpi-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #5a7399;
+  margin-bottom: 4px;
+}
+.cli-kpi-val {
+  display: block;
+  font-size: 18px;
+  font-weight: 900;
+  color: #c8deff;
+}
