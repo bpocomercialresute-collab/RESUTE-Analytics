@@ -105,7 +105,7 @@ function jssCreateGrid(key) {
       columnResize:      true,
       rowResize:         false,
       editable:          true,
-      search:            false,
+      search:            true,
       freezeColumns:     0,
       defaultColAlign:   'left',
       onselection: function(inst, x1, y1) {
@@ -253,4 +253,15 @@ function jssGetProdutoGrupos() {
   const subgrupos= [...new Set(src.map(r => String(r[4]||'').trim()).filter(Boolean))].sort();
   const tipos    = [...new Set(BD_DATA.rows.map(r => { const i = (IDX||{}).mercado; return i>=0?String(r[i]||'').trim():''; }).filter(Boolean))].sort();
   return { grupos, subgrupos, tipos };
+}
+
+// ── BUSCA/FILTRO NOS GRIDS ────────────────────────────────────────────────────
+function jssSearch(key, termo) {
+  const grd = GRIDS[key];
+  if (!grd) return;
+  if (termo.trim() === '') {
+    grd.resetSearch();
+  } else {
+    grd.search(termo.trim());
+  }
 }

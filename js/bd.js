@@ -243,16 +243,19 @@ function getSem(dt) {
 
 // ── ATUALIZA TODAS AS ABAS ────────────────────────────────────────────────────
 function bdUpdateAllTabs() {
-  bdUpdateMarca();
-  bdUpdateGrupos();
-  bdUpdateRepresentantes();
-  bdUpdateClientes();
-  bdUpdateProdutoServico();
-  bdUpdateVendaProduto();
-  bdUpdateLaudoGrupo();
-  bdUpdateLaudoMarca();
-  bdUpdateLaudoGruposAno();
-  bdUpdateLaudoGruposAno02();
+  // Relatórios primeiro (mais importantes)
+  const relatorios = [
+    bdUpdateVendaProduto, bdUpdateLaudoGrupo,
+    bdUpdateLaudoMarca, bdUpdateLaudoGruposAno, bdUpdateLaudoGruposAno02
+  ];
+  relatorios.forEach(fn => { try { fn(); } catch(e) { console.warn(fn.name, e); } });
+
+  // Abas de cadastro (secundárias)
+  const cadastros = [
+    bdUpdateMarca, bdUpdateGrupos,
+    bdUpdateRepresentantes, bdUpdateClientes, bdUpdateProdutoServico
+  ];
+  cadastros.forEach(fn => { try { fn(); } catch(e) { console.warn(fn.name, e); } });
 }
 
 const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
