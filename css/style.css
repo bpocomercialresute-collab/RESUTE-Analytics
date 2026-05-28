@@ -2256,23 +2256,3 @@ canvas{max-height:320px !important;width:100% !important;}
   font-weight: 900;
   color: #c8deff;
 }
-
-/* ── Barra de busca nos grids ── */
-.jss-search-bar {
-  padding: 5px 10px;
-  background: #060e24;
-  border: 1px solid rgba(46,116,192,0.3);
-  border-radius: 5px;
-  color: #c8d8f0;
-  font-size: 12px;
-  font-family: inherit;
-  width: 200px;
-  margin-left: 8px;
-  transition: border-color 150ms;
-}
-.jss-search-bar:focus {
-  outline: none;
-  border-color: #4a90d9;
-  background: #0a1848;
-}
-.jss-search-bar::placeholder { color: #3d5070; }

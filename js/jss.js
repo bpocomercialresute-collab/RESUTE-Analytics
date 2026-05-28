@@ -1,9 +1,9 @@
 // =============================================================================
-// JSS.JS — Grids Excel para todas as abas (colunas vermelhas = auto-calc)
+// JSS.JS — Grids Excel com filtros por coluna + paginação inteligente
 // =============================================================================
 
 const GRID_DEFS = {
-  bd: { rows:50000, lazy:true,
+  bd: { rows:200, lazy:true,
     cols:[
       {t:'ID',w:55,auto:false},{t:'N° PEDIDO',w:95,auto:false},
       {t:'PRODUTO OU SERVIÇO',w:220,auto:false},{t:'QTD',w:60,auto:false},
@@ -26,29 +26,29 @@ const GRID_DEFS = {
   marca: { rows:200, lazy:false,
     cols:[{t:'ID',w:60,auto:false},{t:'COD MARCA',w:120,auto:false},{t:'MARCA',w:250,auto:false}]
   },
-  clientes: { rows:10000, lazy:true,
+  clientes: { rows:200, lazy:false,
     cols:[
-      {t:'ID',              w:55,  auto:false},
-      {t:'COD_CLI',         w:100, auto:false},
-      {t:'CLIENTES',        w:250, auto:false},
-      {t:'TIPO',            w:130, auto:false},
-      {t:'CNPJ / CPF',      w:160, auto:false},
-      {t:'CEP',             w:90,  auto:false},
-      {t:'Cidade',          w:140, auto:false},
-      {t:'UF',              w:50,  auto:false},
-      {t:'Bairro',          w:160, auto:false},
-      {t:'Telefone',        w:130, auto:false},
-      {t:'E-mail',          w:190, auto:false},
-      {t:'Fantasia',        w:210, auto:false},
-      {t:'VENDEDOR',        w:140, auto:false},
-      {t:'Zona de Venda',   w:130, auto:false},
-      {t:'dias sem venda',  w:120, auto:true},
-      {t:'meses sem venda', w:130, auto:true},
-      {t:'DIAS_CICLO',      w:115, auto:true},
-      {t:'LIGAR',           w:110, auto:true},
-      {t:'ULT_VD_BD',       w:115, auto:true},
-      {t:'dias>ciclo',      w:130, auto:true},
-      {t:'dt_penulte_ped',  w:130, auto:true},
+      {t:'ID',w:55,auto:false},{t:'COD_CLI',w:100,auto:false},{t:'CLIENTES',w:250,auto:false},
+      {t:'TIPO',w:130,auto:false},{t:'CNPJ / CPF',w:160,auto:false},
+      {t:'CEP',w:90,auto:false},{t:'Cidade',w:140,auto:false},
+      {t:'UF',w:50,auto:false},{t:'Bairro',w:160,auto:false},{t:'Telefone',w:130,auto:false},
+      {t:'E-mail',w:190,auto:false},{t:'Fantasia',w:210,auto:false},
+      {t:'VENDEDOR',w:140,auto:false},{t:'Zona de Venda',w:130,auto:false},
+      {t:'dias sem venda',w:120,auto:true},{t:'meses sem venda',w:130,auto:true},
+      {t:'DIAS_CICLO',w:115,auto:true},{t:'LIGAR',w:110,auto:true},
+      {t:'ULT_VD_BD',w:115,auto:true},{t:'dias>ciclo',w:130,auto:true},
+      {t:'dt_penulte_ped',w:130,auto:true},
+    ]
+  },
+  representantes: { rows:200, lazy:false,
+    cols:[
+      {t:'ID',w:55,auto:false},{t:'COD',w:80,auto:false},{t:'REPRESENTANTE',w:220,auto:false},
+      {t:'TIPO',w:120,auto:false},{t:'Fantasia',w:180,auto:false},{t:'Fone',w:130,auto:false},
+      {t:'% CRESCIMENTO',w:120,auto:false},{t:'email',w:180,auto:false},
+      {t:'obs',w:160,auto:false},{t:'tipo_produto',w:130,auto:false},
+      {t:'DT_1',w:110,auto:true},{t:'DT_2',w:110,auto:true},{t:'DT_3',w:110,auto:true},
+      {t:'DT_4',w:110,auto:true},{t:'DT_5',w:110,auto:true},{t:'DT_6',w:110,auto:true},
+      {t:'DT_7',w:110,auto:true},{t:'TOT_MIX',w:90,auto:true},
     ]
   },
   grupos: { rows:200, lazy:false,
@@ -57,7 +57,7 @@ const GRID_DEFS = {
       {t:'GRUPO',w:200,auto:false},{t:'GRUPO PAI',w:200,auto:false},
     ]
   },
-  produto: { rows:2000, lazy:false,
+  produto: { rows:200, lazy:false,
     cols:[
       {t:'ID',w:55,auto:false},{t:'CODPROD',w:100,auto:false},{t:'DESCRIÇÃO',w:230,auto:false},
       {t:'GRUPO',w:130,auto:false},{t:'subgrupo',w:130,auto:false},{t:'familia',w:130,auto:false},
@@ -69,8 +69,12 @@ const GRID_DEFS = {
   }
 };
 
-const GRIDS = {};
+// Dados completos (o grid mostra só as primeiras linhas, dados completos ficam aqui)
+const GRIDS        = {};
 const GRID_DATA_STORE = {};
+const FULL_DATA    = {}; // dados completos por key (antes de limitar linhas)
+
+const VISIBLE_ROWS = 200; // linhas visíveis na grade
 
 // ── CRIA UM GRID ──────────────────────────────────────────────────────────────
 function jssCreateGrid(key) {
@@ -85,46 +89,69 @@ function jssCreateGrid(key) {
     GRIDS[key] = jspreadsheet(el, {
       data,
       columns: def.cols.map(c => ({
-        title:    c.t,
-        width:    c.w,
-        type:     'text',
-        align:    'left',
-        wordWrap: false,
-        readOnly: false,  // usuário pode colar; cores indicam auto-calc
+        title: c.t, width: c.w, type: 'text', align: 'left', wordWrap: false,
       })),
       tableOverflow:     true,
       tableWidth:        '100%',
-      tableHeight:       key === 'bd' ? 'calc(100vh - 250px)' : 'calc(100vh - 225px)',
+      tableHeight:       key === 'bd' ? 'calc(100vh - 250px)' : 'calc(100vh - 260px)',
       lazyLoading:       def.lazy,
       loadingSpin:       def.lazy,
       allowInsertRow:    true,
       allowDeleteRow:    true,
       allowInsertColumn: false,
       allowDeleteColumn: false,
-      columnSorting:     false,
+      columnSorting:     true,  // Ordena ao clicar no cabeçalho
       columnResize:      true,
       rowResize:         false,
       editable:          true,
-      search:            true,
+      search:            false,
+      filters:           true,  // ← FILTRO POR COLUNA (ícone no cabeçalho)
       freezeColumns:     0,
       defaultColAlign:   'left',
       onselection: function(inst, x1, y1) {
         const ref = document.getElementById('jss-ref-' + key);
         if (ref) ref.textContent = jssColLetter(x1) + (y1 + 1);
       },
-      onpaste:  function() { setTimeout(() => jssUpdateStatus(key), 500); },
+      onpaste:  function() { setTimeout(() => jssAfterPaste(key), 600); },
       onchange: function() { setTimeout(() => jssUpdateStatus(key), 200); },
     });
 
-    // Colore colunas vermelhas após 400ms
     setTimeout(() => jssColorAutoHeaders(key), 400);
     jssUpdateStatus(key);
-  } catch(e) {
-    console.error('Grid [' + key + '] erro:', e);
-  }
+  } catch(e) { console.error('Grid [' + key + '] erro:', e); }
 }
 
-// Colore cabeçalhos das colunas auto-calculadas em vermelho
+// ── APÓS COLAR — mostra "Ver total" e armazena dados completos ────────────────
+function jssAfterPaste(key) {
+  const grd = GRIDS[key];
+  if (!grd) return;
+  const all = grd.getData().filter(r => r && r.some(c => c !== '' && c !== null));
+  FULL_DATA[key] = all;
+  jssUpdateStatus(key);
+}
+
+// ── STATUS + "Ver total de X linhas" ─────────────────────────────────────────
+function jssUpdateStatus(key) {
+  if (!GRIDS[key]) return;
+  try {
+    const data = GRIDS[key].getData();
+    const filled = data.filter(r => r && r.some(c => c !== '' && c !== null)).length;
+    const el = document.getElementById('jss-status-' + key);
+    if (!el) return;
+
+    const full = FULL_DATA[key];
+    if (full && full.length > filled) {
+      el.textContent = `Total: ${full.length.toLocaleString('pt-BR')} linhas · Exibindo ${filled.toLocaleString('pt-BR')}`;
+    } else if (filled > 0) {
+      el.textContent = `✓ ${filled.toLocaleString('pt-BR')} linhas`;
+    } else {
+      el.textContent = 'Pronto para receber dados';
+    }
+    el.className = 'jss-status-badge' + (filled > 0 ? ' jss-status-ok' : '');
+  } catch(e) {}
+}
+
+// ── COLORE CABEÇALHOS AUTOMÁTICOS ────────────────────────────────────────────
 function jssColorAutoHeaders(key) {
   const elId = key === 'bd' ? 'jss-container' : 'jss-container-' + key;
   const el = document.getElementById(elId);
@@ -140,25 +167,10 @@ function jssColorAutoHeaders(key) {
   });
 }
 
-// ── UTILITÁRIOS ───────────────────────────────────────────────────────────────
 function jssColLetter(i) {
   let s = ''; i++;
   while (i > 0) { let m = (i-1)%26; s = String.fromCharCode(65+m)+s; i = Math.floor((i-1)/26); }
   return s;
-}
-
-function jssUpdateStatus(key) {
-  if (!GRIDS[key]) return;
-  try {
-    const filled = GRIDS[key].getData()
-      .filter(r => r && r.some(c => c !== '' && c !== null)).length;
-    const el = document.getElementById('jss-status-' + key);
-    if (!el) return;
-    el.textContent = filled > 0
-      ? '✓ ' + filled.toLocaleString('pt-BR') + ' linhas'
-      : GRID_DEFS[key].rows.toLocaleString('pt-BR') + ' linhas disponíveis';
-    el.className = 'jss-status-badge' + (filled > 0 ? ' jss-status-ok' : '');
-  } catch(e) {}
 }
 
 function jssClearGrid(key) {
@@ -166,20 +178,24 @@ function jssClearGrid(key) {
   if (!confirm('Limpar todos os dados desta aba?')) return;
   const def = GRID_DEFS[key];
   GRIDS[key].setData(Array.from({length: def.rows}, () => Array(def.cols.length).fill('')));
+  FULL_DATA[key] = null;
   jssUpdateStatus(key);
 }
 
-// ── PROCESSAR ─────────────────────────────────────────────────────────────────
+// ── PROCESSAR — alimenta BD_DATA e relatórios ─────────────────────────────────
 function jssProcess() {
   if (!GRIDS.bd) { alert('Aguarde carregar.'); return; }
-  const rows = GRIDS.bd.getData().filter(r => r && r.some(c => c !== '' && c !== null));
+
+  // Usa FULL_DATA se disponível (dados completos colados), senão pega do grid
+  const all = FULL_DATA.bd || GRIDS.bd.getData();
+  const rows = all.filter(r => r && r.some(c => c !== '' && c !== null));
   if (!rows.length) { alert('Sem dados no BD. Cole os dados e tente novamente.'); return; }
 
-  // Salva dados de todas as abas
+  // Salva dados de todas as abas inicializadas
   Object.keys(GRIDS).forEach(k => {
     if (k !== 'bd') {
-      GRID_DATA_STORE[k] = GRIDS[k].getData()
-        .filter(r => r && r.some(c => c !== '' && c !== null));
+      const src = FULL_DATA[k] || GRIDS[k].getData();
+      GRID_DATA_STORE[k] = src.filter(r => r && r.some(c => c !== '' && c !== null));
     }
   });
 
@@ -187,24 +203,14 @@ function jssProcess() {
   BD_DATA.rows    = rows;
   BD_DATA.count   = rows.length;
   bdMapColumns();
-  bdAutoFill();
+  try { bdAutoFill(); } catch(e) { console.warn('autoFill', e); }
+  try { bdUpdateAllTabs(); } catch(e) { console.warn('updateTabs', e); }
 
-  // Atualiza visual do BD com dados preenchidos
-  const cols = GRID_DEFS.bd.cols.length;
-  const padded = BD_DATA.rows.map(r => {
-    while (r.length < cols) r.push('');
-    return r;
-  });
-  const emptyPad = Array.from({length: Math.max(0, 50000 - padded.length)},
-    () => Array(cols).fill(''));
-  GRIDS.bd.setData([...padded, ...emptyPad]);
   setTimeout(() => jssColorAutoHeaders('bd'), 400);
-
-  bdUpdateAllTabs();
 
   const el = document.getElementById('jss-status-bd');
   if (el) {
-    el.textContent = '✓ ' + rows.length.toLocaleString('pt-BR') + ' linhas processadas!';
+    el.textContent = '✓ ' + rows.length.toLocaleString('pt-BR') + ' linhas processadas — relatórios atualizados!';
     el.className   = 'jss-status-badge jss-status-ok';
   }
   const btn = document.querySelector('.jss-btn-success');
@@ -215,53 +221,97 @@ function jssProcess() {
   }
 }
 
+// ── PASTE: captura TODOS os dados colados (não limita a 200 linhas) ───────────
+// Override do evento paste para capturar dados completos antes do jspreadsheet
+function jssInterceptPaste(key) {
+  const elId = key === 'bd' ? 'jss-container' : 'jss-container-' + key;
+  const el = document.getElementById(elId);
+  if (!el) return;
+
+  el.addEventListener('paste', function(e) {
+    const text = e.clipboardData?.getData('text/plain') || '';
+    if (!text.trim()) return;
+
+    const lines = text.trim().split('\n');
+    const def = GRID_DEFS[key];
+
+    // Detecta se tem cabeçalho
+    const firstCells = lines[0].split('\t');
+    const isHeader = firstCells.some(c =>
+      ['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE'].some(k =>
+        c.toUpperCase().includes(k)
+      )
+    );
+
+    const dataLines = isHeader ? lines.slice(1) : lines;
+    const allData   = dataLines
+      .filter(l => l.trim())
+      .map(l => {
+        const cells = l.split('\t');
+        // Garante mínimo de colunas
+        while (cells.length < def.cols.length) cells.push('');
+        return cells.slice(0, def.cols.length);
+      });
+
+    if (allData.length > 0) {
+      FULL_DATA[key] = allData;
+      // Atualiza status com total
+      setTimeout(() => {
+        const el2 = document.getElementById('jss-status-' + key);
+        if (el2) {
+          const vis = Math.min(allData.length, def.rows);
+          el2.textContent = allData.length > vis
+            ? `Total: ${allData.length.toLocaleString('pt-BR')} linhas · Exibindo ${vis.toLocaleString('pt-BR')} (usar Processar para carregar tudo)`
+            : `✓ ${allData.length.toLocaleString('pt-BR')} linhas`;
+          el2.className = 'jss-status-badge jss-status-ok';
+        }
+      }, 300);
+    }
+  }, true); // capture = true para capturar antes do jspreadsheet
+}
+
 // ── INICIALIZAÇÃO ─────────────────────────────────────────────────────────────
-// Inicializa BD imediatamente + outras abas em sequência para não travar
 function jssEnsureInit() {
   const ORDER = ['bd','marca','grupos','representantes','produto','clientes'];
   ORDER.forEach((key, i) => {
-    setTimeout(() => jssCreateGrid(key), 200 + i * 150);
+    setTimeout(() => {
+      jssCreateGrid(key);
+      setTimeout(() => jssInterceptPaste(key), 500);
+    }, 200 + i * 150);
   });
 }
 
-function jssInit() { jssCreateGrid('bd'); }
+function jssInit() { 
+  jssCreateGrid('bd'); 
+  setTimeout(() => jssInterceptPaste('bd'), 500);
+}
 
-// Também reinicializa ao clicar em tab caso ainda não tenha sido criado
 const TAB_MAP = {
-  'av-tab-bd':             'bd',
-  'av-tab-marca':          'marca',
-  'av-tab-clientes':       'clientes',
-  'av-tab-representantes': 'representantes',
-  'av-tab-grupos':         'grupos',
-  'av-tab-produto':        'produto',
+  'av-tab-bd':'bd','av-tab-marca':'marca','av-tab-clientes':'clientes',
+  'av-tab-representantes':'representantes','av-tab-grupos':'grupos','av-tab-produto':'produto',
 };
 
 document.addEventListener('click', e => {
   const tab = e.target.closest('.av-tab[data-target]');
   if (!tab) return;
   const key = TAB_MAP[tab.dataset.target];
-  if (key && !GRIDS[key]) setTimeout(() => jssCreateGrid(key), 200);
+  if (key && !GRIDS[key]) {
+    setTimeout(() => {
+      jssCreateGrid(key);
+      setTimeout(() => jssInterceptPaste(key), 500);
+    }, 200);
+  }
 });
 
-// ── UTILITÁRIO: lê dados do PRODUTO SERVIÇO para o LAUDO_GRUPO ───────────────
+// ── UTILITÁRIO: lê grupos do PRODUTO SERVIÇO ──────────────────────────────────
 function jssGetProdutoGrupos() {
-  const src = GRIDS.produto
-    ? GRIDS.produto.getData().filter(r => r && r[2] && r[2] !== '')
-    : (GRID_DATA_STORE.produto || []);
-  // colunas: ID(0), CODPROD(1), DESCRIÇÃO(2), GRUPO(3), subgrupo(4), familia(5)
+  const src = FULL_DATA.produto
+    || (GRIDS.produto ? GRIDS.produto.getData().filter(r=>r&&r[2]&&r[2]!=='') : [])
+    || (GRID_DATA_STORE.produto || []);
   const grupos   = [...new Set(src.map(r => String(r[3]||'').trim()).filter(Boolean))].sort();
   const subgrupos= [...new Set(src.map(r => String(r[4]||'').trim()).filter(Boolean))].sort();
-  const tipos    = [...new Set(BD_DATA.rows.map(r => { const i = (IDX||{}).mercado; return i>=0?String(r[i]||'').trim():''; }).filter(Boolean))].sort();
+  const tipos    = [...new Set(BD_DATA.rows.map(r => {
+    const i = IDX.mercado; return i>=0?String(r[i]||'').trim():'';
+  }).filter(Boolean))].sort();
   return { grupos, subgrupos, tipos };
-}
-
-// ── BUSCA/FILTRO NOS GRIDS ────────────────────────────────────────────────────
-function jssSearch(key, termo) {
-  const grd = GRIDS[key];
-  if (!grd) return;
-  if (termo.trim() === '') {
-    grd.resetSearch();
-  } else {
-    grd.search(termo.trim());
-  }
 }
