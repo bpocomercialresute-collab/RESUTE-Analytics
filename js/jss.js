@@ -323,40 +323,61 @@ function jssClearGrid(key) {
 
 // ── PROCESSAR ─────────────────────────────────────────────────────────────────
 function jssProcess() {
-  if (!GRIDS.bd) { alert('Aguarde carregar.'); return; }
+  // Garante que o grid BD existe
+  if (!GRIDS.bd) {
+    jssCreateGrid('bd');
+    setTimeout(jssProcess, 500);
+    return;
+  }
 
-  const src  = FULL_DATA.bd || GRIDS.bd.getData();
-  const rows = src.filter(r => r && r.some(c => c !== '' && c !== null));
-  if (!rows.length) { alert('Sem dados no BD. Cole os dados (Ctrl+V) e tente novamente.'); return; }
+  // Pega dados (FULL_DATA tem todos os dados colados, getData() tem o visível)
+  const src  = FULL_DATA.bd && FULL_DATA.bd.length > 0
+               ? FULL_DATA.bd
+               : GRIDS.bd.getData();
+  const rows = src.filter(r => r && r.some(c => c !== '' && c !== null && c !== undefined));
 
+  if (!rows.length) {
+    alert('Sem dados no BD. Cole os dados (Ctrl+V na grade) e tente novamente.');
+    return;
+  }
+
+  // Status
+  const el = document.getElementById('jss-status-bd');
+  if (el) { el.textContent = '⏳ Processando ' + rows.length.toLocaleString('pt-BR') + ' linhas...'; el.className = 'jss-status-badge'; }
+
+  // Salva dados das outras abas
   Object.keys(GRIDS).forEach(k => {
-    if (k !== 'bd') {
-      const s = FULL_DATA[k] || GRIDS[k].getData();
-      GRID_DATA_STORE[k] = s.filter(r=>r&&r.some(c=>c!==''&&c!==null));
-    }
+    if (k === 'bd') return;
+    const s = FULL_DATA[k] && FULL_DATA[k].length > 0 ? FULL_DATA[k] : GRIDS[k].getData();
+    GRID_DATA_STORE[k] = s.filter(r => r && r.some(c => c !== '' && c !== null));
   });
 
-  BD_DATA.headers = GRID_DEFS.bd.cols.map(c => c.t);
-  BD_DATA.rows    = rows;
-  BD_DATA.count   = rows.length;
+  // Processa — executa após o browser atualizar o status
+  requestAnimationFrame(() => {
+    // 1. Configura BD_DATA
+    BD_DATA.headers = GRID_DEFS.bd.cols.map(c => c.t);
+    BD_DATA.rows    = rows;
+    BD_DATA.count   = rows.length;
 
-  const el  = document.getElementById('jss-status-bd');
-  const upd = (msg,ok) => { if(el){el.textContent=msg;el.className='jss-status-badge'+(ok?' jss-status-ok':'');} };
+    // 2. Mapeia colunas
+    bdMapColumns();
 
-  upd('⏳ Mapeando colunas...');
-  setTimeout(() => {
-    try { bdMapColumns(); } catch(e){console.warn(e);}
-    upd('⏳ Preenchendo colunas automáticas...');
-    setTimeout(() => {
-      try { bdAutoFill(); } catch(e){console.warn(e);}
-      upd('⏳ Gerando relatórios...');
-      setTimeout(() => {
-        try { bdUpdateAllTabs(); } catch(e){console.warn(e);}
-        upd('✓ '+rows.length.toLocaleString('pt-BR')+' linhas processadas!', true);
-        setTimeout(() => { jssColorAutoHeaders('bd'); jssInjectFilterIcons('bd'); }, 300);
-      }, 50);
-    }, 50);
-  }, 50);
+    // 3. Auto-preenche colunas vermelhas
+    try { bdAutoFill(); } catch(e) { console.error('bdAutoFill:', e); }
+
+    // 4. Atualiza todos os relatórios e abas
+    try { bdUpdateAllTabs(); } catch(e) { console.error('bdUpdateAllTabs:', e); }
+
+    // 5. Atualiza visual
+    jssColorAutoHeaders('bd');
+    jssInjectFilterIcons('bd');
+
+    // 6. Status final
+    if (el) {
+      el.textContent = '✓ ' + rows.length.toLocaleString('pt-BR') + ' linhas processadas!';
+      el.className   = 'jss-status-badge jss-status-ok';
+    }
+  });
 }
 
 // ── INICIALIZAÇÃO ─────────────────────────────────────────────────────────────
