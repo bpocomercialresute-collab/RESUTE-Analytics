@@ -1,9 +1,9 @@
 // =============================================================================
-// JSS.JS — Grids Excel com filtros por coluna + paginação inteligente
+// JSS.JS — Grids jspreadsheet com filtros por coluna
 // =============================================================================
 
 const GRID_DEFS = {
-  bd: { rows:200, lazy:true,
+  bd: { rows:500, lazy:true,
     cols:[
       {t:'ID',w:55,auto:false},{t:'N° PEDIDO',w:95,auto:false},
       {t:'PRODUTO OU SERVIÇO',w:220,auto:false},{t:'QTD',w:60,auto:false},
@@ -69,14 +69,11 @@ const GRID_DEFS = {
   }
 };
 
-// Dados completos (o grid mostra só as primeiras linhas, dados completos ficam aqui)
-const GRIDS        = {};
+const GRIDS         = {};
 const GRID_DATA_STORE = {};
-const FULL_DATA    = {}; // dados completos por key (antes de limitar linhas)
+const FULL_DATA     = {}; // dados completos (antes de limitar ao grid)
 
-const VISIBLE_ROWS = 200; // linhas visíveis na grade
-
-// ── CRIA UM GRID ──────────────────────────────────────────────────────────────
+// ── CRIA GRID ─────────────────────────────────────────────────────────────────
 function jssCreateGrid(key) {
   const elId = key === 'bd' ? 'jss-container' : 'jss-container-' + key;
   const el   = document.getElementById(elId);
@@ -88,9 +85,7 @@ function jssCreateGrid(key) {
   try {
     GRIDS[key] = jspreadsheet(el, {
       data,
-      columns: def.cols.map(c => ({
-        title: c.t, width: c.w, type: 'text', align: 'left', wordWrap: false,
-      })),
+      columns: def.cols.map(c => ({ title:c.t, width:c.w, type:'text', align:'left', wordWrap:false })),
       tableOverflow:     true,
       tableWidth:        '100%',
       tableHeight:       key === 'bd' ? 'calc(100vh - 250px)' : 'calc(100vh - 260px)',
@@ -100,64 +95,68 @@ function jssCreateGrid(key) {
       allowDeleteRow:    true,
       allowInsertColumn: false,
       allowDeleteColumn: false,
-      columnSorting:     true,  // Ordena ao clicar no cabeçalho
+      columnSorting:     true,
       columnResize:      true,
       rowResize:         false,
       editable:          true,
       search:            false,
+      filters:           false,   // SEM linha extra de filtro do jspreadsheet
       freezeColumns:     0,
       defaultColAlign:   'left',
       onselection: function(inst, x1, y1) {
         const ref = document.getElementById('jss-ref-' + key);
-        if (ref) ref.textContent = jssColLetter(x1) + (y1 + 1);
+        if (ref) ref.textContent = jssColLetter(x1) + (y1+1);
       },
-      onpaste:  function() { setTimeout(() => jssAfterPaste(key), 600); },
+      onpaste:  function() { setTimeout(() => jssOnPaste(key), 400); },
       onchange: function() { setTimeout(() => jssUpdateStatus(key), 200); },
     });
 
-    setTimeout(() => { jssColorAutoHeaders(key); jssInjectFilters(key); }, 500);
+    setTimeout(() => {
+      jssColorAutoHeaders(key);
+      jssInjectFilterIcons(key);
+    }, 500);
+
     jssUpdateStatus(key);
-  } catch(e) { console.error('Grid [' + key + '] erro:', e); }
+  } catch(e) { console.error('Grid ['+key+']:', e); }
 }
 
-// ── APÓS COLAR — mostra "Ver total" e armazena dados completos ────────────────
-function jssAfterPaste(key) {
+// ── CAPTURA DADOS COMPLETOS APÓS PASTE ────────────────────────────────────────
+function jssOnPaste(key) {
   const grd = GRIDS[key];
   if (!grd) return;
   const all = grd.getData().filter(r => r && r.some(c => c !== '' && c !== null));
-  FULL_DATA[key] = all;
+  if (all.length) FULL_DATA[key] = all;
   jssUpdateStatus(key);
 }
 
-// ── STATUS + "Ver total de X linhas" ─────────────────────────────────────────
+// ── STATUS ────────────────────────────────────────────────────────────────────
 function jssUpdateStatus(key) {
   if (!GRIDS[key]) return;
   try {
-    const data = GRIDS[key].getData();
+    const data   = GRIDS[key].getData();
     const filled = data.filter(r => r && r.some(c => c !== '' && c !== null)).length;
-    const el = document.getElementById('jss-status-' + key);
+    const full   = FULL_DATA[key];
+    const el     = document.getElementById('jss-status-' + key);
     if (!el) return;
-
-    const full = FULL_DATA[key];
-    if (full && full.length > filled) {
-      el.textContent = `Total: ${full.length.toLocaleString('pt-BR')} linhas · Exibindo ${filled.toLocaleString('pt-BR')}`;
-    } else if (filled > 0) {
-      el.textContent = `✓ ${filled.toLocaleString('pt-BR')} linhas`;
+    if (filled > 0 || (full && full.length > 0)) {
+      const total = full ? full.length : filled;
+      el.textContent = '✓ ' + total.toLocaleString('pt-BR') + ' linhas';
+      el.className   = 'jss-status-badge jss-status-ok';
     } else {
-      el.textContent = 'Pronto para receber dados';
+      el.textContent = 'Pronto';
+      el.className   = 'jss-status-badge';
     }
-    el.className = 'jss-status-badge' + (filled > 0 ? ' jss-status-ok' : '');
   } catch(e) {}
 }
 
-// ── COLORE CABEÇALHOS AUTOMÁTICOS ────────────────────────────────────────────
+// ── COR COLUNAS AUTOMÁTICAS ───────────────────────────────────────────────────
 function jssColorAutoHeaders(key) {
   const elId = key === 'bd' ? 'jss-container' : 'jss-container-' + key;
-  const el = document.getElementById(elId);
+  const el   = document.getElementById(elId);
   if (!el) return;
   const ths = el.querySelectorAll('thead td');
   GRID_DEFS[key].cols.forEach((c, i) => {
-    const th = ths[i + 1];
+    const th = ths[i+1];
     if (th && c.auto) {
       th.style.background   = '#3d0000';
       th.style.color        = '#ff9999';
@@ -166,9 +165,149 @@ function jssColorAutoHeaders(key) {
   });
 }
 
+// ── ÍCONES DE FILTRO NOS CABEÇALHOS ──────────────────────────────────────────
+function jssInjectFilterIcons(key) {
+  const elId = key === 'bd' ? 'jss-container' : 'jss-container-' + key;
+  const el   = document.getElementById(elId);
+  if (!el) return;
+
+  // Remove ícones anteriores
+  el.querySelectorAll('.col-filter-btn').forEach(b => b.remove());
+
+  const ths = el.querySelectorAll('thead tr:first-child td');
+  ths.forEach((th, i) => {
+    if (i === 0) return;
+    const colIdx = i - 1;
+    th.style.position = 'relative';
+
+    const btn = document.createElement('span');
+    btn.className     = 'col-filter-btn';
+    btn.dataset.key   = key;
+    btn.dataset.col   = colIdx;
+    btn.innerHTML     = '▾';
+    btn.title         = 'Filtrar: ' + (GRID_DEFS[key].cols[colIdx]?.t || '');
+
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      jssShowFilterDropdown(key, colIdx, btn);
+    });
+    btn.addEventListener('mousedown', e => e.stopPropagation());
+
+    th.appendChild(btn);
+  });
+}
+
+// ── FILTROS ───────────────────────────────────────────────────────────────────
+const JSS_FILTERS = {}; // key → { colIdx: value }
+
+function jssShowFilterDropdown(key, colIdx, anchor) {
+  document.querySelectorAll('.col-filter-dropdown').forEach(d => d.remove());
+
+  const grd = GRIDS[key];
+  if (!grd) return;
+
+  const src  = FULL_DATA[key] || grd.getData();
+  const all  = src.filter(r => r && r.some(c => c !== '' && c !== null));
+  const vals = [...new Set(all.map(r => String(r[colIdx]||'').trim()).filter(Boolean))]
+    .sort((a,b)=>{ const na=parseFloat(a),nb=parseFloat(b); return (!isNaN(na)&&!isNaN(nb))?na-nb:a.localeCompare(b); })
+    .slice(0, 500);
+
+  const ativo = JSS_FILTERS[key]?.[colIdx];
+  const rect  = anchor.getBoundingClientRect();
+  const label = GRID_DEFS[key].cols[colIdx]?.t || 'Coluna ' + (colIdx+1);
+
+  const drop = document.createElement('div');
+  drop.className = 'col-filter-dropdown';
+  drop.style.cssText = `position:fixed;top:${rect.bottom+4}px;left:${Math.min(rect.left, window.innerWidth-250)}px;z-index:9999`;
+
+  drop.innerHTML = `
+    <div class="cfd-header">
+      <span>${label}</span>
+      <button class="cfd-clear" onclick="jssClearColFilter('${key}',${colIdx})">✕ Limpar</button>
+    </div>
+    <div class="cfd-list">
+      <label class="cfd-item ${!ativo?'cfd-active':''}">
+        <input type="radio" name="jf${key}${colIdx}" value="" ${!ativo?'checked':''}><span>(Todos)</span>
+      </label>
+      ${vals.map(v=>`<label class="cfd-item ${ativo===v?'cfd-active':''}">
+        <input type="radio" name="jf${key}${colIdx}" value="${v.replace(/"/g,'&quot;')}" ${ativo===v?'checked':''}><span>${v}</span>
+      </label>`).join('')}
+    </div>
+    <div class="cfd-footer">
+      <button class="cfd-apply" onclick="jssApplyColFilter('${key}',${colIdx},this)">Aplicar</button>
+    </div>`;
+
+  document.body.appendChild(drop);
+  setTimeout(() => {
+    document.addEventListener('click', function cl(e) {
+      if (!drop.contains(e.target)) { drop.remove(); document.removeEventListener('click',cl); }
+    });
+  }, 0);
+}
+
+function jssApplyColFilter(key, colIdx, btn) {
+  const drop = btn.closest('.col-filter-dropdown');
+  const sel  = drop.querySelector(`input[name="jf${key}${colIdx}"]:checked`);
+  const val  = sel ? sel.value : '';
+  if (!JSS_FILTERS[key]) JSS_FILTERS[key] = {};
+  if (val === '') delete JSS_FILTERS[key][colIdx]; else JSS_FILTERS[key][colIdx] = val;
+  jssAplicaFiltros(key);
+  drop.remove();
+}
+
+function jssClearColFilter(key, colIdx) {
+  if (JSS_FILTERS[key]) delete JSS_FILTERS[key][colIdx];
+  jssAplicaFiltros(key);
+  document.querySelectorAll('.col-filter-dropdown').forEach(d=>d.remove());
+}
+
+function jssAplicaFiltros(key) {
+  const grd = GRIDS[key];
+  if (!grd) return;
+  const filtros = JSS_FILTERS[key] || {};
+  const src = FULL_DATA[key] || grd.getData().filter(r=>r&&r.some(c=>c!==''&&c!==null));
+
+  let resultado = src;
+  if (Object.keys(filtros).length > 0) {
+    resultado = src.filter(r =>
+      Object.entries(filtros).every(([ci,val]) => String(r[parseInt(ci)]||'').trim()===val)
+    );
+  }
+
+  const def = GRID_DEFS[key];
+  const padded = resultado.slice(0, Math.max(def.rows, resultado.length));
+  while (padded.length < def.rows) padded.push(Array(def.cols.length).fill(''));
+
+  grd.setData(padded);
+
+  // Atualiza ícones
+  const elId = key==='bd'?'jss-container':'jss-container-'+key;
+  const el = document.getElementById(elId);
+  if (el) {
+    el.querySelectorAll('.col-filter-btn').forEach(b => {
+      const ci = parseInt(b.dataset.col);
+      const ativo = filtros[ci];
+      b.innerHTML    = ativo ? '▾●' : '▾';
+      b.style.color  = ativo ? '#ffd24a' : '';
+    });
+  }
+
+  const statusEl = document.getElementById('jss-status-'+key);
+  if (statusEl) {
+    const total = src.length;
+    const has   = Object.keys(filtros).length > 0;
+    statusEl.textContent = has
+      ? `🔽 ${resultado.length.toLocaleString('pt-BR')} de ${total.toLocaleString('pt-BR')} linhas`
+      : `✓ ${total.toLocaleString('pt-BR')} linhas`;
+    statusEl.className = 'jss-status-badge jss-status-ok';
+  }
+}
+
+// ── UTILITÁRIOS ───────────────────────────────────────────────────────────────
 function jssColLetter(i) {
-  let s = ''; i++;
-  while (i > 0) { let m = (i-1)%26; s = String.fromCharCode(65+m)+s; i = Math.floor((i-1)/26); }
+  let s=''; i++;
+  while(i>0){let m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26);}
   return s;
 }
 
@@ -176,327 +315,74 @@ function jssClearGrid(key) {
   if (!GRIDS[key]) return;
   if (!confirm('Limpar todos os dados desta aba?')) return;
   const def = GRID_DEFS[key];
-  GRIDS[key].setData(Array.from({length: def.rows}, () => Array(def.cols.length).fill('')));
+  GRIDS[key].setData(Array.from({length:def.rows},()=>Array(def.cols.length).fill('')));
   FULL_DATA[key] = null;
+  JSS_FILTERS[key] = {};
   jssUpdateStatus(key);
 }
 
-// ── PROCESSAR — alimenta BD_DATA e relatórios ─────────────────────────────────
+// ── PROCESSAR ─────────────────────────────────────────────────────────────────
 function jssProcess() {
-  // BD usa bdg (grid leve) — bdgGetData() retorna todos os dados colados
-  const usaBdg = typeof bdgGetData === 'function';
-  const rawRows = usaBdg ? bdgGetData() : (FULL_DATA.bd || []);
-  const rows = rawRows.filter(r => r && r.some(c => c !== '' && c !== null && c !== undefined));
+  if (!GRIDS.bd) { alert('Aguarde carregar.'); return; }
 
-  if (!rows.length) {
-    alert('Sem dados no BD. Cole os dados (Ctrl+V na zona de cole) e tente novamente.');
-    return;
-  }
+  const src  = FULL_DATA.bd || GRIDS.bd.getData();
+  const rows = src.filter(r => r && r.some(c => c !== '' && c !== null));
+  if (!rows.length) { alert('Sem dados no BD. Cole os dados (Ctrl+V) e tente novamente.'); return; }
 
-  // Salva dados das outras abas
   Object.keys(GRIDS).forEach(k => {
-    const src = FULL_DATA[k] || GRIDS[k].getData();
-    GRID_DATA_STORE[k] = src.filter(r => r && r.some(c => c !== '' && c !== null));
+    if (k !== 'bd') {
+      const s = FULL_DATA[k] || GRIDS[k].getData();
+      GRID_DATA_STORE[k] = s.filter(r=>r&&r.some(c=>c!==''&&c!==null));
+    }
   });
 
-  BD_DATA.headers = (usaBdg ? BDG.cols : GRID_DEFS.bd.cols.map(c => c.t));
+  BD_DATA.headers = GRID_DEFS.bd.cols.map(c => c.t);
   BD_DATA.rows    = rows;
   BD_DATA.count   = rows.length;
 
-  // Processa em chunk para não travar a UI
-  bdSetStatus('⏳ Mapeando colunas...');
+  const el  = document.getElementById('jss-status-bd');
+  const upd = (msg,ok) => { if(el){el.textContent=msg;el.className='jss-status-badge'+(ok?' jss-status-ok':'');} };
+
+  upd('⏳ Mapeando colunas...');
   setTimeout(() => {
-    try { bdMapColumns(); } catch(e) { console.warn(e); }
-    bdSetStatus('⏳ Auto-preenchendo colunas vermelhas...');
+    try { bdMapColumns(); } catch(e){console.warn(e);}
+    upd('⏳ Preenchendo colunas automáticas...');
     setTimeout(() => {
-      try { bdAutoFill(); } catch(e) { console.warn(e); }
-      bdSetStatus('⏳ Atualizando relatórios...');
+      try { bdAutoFill(); } catch(e){console.warn(e);}
+      upd('⏳ Gerando relatórios...');
       setTimeout(() => {
-        try { bdUpdateAllTabs(); } catch(e) { console.warn(e); }
-        const n = rows.length.toLocaleString('pt-BR');
-        bdSetStatus('✓ ' + n + ' linhas processadas — relatórios atualizados!', true);
-        // Re-renderiza BD com dados auto-preenchidos
-        if (usaBdg) { BDG.data = BD_DATA.rows; BDG.page = 0; bdgRender(); }
+        try { bdUpdateAllTabs(); } catch(e){console.warn(e);}
+        upd('✓ '+rows.length.toLocaleString('pt-BR')+' linhas processadas!', true);
+        setTimeout(() => { jssColorAutoHeaders('bd'); jssInjectFilterIcons('bd'); }, 300);
       }, 50);
     }, 50);
   }, 50);
 }
 
-function bdSetStatus(msg, ok) {
-  const el = document.getElementById('jss-status-bd');
-  if (el) { el.textContent = msg; el.className = 'jss-status-badge'+(ok?' jss-status-ok':''); }
-}
-
-// ── PASTE: captura TODOS os dados colados (não limita a 200 linhas) ───────────
-// Override do evento paste para capturar dados completos antes do jspreadsheet
-function jssInterceptPaste(key) {
-  const elId = key === 'bd' ? 'jss-container' : 'jss-container-' + key;
-  const el = document.getElementById(elId);
-  if (!el) return;
-
-  el.addEventListener('paste', function(e) {
-    const text = e.clipboardData?.getData('text/plain') || '';
-    if (!text.trim()) return;
-
-    const lines = text.trim().split('\n');
-    const def = GRID_DEFS[key];
-
-    // Detecta se tem cabeçalho
-    const firstCells = lines[0].split('\t');
-    const isHeader = firstCells.some(c =>
-      ['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE'].some(k =>
-        c.toUpperCase().includes(k)
-      )
-    );
-
-    const dataLines = isHeader ? lines.slice(1) : lines;
-    const allData   = dataLines
-      .filter(l => l.trim())
-      .map(l => {
-        const cells = l.split('\t');
-        // Garante mínimo de colunas
-        while (cells.length < def.cols.length) cells.push('');
-        return cells.slice(0, def.cols.length);
-      });
-
-    if (allData.length > 0) {
-      FULL_DATA[key] = allData;
-      // Atualiza status com total
-      setTimeout(() => {
-        const el2 = document.getElementById('jss-status-' + key);
-        if (el2) {
-          const vis = Math.min(allData.length, def.rows);
-          el2.textContent = allData.length > vis
-            ? `Total: ${allData.length.toLocaleString('pt-BR')} linhas · Exibindo ${vis.toLocaleString('pt-BR')} (usar Processar para carregar tudo)`
-            : `✓ ${allData.length.toLocaleString('pt-BR')} linhas`;
-          el2.className = 'jss-status-badge jss-status-ok';
-        }
-      }, 300);
-    }
-  }, true); // capture = true para capturar antes do jspreadsheet
-}
-
 // ── INICIALIZAÇÃO ─────────────────────────────────────────────────────────────
 function jssEnsureInit() {
-  const ORDER = ['marca','grupos','representantes','produto','clientes']; // bd usa bdg
-  ORDER.forEach((key, i) => {
-    setTimeout(() => {
-      jssCreateGrid(key);
-      setTimeout(() => jssInterceptPaste(key), 500);
-    }, 200 + i * 150);
-  });
+  const ORDER = ['bd','marca','grupos','representantes','produto','clientes'];
+  ORDER.forEach((key, i) => setTimeout(() => jssCreateGrid(key), 200 + i*150));
 }
-
-function jssInit() { /* BD usa bdg */ }
+function jssInit() { jssCreateGrid('bd'); }
 
 const TAB_MAP = {
   'av-tab-bd':'bd','av-tab-marca':'marca','av-tab-clientes':'clientes',
   'av-tab-representantes':'representantes','av-tab-grupos':'grupos','av-tab-produto':'produto',
 };
-
 document.addEventListener('click', e => {
   const tab = e.target.closest('.av-tab[data-target]');
   if (!tab) return;
   const key = TAB_MAP[tab.dataset.target];
-  if (key && !GRIDS[key]) {
-    setTimeout(() => {
-      jssCreateGrid(key);
-      setTimeout(() => jssInterceptPaste(key), 500);
-    }, 200);
-  }
+  if (key && !GRIDS[key]) setTimeout(() => jssCreateGrid(key), 200);
 });
 
-// ── UTILITÁRIO: lê grupos do PRODUTO SERVIÇO ──────────────────────────────────
 function jssGetProdutoGrupos() {
   const src = FULL_DATA.produto
     || (GRIDS.produto ? GRIDS.produto.getData().filter(r=>r&&r[2]&&r[2]!=='') : [])
     || (GRID_DATA_STORE.produto || []);
-  const grupos   = [...new Set(src.map(r => String(r[3]||'').trim()).filter(Boolean))].sort();
-  const subgrupos= [...new Set(src.map(r => String(r[4]||'').trim()).filter(Boolean))].sort();
-  const tipos    = [...new Set(BD_DATA.rows.map(r => {
-    const i = IDX.mercado; return i>=0?String(r[i]||'').trim():'';
-  }).filter(Boolean))].sort();
+  const grupos   = [...new Set(src.map(r=>String(r[3]||'').trim()).filter(Boolean))].sort();
+  const subgrupos= [...new Set(src.map(r=>String(r[4]||'').trim()).filter(Boolean))].sort();
+  const tipos    = [...new Set(BD_DATA.rows.map(r=>{const i=IDX.mercado;return i>=0?String(r[i]||'').trim():'';}).filter(Boolean))].sort();
   return { grupos, subgrupos, tipos };
-}
-
-// =============================================================================
-// FILTROS POR COLUNA — dropdown em cada cabeçalho (estilo Excel)
-// =============================================================================
-
-const FILTROS_ATIVOS = {}; // key → { colIdx: value }
-
-// Injeta ícone de filtro em cada cabeçalho de coluna
-function jssInjectFilters(key) {
-  const elId = key === 'bd' ? 'jss-container' : 'jss-container-' + key;
-  const el   = document.getElementById(elId);
-  if (!el) return;
-
-  const headers = el.querySelectorAll('thead tr:first-child td');
-  // headers[0] é o corner (número de linha), headers[1..n] são as colunas
-  headers.forEach((th, i) => {
-    if (i === 0) return; // pula corner
-    const colIdx = i - 1;
-
-    // Cria o ícone de filtro
-    const btn = document.createElement('span');
-    btn.className = 'col-filter-btn';
-    btn.innerHTML = '▾';
-    btn.title = 'Filtrar coluna';
-    btn.dataset.col = colIdx;
-    btn.dataset.key = key;
-
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      jssShowFilterDropdown(key, colIdx, btn);
-    });
-
-    th.style.position = 'relative';
-    th.appendChild(btn);
-  });
-
-  FILTROS_ATIVOS[key] = {};
-}
-
-// Mostra o dropdown de filtro para uma coluna
-function jssShowFilterDropdown(key, colIdx, anchorEl) {
-  // Remove dropdowns existentes
-  document.querySelectorAll('.col-filter-dropdown').forEach(d => d.remove());
-
-  const grd = GRIDS[key];
-  if (!grd) return;
-
-  // Pega valores únicos da coluna (de FULL_DATA ou do grid)
-  const src = (FULL_DATA[key] || grd.getData()).filter(r => r && r.some(c => c !== '' && c !== null));
-  const vals = [...new Set(src.map(r => String(r[colIdx] || '')).filter(Boolean))].sort((a,b)=>{
-    const na = parseFloat(a), nb = parseFloat(b);
-    return (!isNaN(na) && !isNaN(nb)) ? na-nb : a.localeCompare(b);
-  });
-
-  if (!vals.length) return;
-
-  const ativo = FILTROS_ATIVOS[key]?.[colIdx];
-
-  // Cria o dropdown
-  const drop = document.createElement('div');
-  drop.className = 'col-filter-dropdown';
-
-  const rect = anchorEl.getBoundingClientRect();
-  drop.style.top  = (rect.bottom + window.scrollY) + 'px';
-  drop.style.left = (rect.left  + window.scrollX) + 'px';
-
-  drop.innerHTML = `
-    <div class="cfd-header">
-      <span>Filtrar coluna ${colIdx+1}</span>
-      <button class="cfd-clear" onclick="jssClearFilter('${key}',${colIdx})">✕ Limpar</button>
-    </div>
-    <div class="cfd-list">
-      <label class="cfd-item ${!ativo?'cfd-active':''}">
-        <input type="radio" name="cfd-${key}-${colIdx}" value="" ${!ativo?'checked':''}>
-        <span>(Todos)</span>
-      </label>
-      ${vals.map(v=>`
-      <label class="cfd-item ${ativo===v?'cfd-active':''}">
-        <input type="radio" name="cfd-${key}-${colIdx}" value="${v.replace(/"/g,'&quot;')}" ${ativo===v?'checked':''}>
-        <span>${v}</span>
-      </label>`).join('')}
-    </div>
-    <div class="cfd-footer">
-      <button class="cfd-apply" onclick="jssApplyFilter('${key}',${colIdx},this)">Aplicar</button>
-    </div>`;
-
-  document.body.appendChild(drop);
-
-  // Fecha ao clicar fora
-  setTimeout(() => {
-    document.addEventListener('click', function closeDrop(e) {
-      if (!drop.contains(e.target)) {
-        drop.remove();
-        document.removeEventListener('click', closeDrop);
-      }
-    });
-  }, 0);
-}
-
-// Aplica o filtro selecionado
-function jssApplyFilter(key, colIdx, btn) {
-  const drop = btn.closest('.col-filter-dropdown');
-  const selected = drop.querySelector('input[name="cfd-'+key+'-'+colIdx+'"]:checked');
-  const val = selected ? selected.value : '';
-
-  if (!FILTROS_ATIVOS[key]) FILTROS_ATIVOS[key] = {};
-  if (val === '') {
-    delete FILTROS_ATIVOS[key][colIdx];
-  } else {
-    FILTROS_ATIVOS[key][colIdx] = val;
-  }
-
-  jssAplicaFiltros(key);
-  drop.remove();
-
-  // Indica visualmente que a coluna tem filtro ativo
-  const elId = key === 'bd' ? 'jss-container' : 'jss-container-' + key;
-  const el = document.getElementById(elId);
-  if (el) {
-    const ths = el.querySelectorAll('thead tr:first-child td');
-    ths.forEach((th, i) => {
-      if (i === 0) return;
-      const ci = i-1;
-      const btn = th.querySelector('.col-filter-btn');
-      if (btn) {
-        btn.style.color = FILTROS_ATIVOS[key][ci] ? '#ffd24a' : '';
-        btn.innerHTML = FILTROS_ATIVOS[key][ci] ? '▾●' : '▾';
-      }
-    });
-  }
-}
-
-// Limpa filtro de uma coluna
-function jssClearFilter(key, colIdx) {
-  if (FILTROS_ATIVOS[key]) delete FILTROS_ATIVOS[key][colIdx];
-  jssAplicaFiltros(key);
-  document.querySelectorAll('.col-filter-dropdown').forEach(d => d.remove());
-}
-
-// Aplica todos os filtros ativos na grade
-function jssAplicaFiltros(key) {
-  const grd = GRIDS[key];
-  if (!grd) return;
-
-  const filtros = FILTROS_ATIVOS[key] || {};
-  const temFiltro = Object.keys(filtros).length > 0;
-
-  // Fonte de dados completa
-  const src = FULL_DATA[key] || grd.getData();
-  const def = GRID_DEFS[key];
-
-  let resultado = src.filter(r => r && r.some(c => c !== '' && c !== null));
-
-  if (temFiltro) {
-    resultado = resultado.filter(r =>
-      Object.entries(filtros).every(([ci, val]) =>
-        String(r[parseInt(ci)] || '').trim() === val
-      )
-    );
-  }
-
-  // Exibe resultado limitado ao tamanho do grid
-  const padded = resultado.slice(0, Math.max(def.rows, resultado.length));
-  while (padded.length < def.rows) padded.push(Array(def.cols.length).fill(''));
-  grd.setData(padded);
-
-  // Atualiza status
-  const el = document.getElementById('jss-status-' + key);
-  if (el) {
-    const total = (FULL_DATA[key] || []).length || 0;
-    el.textContent = temFiltro
-      ? `🔽 Filtrado: ${resultado.length.toLocaleString('pt-BR')} de ${total.toLocaleString('pt-BR')} linhas`
-      : `✓ ${resultado.length.toLocaleString('pt-BR')} linhas`;
-    el.className = 'jss-status-badge jss-status-ok';
-  }
-}
-
-// Limpa TODOS os filtros de uma grade
-function jssClearAllFilters(key) {
-  FILTROS_ATIVOS[key] = {};
-  jssAplicaFiltros(key);
 }
