@@ -2366,3 +2366,79 @@ canvas{max-height:320px !important;width:100% !important;}
   transition: background 120ms;
 }
 .cfd-apply:hover { background: #4a90d9; }
+
+/* ============================================================
+   BD-GRID — grid leve, sem jspreadsheet
+   ============================================================ */
+#bdg-root { display:flex; flex-direction:column; height:calc(100vh - 160px); }
+
+.bdg-paste-zone {
+  display:flex; align-items:center; justify-content:center; gap:12px;
+  padding:10px 14px; background:#060e24;
+  border:2px dashed rgba(46,116,192,0.4);
+  cursor:pointer; color:#5a7399; font-size:13px;
+  transition:all 150ms; flex-shrink:0;
+}
+.bdg-paste-zone:focus,.bdg-paste-zone:hover {
+  border-color:#4a90d9; color:#c8d8f0; background:#091020; outline:none;
+}
+.bdg-paste-zone svg { width:18px;height:18px;stroke-width:1.6;flex-shrink:0; }
+.bdg-paste-zone strong { color:#4a90d9; }
+
+.bdg-table-wrap {
+  flex:1; overflow:auto; background:#0b1628;
+}
+.bdg-table-wrap::-webkit-scrollbar{width:10px;height:10px}
+.bdg-table-wrap::-webkit-scrollbar-track{background:#060e24}
+.bdg-table-wrap::-webkit-scrollbar-thumb{background:#1a2d5a;border-radius:5px}
+.bdg-table-wrap::-webkit-scrollbar-thumb:hover{background:#2e74c0}
+.bdg-table-wrap::-webkit-scrollbar-corner{background:#060e24}
+
+.bdg-table { border-collapse:collapse; width:max-content; min-width:100%; font-size:12px; }
+
+/* Cabeçalho */
+.bdg-table thead th {
+  position:sticky; top:0; z-index:5;
+  background:#091020; color:#c8deff;
+  font-size:10.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase;
+  padding:8px 10px; white-space:nowrap;
+  border-right:1px solid rgba(255,255,255,.07);
+  border-bottom:2px solid #2e74c0;
+  cursor:pointer; user-select:none;
+}
+.bdg-table thead th.bdg-rn {
+  position:sticky; left:0; z-index:6;
+  background:#060e24; color:#3a5278;
+  min-width:44px; text-align:right; font-family:monospace;
+}
+.bdg-table thead th.bdg-auto { background:#3d0000 !important; color:#ff9999 !important; border-bottom-color:#cc0000 !important; }
+.bdg-flt { margin-left:4px; font-size:9px; color:#5a7399; cursor:pointer; padding:1px 3px; border-radius:2px; }
+.bdg-flt:hover { background:rgba(46,116,192,.4); color:#fff; }
+.bdg-flt.active { color:#ffd24a; }
+
+/* Células */
+.bdg-table tbody td {
+  background:#0d1b3e; color:#b8ccec;
+  padding:4px 10px; white-space:nowrap;
+  border-right:1px solid rgba(255,255,255,.05);
+  border-bottom:1px solid rgba(255,255,255,.05);
+  max-width:220px; overflow:hidden; text-overflow:ellipsis;
+}
+.bdg-table tbody td.bdg-auto { background:#1a0000; color:#ff9999; }
+.bdg-table tbody td.bdg-rn {
+  position:sticky; left:0; z-index:2;
+  background:#091020; color:#3a5278;
+  font-size:11px; font-family:monospace; text-align:right;
+  border-right:2px solid rgba(46,116,192,.3);
+}
+.bdg-table tbody tr:nth-child(even) td { background:#0f2040; }
+.bdg-table tbody tr:nth-child(even) td.bdg-auto { background:#220000; }
+.bdg-table tbody tr:nth-child(even) td.bdg-rn { background:#091020; }
+.bdg-table tbody tr:hover td { background:#132850 !important; }
+.bdg-empty { text-align:center !important; padding:40px !important; color:#3d5070; font-style:italic; }
+
+/* Paginação */
+.bdg-pagination { display:flex; align-items:center; gap:6px; padding:8px 14px; background:#0a1430; border-top:1px solid rgba(46,116,192,.2); flex-shrink:0; }
+.bdg-page-btn { padding:5px 12px; border-radius:5px; border:1px solid rgba(255,255,255,.1); background:#1a2d5a; color:#c8d8f0; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; transition:background 120ms; }
+.bdg-page-btn:hover { background:#2e74c0; }
+.bdg-page-info { font-size:12px; color:#5a7399; padding:0 8px; }

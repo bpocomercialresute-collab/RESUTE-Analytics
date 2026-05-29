@@ -17,6 +17,7 @@ function avShowBD() {
   _show('av-bd-area');
   _hide('av-rel-area');
   _hide('av-rep-area');
+  if (typeof bdgInit === 'function') bdgInit();
   if (typeof jssEnsureInit === 'function') jssEnsureInit();
 }
 

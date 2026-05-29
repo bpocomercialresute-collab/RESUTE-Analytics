@@ -183,41 +183,48 @@ function jssClearGrid(key) {
 
 // ── PROCESSAR — alimenta BD_DATA e relatórios ─────────────────────────────────
 function jssProcess() {
-  if (!GRIDS.bd) { alert('Aguarde carregar.'); return; }
+  // BD usa bdg (grid leve) — bdgGetData() retorna todos os dados colados
+  const usaBdg = typeof bdgGetData === 'function';
+  const rawRows = usaBdg ? bdgGetData() : (FULL_DATA.bd || []);
+  const rows = rawRows.filter(r => r && r.some(c => c !== '' && c !== null && c !== undefined));
 
-  // Usa FULL_DATA se disponível (dados completos colados), senão pega do grid
-  const all = FULL_DATA.bd || GRIDS.bd.getData();
-  const rows = all.filter(r => r && r.some(c => c !== '' && c !== null));
-  if (!rows.length) { alert('Sem dados no BD. Cole os dados e tente novamente.'); return; }
+  if (!rows.length) {
+    alert('Sem dados no BD. Cole os dados (Ctrl+V na zona de cole) e tente novamente.');
+    return;
+  }
 
-  // Salva dados de todas as abas inicializadas
+  // Salva dados das outras abas
   Object.keys(GRIDS).forEach(k => {
-    if (k !== 'bd') {
-      const src = FULL_DATA[k] || GRIDS[k].getData();
-      GRID_DATA_STORE[k] = src.filter(r => r && r.some(c => c !== '' && c !== null));
-    }
+    const src = FULL_DATA[k] || GRIDS[k].getData();
+    GRID_DATA_STORE[k] = src.filter(r => r && r.some(c => c !== '' && c !== null));
   });
 
-  BD_DATA.headers = GRID_DEFS.bd.cols.map(c => c.t);
+  BD_DATA.headers = (usaBdg ? BDG.cols : GRID_DEFS.bd.cols.map(c => c.t));
   BD_DATA.rows    = rows;
   BD_DATA.count   = rows.length;
-  bdMapColumns();
-  try { bdAutoFill(); } catch(e) { console.warn('autoFill', e); }
-  try { bdUpdateAllTabs(); } catch(e) { console.warn('updateTabs', e); }
 
-  setTimeout(() => jssColorAutoHeaders('bd'), 400);
+  // Processa em chunk para não travar a UI
+  bdSetStatus('⏳ Mapeando colunas...');
+  setTimeout(() => {
+    try { bdMapColumns(); } catch(e) { console.warn(e); }
+    bdSetStatus('⏳ Auto-preenchendo colunas vermelhas...');
+    setTimeout(() => {
+      try { bdAutoFill(); } catch(e) { console.warn(e); }
+      bdSetStatus('⏳ Atualizando relatórios...');
+      setTimeout(() => {
+        try { bdUpdateAllTabs(); } catch(e) { console.warn(e); }
+        const n = rows.length.toLocaleString('pt-BR');
+        bdSetStatus('✓ ' + n + ' linhas processadas — relatórios atualizados!', true);
+        // Re-renderiza BD com dados auto-preenchidos
+        if (usaBdg) { BDG.data = BD_DATA.rows; BDG.page = 0; bdgRender(); }
+      }, 50);
+    }, 50);
+  }, 50);
+}
 
+function bdSetStatus(msg, ok) {
   const el = document.getElementById('jss-status-bd');
-  if (el) {
-    el.textContent = '✓ ' + rows.length.toLocaleString('pt-BR') + ' linhas processadas — relatórios atualizados!';
-    el.className   = 'jss-status-badge jss-status-ok';
-  }
-  const btn = document.querySelector('.jss-btn-success');
-  if (btn) {
-    const orig = btn.innerHTML;
-    btn.textContent = '✓ Processado!';
-    setTimeout(() => { btn.innerHTML = orig; }, 2500);
-  }
+  if (el) { el.textContent = msg; el.className = 'jss-status-badge'+(ok?' jss-status-ok':''); }
 }
 
 // ── PASTE: captura TODOS os dados colados (não limita a 200 linhas) ───────────
@@ -271,7 +278,7 @@ function jssInterceptPaste(key) {
 
 // ── INICIALIZAÇÃO ─────────────────────────────────────────────────────────────
 function jssEnsureInit() {
-  const ORDER = ['bd','marca','grupos','representantes','produto','clientes'];
+  const ORDER = ['marca','grupos','representantes','produto','clientes']; // bd usa bdg
   ORDER.forEach((key, i) => {
     setTimeout(() => {
       jssCreateGrid(key);
@@ -280,10 +287,7 @@ function jssEnsureInit() {
   });
 }
 
-function jssInit() { 
-  jssCreateGrid('bd'); 
-  setTimeout(() => jssInterceptPaste('bd'), 500);
-}
+function jssInit() { /* BD usa bdg */ }
 
 const TAB_MAP = {
   'av-tab-bd':'bd','av-tab-marca':'marca','av-tab-clientes':'clientes',

@@ -137,35 +137,53 @@
             <button class="av-tab" data-target="av-tab-produto">PRODUTO SERVIÇO</button>
           </div>
 
-          <!-- ABA BD — GRADE EXCEL -->
+          <!-- ABA BD — GRID LEVE (sem jspreadsheet) -->
           <div id="av-tab-bd" class="av-tab-pane active">
-            <div class="jss-wrap">
-              <!-- Barra de instrução -->
+            <div id="bdg-root">
+              <!-- Toolbar -->
               <div class="jss-info-bar">
                 <div class="jss-info-left">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-3"/></svg>
-                  <span>Clique em uma célula e cole com <kbd>Ctrl+V</kbd> os dados do Excel</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="15" height="15"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-3"/></svg>
+                  <span>Cole os dados do Excel com <kbd>Ctrl+V</kbd> — cada colagem <strong>adiciona</strong> ao BD</span>
                 </div>
-                <span id="jss-status" class="jss-status-badge"></span>
+                <span id="jss-status-bd" class="jss-status-badge">Pronto</span>
               </div>
-              <!-- Toolbar de ações -->
               <div class="jss-toolbar">
                 <div class="jss-toolbar-left">
-                  <span class="jss-cell-ref" id="jss-ref">A1</span>
+                  <span id="bdg-info" class="bdg-page-info"></span>
                 </div>
                 <div class="jss-toolbar-right">
-                  <button class="jss-btn jss-btn-success" onclick="jssProcess()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-                    Processar Relatórios
+                  <button class="jss-btn" onclick="bdgClearAllFilters()" title="Limpar todos os filtros">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M18 6L6 18M6 6l12 12"/></svg>Limpar filtros
                   </button>
-<button class="jss-btn jss-btn-danger" onclick="jssClear()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-                    Limpar
+                  <button class="jss-btn jss-btn-success" onclick="jssProcess()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M5 12h14M13 5l7 7-7 7"/></svg>Processar Relatórios
+                  </button>
+                  <button class="jss-btn jss-btn-danger" onclick="bdgClear()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Limpar BD
                   </button>
                 </div>
               </div>
-              <!-- Grade Excel -->
-              <div id="jss-container"></div>
+              <!-- Zona de cole (invisível, captura Ctrl+V) -->
+              <div id="bdg-paste-zone" class="bdg-paste-zone" tabindex="0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-3"/></svg>
+                <span>Clique aqui e cole com <strong>Ctrl+V</strong></span>
+              </div>
+              <!-- Tabela virtual -->
+              <div class="bdg-table-wrap">
+                <table class="bdg-table">
+                  <thead id="bdg-thead">
+                    <tr>
+                      <th class="bdg-rn">#</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bdg-tbody">
+                    <tr><td colspan="32" class="bdg-empty">Cole os dados do Excel acima</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <!-- Paginação -->
+              <div id="bdg-pagination" class="bdg-pagination"></div>
             </div>
           </div>
 
@@ -461,6 +479,7 @@
 <script src="js/actions.js"></script>
 <script src="js/uniao.js"></script>
   <script src="js/jss.js"></script>
+  <script src="js/bd-grid.js"></script>
   <script src="js/bd.js"></script>
   <script src="js/relatorios.js"></script>
   <script src="js/relat-rep.js"></script>
