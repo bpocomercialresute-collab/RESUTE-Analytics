@@ -2,12 +2,12 @@
 // BD.JS — Auto-preenchimento das colunas vermelhas + alimenta relatórios
 // =============================================================================
 
-const BD_DATA = { headers: [], rows: [], count: 0 };
+window.BD_DATA = { headers: [], rows: [], count: 0 };
 
 // Modo dos relatórios de produto: 'valor' ou 'qtd'
-let RELATORIO_MODO = 'valor';
+window.RELATORIO_MODO = 'valor';
 function toggleModo(qual) {
-  RELATORIO_MODO = qual;
+  window.RELATORIO_MODO = qual;
   bdUpdateVendaProduto();
   bdUpdateLaudoGrupo();
   bdUpdateLaudoMarca();
@@ -16,38 +16,38 @@ function toggleModo(qual) {
 }
 // Retorna o valor da métrica conforme o modo
 function metrica(row) {
-  return RELATORIO_MODO === 'qtd'
+  return window.RELATORIO_MODO === 'qtd'
     ? (parseFloat(g(row,'qtd')) || 0)
     : toNum(g(row,'valor'));
 }
 function fmtMetrica(v) {
-  if (RELATORIO_MODO === 'qtd') return v > 0 ? v.toLocaleString('pt-BR',{maximumFractionDigits:0}) : '';
+  if (window.RELATORIO_MODO === 'qtd') return v > 0 ? v.toLocaleString('pt-BR',{maximumFractionDigits:0}) : '';
   return v > 0 ? 'R$ '+v.toLocaleString('pt-BR',{maximumFractionDigits:0}) : '';
 }
 function fmtMetricaFull(v) {
-  if (RELATORIO_MODO === 'qtd') return v.toLocaleString('pt-BR',{maximumFractionDigits:0});
+  if (window.RELATORIO_MODO === 'qtd') return v.toLocaleString('pt-BR',{maximumFractionDigits:0});
   return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
 }
 
 const MES_NOME = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-const MES_IDX  = {};
+var MES_IDX = {};
 MES_NOME.forEach((m,i) => { MES_IDX[m]=i; MES_IDX[String(i+1).padStart(2,'0')]=i; MES_IDX[String(i+1)]=i; });
 
 
 // ── ESTADO DO FILTRO DO LAUDO_GRUPO ──────────────────────────────────────────
-const LG = { tipo:'', grupo:'', subgrupo:'' };
+window.LG = { tipo:'', grupo:'', subgrupo:'' };
 
 function lgSetFiltro(campo, val) {
-  LG[campo] = val;
+  window.LG[campo] = val;
   bdUpdateLaudoGrupo();
 }
 
 // Índices das colunas do BD (mapeados dinamicamente)
-let IDX = {};
+window.IDX = {};
 
 function bdMapColumns() {
-  const h = BD_DATA.headers.map(x => x.toUpperCase().trim());
-  IDX = {
+  const h = window.BD_DATA.headers.map(x => x.toUpperCase().trim());
+  window.IDX = {
     id:      h.findIndex(x => x==='ID'),
     pedido:  h.findIndex(x => x.includes('PEDIDO')),
     produto: h.findIndex(x => x.includes('PRODUTO') || x.includes('SERVIÇO')),
@@ -83,7 +83,7 @@ function bdMapColumns() {
 }
 
 function g(row, key) {
-  const i = IDX[key];
+  const i = window.IDX[key];
   return (i >= 0 && row[i] !== undefined) ? String(row[i]).trim() : '';
 }
 
@@ -99,7 +99,7 @@ function bdAutoFill() {
   const repMap   = buildRepMap();    // VENDEDOR → {tipo}
   const today    = new Date();
 
-  BD_DATA.rows = BD_DATA.rows.map(row => {
+  window.BD_DATA.rows = window.BD_DATA.rows.map(row => {
     const r = [...row];
 
     // === DATA → ANO, MÊS, SEM ===
@@ -110,9 +110,9 @@ function bdAutoFill() {
         const ano = String(dt.getFullYear());
         const mes = MES_NOME[dt.getMonth()];
         const sem = getSem(dt);
-        if (IDX.ano >= 0  && !r[IDX.ano])  r[IDX.ano]  = ano;
-        if (IDX.mes >= 0  && !r[IDX.mes])  r[IDX.mes]  = mes;
-        if (IDX.sem >= 0  && !r[IDX.sem])  r[IDX.sem]  = sem;
+        if (window.IDX.ano >= 0  && !r[window.IDX.ano])  r[window.IDX.ano]  = ano;
+        if (window.IDX.mes >= 0  && !r[window.IDX.mes])  r[window.IDX.mes]  = mes;
+        if (window.IDX.sem >= 0  && !r[window.IDX.sem])  r[window.IDX.sem]  = sem;
       }
     }
 
@@ -120,29 +120,29 @@ function bdAutoFill() {
     const prod = g(r, 'produto');
     if (prod && prodMap.has(prod)) {
       const p = prodMap.get(prod);
-      if (IDX.grupo    >= 0 && !r[IDX.grupo])    r[IDX.grupo]    = p.grupo;
-      if (IDX.subgrupo >= 0 && !r[IDX.subgrupo]) r[IDX.subgrupo] = p.subgrupo;
-      if (IDX.familia  >= 0 && !r[IDX.familia])  r[IDX.familia]  = p.familia;
-      if (IDX.marca    >= 0 && !r[IDX.marca])    r[IDX.marca]    = p.marca;
-      if (IDX.grupoPai >= 0 && !r[IDX.grupoPai]) r[IDX.grupoPai] = p.grupoPai;
-      if (IDX.grupoProd>= 0 && !r[IDX.grupoProd])r[IDX.grupoProd]= p.grupoProd;
+      if (window.IDX.grupo    >= 0 && !r[window.IDX.grupo])    r[window.IDX.grupo]    = p.grupo;
+      if (window.IDX.subgrupo >= 0 && !r[window.IDX.subgrupo]) r[window.IDX.subgrupo] = p.subgrupo;
+      if (window.IDX.familia  >= 0 && !r[window.IDX.familia])  r[window.IDX.familia]  = p.familia;
+      if (window.IDX.marca    >= 0 && !r[window.IDX.marca])    r[window.IDX.marca]    = p.marca;
+      if (window.IDX.grupoPai >= 0 && !r[window.IDX.grupoPai]) r[window.IDX.grupoPai] = p.grupoPai;
+      if (window.IDX.grupoProd>= 0 && !r[window.IDX.grupoProd])r[window.IDX.grupoProd]= p.grupoProd;
     }
 
     // === CLIENTE → CIDADE, UF, SETOR, tipo mercado ===
     const cli = g(r, 'cliente');
     if (cli && cliMap.has(cli)) {
       const c = cliMap.get(cli);
-      if (IDX.cidade  >= 0 && !r[IDX.cidade])  r[IDX.cidade]  = c.cidade;
-      if (IDX.uf      >= 0 && !r[IDX.uf])      r[IDX.uf]      = c.uf;
-      if (IDX.setor   >= 0 && !r[IDX.setor])   r[IDX.setor]   = c.setor;
-      if (IDX.mercado >= 0 && !r[IDX.mercado]) r[IDX.mercado] = c.mercado;
+      if (window.IDX.cidade  >= 0 && !r[window.IDX.cidade])  r[window.IDX.cidade]  = c.cidade;
+      if (window.IDX.uf      >= 0 && !r[window.IDX.uf])      r[window.IDX.uf]      = c.uf;
+      if (window.IDX.setor   >= 0 && !r[window.IDX.setor])   r[window.IDX.setor]   = c.setor;
+      if (window.IDX.mercado >= 0 && !r[window.IDX.mercado]) r[window.IDX.mercado] = c.mercado;
     }
 
     // === VENDEDOR → TIPO VENDEDOR ===
     const vend = g(r, 'vendedor');
     if (vend && repMap.has(vend)) {
       const rv = repMap.get(vend);
-      if (IDX.tipoVend >= 0 && !r[IDX.tipoVend]) r[IDX.tipoVend] = rv.tipo;
+      if (window.IDX.tipoVend >= 0 && !r[window.IDX.tipoVend]) r[window.IDX.tipoVend] = rv.tipo;
     }
 
     return r;
@@ -150,7 +150,7 @@ function bdAutoFill() {
 
   // === Dias Sem Compra por cliente ===
   const ultimaCompra = {};
-  BD_DATA.rows.forEach(row => {
+  window.BD_DATA.rows.forEach(row => {
     const cli   = g(row, 'cliente');
     const dtStr = g(row, 'saida') || g(row, 'emissao');
     if (!cli || !dtStr) return;
@@ -159,12 +159,12 @@ function bdAutoFill() {
     if (!ultimaCompra[cli] || dt > ultimaCompra[cli]) ultimaCompra[cli] = dt;
   });
 
-  BD_DATA.rows = BD_DATA.rows.map(row => {
+  window.BD_DATA.rows = window.BD_DATA.rows.map(row => {
     const r   = [...row];
     const cli = g(r, 'cliente');
-    if (cli && ultimaCompra[cli] && IDX.diasSem >= 0 && !r[IDX.diasSem]) {
+    if (cli && ultimaCompra[cli] && window.IDX.diasSem >= 0 && !r[window.IDX.diasSem]) {
       const dias = Math.floor((today - ultimaCompra[cli]) / 86400000);
-      r[IDX.diasSem] = String(dias);
+      r[window.IDX.diasSem] = String(dias);
     }
     return r;
   });
@@ -173,7 +173,7 @@ function bdAutoFill() {
 // ── BUILDS DE LOOKUP ──────────────────────────────────────────────────────────
 function buildProdMap() {
   const map  = new Map();
-  const data = GRID_DATA_STORE?.produto || (GRIDS?.produto ? window.GRIDS.produto.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
+  const data = window.GRID_DATA_STORE?.produto || (window.GRIDS?.produto ? window.GRIDS.produto.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
   // Colunas PRODUTO SERVIÇO: ID, CODPROD, DESCRIÇÃO, GRUPO, subgrupo, familia, ATIV_INAT, tipo_produto
   data.forEach(r => {
     const desc   = String(r[2]||'').trim();
@@ -189,7 +189,7 @@ function buildProdMap() {
 
 function buildCliMap() {
   const map  = new Map();
-  const data = GRID_DATA_STORE?.clientes || (GRIDS?.clientes ? window.GRIDS.clientes.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
+  const data = window.GRID_DATA_STORE?.clientes || (window.GRIDS?.clientes ? window.GRIDS.clientes.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
   // Colunas CLIENTES: ID, COD_CLI, CLIENTES(2), TIPO, ORIG, CNPJ, RG, CEP, Cidade(8), UF(9), End, Nro, Comp, Bairro, Tel, Cel, Email, Fantasia, VENDEDOR(18), Zona(19), ...
   data.forEach(r => {
     const nome   = String(r[2]||'').trim();
@@ -205,7 +205,7 @@ function buildCliMap() {
 
 function buildRepMap() {
   const map  = new Map();
-  const data = GRID_DATA_STORE?.representantes || (GRIDS?.representantes ? window.GRIDS.representantes.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
+  const data = window.GRID_DATA_STORE?.representantes || (window.GRIDS?.representantes ? window.GRIDS.representantes.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
   // Colunas REP: ID, COD, REPRESENTANTE(2), TIPO(3), ...
   data.forEach(r => {
     const nome = String(r[2]||'').trim();
@@ -263,13 +263,13 @@ const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out'
 // ── MARCA ─────────────────────────────────────────────────────────────────────
 function bdUpdateMarca() {
   // Usa dados da aba MARCA ou extrai do BD
-  const marcasGrid = GRID_DATA_STORE?.marca ||
-    (GRIDS?.marca ? window.GRIDS.marca.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
+  const marcasGrid = window.GRID_DATA_STORE?.marca ||
+    (window.GRIDS?.marca ? window.GRIDS.marca.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
 
   if (marcasGrid.length > 0) return; // Tem dados manuais, não sobrescreve
 
-  const marcas = [...new Set(BD_DATA.rows.map(r => g(r,'marca')).filter(Boolean))].sort();
-  const grd = GRIDS?.marca;
+  const marcas = [...new Set(window.BD_DATA.rows.map(r => g(r,'marca')).filter(Boolean))].sort();
+  const grd = window.GRIDS?.marca;
   if (!grd) return;
   const newData = marcas.map((m,i) => [String(i+1), m, m]);
   newData.push(...Array(Math.max(0, 200-newData.length)).fill(Array(3).fill('')));
@@ -278,17 +278,17 @@ function bdUpdateMarca() {
 
 // ── GRUPOS ────────────────────────────────────────────────────────────────────
 function bdUpdateGrupos() {
-  const gruposGrid = GRID_DATA_STORE?.grupos ||
-    (GRIDS?.grupos ? window.GRIDS.grupos.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
+  const gruposGrid = window.GRID_DATA_STORE?.grupos ||
+    (window.GRIDS?.grupos ? window.GRIDS.grupos.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
   if (gruposGrid.length > 0) return;
 
   const seen = new Map();
-  BD_DATA.rows.forEach(r => {
+  window.BD_DATA.rows.forEach(r => {
     const gr = g(r,'grupo'), gp = g(r,'grupoPai') || '';
     if (gr && !seen.has(gr)) seen.set(gr, gp);
   });
   const lista = [...seen.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-  const grd = GRIDS?.grupos;
+  const grd = window.GRIDS?.grupos;
   if (!grd) return;
   const newData = lista.map(([gr,gp],i) => [String(i+1), '', gr, gp]);
   newData.push(...Array(Math.max(0,200-newData.length)).fill(Array(4).fill('')));
@@ -298,13 +298,13 @@ function bdUpdateGrupos() {
 // ── REPRESENTANTES — calcula vendas por semana/período ────────────────────────
 function bdUpdateRepresentantes() {
   // Descobr 7 datas mais recentes
-  const datas = [...new Set(BD_DATA.rows.map(r=>g(r,'saida')||g(r,'emissao')).filter(Boolean))]
+  const datas = [...new Set(window.BD_DATA.rows.map(r=>g(r,'saida')||g(r,'emissao')).filter(Boolean))]
     .filter(d=>parseDate(d)).sort((a,b)=>{
       const da=parseDate(a),db=parseDate(b);
       return da-db;
     }).slice(-7);
 
-  const grd = GRIDS?.representantes;
+  const grd = window.GRIDS?.representantes;
   if (!grd) return;
   const repData = grd.getData().filter(r=>r&&r[2]&&r[2]!=='');
   if (!repData.length) return;
@@ -314,7 +314,7 @@ function bdUpdateRepresentantes() {
     const newRow = [...r];
     // Preenche colunas DT_1 a DT_7 (índices 8-14) com COUNTIFS
     datas.forEach((dt, i) => {
-      const count = BD_DATA.rows.filter(br => 
+      const count = window.BD_DATA.rows.filter(br => 
         (g(br,'vendedor')===nome) && (g(br,'saida')===dt || g(br,'emissao')===dt)
       ).length;
       if (newRow.length > 8+i) newRow[8+i] = count > 0 ? String(count) : '';
@@ -326,18 +326,18 @@ function bdUpdateRepresentantes() {
 
 // ── CLIENTES — calcula todas as colunas vermelhas ───────────────────────────
 function bdUpdateClientes() {
-  const grd = GRIDS?.clientes;
+  const grd = window.GRIDS?.clientes;
   if (!grd) return;
   const cliData = grd.getData().filter(r => r && (r[1] || r[2]) && String(r[1]||r[2]||'').trim() !== '');
   if (!cliData.length) return;
-  if (!BD_DATA.rows.length) return;
+  if (!window.BD_DATA.rows.length) return;
 
   const today = new Date();
 
   // Constrói mapas de compras por NOME e por COD_CLI
   const comprasPorNome = {};
   const comprasPorCod  = {};
-  BD_DATA.rows.forEach(row => {
+  window.BD_DATA.rows.forEach(row => {
     const cli   = g(row,'cliente');
     const dtStr = g(row,'saida') || g(row,'emissao');
     if (!cli || !dtStr) return;
@@ -432,7 +432,7 @@ function bdUpdateClientes() {
   const fluxoMed = cicloNums.length ? Math.round(cicloNums.reduce((s,v)=>s+v,0)/cicloNums.length) : 0;
 
   const set = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
-  set('kpi-bd-total',    BD_DATA.count.toLocaleString('pt-BR'));
+  set('kpi-bd-total',    window.BD_DATA.count.toLocaleString('pt-BR'));
   set('kpi-cli-total',   total.toLocaleString('pt-BR'));
   set('kpi-sem-compra',  semCompra.toLocaleString('pt-BR'));
   set('kpi-fluxo',       fluxoMed > 0 ? fluxoMed+' dias' : '—');
@@ -441,12 +441,12 @@ function bdUpdateClientes() {
 
 // ── PRODUTO SERVIÇO — COUNTIFS por produto × data ────────────────────────────
 function bdUpdateProdutoServico() {
-  const grd = GRIDS?.produto;
+  const grd = window.GRIDS?.produto;
   if (!grd) return;
   const prodData = grd.getData().filter(r=>r&&r[2]&&r[2]!=='');
   if (!prodData.length) return;
 
-  const datas = [...new Set(BD_DATA.rows.map(r=>g(r,'saida')||g(r,'emissao')).filter(Boolean))]
+  const datas = [...new Set(window.BD_DATA.rows.map(r=>g(r,'saida')||g(r,'emissao')).filter(Boolean))]
     .filter(d=>parseDate(d)).sort((a,b)=>parseDate(a)-parseDate(b)).slice(-7);
 
   const newData = prodData.map(r => {
@@ -454,7 +454,7 @@ function bdUpdateProdutoServico() {
     const newRow = [...r];
     let tot = 0;
     datas.forEach((dt, i) => {
-      const count = BD_DATA.rows.filter(br =>
+      const count = window.BD_DATA.rows.filter(br =>
         (g(br,'produto')===desc) && (g(br,'saida')===dt || g(br,'emissao')===dt)
       ).reduce((s,br) => s + (parseFloat(g(br,'qtd'))||1), 0);
       while (newRow.length < 8+i+1) newRow.push('');
@@ -472,8 +472,8 @@ function bdUpdateProdutoServico() {
 // ── BOTÃO TOGGLE QTD/VALOR (HTML reutilizável) ───────────────────────────────
 function toggleBtnHtml() {
   return `<div class="rel-toggle">
-    <button class="rel-toggle-btn ${RELATORIO_MODO==='valor'?'active':''}" onclick="toggleModo('valor')">R$ VALOR</button>
-    <button class="rel-toggle-btn ${RELATORIO_MODO==='qtd'?'active':''}" onclick="toggleModo('qtd')">QTD</button>
+    <button class="rel-toggle-btn ${window.RELATORIO_MODO==='valor'?'active':''}" onclick="toggleModo('valor')">R$ VALOR</button>
+    <button class="rel-toggle-btn ${window.RELATORIO_MODO==='qtd'?'active':''}" onclick="toggleModo('qtd')">QTD</button>
   </div>`;
 }
 
@@ -481,14 +481,14 @@ function toggleBtnHtml() {
 function bdUpdateVendaProduto() {
   const pane = document.getElementById('av-rel-venda-produto');
   if (!pane) return;
-  if (!BD_DATA.rows.length) return;
+  if (!window.BD_DATA.rows.length) return;
 
-  const anos = [...new Set(BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
+  const anos = [...new Set(window.BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
   const anoAtual = anos[anos.length-1] || String(new Date().getFullYear());
 
   const pivot = new Map();
   let totalGeral = 0;
-  BD_DATA.rows.forEach(r => {
+  window.BD_DATA.rows.forEach(r => {
     if (g(r,'ano') !== anoAtual) return;
     const p  = g(r,'produto');
     const mi = MES_IDX[g(r,'mes').toLowerCase()] ?? -1;
@@ -562,15 +562,15 @@ function bdUpdateLaudoGrupo() {
   const pane = document.getElementById('av-rel-laudo-grupo');
   if (!pane) return;
 
-  if (!BD_DATA.rows.length) {
+  if (!window.BD_DATA.rows.length) {
     pane.innerHTML = '<div class="av-rel-placeholder"><p>LAUDO_GRUPO</p><span>Cole os dados no BD e clique em Processar</span></div>';
     return;
   }
 
   // Lê GRUPO/SUBGRUPO SEMPRE do BD (após auto-fill) + complementa com PRODUTO SERVIÇO
-  const gruposBD   = [...new Set(BD_DATA.rows.map(r=>g(r,'grupo')).filter(Boolean))].sort();
-  const subgruposBD= [...new Set(BD_DATA.rows.map(r=>g(r,'subgrupo')).filter(Boolean))].sort();
-  const tiposBD    = [...new Set(BD_DATA.rows.map(r=>g(r,'mercado')).filter(Boolean))].sort();
+  const gruposBD   = [...new Set(window.BD_DATA.rows.map(r=>g(r,'grupo')).filter(Boolean))].sort();
+  const subgruposBD= [...new Set(window.BD_DATA.rows.map(r=>g(r,'subgrupo')).filter(Boolean))].sort();
+  const tiposBD    = [...new Set(window.BD_DATA.rows.map(r=>g(r,'mercado')).filter(Boolean))].sort();
 
   // Complementa com dados da aba PRODUTO SERVIÇO se disponível
   const prodInfo = typeof jssGetProdutoGrupos === 'function' ? jssGetProdutoGrupos() : { grupos:[], subgrupos:[], tipos:[] };
@@ -579,10 +579,10 @@ function bdUpdateLaudoGrupo() {
   const tipos    = [...new Set([...tiposBD,    ...prodInfo.tipos   ])].filter(Boolean).sort();
 
   // Filtra linhas conforme seleção
-  let rows = BD_DATA.rows;
-  if (LG.tipo    && LG.tipo !== 'Todos') rows = rows.filter(r=>g(r,'mercado')===LG.tipo);
-  if (LG.grupo)    rows = rows.filter(r=>g(r,'grupo')===LG.grupo);
-  if (LG.subgrupo) rows = rows.filter(r=>g(r,'subgrupo')===LG.subgrupo);
+  let rows = window.BD_DATA.rows;
+  if (window.LG.tipo    && window.LG.tipo !== 'Todos') rows = rows.filter(r=>g(r,'mercado')===window.LG.tipo);
+  if (window.LG.grupo)    rows = rows.filter(r=>g(r,'grupo')===window.LG.grupo);
+  if (window.LG.subgrupo) rows = rows.filter(r=>g(r,'subgrupo')===window.LG.subgrupo);
 
   const anos = [...new Set(rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
   if (!anos.length) {
@@ -590,7 +590,7 @@ function bdUpdateLaudoGrupo() {
     return;
   }
 
-  const titulo = LG.grupo || 'TODOS OS GRUPOS';
+  const titulo = window.LG.grupo || 'TODOS OS GRUPOS';
   const CORES  = ['#4a90d9','#f59e0b','#10b981','#e05252','#a78bfa','#06b6d4'];
   const anosColors = Object.fromEntries(anos.map((a,i)=>[a, CORES[i%CORES.length]]));
 
@@ -625,24 +625,24 @@ function bdUpdateLaudoGrupo() {
           <label>TIPO</label>
           <select onchange="lgSetFiltro('tipo',this.value)">
             <option value="">Todos</option>
-            ${tipos.map(t=>`<option value="${t}" ${LG.tipo===t?'selected':''}>${t}</option>`).join('')}
+            ${tipos.map(t=>`<option value="${t}" ${window.LG.tipo===t?'selected':''}>${t}</option>`).join('')}
           </select>
         </div>
         <div class="laudo-filtro-item">
           <label>SUBGRUPO</label>
           <select onchange="lgSetFiltro('subgrupo',this.value)">
             <option value="">Todos</option>
-            ${subgrupos.map(s=>`<option value="${s}" ${LG.subgrupo===s?'selected':''}>${s}</option>`).join('')}
+            ${subgrupos.map(s=>`<option value="${s}" ${window.LG.subgrupo===s?'selected':''}>${s}</option>`).join('')}
           </select>
         </div>
         <div class="laudo-filtro-item">
           <label>GRUPO</label>
           <select onchange="lgSetFiltro('grupo',this.value)">
             <option value="">Todos os Grupos</option>
-            ${grupos.map(s=>`<option value="${s}" ${LG.grupo===s?'selected':''}>${s}</option>`).join('')}
+            ${grupos.map(s=>`<option value="${s}" ${window.LG.grupo===s?'selected':''}>${s}</option>`).join('')}
           </select>
         </div>
-        <button class="jss-btn" style="align-self:flex-end;height:34px" onclick="LG.tipo='';LG.grupo='';LG.subgrupo='';bdUpdateLaudoGrupo()">
+        <button class="jss-btn" style="align-self:flex-end;height:34px" onclick="window.LG.tipo='';window.LG.grupo='';window.LG.subgrupo='';bdUpdateLaudoGrupo()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
           Limpar Filtros
         </button>
@@ -788,12 +788,12 @@ function lgRenderCharts(anos, pivotMesAno, anosColors) {
 function bdUpdateLaudoMarca() {
   const pane = document.getElementById('av-rel-laudo-marca');
   if (!pane) return;
-  if (!BD_DATA.rows.length) return;
-  const anos = [...new Set(BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
+  if (!window.BD_DATA.rows.length) return;
+  const anos = [...new Set(window.BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
   const anoAtual = anos[anos.length-1] || String(new Date().getFullYear());
   const pivot = new Map(); let totalGeral = 0;
 
-  BD_DATA.rows.forEach(r => {
+  window.BD_DATA.rows.forEach(r => {
     if (g(r,'ano') !== anoAtual) return;
     const m  = g(r,'marca');
     const mi = MES_IDX[g(r,'mes').toLowerCase()] ?? -1;
@@ -830,10 +830,10 @@ function bdUpdateLaudoMarca() {
 function bdUpdateLaudoGruposAno() {
   const pane = document.getElementById('av-rel-laudo-ano');
   if (!pane) return;
-  if (!BD_DATA.rows.length) return;
+  if (!window.BD_DATA.rows.length) return;
 
-  const anos   = [...new Set(BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
-  const grupos = [...new Set(BD_DATA.rows.map(r=>g(r,'grupo')).filter(Boolean))].sort();
+  const anos   = [...new Set(window.BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
+  const grupos = [...new Set(window.BD_DATA.rows.map(r=>g(r,'grupo')).filter(Boolean))].sort();
 
   if (!grupos.length) {
     pane.innerHTML = '<div class="av-rel-placeholder"><p>LAUDO_GRUPOS_ANO</p><span>Cole PRODUTO SERVIÇO e processe o BD para ver grupos</span></div>';
@@ -844,7 +844,7 @@ function bdUpdateLaudoGruposAno() {
   const pivot = {};
   grupos.forEach(gr => { pivot[gr] = {}; anos.forEach(a => { pivot[gr][a] = Array(12).fill(0); }); });
 
-  BD_DATA.rows.forEach(r => {
+  window.BD_DATA.rows.forEach(r => {
     const gr = g(r,'grupo'), an = g(r,'ano');
     const mi = MES_IDX[g(r,'mes').toLowerCase()] ?? -1;
     const v  = metrica(r);
@@ -920,9 +920,9 @@ function bdUpdateLaudoGruposAno() {
 function bdUpdateLaudoGruposAno02() {
   const pane = document.getElementById('av-rel-laudo-ano02');
   if (!pane) return;
-  if (!BD_DATA.rows.length) return;
+  if (!window.BD_DATA.rows.length) return;
 
-  const anos = [...new Set(BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
+  const anos = [...new Set(window.BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
   if (anos.length < 2) { 
     pane.innerHTML = '<div class="av-rel-placeholder"><p>Comparativo entre 2 anos</p><span>São necessários dados de pelo menos 2 anos diferentes</span></div>';
     return;
@@ -931,7 +931,7 @@ function bdUpdateLaudoGruposAno02() {
   const ano2 = anos[anos.length-1];
 
   const pivot = new Map();
-  BD_DATA.rows.forEach(r => {
+  window.BD_DATA.rows.forEach(r => {
     const gr = g(r,'grupo'), an = g(r,'ano'), v = metrica(r);
     if (!gr || (an!==ano1 && an!==ano2)) return;
     if (!pivot.has(gr)) pivot.set(gr, {[ano1]:0,[ano2]:0});
