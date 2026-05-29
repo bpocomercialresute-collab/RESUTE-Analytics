@@ -4,7 +4,7 @@
 // =============================================================================
 
 var GRID_DEFS = {
-  bd: { rows:500, lazy:true, cols:[
+  bd: { rows:150, lazy:false, cols:[
     {t:'ID',w:55,auto:false},{t:'N° PEDIDO',w:95,auto:false},
     {t:'PRODUTO OU SERVIÇO',w:220,auto:false},{t:'QTD',w:60,auto:false},
     {t:'Dt. Emissão',w:105,auto:false},{t:'Data de Saída',w:105,auto:false},
@@ -78,12 +78,25 @@ function jssCreateGrid(key) {
     data.push(row);
   }
   try {
+    // Para o BD: intercepta paste ANTES do jspreadsheet (evita travar com 77k linhas)
+    if (key === 'bd') {
+      el.addEventListener('paste', function(e) {
+        var text = e.clipboardData ? e.clipboardData.getData('text/plain') : '';
+        if (!text || text.trim().length === 0) return;
+        var lines = text.split('\n').filter(function(l){ return l.trim(); });
+        if (lines.length < 10) return; // pequeno: deixa jspreadsheet tratar
+        e.stopPropagation();
+        e.preventDefault();
+        jssHandleLargePaste('bd', lines);
+      }, true); // capture=true: roda ANTES do handler do jspreadsheet
+    }
+
     GRIDS[key] = jspreadsheet(el, {
       data: data,
       columns: def.cols.map(function(c){ return {title:c.t,width:c.w,type:'text',align:'left',wordWrap:false}; }),
       tableOverflow:true, tableWidth:'100%',
       tableHeight: key==='bd' ? 'calc(100vh - 250px)' : 'calc(100vh - 260px)',
-      lazyLoading:def.lazy, loadingSpin:def.lazy,
+      lazyLoading:false, loadingSpin:false,
       allowInsertRow:true, allowDeleteRow:true,
       allowInsertColumn:false, allowDeleteColumn:false,
       columnSorting:true, columnResize:true, rowResize:false,
@@ -265,6 +278,60 @@ function jssClearGrid(key) {
   FULL_DATA[key] = null;
   JSS_FILTERS[key] = {};
   jssUpdateStatus(key);
+}
+
+
+// ── PASTE RÁPIDO (sem travar o browser) ──────────────────────────────────────
+function jssHandleLargePaste(key, lines) {
+  var def   = GRID_DEFS[key];
+  var ncols = def.cols.length;
+
+  // Remove cabeçalho se presente
+  var start = 0;
+  if (lines.length > 0) {
+    var firstCols = lines[0].split('\t');
+    var keywords  = ['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','DATA','CLIENTE','CNPJ'];
+    var isHeader  = firstCols.some(function(c){
+      return keywords.some(function(k){ return c.toUpperCase().indexOf(k) >= 0; });
+    });
+    if (isHeader) start = 1;
+  }
+
+  // Parse rápido (sem regex pesado)
+  var allData = [];
+  for (var i = start; i < lines.length; i++) {
+    var cells = lines[i].split('\t');
+    while (cells.length < ncols) cells.push('');
+    allData.push(cells.slice(0, ncols));
+  }
+
+  if (allData.length === 0) return;
+
+  // Guarda TUDO em memória
+  FULL_DATA[key] = allData;
+
+  // Mostra só as primeiras 150 linhas na grade (evita travar)
+  var preview = allData.slice(0, 150);
+  while (preview.length < 150) {
+    var emptyRow = [];
+    for (var j = 0; j < ncols; j++) emptyRow.push('');
+    preview.push(emptyRow);
+  }
+
+  if (GRIDS[key]) {
+    GRIDS[key].setData(preview);
+    setTimeout(function(){ jssColorAutoHeaders(key); jssInjectFilterIcons(key); }, 300);
+  }
+
+  // Status
+  var el = document.getElementById('jss-status-' + key);
+  if (el) {
+    var msg = allData.length > 150
+      ? '✓ ' + allData.length.toLocaleString('pt-BR') + ' linhas carregadas (mostrando 150 na grade — clique Processar para gerar relatórios)'
+      : '✓ ' + allData.length.toLocaleString('pt-BR') + ' linhas';
+    el.textContent = msg;
+    el.className   = 'jss-status-badge jss-status-ok';
+  }
 }
 
 // ── PROCESSAR RELATÓRIOS ──────────────────────────────────────────────────────
