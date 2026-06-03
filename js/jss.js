@@ -379,8 +379,27 @@ function jssProcess() {
     try { bdMapColumns(); } catch(e){ console.error('bdMapColumns',e); }
     try { bdAutoFill(); }   catch(e){ console.error('bdAutoFill',e); }
     try { bdUpdateAllTabs(); } catch(e){ console.error('bdUpdateAllTabs',e); }
-    jssColorAutoHeaders('bd');
-    jssInjectFilterIcons('bd');
+
+    // Atualiza grade BD com colunas vermelhas preenchidas (mostra 150 linhas)
+    if (GRIDS.bd && BD_DATA.rows && BD_DATA.rows.length > 0) {
+      var ncols   = GRID_DEFS.bd.cols.length;
+      var preview = BD_DATA.rows.slice(0, 150).map(function(r){
+        var row = r.slice(0, ncols);
+        while (row.length < ncols) row.push('');
+        return row;
+      });
+      while (preview.length < 150) {
+        var er = []; for (var _i=0;_i<ncols;_i++) er.push('');
+        preview.push(er);
+      }
+      try { GRIDS.bd.setData(preview); } catch(e){ console.error('setData BD',e); }
+    }
+
+    setTimeout(function(){
+      jssColorAutoHeaders('bd');
+      jssInjectFilterIcons('bd');
+    }, 300);
+
     setStatus('✓ '+rows.length.toLocaleString('pt-BR')+' linhas processadas — relatórios atualizados!', true);
   }, 10);
 }

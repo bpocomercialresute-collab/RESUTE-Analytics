@@ -399,7 +399,7 @@ function bdUpdateClientes() {
     const newRow = [...r];
     while (newRow.length < 21) newRow.push('');
 
-    const datas = hasBD ? findCompras(nome, cod) : null;
+    const datas = findCompras(nome, cod);
     if (!datas || !datas.length) {
       newRow[14] = 'SEM';
       newRow[15] = '';
