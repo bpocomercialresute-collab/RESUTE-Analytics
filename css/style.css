@@ -2442,3 +2442,151 @@ canvas{max-height:320px !important;width:100% !important;}
 .bdg-page-btn { padding:5px 12px; border-radius:5px; border:1px solid rgba(255,255,255,.1); background:#1a2d5a; color:#c8d8f0; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; transition:background 120ms; }
 .bdg-page-btn:hover { background:#2e74c0; }
 .bdg-page-info { font-size:12px; color:#5a7399; padding:0 8px; }
+
+/* ============================================================
+   LITEGRID — grade leve (substitui jspreadsheet)
+   ============================================================ */
+.lg-wrap {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 220px);
+  background: #060e24;
+}
+.lg-scroll {
+  flex: 1;
+  overflow: auto;
+}
+.lg-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.lg-scroll::-webkit-scrollbar-track { background: #040c1c; }
+.lg-scroll::-webkit-scrollbar-thumb { background: #1a2d5a; border-radius: 4px; }
+.lg-scroll::-webkit-scrollbar-thumb:hover { background: #2e74c0; }
+
+/* Foco para capturar paste */
+[id^="jss-container"]:focus { outline: 2px solid #2e74c0; outline-offset: -2px; }
+
+.lg-table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  font-size: 12px;
+  table-layout: fixed;
+}
+
+/* Cabeçalhos */
+.lg-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #091020;
+  color: #c8deff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 8px 10px;
+  white-space: nowrap;
+  border-right: 1px solid rgba(255,255,255,0.07);
+  border-bottom: 2px solid #2e74c0;
+  cursor: pointer;
+  user-select: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lg-table thead th:hover { background: #0d1c3e; }
+.lg-table thead th.lg-rn {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  background: #060e24;
+  color: #3a5278;
+  width: 44px;
+  min-width: 44px;
+  text-align: center;
+  cursor: default;
+}
+.lg-table thead th.lg-auto {
+  background: #3a0000 !important;
+  color: #ff9999 !important;
+  border-bottom-color: #cc0000 !important;
+}
+
+/* Células */
+.lg-table tbody td {
+  padding: 4px 10px;
+  border-right: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: #b8ccec;
+  background: #0d1b3e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+.lg-table tbody td.lg-rn {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #060e24;
+  color: #3a5278;
+  font-size: 10px;
+  text-align: center;
+  border-right: 2px solid rgba(46,116,192,0.3);
+}
+.lg-table tbody td.lg-auto {
+  background: #1a0000;
+  color: #ff9999;
+}
+.lg-table tbody tr:nth-child(even) td { background: #0f2040; }
+.lg-table tbody tr:nth-child(even) td.lg-auto { background: #200000; }
+.lg-table tbody tr:nth-child(even) td.lg-rn { background: #060e24; }
+.lg-table tbody tr:hover td { background: #132850 !important; }
+.lg-empty {
+  text-align: center !important;
+  padding: 48px 20px !important;
+  color: #3d5070;
+  font-style: italic;
+  font-size: 13px;
+}
+
+/* Paginação */
+.lg-pag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #091020;
+  border-top: 1px solid rgba(46,116,192,0.2);
+  flex-shrink: 0;
+}
+.lg-pb {
+  padding: 4px 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: #1a2d5a;
+  color: #c8d8f0;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 100ms;
+}
+.lg-pb:hover { background: #2e74c0; }
+.lg-pi {
+  font-size: 11px;
+  color: #5a7399;
+  padding: 0 6px;
+}
+
+/* Ícone de filtro nos cabeçalhos */
+.col-filter-btn {
+  float: right;
+  font-size: 10px;
+  color: #5a7399;
+  cursor: pointer;
+  padding: 1px 3px;
+  border-radius: 2px;
+  user-select: none;
+  transition: color 100ms;
+  margin-left: 4px;
+}
+.col-filter-btn:hover { color: #fff; background: rgba(46,116,192,0.3); }

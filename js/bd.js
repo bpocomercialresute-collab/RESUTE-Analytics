@@ -173,7 +173,7 @@ function bdAutoFill() {
 // ── BUILDS DE LOOKUP ──────────────────────────────────────────────────────────
 function buildProdMap() {
   const map  = new Map();
-  const data = window.GRID_DATA_STORE?.produto || (window.GRIDS?.produto ? window.GRIDS.produto.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
+  const data = window.GRID_DATA_STORE?.produto || ((window.GRIDS && window.GRIDS.produto) ? window.GRIDS.produto.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
   // Colunas PRODUTO SERVIÇO: ID, CODPROD, DESCRIÇÃO, GRUPO, subgrupo, familia, ATIV_INAT, tipo_produto
   data.forEach(r => {
     const desc   = String(r[2]||'').trim();
@@ -189,7 +189,7 @@ function buildProdMap() {
 
 function buildCliMap() {
   const map  = new Map();
-  const data = window.GRID_DATA_STORE?.clientes || (window.GRIDS?.clientes ? window.GRIDS.clientes.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
+  const data = window.GRID_DATA_STORE?.clientes || ((window.GRIDS && window.GRIDS.clientes) ? window.GRIDS.clientes.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
   // Colunas CLIENTES: ID, COD_CLI, CLIENTES(2), TIPO, ORIG, CNPJ, RG, CEP, Cidade(8), UF(9), End, Nro, Comp, Bairro, Tel, Cel, Email, Fantasia, VENDEDOR(18), Zona(19), ...
   data.forEach(r => {
     const nome   = String(r[2]||'').trim();
@@ -205,7 +205,7 @@ function buildCliMap() {
 
 function buildRepMap() {
   const map  = new Map();
-  const data = window.GRID_DATA_STORE?.representantes || (window.GRIDS?.representantes ? window.GRIDS.representantes.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
+  const data = window.GRID_DATA_STORE?.representantes || ((window.GRIDS && window.GRIDS.representantes) ? window.GRIDS.representantes.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
   // Colunas REP: ID, COD, REPRESENTANTE(2), TIPO(3), ...
   data.forEach(r => {
     const nome = String(r[2]||'').trim();
@@ -264,12 +264,12 @@ const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out'
 function bdUpdateMarca() {
   // Usa dados da aba MARCA ou extrai do BD
   const marcasGrid = window.GRID_DATA_STORE?.marca ||
-    (window.GRIDS?.marca ? window.GRIDS.marca.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
+    ((window.GRIDS && window.GRIDS.marca) ? window.GRIDS.marca.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
 
   if (marcasGrid.length > 0) return; // Tem dados manuais, não sobrescreve
 
   const marcas = [...new Set(window.BD_DATA.rows.map(r => g(r,'marca')).filter(Boolean))].sort();
-  const grd = window.GRIDS?.marca;
+  const grd = (window.GRIDS && window.GRIDS.marca);
   if (!grd) return;
   const newData = marcas.map((m,i) => [String(i+1), m, m]);
   newData.push(...Array(Math.max(0, 200-newData.length)).fill(Array(3).fill('')));
@@ -279,7 +279,7 @@ function bdUpdateMarca() {
 // ── GRUPOS ────────────────────────────────────────────────────────────────────
 function bdUpdateGrupos() {
   const gruposGrid = window.GRID_DATA_STORE?.grupos ||
-    (window.GRIDS?.grupos ? window.GRIDS.grupos.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
+    ((window.GRIDS && window.GRIDS.grupos) ? window.GRIDS.grupos.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
   if (gruposGrid.length > 0) return;
 
   const seen = new Map();
@@ -288,7 +288,7 @@ function bdUpdateGrupos() {
     if (gr && !seen.has(gr)) seen.set(gr, gp);
   });
   const lista = [...seen.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-  const grd = window.GRIDS?.grupos;
+  const grd = (window.GRIDS && window.GRIDS.grupos);
   if (!grd) return;
   const newData = lista.map(([gr,gp],i) => [String(i+1), '', gr, gp]);
   newData.push(...Array(Math.max(0,200-newData.length)).fill(Array(4).fill('')));
@@ -304,7 +304,7 @@ function bdUpdateRepresentantes() {
       return da-db;
     }).slice(-7);
 
-  const grd = window.GRIDS?.representantes;
+  const grd = (window.GRIDS && window.GRIDS.representantes);
   if (!grd) return;
   const repData = grd.getData().filter(r=>r&&r[2]&&r[2]!=='');
   if (!repData.length) return;
@@ -312,13 +312,17 @@ function bdUpdateRepresentantes() {
   const newData = repData.map(r => {
     const nome = String(r[2]||'').trim();
     const newRow = [...r];
-    // Preenche colunas DT_1 a DT_7 (índices 8-14) com COUNTIFS
+    // Preenche colunas DT_1..DT_7 (índices 10-16 no grid de representantes)
+    while (newRow.length < 18) newRow.push('');
+    let totMix = 0;
     datas.forEach((dt, i) => {
-      const count = window.BD_DATA.rows.filter(br => 
+      const count = window.BD_DATA.rows.filter(br =>
         (g(br,'vendedor')===nome) && (g(br,'saida')===dt || g(br,'emissao')===dt)
       ).length;
-      if (newRow.length > 8+i) newRow[8+i] = count > 0 ? String(count) : '';
+      newRow[10+i] = count > 0 ? String(count) : '';
+      totMix += count;
     });
+    newRow[17] = totMix > 0 ? String(totMix) : ''; // TOT_MIX
     return newRow;
   });
   grd.setData(newData);
@@ -326,7 +330,7 @@ function bdUpdateRepresentantes() {
 
 // ── CLIENTES — calcula todas as colunas vermelhas ───────────────────────────
 function bdUpdateClientes() {
-  const grd = window.GRIDS?.clientes;
+  const grd = (window.GRIDS && window.GRIDS.clientes);
   if (!grd) return;
   const cliData = grd.getData().filter(r => r && (r[1] || r[2]) && String(r[1]||r[2]||'').trim() !== '');
   if (!cliData.length) return;
@@ -441,7 +445,7 @@ function bdUpdateClientes() {
 
 // ── PRODUTO SERVIÇO — COUNTIFS por produto × data ────────────────────────────
 function bdUpdateProdutoServico() {
-  const grd = window.GRIDS?.produto;
+  const grd = (window.GRIDS && window.GRIDS.produto);
   if (!grd) return;
   const prodData = grd.getData().filter(r=>r&&r[2]&&r[2]!=='');
   if (!prodData.length) return;
