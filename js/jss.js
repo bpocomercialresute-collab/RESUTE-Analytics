@@ -109,13 +109,21 @@ LiteGrid.prototype._build = function() {
 LiteGrid.prototype._paste = function(txt) {
   var lines = txt.split('\n').filter(function(l){ return l.trim(); });
   var ncols = this.def.cols.length;
-  // Detecta e remove cabeçalho
+
+  // Detecta se tem cabeçalho
   var start = 0;
+  this._headerRow = null;
   if (lines.length > 0) {
     var kw = ['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE','GRUPO','COD'];
     var first = lines[0].split('\t');
-    if (first.some(function(c){ return kw.some(function(k){ return c.toUpperCase().indexOf(k)>=0; }); })) start=1;
+    if (first.some(function(c){ return kw.some(function(k){ return c.toUpperCase().indexOf(k)>=0; }); })) {
+      // Guarda cabeçalho para exibir como referência
+      this._headerRow = first.slice(0, ncols);
+      while (this._headerRow.length < ncols) this._headerRow.push('');
+      start = 1;
+    }
   }
+
   var data = [];
   for (var i = start; i < lines.length; i++) {
     var cells = lines[i].split('\t');
@@ -150,8 +158,19 @@ LiteGrid.prototype._render = function() {
   var def  = this.def;
   var html = '';
 
+  // Linha de referência — mostra cabeçalho original do Excel colado
+  if (this._headerRow) {
+    html += '<tr class="lg-ref-row">';
+    html += '<td class="lg-rn" title="Linha de referência do seu Excel">REF</td>';
+    for (var hci = 0; hci < def.cols.length; hci++) {
+      var hv = this._headerRow[hci] || '';
+      html += '<td class="lg-ref" title="Coluna do seu Excel: '+hv+'">'+hv+'</td>';
+    }
+    html += '</tr>';
+  }
+
   if (rows.length === 0) {
-    html = '<tr><td colspan="'+(def.cols.length+1)+'" class="lg-empty">Cole os dados do Excel (Ctrl+V) nesta área</td></tr>';
+    html += '<tr><td colspan="'+(def.cols.length+1)+'" class="lg-empty">Cole os dados do Excel (Ctrl+V) nesta área</td></tr>';
   } else {
     for (var ri = 0; ri < rows.length; ri++) {
       var r = rows[ri];

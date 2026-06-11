@@ -2590,3 +2590,23 @@ canvas{max-height:320px !important;width:100% !important;}
   margin-left: 4px;
 }
 .col-filter-btn:hover { color: #fff; background: rgba(46,116,192,0.3); }
+
+/* ── Linha de referência (cabeçalho original do Excel) ── */
+.lg-ref-row td {
+  background: #1a2d00 !important;
+  color: #a8d060 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  font-style: italic;
+  border-bottom: 2px solid #4a7a00 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+.lg-ref-row .lg-rn {
+  background: #1a2d00 !important;
+  color: #a8d060 !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+}
