@@ -2610,3 +2610,18 @@ canvas{max-height:320px !important;width:100% !important;}
   font-size: 9px !important;
   font-weight: 800 !important;
 }
+
+/* ── Célula selecionada para paste ── */
+.lg-sel {
+  background: #0a2a5a !important;
+  outline: 2px solid #4a90d9 !important;
+  outline-offset: -2px;
+}
+.jss-sel-info {
+  background: #0a2048;
+  color: #4a90d9;
+  border: 1px solid #2e74c0;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-weight: 700;
+}

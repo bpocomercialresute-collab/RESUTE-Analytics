@@ -106,6 +106,54 @@ LiteGrid.prototype._build = function() {
   });
 };
 
+
+// Cola dados de uma única coluna (ou múltiplas colunas a partir da selecionada)
+LiteGrid.prototype._pasteCol = function(txt, startCol, startRow) {
+  var lines = txt.split('\n').filter(function(l){ return l.trim(); });
+  var def   = this.def;
+
+  // Detecta e remove cabeçalho
+  var start = 0;
+  if (lines.length > 0) {
+    var kw = ['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE','GRUPO','COD'];
+    var first = lines[0].split('\t');
+    if (first.some(function(c){ return kw.some(function(k){ return c.toUpperCase().indexOf(k)>=0; }); })) start=1;
+  }
+
+  // Garante que allData tem linhas suficientes
+  while (this.allData.length < startRow + (lines.length - start)) {
+    var emptyRow = [];
+    for (var j = 0; j < def.cols.length; j++) emptyRow.push('');
+    this.allData.push(emptyRow);
+  }
+
+  // Cola cada linha na posição correta
+  for (var i = start; i < lines.length; i++) {
+    var rowIdx = startRow + (i - start);
+    var cells  = lines[i].split('\t');
+    if (!this.allData[rowIdx]) {
+      this.allData[rowIdx] = [];
+      while (this.allData[rowIdx].length < def.cols.length) this.allData[rowIdx].push('');
+    }
+    // Cola as células a partir da coluna selecionada
+    for (var ci = 0; ci < cells.length; ci++) {
+      var destCol = startCol + ci;
+      if (destCol < def.cols.length) {
+        while (this.allData[rowIdx].length <= destCol) this.allData[rowIdx].push('');
+        this.allData[rowIdx][destCol] = cells[ci];
+      }
+    }
+  }
+
+  FULL_DATA[this.key] = this.allData.filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null; }); });
+  this.filtered = null;
+  this._selCol = -1; // limpa seleção após colar
+  this._selRow = -1;
+  this.page = 0;
+  this._render();
+  this._updateStatus();
+};
+
 LiteGrid.prototype._paste = function(txt) {
   var lines = txt.split('\n').filter(function(l){ return l.trim(); });
   var ncols = this.def.cols.length;
