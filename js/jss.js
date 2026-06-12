@@ -1,3 +1,61 @@
+// ── ENTRADA RÁPIDA POR COLUNA ─────────────────────────────────────────────────
+function lgEntryApply(key) {
+  var sel   = document.getElementById('lg-col-sel-'+key);
+  var input = document.getElementById('lg-entry-'+key);
+  if (!sel || !input) return;
+  var colIdx = parseInt(sel.value);
+  var txt    = input.value;
+  if (isNaN(colIdx) || txt.trim() === '') {
+    alert('Escolha uma coluna e cole o valor no campo acima.');
+    return;
+  }
+  var grd = GRIDS[key];
+  if (!grd) return;
+
+  // Separa linhas (pode ser múltiplas linhas coladas)
+  var lines = txt.split('\n').filter(function(l){ return l.trim(); });
+  // Remove cabeçalho se detectado
+  if (lines.length > 1) {
+    var kw = ['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE','GRUPO','COD'];
+    var firstCells = lines[0].split('\t');
+    if (firstCells.some(function(c){ return kw.some(function(k){ return c.toUpperCase().indexOf(k)>=0; }); }))
+      lines.shift();
+  }
+
+  var ncols = GRID_DEFS[key].cols.length;
+  // Garante dados suficientes
+  while (grd.allData.length < lines.length) {
+    var er = []; for (var j=0;j<ncols;j++) er.push(''); grd.allData.push(er);
+  }
+  // Cola cada linha na coluna escolhida
+  lines.forEach(function(line, ri) {
+    var cells = line.split('\t');
+    if (!grd.allData[ri]) { grd.allData[ri]=[]; while(grd.allData[ri].length<ncols) grd.allData[ri].push(''); }
+    cells.forEach(function(v, ci) {
+      var dest = colIdx + ci;
+      if (dest < ncols) { while(grd.allData[ri].length<=dest) grd.allData[ri].push(''); grd.allData[ri][dest]=v; }
+    });
+  });
+
+  FULL_DATA[key] = grd.allData.filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null; }); });
+  grd.filtered = null; grd.page = 0; grd._render(); grd._updateStatus();
+  input.value = '';
+
+  var colName = (GRID_DEFS[key].cols[colIdx]||{}).t||'';
+  var info = document.getElementById('jss-status-'+key);
+  if (info) { info.textContent = '✓ '+lines.length+' linhas coladas na coluna "'+colName+'"'; info.className='jss-status-badge jss-status-ok'; }
+}
+
+// Intercepta paste no input de entrada
+document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('paste', function(e) {
+    var active = document.activeElement;
+    if (active && active.classList.contains('lg-entry-input')) {
+      // Deixa colar normalmente no input — browser já faz isso
+    }
+  });
+});
+
 // =============================================================================
 // JSS.JS — LiteGrid: grade ultra-leve sem jspreadsheet
 // Mesma interface (getData/setData) — compatível com bd.js
@@ -95,7 +153,19 @@ LiteGrid.prototype._build = function() {
   });
   hdr += '</tr></thead><tbody class="lg-body-'+this.key+'"></tbody></table></div>'
        + '<div class="lg-pag" id="lg-pag-'+this.key+'"></div></div>';
-  this.container.innerHTML = hdr;
+
+  // Barra de entrada rápida ACIMA da tabela
+  var colOptions = '<option value="">— Escolha a coluna —</option>';
+  def.cols.forEach(function(c, i) {
+    colOptions += '<option value="'+i+'">'+c.t+'</option>';
+  });
+  var entryBar = '<div class="lg-entry-bar">'
+    + '<select class="lg-entry-select" id="lg-col-sel-'+self.key+'">' + colOptions + '</select>'
+    + '<input class="lg-entry-input" id="lg-entry-'+self.key+'" placeholder="Cole aqui (Ctrl+V) o valor para a coluna selecionada" />'
+    + '<button class="lg-entry-btn" onclick="lgEntryApply(\''+self.key+'\')">Colar ↓</button>'
+    + '</div>';
+
+  this.container.innerHTML = entryBar + hdr;
 
   // Paste: captura Ctrl+V
   this.container.setAttribute('tabindex','0');

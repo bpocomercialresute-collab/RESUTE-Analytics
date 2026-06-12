@@ -2625,3 +2625,53 @@ canvas{max-height:320px !important;width:100% !important;}
   padding: 4px 10px;
   font-weight: 700;
 }
+
+/* ── Barra de entrada rápida por coluna ── */
+.lg-entry-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #0a1430;
+  border-bottom: 2px solid #2e74c0;
+  flex-shrink: 0;
+}
+.lg-entry-select {
+  background: #060e24;
+  border: 1px solid #2e74c0;
+  border-radius: 5px;
+  color: #c8deff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+  font-family: inherit;
+  cursor: pointer;
+  min-width: 200px;
+}
+.lg-entry-select:focus { outline: none; border-color: #4a90d9; }
+.lg-entry-input {
+  flex: 1;
+  background: #060e24;
+  border: 1px solid rgba(46,116,192,0.4);
+  border-radius: 5px;
+  color: #c8deff;
+  font-size: 12px;
+  padding: 6px 12px;
+  font-family: inherit;
+}
+.lg-entry-input:focus { outline: none; border-color: #4a90d9; background: #091020; }
+.lg-entry-input::placeholder { color: #3d5070; }
+.lg-entry-btn {
+  background: #2e74c0;
+  border: none;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 7px 18px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background 120ms;
+}
+.lg-entry-btn:hover { background: #4a90d9; }
