@@ -110,6 +110,57 @@ LiteGrid.prototype._build = function() {
   this._render();
 };
 
+
+// Cola a partir de uma coluna específica para a direita (igual Excel)
+LiteGrid.prototype._pasteFromCol = function(txt, startCol) {
+  var ncols = this.def.cols.length;
+  var lines = txt.split('\n').filter(function(l){ return l.trim(); });
+
+  // Remove cabeçalho se detectado
+  if (lines.length > 1) {
+    var kw = ['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE','GRUPO','COD'];
+    var fc  = lines[0].split('\t');
+    if (fc.some(function(c){ return kw.some(function(k){ return c.toUpperCase().indexOf(k)>=0; }); }))
+      lines.shift();
+  }
+
+  // Garante linhas suficientes
+  while (this.allData.length < lines.length) {
+    var er = []; for(var j=0;j<ncols;j++) er.push('');
+    this.allData.push(er);
+  }
+
+  lines.forEach(function(line, ri) {
+    if (!this.allData[ri]) {
+      this.allData[ri] = [];
+      while (this.allData[ri].length < ncols) this.allData[ri].push('');
+    }
+    while (this.allData[ri].length < ncols) this.allData[ri].push('');
+
+    var cells = line.split('\t');
+    cells.forEach(function(v, ci) {
+      var dest = startCol + ci;
+      if (dest < ncols) this.allData[ri][dest] = v;
+    }.bind(this));
+  }.bind(this));
+
+  FULL_DATA[this.key] = this.allData.filter(function(r){
+    return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; });
+  });
+  this.filtered = null;
+  this.page = 0;
+  this._render();
+  this._updateStatus();
+
+  // Feedback
+  var colName = this.def.cols[startCol] ? this.def.cols[startCol].t : '';
+  var info = document.getElementById('jss-status-'+this.key);
+  if (info) {
+    info.textContent = '✓ '+lines.length.toLocaleString('pt-BR')+' linhas coladas a partir de "'+colName+'"';
+    info.className = 'jss-status-badge jss-status-ok';
+  }
+};
+
 LiteGrid.prototype._paste = function(txt) {
   var lines = txt.split('\n').filter(function(l){ return l.trim(); });
   var ncols = this.def.cols.length;
@@ -366,117 +417,6 @@ function jssProcess() {
 }
 
 
-// ── MODAL COLAR POR COLUNA ────────────────────────────────────────────────────
-function lgOpenColModal(key) {
-  // Remove modal anterior
-  var old = document.getElementById('lg-col-modal');
-  if (old) old.remove();
-
-  var def = GRID_DEFS[key];
-  var opts = def.cols
-    .filter(function(c){ return !c.auto; })
-    .map(function(c, _){ return c; });
-
-  var optHtml = opts.map(function(c){
-    var i = def.cols.indexOf(c);
-    return '<option value="'+i+'">'+c.t+'</option>';
-  }).join('');
-
-  var modal = document.createElement('div');
-  modal.id = 'lg-col-modal';
-  modal.className = 'lg-modal-overlay';
-  modal.innerHTML =
-    '<div class="lg-modal">' +
-      '<div class="lg-modal-header">' +
-        '<span>Colar em coluna específica — <b id="lg-modal-key"></b></span>' +
-        '<button class="lg-modal-close" onclick="lgCloseModal()">✕</button>' +
-      '</div>' +
-      '<div class="lg-modal-body">' +
-        '<label class="lg-modal-label">1. Escolha a coluna:</label>' +
-        '<select class="lg-modal-select" id="lg-modal-col">' + optHtml + '</select>' +
-        '<label class="lg-modal-label" style="margin-top:12px">2. Cole os dados aqui (Ctrl+V):</label>' +
-        '<textarea class="lg-modal-textarea" id="lg-modal-txt" ' +
-          'placeholder="Cole aqui os dados do Excel (com ou sem cabeçalho)..." rows="8"></textarea>' +
-      '</div>' +
-      '<div class="lg-modal-footer">' +
-        '<button class="lg-modal-btn-cancel" onclick="lgCloseModal()">Cancelar</button>' +
-        '<button class="lg-modal-btn-ok" onclick="lgModalApply()">✓ Colar na Coluna</button>' +
-      '</div>' +
-    '</div>';
-
-  modal.dataset.key = key;
-  document.body.appendChild(modal);
-  document.getElementById('lg-modal-key').textContent = key.toUpperCase();
-  setTimeout(function(){ document.getElementById('lg-modal-txt').focus(); }, 100);
-
-  // Fecha clicando fora
-  modal.addEventListener('click', function(e){
-    if (e.target === modal) lgCloseModal();
-  });
-}
-
-function lgCloseModal() {
-  var m = document.getElementById('lg-col-modal');
-  if (m) m.remove();
-}
-
-function lgModalApply() {
-  var modal  = document.getElementById('lg-col-modal');
-  if (!modal) return;
-  var key    = modal.dataset.key;
-  var colIdx = parseInt(document.getElementById('lg-modal-col').value);
-  var txt    = document.getElementById('lg-modal-txt').value.trim();
-  if (!txt) { alert('Cole os dados no campo antes de confirmar.'); return; }
-
-  var grd  = GRIDS[key];
-  var def  = GRID_DEFS[key];
-  var ncols = def.cols.length;
-
-  var lines = txt.split('\n').filter(function(l){ return l.trim(); });
-
-  // Remove cabeçalho se detectado
-  if (lines.length > 1) {
-    var kw = ['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE','GRUPO','COD'];
-    var fc = lines[0].split('\t');
-    if (fc.some(function(c){ return kw.some(function(k){ return c.toUpperCase().indexOf(k)>=0; }); }))
-      lines.shift();
-  }
-
-  // Garante linhas no allData
-  var data = grd ? grd.allData.slice() : [];
-  while (data.length < lines.length) {
-    var er = []; for(var j=0;j<ncols;j++) er.push('');
-    data.push(er);
-  }
-
-  // Cola cada linha na coluna escolhida
-  lines.forEach(function(line, ri) {
-    if (!data[ri]) { data[ri]=[]; while(data[ri].length<ncols) data[ri].push(''); }
-    while(data[ri].length < ncols) data[ri].push('');
-    var cells = line.split('\t');
-    cells.forEach(function(v, ci) {
-      var dest = colIdx + ci;
-      if (dest < ncols) data[ri][dest] = v.trim();
-    });
-  });
-
-  FULL_DATA[key] = data.filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null; }); });
-  if (grd) {
-    grd.allData  = FULL_DATA[key];
-    grd.filtered = null;
-    grd.page     = 0;
-    grd._render();
-    grd._updateStatus();
-  }
-
-  var colName = def.cols[colIdx] ? def.cols[colIdx].t : '';
-  var info = document.getElementById('jss-status-'+key);
-  if (info) {
-    info.textContent = '✓ '+lines.length.toLocaleString('pt-BR')+' linhas → coluna "'+colName+'"';
-    info.className = 'jss-status-badge jss-status-ok';
-  }
-  lgCloseModal();
-}
 
 // ── INICIALIZAÇÃO ─────────────────────────────────────────────────────────────
 function jssCreateGrid(key) {

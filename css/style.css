@@ -2711,3 +2711,46 @@ canvas{max-height:320px !important;width:100% !important;}
   font-family: inherit;
 }
 .lg-modal-btn-ok:hover { background: #4a90d9; }
+
+/* ── Linha de inputs (✎) — clica e cola naquela coluna ── */
+.lg-input-row td {
+  background: #071428 !important;
+  border-bottom: 3px solid #2e74c0 !important;
+  padding: 2px 3px !important;
+  height: 30px;
+}
+.lg-input-rn {
+  background: #050d20 !important;
+  color: #2e74c0 !important;
+  font-size: 14px !important;
+  text-align: center !important;
+  border-right: 2px solid #2e74c0 !important;
+}
+.lg-input-auto {
+  text-align: center !important;
+  color: #3a0000 !important;
+  font-size: 11px !important;
+  background: #1a0000 !important;
+  cursor: not-allowed;
+}
+.lg-cell-input {
+  width: 100%;
+  height: 26px;
+  background: transparent;
+  border: none;
+  color: #c8deff;
+  font-size: 11px;
+  font-family: inherit;
+  padding: 0 6px;
+  box-sizing: border-box;
+  outline: none;
+  cursor: text;
+}
+.lg-cell-input:focus {
+  background: #0a2060;
+  outline: 2px solid #4a90d9;
+  outline-offset: -1px;
+  border-radius: 2px;
+  color: #fff;
+}
+.lg-cell-input::placeholder { color: #2a3a5a; font-size: 10px; }
