@@ -1,3 +1,84 @@
+LiteGrid.prototype._buildInputRow = function() {
+  var self = this;
+  var def  = this.def;
+  var tbody = this.container.querySelector('.lg-input-row-'+this.key);
+  if (!tbody) return;
+
+  var html = '<tr class="lg-irow">';
+  html += '<td class="lg-rn lg-irow-rn" title="Linha de entrada — clique numa célula e cole">✎</td>';
+  def.cols.forEach(function(c, i) {
+    html += '<td class="lg-icell'+(c.auto?' lg-auto':'')+'" '
+          + 'contenteditable="true" '
+          + 'data-col="'+i+'" '
+          + 'data-key="'+self.key+'" '
+          + 'title="Cole aqui para a coluna: '+c.t+'" '
+          + 'spellcheck="false">'
+          + '</td>';
+  });
+  html += '</tr>';
+  tbody.innerHTML = html;
+
+  // Evento paste em cada célula da linha de input
+  tbody.addEventListener('paste', function(e) {
+    var cell = e.target.closest('.lg-icell');
+    if (!cell) return;
+    e.preventDefault();
+
+    var txt    = e.clipboardData ? e.clipboardData.getData('text/plain') : '';
+    if (!txt.trim()) return;
+    var colIdx = parseInt(cell.dataset.col);
+    var lines  = txt.split('\n').filter(function(l){ return l.trim(); });
+
+    // Remove cabeçalho se detectado
+    if (lines.length > 1) {
+      var kw = ['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE','GRUPO','COD'];
+      var fc = lines[0].split('\t');
+      if (fc.some(function(c){ return kw.some(function(k){ return c.toUpperCase().indexOf(k)>=0; }); }))
+        lines.shift();
+    }
+
+    var ncols = def.cols.length;
+
+    // Garante linhas suficientes
+    while (self.allData.length < lines.length) {
+      var er=[]; for(var j=0;j<ncols;j++) er.push(''); self.allData.push(er);
+    }
+
+    // Cola cada linha na coluna correta
+    lines.forEach(function(line, ri) {
+      if (!self.allData[ri]) {
+        self.allData[ri]=[];
+        while(self.allData[ri].length<ncols) self.allData[ri].push('');
+      }
+      var cells = line.split('\t');
+      cells.forEach(function(v, ci) {
+        var dest = colIdx + ci;
+        if (dest < ncols) {
+          while(self.allData[ri].length <= dest) self.allData[ri].push('');
+          self.allData[ri][dest] = v.trim();
+        }
+      });
+    });
+
+    FULL_DATA[self.key] = self.allData.filter(function(r){
+      return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; });
+    });
+    self.filtered = null; self.page = 0;
+    self._render();
+    self._updateStatus();
+
+    // Limpa a célula de input e mostra feedback
+    cell.textContent = '';
+    var colName = def.cols[colIdx] ? def.cols[colIdx].t : '';
+    var info = document.getElementById('jss-status-'+self.key);
+    if (info) {
+      info.textContent = '✓ '+lines.length.toLocaleString('pt-BR')+' linhas → coluna "'+colName+'"';
+      info.className   = 'jss-status-badge jss-status-ok';
+    }
+  });
+};
+
+
 // ── ENTRADA RÁPIDA POR COLUNA ─────────────────────────────────────────────────
 function lgEntryApply(key) {
   var sel   = document.getElementById('lg-col-sel-'+key);

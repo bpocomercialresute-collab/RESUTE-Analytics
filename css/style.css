@@ -2675,3 +2675,44 @@ canvas{max-height:320px !important;width:100% !important;}
   transition: background 120ms;
 }
 .lg-entry-btn:hover { background: #4a90d9; }
+
+/* ── Linha de input (1 célula por coluna, igual Excel) ── */
+.lg-irow td {
+  background: #0a2048 !important;
+  border-bottom: 3px solid #2e74c0 !important;
+  padding: 0 !important;
+  height: 28px;
+}
+.lg-irow-rn {
+  background: #0a1430 !important;
+  color: #4a90d9 !important;
+  font-size: 13px !important;
+  text-align: center !important;
+  cursor: default !important;
+  border-right: 2px solid #2e74c0 !important;
+}
+.lg-icell {
+  min-width: 40px;
+  padding: 4px 8px !important;
+  color: #ffffff !important;
+  font-size: 12px;
+  outline: none;
+  cursor: text;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.lg-icell:focus {
+  background: #102060 !important;
+  outline: 2px solid #4a90d9 !important;
+  outline-offset: -2px;
+  color: #fff !important;
+}
+.lg-icell.lg-auto {
+  background: #2a0a0a !important;
+  color: #ff9999 !important;
+  cursor: not-allowed;
+}
+.lg-icell.lg-auto:focus {
+  background: #2a0a0a !important;
+  outline-color: #cc0000 !important;
+}
