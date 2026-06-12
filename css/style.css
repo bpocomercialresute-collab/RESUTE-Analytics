@@ -2590,3 +2590,124 @@ canvas{max-height:320px !important;width:100% !important;}
   margin-left: 4px;
 }
 .col-filter-btn:hover { color: #fff; background: rgba(46,116,192,0.3); }
+
+
+
+
+
+/* ── Botão Colar por Coluna ── */
+.jss-btn-col {
+  background: #1a3a6a;
+  border: 1px solid #2e74c0;
+  color: #7ab8f5;
+}
+.jss-btn-col:hover { background: #2e74c0; color: #fff; }
+
+/* ── Modal Colar por Coluna ── */
+.lg-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+.lg-modal {
+  background: #0d1b3e;
+  border: 1px solid #2e74c0;
+  border-radius: 10px;
+  width: 500px;
+  max-width: 95vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  font-family: inherit;
+}
+.lg-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: #091020;
+  border-radius: 10px 10px 0 0;
+  border-bottom: 2px solid #2e74c0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #c8deff;
+}
+.lg-modal-close {
+  background: none;
+  border: none;
+  color: #5a7399;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.lg-modal-close:hover { background: #1a2d5a; color: #fff; }
+.lg-modal-body { padding: 18px; }
+.lg-modal-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5a7399;
+  margin-bottom: 6px;
+}
+.lg-modal-select {
+  width: 100%;
+  background: #060e24;
+  border: 1px solid #2e74c0;
+  border-radius: 6px;
+  color: #c8deff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.lg-modal-select:focus { outline: none; border-color: #4a90d9; }
+.lg-modal-textarea {
+  width: 100%;
+  background: #060e24;
+  border: 1px solid rgba(46,116,192,0.4);
+  border-radius: 6px;
+  color: #c8deff;
+  font-size: 12px;
+  padding: 10px 12px;
+  font-family: monospace;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.lg-modal-textarea:focus { outline: none; border-color: #4a90d9; background: #091020; }
+.lg-modal-textarea::placeholder { color: #3d5070; }
+.lg-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 18px;
+  border-top: 1px solid rgba(46,116,192,0.2);
+}
+.lg-modal-btn-cancel {
+  background: #1a2d5a;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #7a9cc8;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.lg-modal-btn-cancel:hover { background: #243d6a; }
+.lg-modal-btn-ok {
+  background: #2e74c0;
+  border: none;
+  color: #fff;
+  border-radius: 6px;
+  padding: 8px 22px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+}
+.lg-modal-btn-ok:hover { background: #4a90d9; }
