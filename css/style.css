@@ -2676,43 +2676,69 @@ canvas{max-height:320px !important;width:100% !important;}
 }
 .lg-entry-btn:hover { background: #4a90d9; }
 
-/* ── Linha de input (1 célula por coluna, igual Excel) ── */
-.lg-irow td {
-  background: #0a2048 !important;
-  border-bottom: 3px solid #2e74c0 !important;
-  padding: 0 !important;
-  height: 28px;
+/* ── Linha de input (1 box por coluna — clica e cola) ── */
+.lg-hidden-input {
+  position: absolute;
+  opacity: 0;
+  width: 0; height: 0;
+  pointer-events: none;
 }
-.lg-irow-rn {
-  background: #0a1430 !important;
-  color: #4a90d9 !important;
-  font-size: 13px !important;
-  text-align: center !important;
-  cursor: default !important;
-  border-right: 2px solid #2e74c0 !important;
+.lg-inputrow-wrap {
+  display: flex;
+  align-items: stretch;
+  background: #0a1a3a;
+  border-bottom: 3px solid #2e74c0;
+  min-height: 30px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
-.lg-icell {
-  min-width: 40px;
-  padding: 4px 8px !important;
-  color: #ffffff !important;
-  font-size: 12px;
-  outline: none;
-  cursor: text;
+.lg-inputrow-wrap::-webkit-scrollbar { height: 0; }
+.lg-irow-label {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: #060e24;
+  color: #4a90d9;
+  font-size: 14px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 2px solid #2e74c0;
+  flex-shrink: 0;
+  title: "Linha de entrada";
+}
+.lg-irow-cells {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.lg-icell-box {
+  flex-shrink: 0;
+  height: 30px;
+  border-right: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  transition: background 100ms;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 11px;
+  color: #3d5070;
+  min-width: 50px;
+  box-sizing: border-box;
   white-space: nowrap;
   overflow: hidden;
 }
-.lg-icell:focus {
-  background: #102060 !important;
-  outline: 2px solid #4a90d9 !important;
+.lg-icell-box:hover { background: #0d2248; color: #7a9cc8; }
+.lg-icell-box.lg-isel {
+  background: #0a3060 !important;
+  outline: 2px solid #4a90d9;
   outline-offset: -2px;
   color: #fff !important;
 }
-.lg-icell.lg-auto {
-  background: #2a0a0a !important;
-  color: #ff9999 !important;
+.lg-icell-box.lg-icell-auto {
+  background: #1a0000;
+  color: #3a0000;
   cursor: not-allowed;
-}
-.lg-icell.lg-auto:focus {
-  background: #2a0a0a !important;
-  outline-color: #cc0000 !important;
 }

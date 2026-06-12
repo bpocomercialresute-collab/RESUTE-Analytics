@@ -1,3 +1,72 @@
+LiteGrid.prototype._syncInputRow = function() {
+  var self = this;
+  var def  = this.def;
+  var irow = document.getElementById('lg-irow-cells-'+this.key);
+  if (!irow) return;
+  var boxes = irow.querySelectorAll('.lg-icell-box');
+  // Sincroniza largura de cada box com a coluna correspondente
+  var ths = this.container.querySelectorAll('thead th');
+  // ths[0] = rn, ths[1..n] = colunas
+  boxes.forEach(function(box, i) {
+    var th = ths[i+1];
+    if (th) {
+      var w = th.offsetWidth || def.cols[i].w || 80;
+      box.style.width    = w + 'px';
+      box.style.minWidth = w + 'px';
+    }
+  });
+};
+
+
+LiteGrid.prototype._pasteToCol = function(txt, startCol) {
+  var lines = txt.split('\n').filter(function(l){ return l.trim(); });
+  var def   = this.def;
+  var ncols = def.cols.length;
+
+  // Remove cabeçalho se detectado
+  if (lines.length > 1) {
+    var kw = ['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE','GRUPO','COD'];
+    var fc = lines[0].split('\t');
+    if (fc.some(function(c){ return kw.some(function(k){ return c.toUpperCase().indexOf(k)>=0; }); }))
+      lines.shift();
+  }
+
+  // Garante linhas no allData
+  while (this.allData.length < lines.length) {
+    var er=[]; for(var j=0;j<ncols;j++) er.push(''); this.allData.push(er);
+  }
+
+  lines.forEach(function(line, ri) {
+    if (!this.allData[ri]) { this.allData[ri]=[]; while(this.allData[ri].length<ncols) this.allData[ri].push(''); }
+    var cells = line.split('\t');
+    cells.forEach(function(v, ci) {
+      var dest = startCol + ci;
+      if (dest < ncols) {
+        while(this.allData[ri].length <= dest) this.allData[ri].push('');
+        this.allData[ri][dest] = v.trim();
+      }
+    }.bind(this));
+  }.bind(this));
+
+  FULL_DATA[this.key] = this.allData.filter(function(r){
+    return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; });
+  });
+  this.filtered = null; this.page = 0;
+  this._render(); this._updateStatus();
+
+  var colName = def.cols[startCol] ? def.cols[startCol].t : '';
+  var info = document.getElementById('jss-status-'+this.key);
+  if (info) {
+    info.textContent = '✓ '+lines.length.toLocaleString('pt-BR')+' linhas → "'+colName+'"';
+    info.className = 'jss-status-badge jss-status-ok';
+  }
+  // Reseta seleção visual
+  var irow = document.getElementById('lg-irow-cells-'+this.key);
+  if (irow) irow.querySelectorAll('.lg-icell-box').forEach(function(b){ b.classList.remove('lg-isel'); });
+  this._selCol = -1;
+};
+
+
 LiteGrid.prototype._buildInputRow = function() {
   var self = this;
   var def  = this.def;
@@ -386,6 +455,7 @@ LiteGrid.prototype._render = function() {
   var tbody = document.querySelector('.lg-body-'+this.key);
   if (tbody) tbody.innerHTML = html;
   this._renderPag(src.length);
+  this._syncInputRow();
 };
 
 LiteGrid.prototype._renderPag = function(total) {
