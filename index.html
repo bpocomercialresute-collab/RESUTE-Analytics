@@ -84,7 +84,29 @@
       </div>
     </div>
 
-    <!-- VIEW: ANÁLISE DE VENDAS -->
+    <!-- TELA DE LOGIN -->
+  <div id="view-login" style="display:none">
+    <div class="login-overlay">
+      <div class="login-box">
+        <div class="login-logo">
+          <div class="login-logo-text">RESUTE</div>
+          <div class="login-logo-sub">HOLDING</div>
+        </div>
+        <div class="login-title">Análise de Vendas</div>
+        <div class="login-form">
+          <label class="login-label">Email</label>
+          <input id="login-email" class="login-input" type="email" placeholder="seu@email.com" />
+          <label class="login-label">Senha</label>
+          <input id="login-senha" class="login-input" type="password" placeholder="••••••••" />
+          <div id="login-erro" class="login-erro"></div>
+          <button id="login-btn" class="login-btn" onclick="fazerLogin()">Entrar</button>
+        </div>
+        <div class="login-footer">RESUTE © 2026 — Gestão Comercial</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW: ANÁLISE DE VENDAS -->
     <div id="view-app" class="page-view" style="display:none">
       <div class="content">
 
@@ -449,6 +471,7 @@
 <script src="js/dashboard.js"></script>
 <script src="js/actions.js"></script>
 <script src="js/uniao.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/jss.js"></script>
   <script src="js/bd.js"></script>
   <script src="js/relatorios.js"></script>

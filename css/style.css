@@ -2754,3 +2754,68 @@ canvas{max-height:320px !important;width:100% !important;}
   color: #fff;
 }
 .lg-cell-input::placeholder { color: #2a3a5a; font-size: 10px; }
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+.login-overlay {
+  position: fixed; inset: 0;
+  background: #04080f;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+}
+.login-box {
+  background: #0d1b3e;
+  border: 1px solid rgba(46,116,192,0.3);
+  border-radius: 14px;
+  padding: 40px;
+  width: 380px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.login-logo { text-align: center; margin-bottom: 4px; }
+.login-logo-text { font-size: 26px; font-weight: 900; color: #4a90d9; letter-spacing: 0.1em; }
+.login-logo-sub  { font-size: 10px; color: #3a5278; letter-spacing: 0.3em; text-transform: uppercase; }
+.login-title {
+  text-align: center; font-size: 13px; font-weight: 700;
+  color: #7a9cc8; letter-spacing: 0.05em; margin: 16px 0 28px;
+  text-transform: uppercase;
+}
+.login-form { display: flex; flex-direction: column; gap: 8px; }
+.login-label { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; color: #5a7399; text-transform: uppercase; }
+.login-input {
+  background: #060e24; border: 1px solid rgba(46,116,192,0.3);
+  border-radius: 7px; color: #c8deff; font-size: 14px;
+  padding: 10px 14px; font-family: inherit; margin-bottom: 8px;
+}
+.login-input:focus { outline: none; border-color: #4a90d9; background: #091020; }
+.login-btn {
+  background: #2e74c0; border: none; border-radius: 7px;
+  color: #fff; font-size: 14px; font-weight: 800;
+  padding: 12px; cursor: pointer; font-family: inherit;
+  margin-top: 8px; transition: background 150ms;
+}
+.login-btn:hover { background: #4a90d9; }
+.login-btn:disabled { background: #1a3a6a; cursor: not-allowed; }
+.login-erro { color: #ef4444; font-size: 12px; min-height: 16px; }
+.login-footer { text-align: center; color: #3a5278; font-size: 10px; margin-top: 24px; }
+
+/* ── Sync + usuário no nav ── */
+.nav-sync-area { display: flex; align-items: center; gap: 10px; margin-right: 16px; }
+.btn-sync {
+  display: flex; align-items: center; gap: 6px;
+  background: #1a3a6a; border: 1px solid #2e74c0;
+  border-radius: 7px; color: #7ab8f5;
+  font-size: 12px; font-weight: 700; padding: 6px 14px;
+  cursor: pointer; font-family: inherit; transition: all 150ms;
+}
+.btn-sync:hover { background: #2e74c0; color: #fff; }
+.btn-sync:disabled { opacity: 0.6; cursor: not-allowed; }
+.sync-status { font-size: 11px; color: #5a7399; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sync-ok   { color: #10b981; }
+.sync-erro { color: #ef4444; }
+.sync-spin { display: inline-block; animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.nav-user-info { display: flex; flex-direction: column; align-items: flex-end; margin-right: 10px; }
+.nav-user-empresa { font-size: 9px; color: #5a7399; letter-spacing: 0.1em; text-transform: uppercase; }
+.nav-user-nome    { font-size: 12px; font-weight: 700; color: #c8deff; }
