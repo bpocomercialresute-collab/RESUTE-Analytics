@@ -68,45 +68,17 @@
         <p class="page-subtitle">Módulos disponíveis no ecossistema RESUTE.</p>
       </div>
       <div class="tools-grid">
-        <div class="tool-card" data-status="active" data-nav="view-app">
+        <div class="tool-card" data-status="active" onclick="abrirAnaliseVendas()">
           <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg></div>
           <h3>Análise de Vendas</h3>
           <p>Importe planilhas de pedidos de qualquer empresa, selecione as colunas que importam e gere relatórios consolidados automaticamente.</p>
           <div class="tool-meta"><span class="badge badge-active"><span class="badge-dot"></span>Disponível</span><div class="tool-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div></div>
         </div>
-        <div class="tool-card" data-status="active" data-nav="view-uniao">
-          <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 3H3v5"/><path d="M21 8V3h-5"/><path d="M3 16v5h5"/><path d="M16 21h5v-5"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/></svg></div>
-          <h3>União de Planilhas</h3>
-          <p>Consolide múltiplas planilhas em um único arquivo. Detecta a coluna de data automaticamente e ordena os registros do mais antigo ao mais recente.</p>
-          <div class="tool-meta"><span class="badge badge-active"><span class="badge-dot"></span>Disponível</span><div class="tool-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div></div>
-        </div>
 
       </div>
     </div>
 
-    <!-- TELA DE LOGIN -->
-  <div id="view-login" style="display:none">
-    <div class="login-overlay">
-      <div class="login-box">
-        <div class="login-logo">
-          <div class="login-logo-text">RESUTE</div>
-          <div class="login-logo-sub">HOLDING</div>
-        </div>
-        <div class="login-title">Análise de Vendas</div>
-        <div class="login-form">
-          <label class="login-label">Email</label>
-          <input id="login-email" class="login-input" type="email" placeholder="seu@email.com" />
-          <label class="login-label">Senha</label>
-          <input id="login-senha" class="login-input" type="password" placeholder="••••••••" />
-          <div id="login-erro" class="login-erro"></div>
-          <button id="login-btn" class="login-btn" onclick="fazerLogin()">Entrar</button>
-        </div>
-        <div class="login-footer">RESUTE © 2026 — Gestão Comercial</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- VIEW: ANÁLISE DE VENDAS -->
+    <!-- VIEW: ANÁLISE DE VENDAS -->
     <div id="view-app" class="page-view" style="display:none">
       <div class="content">
 
@@ -386,96 +358,61 @@
         </div>
 
     <!-- VIEW: UNIÃO DE PLANILHAS -->
-    <div id="view-uniao" class="page-view" style="display:none">
-      <button class="voltar-btn" onclick="switchView('view-tools')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        Ferramentas
-      </button>
-      <div class="page-header">
-        <h1 class="page-title">União de Planilhas</h1>
-        <p class="page-subtitle">Consolide múltiplas planilhas com a mesma estrutura em um único arquivo ordenado por data.</p>
-      </div>
-      <div class="uniao-dropzone" id="uniaoDropzone" onclick="document.getElementById('uniaoFiles').click()">
-        <div class="uniao-dropzone-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
-        <h3>Arraste suas planilhas aqui ou clique para selecionar</h3>
-        <p>Aceita múltiplos arquivos .csv e .xlsx · sem limite de quantidade</p>
-        <p class="uniao-dropzone-hint">O cabeçalho da <strong>primeira planilha</strong> será usado para todas</p>
-        <input type="file" id="uniaoFiles" multiple accept=".csv,.xlsx,.xls" style="display:none">
-      </div>
-      <div class="uniao-files-section" id="uniaoFilesSection" style="display:none;">
-        <div class="uniao-section-header">
-          <div class="uniao-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>Planilhas carregadas</span><span class="uniao-count" id="uniaoCount">0</span></div>
-          <div style="display:flex;gap:var(--s-2);">
-            <button class="btn btn-sm" onclick="document.getElementById('uniaoFiles').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Adicionar mais</button>
-            <button class="btn btn-sm btn-danger" onclick="uniaoLimparTudo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Apagar todas</button>
-          </div>
-        </div>
-        <div class="uniao-files-list" id="uniaoFilesList"></div>
-      </div>
-      <div class="uniao-summary" id="uniaoSummary" style="display:none;">
-        <div class="uniao-summary-grid">
-          <div class="uniao-summary-kpi"><div class="uniao-summary-label">Arquivos</div><div class="uniao-summary-val" id="summaryArquivos">0</div></div>
-          <div class="uniao-summary-kpi"><div class="uniao-summary-label">Linhas totais</div><div class="uniao-summary-val" id="summaryLinhas">0</div></div>
-          <div class="uniao-summary-kpi"><div class="uniao-summary-label">Colunas</div><div class="uniao-summary-val" id="summaryColunas">0</div></div>
-          <div class="uniao-summary-kpi"><div class="uniao-summary-label">Coluna de data detectada</div><div class="uniao-summary-val uniao-summary-val-text" id="summaryDataCol">—</div></div>
-          <div class="uniao-summary-kpi"><div class="uniao-summary-label">Período</div><div class="uniao-summary-val uniao-summary-val-text" id="summaryPeriodo">—</div></div>
-        </div>
-        <div id="uniaoWarnings"></div>
-      </div>
-      <div class="uniao-preview-section" id="uniaoPreviewSection" style="display:none;">
-        <div class="uniao-section-header">
-          <div class="uniao-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span>Prévia do arquivo consolidado</span><span class="uniao-count" id="uniaoPreviewCount">0 linhas</span></div>
-          <label style="display:flex;align-items:center;gap:var(--s-2);font-size:12px;color:var(--text-tertiary);user-select:none;cursor:pointer;">
-            <div class="switch" style="width:36px;height:20px;"><input type="checkbox" id="toggleOrdenar" checked onchange="uniaoReprocessar()"><span class="switch-slider"></span></div>
-            Ordenar por data (antigo → recente)
-          </label>
-        </div>
-        <div class="uniao-preview-viewport" id="uniaoPreviewViewport">
-          <div class="scroll-minimap">
-            <span class="scroll-minimap-info"><kbd>Shift</kbd> + scroll rola horizontal</span>
-            <div class="scroll-minimap-track" onclick="uniaoJumpScroll(event)"><div class="scroll-minimap-thumb" id="uniaoMinimapThumb" style="left:0%;width:30%;"></div></div>
-            <span class="scroll-minimap-info" id="uniaoMinimapLabel">—</span>
-          </div>
-          <div class="sheet-topscroll" id="uniaoTopscroll"><div id="uniaoTopscrollInner"></div></div>
-          <div class="sheet-container" id="uniaoPreviewContainer"><div class="sheet-grid" id="uniaoPreviewGrid"></div></div>
-        </div>
-      </div>
-      <div class="uniao-actions" id="uniaoActions" style="display:none;">
-        <div class="uniao-actions-info">
-          <div class="uniao-actions-title">Pronto para exportar</div>
-          <div class="uniao-actions-sub" id="uniaoActionsSub">Consolidação finalizada com sucesso</div>
-        </div>
-        <div style="display:flex;gap:var(--s-3);flex-wrap:wrap;">
-          <button class="btn btn-primary btn-lg" onclick="uniaoExportarXLSX()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Exportar Excel (.xlsx)</button>
-          <button class="btn btn-lg" onclick="uniaoExportarCSV()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Exportar CSV</button>
-        </div>
-      </div>
-    </div>
 
-
-  </div>
-
-</main>
-
-<!-- Scripts (carregados no fim do body — DOM já disponível) -->
-<script src="js/utils.js"></script>
-<script src="js/constants.js"></script>
-<script src="js/state.js"></script>
-<script src="js/nav.js"></script>
-<script src="js/upload.js"></script>
-<script src="js/autodetect.js"></script>
-<script src="js/mapping.js"></script>
-<script src="js/process.js"></script>
-<script src="js/filters.js"></script>
-<script src="js/charts.js"></script>
-<script src="js/dashboard.js"></script>
-<script src="js/actions.js"></script>
-<script src="js/uniao.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/jss.js"></script>
   <script src="js/bd.js"></script>
   <script src="js/relatorios.js"></script>
   <script src="js/relat-rep.js"></script>
+
+
+  <!-- MODAL DE LOGIN -->
+  <div id="login-modal" style="display:none" class="login-modal-overlay" onclick="if(event.target===this)fecharLogin()">
+    <div class="login-modal-box">
+      <button class="login-modal-x" onclick="fecharLogin()">✕</button>
+
+      <div class="login-brand">
+        <div class="login-brand-logo">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="40" height="40" rx="10" fill="#1a3a6a"/>
+            <path d="M8 28 L20 12 L32 28" stroke="#4a90d9" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M13 22 L20 12 L27 22" stroke="#7ab8f5" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="login-brand-text">
+          <div class="login-brand-name">RESUTE</div>
+          <div class="login-brand-sub">Análise de Vendas</div>
+        </div>
+      </div>
+
+      <div class="login-welcome">Bem-vindo de volta</div>
+      <div class="login-desc">Entre com suas credenciais para acessar os relatórios</div>
+
+      <div class="login-form">
+        <div class="login-field">
+          <label class="login-label">Email</label>
+          <div class="login-input-wrap">
+            <svg class="login-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input id="login-email" class="login-input" type="email" placeholder="seu@email.com" />
+          </div>
+        </div>
+        <div class="login-field">
+          <label class="login-label">Senha</label>
+          <div class="login-input-wrap">
+            <svg class="login-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input id="login-senha" class="login-input" type="password" placeholder="••••••••" />
+          </div>
+        </div>
+        <div id="login-erro" class="login-erro"></div>
+        <button id="login-btn" class="login-btn" onclick="fazerLogin()">
+          Entrar
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <div class="login-footer">RESUTE Holding © 2026 — Gestão Comercial</div>
+    </div>
+  </div>
 
 </body>
 </html>
