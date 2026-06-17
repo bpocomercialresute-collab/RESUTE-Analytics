@@ -3,47 +3,109 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RESUTE — Sistema de Gestão Comercial</title>
-  <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==">
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <title>RESUTE Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
 </head>
-<body>
+<body class="cui-body">
 
-<nav class="topnav">
-  <div class="topnav-logo" onclick="switchView('view-home')">
-    <div class="topnav-logo-text">
-      <span class="topnav-logo-name">RESUTE</span>
-      <span class="topnav-logo-sub">HOLDING</span>
+  <!-- SIDEBAR -->
+  <div class="cui-sidebar" id="sidebar">
+    <div class="cui-sidebar-brand">
+      <div class="cui-brand-logo">
+        <svg viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.1)"/>
+          <path d="M6 24 L16 8 L26 24" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M10 18 L16 8 L22 18" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="cui-brand-text">
+        <div class="cui-brand-name">RESUTE</div>
+        <div class="cui-brand-sub">Analytics</div>
+      </div>
+      <button class="cui-sidebar-toggle" onclick="toggleSidebar()" title="Recolher menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+    </div>
+
+    <nav class="cui-nav">
+      <div class="cui-nav-title">NAVEGAÇÃO</div>
+      <a class="cui-nav-item active" onclick="switchView('view-home'); setSidebarActive(this)" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Início</span>
+      </a>
+      <a class="cui-nav-item" onclick="abrirAnaliseVendas(); setSidebarActive(this)" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+        <span>Análise de Vendas</span>
+      </a>
+    </nav>
+
+    <div class="cui-sidebar-footer">
+      <div id="sidebar-user" style="display:none" class="cui-sidebar-user">
+        <div class="cui-sidebar-avatar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="cui-sidebar-user-info">
+          <div id="sidebar-user-nome" class="cui-sidebar-user-nome"></div>
+          <div id="sidebar-user-empresa" class="cui-sidebar-user-empresa"></div>
+        </div>
+        <button class="cui-sidebar-logout" onclick="fazerLogout()" title="Sair">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="15" height="15"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
     </div>
   </div>
-  <div class="topnav-links">
-    <button class="topnav-link active" data-view="view-home" onclick="switchView('view-home')">Início</button>
-    <button class="topnav-link" data-view="view-tools" onclick="switchView('view-tools')">Ferramentas</button>
-  </div>
-  <div class="topnav-right">
-    <div class="topnav-user">
-      <div class="avatar">BC</div>
-      <div class="topnav-user-name">BPO Comercial</div>
-    </div>
-  </div>
-</nav>
 
-<main class="main">
-  
+  <!-- OVERLAY SIDEBAR MOBILE -->
+  <div class="cui-sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-  <div id="loader">
-    <div class="loader-box">
-      <div class="loader-progress"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20"/></svg></div>
-      <h3>Processando</h3>
-      <p id="loaderMsg">Analisando base de dados…</p>
-    </div>
-  </div>
+  <!-- WRAPPER PRINCIPAL -->
+  <div class="cui-wrapper" id="cui-wrapper">
 
-  <div class="content">
+    <!-- HEADER -->
+    <header class="cui-header">
+      <div class="cui-header-left">
+        <button class="cui-header-toggle" onclick="toggleSidebar()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        </button>
+        <div class="cui-breadcrumb">
+          <span id="breadcrumb-text">Início</span>
+        </div>
+      </div>
+      <div class="cui-header-right">
+        <div id="sync-area" style="display:none" class="cui-sync-area">
+          <span id="sync-status" class="cui-sync-status"></span>
+          <button id="btn-sync" class="cui-btn-sync" onclick="sincronizarAPI()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+            Sincronizar
+          </button>
+        </div>
+        <div id="header-user" style="display:none" class="cui-header-user">
+          <div class="cui-header-user-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div class="cui-header-user-info">
+            <div id="user-nome" class="cui-header-user-nome"></div>
+            <div id="user-empresa" class="cui-header-user-empresa"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTEÚDO -->
+    <main class="cui-main">
+
+      <div id="loader" style="display:none">
+        <div class="loader-box">
+          <div class="loader-progress"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20"/></svg></div>
+          <h3>Processando</h3>
+          <p id="loaderMsg">Analisando base de dados…</p>
+        </div>
+      </div>
+
+      <div class="content">
 
     <!-- VIEW: INÍCIO -->
     <div id="view-home" class="page-view active" style="display:block">
@@ -366,7 +428,11 @@
   <script src="js/relat-rep.js"></script>
 
 
-  <!-- MODAL DE LOGIN -->
+
+    </main>
+  </div>
+
+    <!-- MODAL DE LOGIN -->
   <div id="login-modal" style="display:none" class="login-modal-overlay" onclick="if(event.target===this)fecharLogin()">
     <div class="login-modal-box">
       <button class="login-modal-x" onclick="fecharLogin()">✕</button>
@@ -414,5 +480,35 @@
     </div>
   </div>
 
+
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/jss.js"></script>
+  <script src="js/bd.js"></script>
+  <script src="js/relatorios.js"></script>
+  <script src="js/relat-rep.js"></script>
+
+  <script>
+    // Sidebar toggle
+    function toggleSidebar() {
+      var sb = document.getElementById('sidebar');
+      var wr = document.getElementById('cui-wrapper');
+      var ov = document.getElementById('sidebar-overlay');
+      sb.classList.toggle('cui-sidebar-collapsed');
+      wr.classList.toggle('cui-wrapper-expanded');
+      ov.classList.toggle('active');
+    }
+    function setSidebarActive(el) {
+      document.querySelectorAll('.cui-nav-item').forEach(function(i){ i.classList.remove('active'); });
+      el.classList.add('active');
+      // Atualiza breadcrumb
+      var txt = el.querySelector('span') ? el.querySelector('span').textContent : '';
+      var bc = document.getElementById('breadcrumb-text');
+      if (bc) bc.textContent = txt;
+    }
+  </script>
 </body>
 </html>

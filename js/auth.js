@@ -99,10 +99,19 @@ function _abrirApp() {
   if (empresaEl) empresaEl.textContent = SESSION.empresa_nome;
 
   // Mostra/oculta botão sync (clientes podem sincronizar)
+  // Sync area
   var syncArea = document.getElementById('sync-area');
   if (syncArea) syncArea.style.display = 'flex';
-  var navInfo = document.getElementById('nav-user-info');
-  if (navInfo) navInfo.style.display = 'flex';
+  // Header user
+  var headerUser = document.getElementById('header-user');
+  if (headerUser) headerUser.style.display = 'flex';
+  // Sidebar user
+  var sidebarUser = document.getElementById('sidebar-user');
+  if (sidebarUser) sidebarUser.style.display = 'flex';
+  var sbNome = document.getElementById('sidebar-user-nome');
+  var sbEmp  = document.getElementById('sidebar-user-empresa');
+  if (sbNome) sbNome.textContent = SESSION.nome;
+  if (sbEmp)  sbEmp.textContent  = SESSION.empresa_nome;
 
   // Vai para o app
   if (typeof switchView === 'function') switchView('view-app');
@@ -125,6 +134,15 @@ async function sincronizarAPI() {
   _setStatus('⏳ Conectando à API da ' + SESSION.empresa_nome + '...', '');
 
   try {
+    // Verifica última data sincronizada para sync incremental
+    var logR = await fetch(SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + SESSION.empresa_id + '&select=ultima_data,ultima_sync', {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SESSION.token }
+    });
+    var logData = await logR.json();
+    var ultimaData = logData && logData[0] && logData[0].ultima_data ? logData[0].ultima_data : null;
+    var ultimaSync = logData && logData[0] && logData[0].ultima_sync ? new Date(logData[0].ultima_sync).toLocaleDateString('pt-BR') : 'nunca';
+    _setStatus('⏳ Último sync: ' + ultimaSync + ' — buscando novos dados...', '');
+
     var r = await fetch(SYNC_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
