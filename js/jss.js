@@ -1,6 +1,5 @@
 // =============================================================================
-// JSS.JS — LiteGrid: grade leve e simples
-// Cole com Ctrl+V → dados entram. Filtro ▾ por coluna. Paginação.
+// JSS.JS — LiteGrid com seleção de célula estilo Excel
 // =============================================================================
 
 var GRID_DEFS = {
@@ -22,10 +21,10 @@ var GRID_DEFS = {
     {t:'marca',w:125,auto:true},{t:'familia_produto',w:140,auto:true},
     {t:'classes',w:95,auto:true}
   ]},
-  marca: { cols:[
+  marca:{ cols:[
     {t:'ID',w:55,auto:false},{t:'COD MARCA',w:115,auto:false},{t:'MARCA',w:240,auto:false}
   ]},
-  clientes: { cols:[
+  clientes:{ cols:[
     {t:'ID',w:50,auto:false},{t:'COD_CLI',w:90,auto:false},{t:'CLIENTES',w:240,auto:false},
     {t:'TIPO',w:120,auto:false},{t:'CNPJ / CPF',w:150,auto:false},
     {t:'CEP',w:85,auto:false},{t:'Cidade',w:130,auto:false},{t:'UF',w:45,auto:false},
@@ -37,7 +36,7 @@ var GRID_DEFS = {
     {t:'ULT_VD_BD',w:110,auto:true},{t:'dias>ciclo',w:125,auto:true},
     {t:'dt_penulte_ped',w:125,auto:true}
   ]},
-  representantes: { cols:[
+  representantes:{ cols:[
     {t:'ID',w:50,auto:false},{t:'COD',w:75,auto:false},{t:'REPRESENTANTE',w:210,auto:false},
     {t:'TIPO',w:115,auto:false},{t:'Fantasia',w:170,auto:false},{t:'Fone',w:120,auto:false},
     {t:'% CRESCIMENTO',w:115,auto:false},{t:'email',w:170,auto:false},
@@ -46,11 +45,11 @@ var GRID_DEFS = {
     {t:'DT_4',w:105,auto:true},{t:'DT_5',w:105,auto:true},{t:'DT_6',w:105,auto:true},
     {t:'DT_7',w:105,auto:true},{t:'TOT_MIX',w:85,auto:true}
   ]},
-  grupos: { cols:[
+  grupos:{ cols:[
     {t:'ID',w:55,auto:false},{t:'COD',w:75,auto:false},
     {t:'GRUPO',w:190,auto:false},{t:'GRUPO PAI',w:190,auto:false}
   ]},
-  produto: { cols:[
+  produto:{ cols:[
     {t:'ID',w:50,auto:false},{t:'CODPROD',w:95,auto:false},{t:'DESCRIÇÃO',w:220,auto:false},
     {t:'GRUPO',w:120,auto:false},{t:'subgrupo',w:120,auto:false},{t:'familia',w:120,auto:false},
     {t:'ATIV_INAT',w:95,auto:false},{t:'tipo_produto',w:115,auto:false},
@@ -60,10 +59,7 @@ var GRID_DEFS = {
   ]}
 };
 
-var GRIDS           = {};
-var GRID_DATA_STORE = {};
-var FULL_DATA       = {};
-var JSS_FILTERS     = {};
+var GRIDS = {}, GRID_DATA_STORE = {}, FULL_DATA = {}, JSS_FILTERS = {};
 
 // =============================================================================
 // LITEGRID
@@ -76,6 +72,8 @@ function LiteGrid(container, key) {
   this.filtered  = null;
   this.page      = 0;
   this.pageSize  = 100;
+  this.selRow    = -1;
+  this.selCol    = -1;
   this._build();
 }
 
@@ -83,77 +81,80 @@ LiteGrid.prototype._build = function() {
   var self = this;
   var def  = this.def;
 
-  // Referência da célula ativa (linha e coluna)
-  this._selRow = 0;
-  this._selCol = 0;
+  // 1. Barra de referência (ex: A1 | valor)
+  var refBar = document.createElement('div');
+  refBar.className = 'lg-ref-bar';
+  refBar.innerHTML =
+    '<span class="lg-ref-cell" id="lg-rc-'+self.key+'">A1</span>' +
+    '<input class="lg-ref-val" id="lg-rv-'+self.key+'" readonly placeholder="valor..." />';
 
-  var hdr = '<div class="lg-wrap" style="position:relative">'
-          + '<div class="lg-ref-bar" id="lg-ref-'+self.key+'">'
-          +   '<span class="lg-ref-cell" id="lg-ref-label-'+self.key+'">A1</span>'
-          +   '<span class="lg-ref-sep"></span>'
-          +   '<span class="lg-ref-val" id="lg-ref-val-'+self.key+'"></span>'
-          + '</div>'
-          + '<div class="lg-scroll" id="lg-scroll-'+self.key+'"><table class="lg-table" id="lg-tbl-'+self.key+'"><thead><tr><th class="lg-rn">#</th>';
-  def.cols.forEach(function(c, i) {
-    hdr += '<th class="'+(c.auto?'lg-auto':'')+'" style="width:'+c.w+'px;min-width:'+c.w+'px" '
-         + 'onclick="lgSortCol(\''+self.key+'\','+i+',this)">'
-         + c.t
-         + '<span class="col-filter-btn" data-col="'+i+'" data-key="'+self.key+'" '
-         + 'onclick="event.stopPropagation();lgShowFilter(\''+self.key+'\','+i+',this)">▾</span>'
-         + '</th>';
+  // 2. Cabeçalho da tabela
+  var thead = '<thead><tr><th class="lg-rn">#</th>';
+  def.cols.forEach(function(c,i){
+    thead += '<th class="'+(c.auto?'lg-auto':'')+'" style="width:'+c.w+'px;min-width:'+c.w+'px"'
+           + ' onclick="lgSortCol(\''+self.key+'\','+i+',this)">'
+           + c.t
+           + '<span class="col-filter-btn" data-col="'+i+'" data-key="'+self.key+'"'
+           + ' onclick="event.stopPropagation();lgShowFilter(\''+self.key+'\','+i+',this)">▾</span>'
+           + '</th>';
   });
-  hdr += '</tr></thead><tbody class="lg-body-'+self.key+'"></tbody></table></div>'
-       + '<div class="lg-pag" id="lg-pag-'+self.key+'"></div>'
-       // Input flutuante — fica em cima da célula selecionada
-       + '<input type="text" id="lg-inp-'+self.key+'" class="lg-float-input" autocomplete="off" spellcheck="false" />'
-       + '</div>';
+  thead += '</tr></thead>';
 
-  this.container.innerHTML = hdr;
+  // 3. Monta estrutura
+  var wrap   = document.createElement('div');  wrap.className = 'lg-wrap';
+  var scroll = document.createElement('div');  scroll.className = 'lg-scroll';
+  var table  = document.createElement('table'); table.className = 'lg-table';
+  var tbody  = document.createElement('tbody'); tbody.className = 'lg-body';
+  var pag    = document.createElement('div');  pag.id = 'lg-pag-'+self.key;  pag.className = 'lg-pag';
 
-  // Input flutuante
-  var inp = document.getElementById('lg-inp-'+self.key);
+  // Input flutuante — único para toda a grade
+  var inp = document.createElement('input');
+  inp.type = 'text'; inp.className = 'lg-float-input';
+  inp.id = 'lg-inp-'+self.key; inp.autocomplete = 'off'; inp.spellcheck = false;
+  inp.style.display = 'none';
 
-  // Clique numa célula de dados → seleciona
-  var scroll = document.getElementById('lg-scroll-'+self.key);
-  scroll.addEventListener('mousedown', function(e) {
+  table.innerHTML = thead;
+  table.appendChild(tbody);
+  scroll.appendChild(table);
+  wrap.appendChild(refBar);
+  wrap.appendChild(scroll);
+  wrap.appendChild(pag);
+  wrap.appendChild(inp);
+  this.container.innerHTML = '';
+  this.container.appendChild(wrap);
+
+  this._tbody = tbody;
+  this._inp   = inp;
+
+  // ── EVENTOS ────────────────────────────────────────────────────────────────
+
+  // Clique numa célula → seleciona
+  tbody.addEventListener('mousedown', function(e) {
     var td = e.target.closest('td');
-    if (!td) return;
-    var tr = td.closest('tr');
-    if (!tr || tr.closest('thead')) return;
-    var ci = Array.from(tr.children).indexOf(td) - 1; // -1 por causa do td#
-    if (ci < 0) return;
-    var ri = parseInt(tr.querySelector('.lg-rn').textContent) - 1;
-    if (isNaN(ri)) return;
+    if (!td || td.classList.contains('lg-rn')) return;
     e.preventDefault();
-    self._selectCell(ri, ci, inp);
+    var tr  = td.closest('tr');
+    var ci  = Array.from(tr.cells).indexOf(td) - 1;
+    var rn  = tr.querySelector('.lg-rn');
+    var ri  = rn ? parseInt(rn.textContent) - 1 : -1;
+    if (ci < 0 || ri < 0) return;
+    self._select(ri, ci, td);
   });
 
   // Teclado no input
   inp.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      self._commitEdit(inp);
-      self._selectCell(self._selRow + 1, self._selCol, inp);
-    } else if (e.key === 'Tab') {
-      e.preventDefault();
-      self._commitEdit(inp);
-      var nextCol = self._selCol + 1;
-      if (nextCol >= def.cols.length) { nextCol = 0; self._selRow++; }
-      self._selectCell(self._selRow, nextCol, inp);
-    } else if (e.key === 'Escape') {
-      self._hideInput(inp);
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault(); self._commitEdit(inp);
-      self._selectCell(self._selRow + 1, self._selCol, inp);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault(); self._commitEdit(inp);
-      self._selectCell(Math.max(0, self._selRow - 1), self._selCol, inp);
-    } else if (e.key === 'ArrowRight' && inp.selectionEnd === inp.value.length) {
-      e.preventDefault(); self._commitEdit(inp);
-      self._selectCell(self._selRow, Math.min(def.cols.length-1, self._selCol+1), inp);
-    } else if (e.key === 'ArrowLeft' && inp.selectionStart === 0) {
-      e.preventDefault(); self._commitEdit(inp);
-      self._selectCell(self._selRow, Math.max(0, self._selCol-1), inp);
-    }
+    if (e.key === 'Enter')     { e.preventDefault(); self._commit(); self._move(1, 0); }
+    else if (e.key === 'Tab')  { e.preventDefault(); self._commit(); self._move(0, e.shiftKey?-1:1); }
+    else if (e.key === 'Escape') { self._hideInp(); }
+    else if (e.key === 'ArrowDown')  { self._commit(); self._move(1,  0); }
+    else if (e.key === 'ArrowUp')    { self._commit(); self._move(-1, 0); }
+    else if (e.key === 'ArrowRight' && inp.selectionEnd === inp.value.length) { self._commit(); self._move(0, 1); }
+    else if (e.key === 'ArrowLeft'  && inp.selectionStart === 0)              { self._commit(); self._move(0,-1); }
+  });
+
+  inp.addEventListener('input', function() {
+    var rv = document.getElementById('lg-rv-'+key);
+    if (rv) rv.value = inp.value;
   });
 
   // Paste no input → cola a partir da célula selecionada
@@ -161,17 +162,11 @@ LiteGrid.prototype._build = function() {
     e.preventDefault();
     var txt = e.clipboardData ? e.clipboardData.getData('text/plain') : '';
     if (!txt.trim()) return;
-    self._commitEdit(inp);
-    self._pasteFromCell(txt, self._selRow, self._selCol);
+    self._commit();
+    self._pasteAt(txt, self.selRow, self.selCol);
   });
 
-  // Atualiza barra de referência ao digitar
-  inp.addEventListener('input', function() {
-    var refVal = document.getElementById('lg-ref-val-'+self.key);
-    if (refVal) refVal.textContent = inp.value;
-  });
-
-  // Ctrl+V no container (fora do input) → cole do início
+  // Paste no container (sem célula selecionada) → cola do início
   this.container.setAttribute('tabindex','0');
   this.container.addEventListener('paste', function(e) {
     if (e.target === inp) return;
@@ -183,278 +178,192 @@ LiteGrid.prototype._build = function() {
   this._render();
 };
 
-// ── SELECIONA CÉLULA ──────────────────────────────────────────────────────────
-LiteGrid.prototype._selectCell = function(ri, ci, inp) {
+// ── SELEÇÃO ───────────────────────────────────────────────────────────────────
+LiteGrid.prototype._select = function(ri, ci, td) {
   var def = this.def;
-  // Limita aos bounds
-  var src = this.filtered || this.allData;
-  ri = Math.max(0, Math.min(ri, Math.max(src.length - 1, 0)));
-  ci = Math.max(0, Math.min(ci, def.cols.length - 1));
+  this.selRow = ri; this.selCol = ci;
 
-  this._selRow = ri;
-  this._selCol = ci;
+  // Remove seleção anterior
+  if (this._tbody) {
+    this._tbody.querySelectorAll('.lg-sel-cell').forEach(function(el){ el.classList.remove('lg-sel-cell'); });
+    this._tbody.querySelectorAll('.lg-sel-row').forEach(function(el){ el.classList.remove('lg-sel-row'); });
+  }
 
-  // Não edita colunas automáticas
+  if (td) {
+    td.classList.add('lg-sel-cell');
+    var tr = td.closest('tr');
+    if (tr) Array.from(tr.cells).forEach(function(c){ c.classList.add('lg-sel-row'); });
+  }
+
+  // Referência (A1, B3 etc.)
+  var col = ci < 26 ? String.fromCharCode(65+ci) : String.fromCharCode(64+Math.floor(ci/26))+String.fromCharCode(65+(ci%26));
+  var rc = document.getElementById('lg-rc-'+this.key);
+  if (rc) rc.textContent = col+(ri+1);
+
+  // Coluna automática → só mostra referência, não edita
   if (def.cols[ci] && def.cols[ci].auto) {
-    this._hideInput(inp || document.getElementById('lg-inp-'+this.key));
-    this._highlightCell(ri, ci);
+    if (this._inp) this._inp.style.display = 'none';
+    var rv = document.getElementById('lg-rv-'+this.key);
+    var src = this.filtered || this.allData;
+    if (rv) rv.value = (src[ri] && src[ri][ci] !== undefined) ? src[ri][ci] : '';
     return;
   }
 
-  // Referência (ex: "C5")
-  var label = String.fromCharCode(65 + ci) + (ri + 1);
-  var refEl = document.getElementById('lg-ref-label-'+this.key);
-  if (refEl) refEl.textContent = label;
-
-  // Valor atual da célula
-  var val = '';
-  if (src[ri] && src[ri][ci] !== undefined) val = src[ri][ci];
-  var refVal = document.getElementById('lg-ref-val-'+this.key);
-  if (refVal) refVal.textContent = val;
-
-  // Posiciona o input flutuante sobre a célula
-  var td = this._getTd(ri, ci);
-  if (!inp) inp = document.getElementById('lg-inp-'+this.key);
-
-  if (td && inp) {
-    var scroll = document.getElementById('lg-scroll-'+this.key);
-    var scrollRect = scroll ? scroll.getBoundingClientRect() : null;
-    var tdRect = td.getBoundingClientRect();
-    if (scrollRect) {
-      var top  = tdRect.top  - scrollRect.top  + scroll.scrollTop;
-      var left = tdRect.left - scrollRect.left + scroll.scrollLeft;
-      inp.style.top    = top  + 'px';
-      inp.style.left   = left + 'px';
-      inp.style.width  = tdRect.width  + 'px';
-      inp.style.height = tdRect.height + 'px';
-      inp.style.display = 'block';
-      inp.value = val;
-      inp.focus();
-      inp.select();
+  // Posiciona input flutuante sobre a célula
+  if (td && this._inp) {
+    var scEl = this._tbody.closest('.lg-scroll');
+    var sr   = scEl ? scEl.getBoundingClientRect() : null;
+    var tr2  = td.getBoundingClientRect();
+    if (sr) {
+      var top  = tr2.top  - sr.top  + scEl.scrollTop;
+      var left = tr2.left - sr.left + scEl.scrollLeft;
+      this._inp.style.cssText =
+        'display:block;position:absolute;top:'+top+'px;left:'+left+'px;'
+        +'width:'+(tr2.width)+'px;height:'+(tr2.height)+'px;'
+        +'background:#0a2060;border:2px solid #3b82f6;color:#fff;'
+        +'font:12px inherit;padding:0 6px;z-index:50;outline:none;box-sizing:border-box;';
     }
-    this._highlightCell(ri, ci);
+    var src = this.filtered || this.allData;
+    this._inp.value = (src[ri] && src[ri][ci] !== undefined) ? src[ri][ci] : '';
+    var rv = document.getElementById('lg-rv-'+this.key);
+    if (rv) rv.value = this._inp.value;
+    this._inp.focus(); this._inp.select();
   }
 };
 
-LiteGrid.prototype._getTd = function(ri, ci) {
-  var tbody = this.container.querySelector('.lg-body-'+this.key);
-  if (!tbody) return null;
-  var from = this.page * this.pageSize;
-  var rowIdx = ri - from;
-  var rows = tbody.querySelectorAll('tr');
-  if (rowIdx < 0 || rowIdx >= rows.length) return null;
-  var tds = rows[rowIdx].querySelectorAll('td');
-  return tds[ci + 1] || null; // +1 por causa do td de número
-};
-
-LiteGrid.prototype._highlightCell = function(ri, ci) {
-  var tbody = this.container.querySelector('.lg-body-'+this.key);
-  if (!tbody) return;
-  // Remove highlight anterior
-  tbody.querySelectorAll('.lg-cell-sel').forEach(function(el){ el.classList.remove('lg-cell-sel'); });
-  tbody.querySelectorAll('.lg-row-sel').forEach(function(el){ el.classList.remove('lg-row-sel'); });
-  var td = this._getTd(ri, ci);
-  if (td) {
-    td.classList.add('lg-cell-sel');
-    var tr = td.closest('tr');
-    if (tr) tr.classList.add('lg-row-sel');
-  }
-};
-
-LiteGrid.prototype._commitEdit = function(inp) {
-  if (!inp) return;
-  var ri = this._selRow;
-  var ci = this._selCol;
-  var val = inp.value;
-  var src = this.filtered || this.allData;
+LiteGrid.prototype._commit = function() {
+  if (this.selRow < 0 || this.selCol < 0 || !this._inp) return;
+  var val = this._inp.value;
+  var ri = this.selRow, ci = this.selCol;
   var ncols = this.def.cols.length;
-
-  // Garante linhas suficientes
   while (this.allData.length <= ri) {
-    var er = []; for(var j=0;j<ncols;j++) er.push('');
-    this.allData.push(er);
+    var er = []; for(var j=0;j<ncols;j++) er.push(''); this.allData.push(er);
   }
-  if (!this.allData[ri]) { this.allData[ri] = []; }
   while (this.allData[ri].length < ncols) this.allData[ri].push('');
   this.allData[ri][ci] = val;
-
-  FULL_DATA[this.key] = this.allData.filter(function(r){
-    return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; });
-  });
-
-  // Re-renderiza só se mudou
-  this._render();
+  FULL_DATA[this.key] = this.allData.filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null; }); });
+  this._renderRow(ri);
   this._updateStatus();
 };
 
-LiteGrid.prototype._hideInput = function(inp) {
-  if (inp) inp.style.display = 'none';
-  var tbody = this.container.querySelector('.lg-body-'+this.key);
-  if (tbody) {
-    tbody.querySelectorAll('.lg-cell-sel').forEach(function(el){ el.classList.remove('lg-cell-sel'); });
-    tbody.querySelectorAll('.lg-row-sel').forEach(function(el){ el.classList.remove('lg-row-sel'); });
+LiteGrid.prototype._renderRow = function(ri) {
+  // Atualiza só a linha editada sem re-renderizar tudo
+  if (!this._tbody) return;
+  var from = this.page * this.pageSize;
+  var rowIdx = ri - from;
+  var rows = this._tbody.querySelectorAll('tr');
+  if (rowIdx < 0 || rowIdx >= rows.length) return;
+  var tr = rows[rowIdx];
+  var r = this.allData[ri] || [];
+  var def = this.def;
+  var tds = tr.querySelectorAll('td');
+  for (var ci = 0; ci < def.cols.length; ci++) {
+    var td = tds[ci+1];
+    if (td) td.textContent = (r[ci] !== undefined && r[ci] !== null) ? r[ci] : '';
   }
 };
 
-// Cola a partir de uma célula específica (linha + coluna)
-LiteGrid.prototype._pasteFromCell = function(txt, startRow, startCol) {
+LiteGrid.prototype._move = function(dr, dc) {
+  var ri = this.selRow + dr;
+  var ci = this.selCol + dc;
+  var ncols = this.def.cols.length;
+  ri = Math.max(0, ri);
+  ci = Math.max(0, Math.min(ncols-1, ci));
+  // Vai para a página certa se necessário
+  var from = this.page * this.pageSize;
+  if (ri >= from + this.pageSize) { this.page++; this._render(); }
+  else if (ri < from) { this.page = Math.max(0, this.page-1); this._render(); }
+  var from2 = this.page * this.pageSize;
+  var rowIdx = ri - from2;
+  if (!this._tbody) return;
+  var rows = this._tbody.querySelectorAll('tr');
+  if (rowIdx < 0 || rowIdx >= rows.length) return;
+  var td = rows[rowIdx].querySelectorAll('td')[ci+1];
+  this._select(ri, ci, td);
+};
+
+LiteGrid.prototype._hideInp = function() {
+  if (this._inp) this._inp.style.display = 'none';
+  this.selRow = -1; this.selCol = -1;
+  if (this._tbody) {
+    this._tbody.querySelectorAll('.lg-sel-cell,.lg-sel-row').forEach(function(el){
+      el.classList.remove('lg-sel-cell','lg-sel-row');
+    });
+  }
+};
+
+// ── PASTE ─────────────────────────────────────────────────────────────────────
+LiteGrid.prototype._pasteAt = function(txt, startRow, startCol) {
+  if (startRow < 0) startRow = 0;
+  if (startCol < 0) startCol = 0;
   var ncols = this.def.cols.length;
   var lines = txt.split('\n').filter(function(l){ return l.trim(); });
-  // Remove cabeçalho
   if (lines.length > 1) {
     var kw = ['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE','GRUPO','COD'];
     var fc = lines[0].split('\t');
-    if (fc.some(function(c){ return kw.some(function(k){ return c.toUpperCase().indexOf(k)>=0; }); }))
-      lines.shift();
+    if (fc.some(function(c){ return kw.some(function(k){ return c.toUpperCase().indexOf(k)>=0; }); })) lines.shift();
   }
   while (this.allData.length < startRow + lines.length) {
-    var er = []; for(var j=0;j<ncols;j++) er.push('');
-    this.allData.push(er);
+    var er=[]; for(var j=0;j<ncols;j++) er.push(''); this.allData.push(er);
   }
   lines.forEach(function(line, li) {
     var ri = startRow + li;
     if (!this.allData[ri]) { this.allData[ri]=[]; }
     while (this.allData[ri].length < ncols) this.allData[ri].push('');
-    var cells = line.split('\t');
-    cells.forEach(function(v, ci) {
-      var dest = startCol + ci;
-      if (dest < ncols) this.allData[ri][dest] = v;
-    }.bind(this));
+    line.split('\t').forEach(function(v,ci){ var d=startCol+ci; if(d<ncols) this.allData[ri][d]=v; }.bind(this));
   }.bind(this));
-
-  FULL_DATA[this.key] = this.allData.filter(function(r){
-    return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; });
-  });
-  this.filtered = null;
-  this._render();
-  this._updateStatus();
-  // Seleciona célula final
-  var inp = document.getElementById('lg-inp-'+this.key);
-  this._selectCell(startRow + lines.length - 1, startCol, inp);
-};
-
-
-// Cola a partir de uma coluna específica para a direita (igual Excel)
-LiteGrid.prototype._pasteFromCol = function(txt, startCol) {
-  var ncols = this.def.cols.length;
-  var lines = txt.split('\n').filter(function(l){ return l.trim(); });
-
-  // Remove cabeçalho se detectado
-  if (lines.length > 1) {
-    var kw = ['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE','GRUPO','COD'];
-    var fc  = lines[0].split('\t');
-    if (fc.some(function(c){ return kw.some(function(k){ return c.toUpperCase().indexOf(k)>=0; }); }))
-      lines.shift();
-  }
-
-  // Garante linhas suficientes
-  while (this.allData.length < lines.length) {
-    var er = []; for(var j=0;j<ncols;j++) er.push('');
-    this.allData.push(er);
-  }
-
-  lines.forEach(function(line, ri) {
-    if (!this.allData[ri]) {
-      this.allData[ri] = [];
-      while (this.allData[ri].length < ncols) this.allData[ri].push('');
-    }
-    while (this.allData[ri].length < ncols) this.allData[ri].push('');
-
-    var cells = line.split('\t');
-    cells.forEach(function(v, ci) {
-      var dest = startCol + ci;
-      if (dest < ncols) this.allData[ri][dest] = v;
-    }.bind(this));
-  }.bind(this));
-
-  FULL_DATA[this.key] = this.allData.filter(function(r){
-    return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; });
-  });
-  this.filtered = null;
-  this.page = 0;
-  this._render();
-  this._updateStatus();
-
-  // Feedback
-  var colName = this.def.cols[startCol] ? this.def.cols[startCol].t : '';
-  var info = document.getElementById('jss-status-'+this.key);
-  if (info) {
-    info.textContent = '✓ '+lines.length.toLocaleString('pt-BR')+' linhas coladas a partir de "'+colName+'"';
-    info.className = 'jss-status-badge jss-status-ok';
-  }
+  FULL_DATA[this.key] = this.allData.filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null; }); });
+  this.filtered=null; this._render(); this._updateStatus();
 };
 
 LiteGrid.prototype._paste = function(txt) {
-  var lines = txt.split('\n').filter(function(l){ return l.trim(); });
   var ncols = this.def.cols.length;
-
-  // Remove cabeçalho se detectado
+  var lines = txt.split('\n').filter(function(l){ return l.trim(); });
   var start = 0;
-  if (lines.length > 0) {
-    var kw = ['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE','GRUPO','COD'];
-    var first = lines[0].split('\t');
-    if (first.some(function(c){ return kw.some(function(k){ return c.toUpperCase().indexOf(k)>=0; }); })) start = 1;
+  if (lines.length>0) {
+    var kw=['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE','GRUPO','COD'];
+    var fc=lines[0].split('\t');
+    if(fc.some(function(c){return kw.some(function(k){return c.toUpperCase().indexOf(k)>=0;});})) start=1;
   }
-
-  var data = [];
-  for (var i = start; i < lines.length; i++) {
-    var cells = lines[i].split('\t');
-    while (cells.length < ncols) cells.push('');
-    data.push(cells.slice(0, ncols));
+  var data=[];
+  for(var i=start;i<lines.length;i++){
+    var cells=lines[i].split('\t');
+    while(cells.length<ncols) cells.push('');
+    data.push(cells.slice(0,ncols));
   }
-
-  FULL_DATA[this.key] = data;
-  this.allData  = data;
-  this.filtered = null;
-  this.page     = 0;
-  this._render();
-  this._updateStatus();
+  FULL_DATA[this.key]=data; this.allData=data; this.filtered=null; this.page=0;
+  this._render(); this._updateStatus();
 };
 
 LiteGrid.prototype.getData = function() {
-  return this.allData.filter(function(r){
-    return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; });
-  });
+  return this.allData.filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null&&c!==undefined; }); });
 };
 
 LiteGrid.prototype.setData = function(data) {
-  this.allData = (data||[]).filter(function(r){
-    return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; });
-  });
-  this.filtered = null;
-  this.page = 0;
-  this._render();
-  this._updateStatus();
+  this.allData = (data||[]).filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null&&c!==undefined; }); });
+  this.filtered=null; this.page=0; this._render(); this._updateStatus();
 };
 
+// ── RENDER ────────────────────────────────────────────────────────────────────
 LiteGrid.prototype._render = function() {
   var src   = this.filtered !== null ? this.filtered : this.allData;
   var from  = this.page * this.pageSize;
-  var to    = Math.min(from + this.pageSize, src.length);
-  var rows  = src.slice(from, to);
+  var rows  = src.slice(from, from + this.pageSize);
   var def   = this.def;
   var html  = '';
+  var total = Math.max(rows.length, 30); // sempre mostra 30+ linhas
 
-  // Sempre mostra pelo menos 30 linhas (vazias ou com dados) — igual ao Excel
-  var minRows  = 30;
-  var totalVis = Math.max(rows.length, minRows);
-
-  for (var ri = 0; ri < totalVis; ri++) {
+  for (var ri = 0; ri < total; ri++) {
     var r = rows[ri] || [];
-    var isEmpty = !r.some(function(c){ return c !== '' && c !== null && c !== undefined; });
-    html += '<tr class="'+(isEmpty?'lg-tr-empty':'')+'">';
-    html += '<td class="lg-rn">'+(from+ri+1)+'</td>';
+    html += '<tr><td class="lg-rn">'+(from+ri+1)+'</td>';
     for (var ci = 0; ci < def.cols.length; ci++) {
-      var v = (r[ci] !== undefined && r[ci] !== null) ? r[ci] : '';
-      html += def.cols[ci].auto
-        ? '<td class="lg-auto">'+v+'</td>'
-        : '<td>'+v+'</td>';
+      var v = (r[ci]!==undefined&&r[ci]!==null) ? r[ci] : '';
+      html += def.cols[ci].auto ? '<td class="lg-auto">'+v+'</td>' : '<td>'+v+'</td>';
     }
     html += '</tr>';
   }
 
-  var tbody = this.container.querySelector('.lg-body-'+this.key);
-  if (tbody) tbody.innerHTML = html;
+  if (this._tbody) this._tbody.innerHTML = html;
   this._renderPag(src.length);
 };
 
@@ -462,239 +371,138 @@ LiteGrid.prototype._renderPag = function(total) {
   var el = document.getElementById('lg-pag-'+this.key);
   if (!el) return;
   if (total <= this.pageSize) { el.innerHTML=''; return; }
-  var pages = Math.ceil(total/this.pageSize);
-  var cur = this.page, key = this.key;
-  var html = '';
-  if (cur > 0) html += '<button class="lg-pb" onclick="lgGo(\''+key+'\',0)">«</button>'
-                     + '<button class="lg-pb" onclick="lgGo(\''+key+'\','+(cur-1)+')">‹ Anterior</button>';
-  html += '<span class="lg-pi">Pág '+(cur+1)+'/'+pages+' — '+total.toLocaleString('pt-BR')+' linhas</span>';
-  if (cur < pages-1) html += '<button class="lg-pb" onclick="lgGo(\''+key+'\','+(cur+1)+')">Próxima ›</button>'
-                           + '<button class="lg-pb" onclick="lgGo(\''+key+'\','+(pages-1)+')">»</button>';
-  el.innerHTML = html;
+  var pages = Math.ceil(total/this.pageSize), cur = this.page, key = this.key;
+  var h = '';
+  if(cur>0) h+='<button class="lg-pb" onclick="lgGo(\''+key+'\',0)">«</button><button class="lg-pb" onclick="lgGo(\''+key+'\','+(cur-1)+')">‹</button>';
+  h+='<span class="lg-pi">Pág '+(cur+1)+'/'+pages+' — '+total.toLocaleString('pt-BR')+' linhas</span>';
+  if(cur<pages-1) h+='<button class="lg-pb" onclick="lgGo(\''+key+'\','+(cur+1)+')">›</button><button class="lg-pb" onclick="lgGo(\''+key+'\','+(pages-1)+')">»</button>';
+  el.innerHTML = h;
 };
 
 LiteGrid.prototype._updateStatus = function() {
-  var el  = document.getElementById('jss-status-'+this.key);
+  var el = document.getElementById('jss-status-'+this.key);
   if (!el) return;
   var all = FULL_DATA[this.key] || this.allData;
-  if (all.length > 0) {
-    el.textContent = '✓ '+all.length.toLocaleString('pt-BR')+' linhas';
-    el.className   = 'jss-status-badge jss-status-ok';
-  } else {
-    el.textContent = 'Pronto';
-    el.className   = 'jss-status-badge';
-  }
+  if (all.length>0) { el.textContent='✓ '+all.length.toLocaleString('pt-BR')+' linhas'; el.className='jss-status-badge jss-status-ok'; }
+  else { el.textContent='Pronto'; el.className='jss-status-badge'; }
 };
 
 LiteGrid.prototype.applyFilter = function(filters) {
-  JSS_FILTERS[this.key] = filters;
-  var src = FULL_DATA[this.key] || this.allData;
-  var fks = Object.keys(filters);
-  this.filtered = fks.length === 0 ? null : src.filter(function(r) {
-    return fks.every(function(ci){ return String(r[parseInt(ci)]||'').trim() === filters[ci]; });
+  JSS_FILTERS[this.key]=filters;
+  var src=FULL_DATA[this.key]||this.allData, fks=Object.keys(filters);
+  this.filtered=fks.length===0?null:src.filter(function(r){ return fks.every(function(ci){ return String(r[parseInt(ci)]||'').trim()===filters[ci]; }); });
+  this.page=0; this._render();
+  var self=this;
+  this.container.querySelectorAll('.col-filter-btn').forEach(function(b){
+    var ci=parseInt(b.dataset.col); b.innerHTML=filters[ci]?'▾●':'▾'; b.style.color=filters[ci]?'#ffd24a':'';
   });
-  this.page = 0;
-  this._render();
-
-  // Indicadores visuais nos ícones
-  var self = this;
-  this.container.querySelectorAll('.col-filter-btn').forEach(function(b) {
-    var ci = parseInt(b.dataset.col);
-    b.innerHTML   = filters[ci] ? '▾●' : '▾';
-    b.style.color = filters[ci] ? '#ffd24a' : '';
-  });
-
-  var sEl = document.getElementById('jss-status-'+this.key);
-  if (sEl) {
-    var total = src.length;
-    var res   = this.filtered ? this.filtered.length : total;
-    sEl.textContent = fks.length>0 ? '🔽 '+res.toLocaleString('pt-BR')+' de '+total.toLocaleString('pt-BR') : '✓ '+total.toLocaleString('pt-BR')+' linhas';
-    sEl.className = 'jss-status-badge jss-status-ok';
-  }
+  var sEl=document.getElementById('jss-status-'+this.key);
+  if(sEl){ var tot=src.length,res=(this.filtered||this.allData).length,has=fks.length>0;
+    sEl.textContent=has?'🔽 '+res.toLocaleString('pt-BR')+' de '+tot.toLocaleString('pt-BR'):'✓ '+tot.toLocaleString('pt-BR')+' linhas';
+    sEl.className='jss-status-badge jss-status-ok'; }
 };
 
 // ── GLOBAIS ───────────────────────────────────────────────────────────────────
-function lgGo(key, page) {
-  if (GRIDS[key]) { GRIDS[key].page = page; GRIDS[key]._render(); }
+function lgGo(key,page){ if(GRIDS[key]){GRIDS[key].page=page;GRIDS[key]._render();} }
+
+function lgSortCol(key,ci,th){
+  var grd=GRIDS[key]; if(!grd) return;
+  var asc=th.dataset.asc!=='true'; th.dataset.asc=asc;
+  grd.allData.sort(function(a,b){ var va=String(a[ci]||''),vb=String(b[ci]||''),na=parseFloat(va),nb=parseFloat(vb); return(!isNaN(na)&&!isNaN(nb))?asc?na-nb:nb-na:asc?va.localeCompare(vb):vb.localeCompare(va); });
+  grd.filtered=null; grd.page=0; grd._render();
 }
 
-function lgSortCol(key, ci, th) {
-  var grd = GRIDS[key]; if (!grd) return;
-  var asc = th.dataset.asc !== 'true';
-  th.dataset.asc = asc;
-  grd.allData.sort(function(a,b){
-    var va=String(a[ci]||''), vb=String(b[ci]||'');
-    var na=parseFloat(va), nb=parseFloat(vb);
-    if (!isNaN(na)&&!isNaN(nb)) return asc?na-nb:nb-na;
-    return asc?va.localeCompare(vb):vb.localeCompare(va);
-  });
-  grd.filtered = null; grd.page = 0; grd._render();
-}
-
-function lgShowFilter(key, colIdx, anchor) {
-  document.querySelectorAll('.col-filter-dropdown').forEach(function(d){ d.remove(); });
-  var grd = GRIDS[key]; if (!grd) return;
-  var src = FULL_DATA[key] || grd.allData;
-  var seen = {}, vals = [];
-  src.forEach(function(r){ var v=String(r[colIdx]||'').trim(); if(v&&!seen[v]){seen[v]=1;vals.push(v);} });
-  vals.sort(function(a,b){ var na=parseFloat(a),nb=parseFloat(b); return (!isNaN(na)&&!isNaN(nb))?na-nb:a.localeCompare(b); });
-  vals = vals.slice(0, 500);
-
-  var ativo = (JSS_FILTERS[key]||{})[colIdx];
-  var label = (GRID_DEFS[key].cols[colIdx]||{}).t || ('Col '+(colIdx+1));
-  var rect  = anchor.getBoundingClientRect();
-  var drop  = document.createElement('div');
-  drop.className = 'col-filter-dropdown';
-  drop.style.cssText = 'position:fixed;top:'+(rect.bottom+4)+'px;left:'+Math.min(rect.left, window.innerWidth-260)+'px;z-index:9999';
-
-  var items = vals.map(function(v){
-    return '<label class="cfd-item'+(ativo===v?' cfd-active':'')+'">'
-      + '<input type="radio" name="lgf'+key+colIdx+'" value="'+v.replace(/"/g,'&quot;')+'"'+(ativo===v?' checked':'')+'>'
-      + '<span>'+v+'</span></label>';
-  }).join('');
-
-  drop.innerHTML = '<div class="cfd-header"><span>'+label+'</span>'
-    + '<button class="cfd-clear" onclick="lgClearFilter(\''+key+'\','+colIdx+')">✕ Limpar</button></div>'
-    + '<div class="cfd-list">'
-    + '<label class="cfd-item'+(!ativo?' cfd-active':'')+'"><input type="radio" name="lgf'+key+colIdx+'" value=""'+(!ativo?' checked':'')+'><span>(Todos)</span></label>'
-    + items + '</div>'
-    + '<div class="cfd-footer"><button class="cfd-apply" onclick="lgApplyFilter(\''+key+'\','+colIdx+',this)">Aplicar</button></div>';
-
+function lgShowFilter(key,colIdx,anchor){
+  document.querySelectorAll('.col-filter-dropdown').forEach(function(d){d.remove();});
+  var grd=GRIDS[key]; if(!grd) return;
+  var src=FULL_DATA[key]||grd.allData, seen={}, vals=[];
+  src.forEach(function(r){var v=String(r[colIdx]||'').trim();if(v&&!seen[v]){seen[v]=1;vals.push(v);}});
+  vals.sort(function(a,b){var na=parseFloat(a),nb=parseFloat(b);return(!isNaN(na)&&!isNaN(nb))?na-nb:a.localeCompare(b);});
+  vals=vals.slice(0,500);
+  var ativo=(JSS_FILTERS[key]||{})[colIdx], label=(GRID_DEFS[key].cols[colIdx]||{}).t||('Col '+(colIdx+1)), rect=anchor.getBoundingClientRect();
+  var drop=document.createElement('div'); drop.className='col-filter-dropdown';
+  drop.style.cssText='position:fixed;top:'+(rect.bottom+4)+'px;left:'+Math.min(rect.left,window.innerWidth-260)+'px;z-index:9999';
+  var items=vals.map(function(v){return '<label class="cfd-item'+(ativo===v?' cfd-active':'')+'"><input type="radio" name="lgf'+key+colIdx+'" value="'+v.replace(/"/g,'&quot;')+'"'+(ativo===v?' checked':'')+'><span>'+v+'</span></label>';}).join('');
+  drop.innerHTML='<div class="cfd-header"><span>'+label+'</span><button class="cfd-clear" onclick="lgClearFilter(\''+key+'\','+colIdx+')">✕ Limpar</button></div>'
+    +'<div class="cfd-list"><label class="cfd-item'+(!ativo?' cfd-active':'')+'"><input type="radio" name="lgf'+key+colIdx+'" value=""'+(!ativo?' checked':'')+'><span>(Todos)</span></label>'+items+'</div>'
+    +'<div class="cfd-footer"><button class="cfd-apply" onclick="lgApplyFilter(\''+key+'\','+colIdx+',this)">Aplicar</button></div>';
   document.body.appendChild(drop);
-  setTimeout(function(){
-    document.addEventListener('click', function cl(e){
-      if (!drop.contains(e.target)) { drop.remove(); document.removeEventListener('click', cl); }
-    });
-  }, 0);
+  setTimeout(function(){document.addEventListener('click',function cl(e){if(!drop.contains(e.target)){drop.remove();document.removeEventListener('click',cl);}});},0);
 }
 
-function lgApplyFilter(key, colIdx, btn) {
-  var drop = btn.closest('.col-filter-dropdown');
-  var sel  = drop.querySelector('input[name="lgf'+key+colIdx+'"]:checked');
-  var val  = sel ? sel.value : '';
-  if (!JSS_FILTERS[key]) JSS_FILTERS[key] = {};
-  if (val === '') delete JSS_FILTERS[key][colIdx]; else JSS_FILTERS[key][colIdx] = val;
-  if (GRIDS[key]) GRIDS[key].applyFilter(JSS_FILTERS[key]);
-  drop.remove();
+function lgApplyFilter(key,colIdx,btn){
+  var drop=btn.closest('.col-filter-dropdown'), sel=drop.querySelector('input[name="lgf'+key+colIdx+'"]:checked'), val=sel?sel.value:'';
+  if(!JSS_FILTERS[key]) JSS_FILTERS[key]={}; if(val==='') delete JSS_FILTERS[key][colIdx]; else JSS_FILTERS[key][colIdx]=val;
+  if(GRIDS[key]) GRIDS[key].applyFilter(JSS_FILTERS[key]); drop.remove();
 }
 
-function lgClearFilter(key, colIdx) {
-  if (JSS_FILTERS[key]) delete JSS_FILTERS[key][colIdx];
-  if (GRIDS[key]) GRIDS[key].applyFilter(JSS_FILTERS[key]||{});
-  document.querySelectorAll('.col-filter-dropdown').forEach(function(d){ d.remove(); });
+function lgClearFilter(key,colIdx){
+  if(JSS_FILTERS[key]) delete JSS_FILTERS[key][colIdx];
+  if(GRIDS[key]) GRIDS[key].applyFilter(JSS_FILTERS[key]||{});
+  document.querySelectorAll('.col-filter-dropdown').forEach(function(d){d.remove();});
 }
 
-function jssClearGrid(key) {
-  if (!GRIDS[key]) return;
-  if (!confirm('Limpar todos os dados desta aba?')) return;
-  GRIDS[key].allData = [];
-  GRIDS[key].filtered = null;
-  FULL_DATA[key] = [];
-  JSS_FILTERS[key] = {};
-  GRIDS[key].page = 0;
-  GRIDS[key]._render();
-  GRIDS[key]._updateStatus();
+function jssClearGrid(key){
+  if(!GRIDS[key]||!confirm('Limpar todos os dados desta aba?')) return;
+  GRIDS[key].allData=[];GRIDS[key].filtered=null;FULL_DATA[key]=[];JSS_FILTERS[key]={};
+  GRIDS[key].page=0;GRIDS[key]._render();GRIDS[key]._updateStatus();
 }
 
-// ── PROCESSAR RELATÓRIOS ──────────────────────────────────────────────────────
-function jssProcess() {
-  var statusEl = document.getElementById('jss-status-bd');
-  function setStatus(msg, ok) {
-    if (statusEl) { statusEl.textContent = msg; statusEl.className = 'jss-status-badge'+(ok?' jss-status-ok':''); }
-  }
-
-  var src = (FULL_DATA.bd && FULL_DATA.bd.length>0) ? FULL_DATA.bd
-          : (GRIDS.bd ? GRIDS.bd.getData() : []);
-  var rows = src.filter(function(r){ return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; }); });
-
-  if (!rows.length) {
-    alert('Sem dados no BD. Clique na grade do BD e cole os dados do Excel (Ctrl+V).');
-    return;
-  }
-
+// ── PROCESSAR ─────────────────────────────────────────────────────────────────
+function jssProcess(){
+  var statusEl=document.getElementById('jss-status-bd');
+  function setStatus(msg,ok){if(statusEl){statusEl.textContent=msg;statusEl.className='jss-status-badge'+(ok?' jss-status-ok':'');}}
+  var src=(FULL_DATA.bd&&FULL_DATA.bd.length>0)?FULL_DATA.bd:(GRIDS.bd?GRIDS.bd.getData():[]);
+  var rows=src.filter(function(r){return r&&r.some(function(c){return c!==''&&c!==null&&c!==undefined;});});
+  if(!rows.length){alert('Sem dados no BD. Cole os dados (Ctrl+V) e tente novamente.');return;}
   setStatus('⏳ Processando '+rows.length.toLocaleString('pt-BR')+' linhas...');
-
-  // Salva dados das outras abas para o autoFill
-  Object.keys(GRIDS).forEach(function(k) {
-    if (k === 'bd') return;
-    var s = (FULL_DATA[k] && FULL_DATA[k].length>0) ? FULL_DATA[k] : GRIDS[k].getData();
-    GRID_DATA_STORE[k] = s.filter(function(r){ return r && r.some(function(c){ return c!==''&&c!==null; }); });
+  Object.keys(GRIDS).forEach(function(k){
+    if(k==='bd') return;
+    var s=(FULL_DATA[k]&&FULL_DATA[k].length>0)?FULL_DATA[k]:GRIDS[k].getData();
+    GRID_DATA_STORE[k]=s.filter(function(r){return r&&r.some(function(c){return c!==''&&c!==null;});});
   });
-
-  BD_DATA.headers = GRID_DEFS.bd.cols.map(function(c){ return c.t; });
-  BD_DATA.rows    = rows;
-  BD_DATA.count   = rows.length;
-
-  setTimeout(function() {
-    try { bdMapColumns(); }    catch(e){ console.error('bdMapColumns', e); }
-    try { bdAutoFill(); }      catch(e){ console.error('bdAutoFill', e); }
-
-    // Atualiza grade do BD com colunas vermelhas preenchidas
-    if (GRIDS.bd && BD_DATA.rows.length > 0) {
-      GRIDS.bd.allData  = BD_DATA.rows;
-      GRIDS.bd.filtered = null;
-      GRIDS.bd.page     = 0;
-      GRIDS.bd._render();
-    }
-
-    try { bdUpdateAllTabs(); } catch(e){ console.error('bdUpdateAllTabs', e); }
-
-    setStatus('✓ '+rows.length.toLocaleString('pt-BR')+' linhas processadas — relatórios atualizados!', true);
-  }, 10);
+  BD_DATA.headers=GRID_DEFS.bd.cols.map(function(c){return c.t;});
+  BD_DATA.rows=rows; BD_DATA.count=rows.length;
+  setTimeout(function(){
+    try{bdMapColumns();}catch(e){console.error(e);}
+    try{bdAutoFill();}catch(e){console.error(e);}
+    if(GRIDS.bd){GRIDS.bd.allData=BD_DATA.rows;GRIDS.bd.filtered=null;GRIDS.bd.page=0;GRIDS.bd._render();}
+    try{bdUpdateAllTabs();}catch(e){console.error(e);}
+    setStatus('✓ '+rows.length.toLocaleString('pt-BR')+' linhas processadas — relatórios atualizados!',true);
+  },10);
 }
 
-
-
-// ── INICIALIZAÇÃO ─────────────────────────────────────────────────────────────
-function jssCreateGrid(key) {
-  var elId = key === 'bd' ? 'jss-container' : 'jss-container-'+key;
-  var el   = document.getElementById(elId);
-  if (!el || GRIDS[key]) return;
-  GRIDS[key] = new LiteGrid(el, key);
+// ── INIT ──────────────────────────────────────────────────────────────────────
+function jssCreateGrid(key){
+  var elId=key==='bd'?'jss-container':'jss-container-'+key;
+  var el=document.getElementById(elId);
+  if(!el||GRIDS[key]) return;
+  GRIDS[key]=new LiteGrid(el,key);
 }
 
-function jssEnsureInit() {
-  var ORDER = ['bd','marca','grupos','representantes','produto','clientes'];
-  ORDER.forEach(function(key, i){ setTimeout(function(){ jssCreateGrid(key); }, i*80); });
+function jssEnsureInit(){
+  ['bd','marca','grupos','representantes','produto','clientes'].forEach(function(key,i){
+    setTimeout(function(){jssCreateGrid(key);},i*80);
+  });
 }
 
-function jssInit() { jssCreateGrid('bd'); }
+function jssInit(){ jssCreateGrid('bd'); }
 
-var TAB_MAP = {
-  'av-tab-bd':'bd','av-tab-marca':'marca','av-tab-clientes':'clientes',
-  'av-tab-representantes':'representantes','av-tab-grupos':'grupos','av-tab-produto':'produto'
-};
-document.addEventListener('click', function(e) {
-  var tab = e.target.closest('.av-tab[data-target]');
-  if (!tab) return;
-  var key = TAB_MAP[tab.dataset.target];
-  if (key && !GRIDS[key]) setTimeout(function(){ jssCreateGrid(key); }, 80);
+var TAB_MAP={'av-tab-bd':'bd','av-tab-marca':'marca','av-tab-clientes':'clientes','av-tab-representantes':'representantes','av-tab-grupos':'grupos','av-tab-produto':'produto'};
+document.addEventListener('click',function(e){
+  var tab=e.target.closest('.av-tab[data-target]');
+  if(!tab) return;
+  var key=TAB_MAP[tab.dataset.target];
+  if(key&&!GRIDS[key]) setTimeout(function(){jssCreateGrid(key);},80);
 });
 
-// Botão Atualizar Clientes
-function bdgAtualizarClientes() {
-  try { bdUpdateClientes(); } catch(e){ console.error(e); }
-}
-
-// PRODUTO SERVIÇO → grupos/subgrupos para o LAUDO_GRUPO
-function jssGetProdutoGrupos() {
-  var src = (FULL_DATA.produto && FULL_DATA.produto.length>0) ? FULL_DATA.produto
-          : (GRID_DATA_STORE.produto || []);
-  var seenG = {}, seenS = {}, grupos = [], subgrupos = [];
-  src.forEach(function(r) {
-    var g = String(r[3]||'').trim(), s = String(r[4]||'').trim();
-    if (g && !seenG[g]) { seenG[g]=1; grupos.push(g); }
-    if (s && !seenS[s]) { seenS[s]=1; subgrupos.push(s); }
-  });
-  grupos.sort(); subgrupos.sort();
-  var seenT = {}, tipos = [];
-  if (typeof BD_DATA !== 'undefined' && BD_DATA.rows) {
-    BD_DATA.rows.forEach(function(r) {
-      var i = (typeof IDX !== 'undefined') ? IDX.mercado : -1;
-      var v = i >= 0 ? String(r[i]||'').trim() : '';
-      if (v && !seenT[v]) { seenT[v]=1; tipos.push(v); }
-    });
-  }
+function jssGetProdutoGrupos(){
+  var src=(FULL_DATA.produto&&FULL_DATA.produto.length>0)?FULL_DATA.produto:(GRID_DATA_STORE.produto||[]);
+  var seenG={},seenS={},grupos=[],subgrupos=[];
+  src.forEach(function(r){var g=String(r[3]||'').trim(),s=String(r[4]||'').trim();if(g&&!seenG[g]){seenG[g]=1;grupos.push(g);}if(s&&!seenS[s]){seenS[s]=1;subgrupos.push(s);}});
+  grupos.sort();subgrupos.sort();
+  var seenT={},tipos=[];
+  if(typeof BD_DATA!=='undefined'&&BD_DATA.rows) BD_DATA.rows.forEach(function(r){var i=typeof IDX!=='undefined'?IDX.mercado:-1;var v=i>=0?String(r[i]||'').trim():'';if(v&&!seenT[v]){seenT[v]=1;tipos.push(v);}});
   tipos.sort();
-  return { grupos: grupos, subgrupos: subgrupos, tipos: tipos };
+  return{grupos:grupos,subgrupos:subgrupos,tipos:tipos};
 }
