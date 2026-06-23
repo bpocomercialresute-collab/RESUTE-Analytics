@@ -428,25 +428,29 @@ LiteGrid.prototype.setData = function(data) {
 };
 
 LiteGrid.prototype._render = function() {
-  var src  = this.filtered !== null ? this.filtered : this.allData;
-  var from = this.page * this.pageSize;
-  var to   = Math.min(from + this.pageSize, src.length);
-  var rows = src.slice(from, to);
-  var def  = this.def;
-  var html = '';
+  var src   = this.filtered !== null ? this.filtered : this.allData;
+  var from  = this.page * this.pageSize;
+  var to    = Math.min(from + this.pageSize, src.length);
+  var rows  = src.slice(from, to);
+  var def   = this.def;
+  var html  = '';
 
-  if (rows.length === 0) {
-    html = '<tr><td colspan="'+(def.cols.length+1)+'" class="lg-empty">Clique aqui e cole os dados do Excel com Ctrl+V</td></tr>';
-  } else {
-    for (var ri = 0; ri < rows.length; ri++) {
-      var r = rows[ri];
-      html += '<tr><td class="lg-rn">'+(from+ri+1)+'</td>';
-      for (var ci = 0; ci < def.cols.length; ci++) {
-        var v = (r[ci] !== undefined && r[ci] !== null) ? r[ci] : '';
-        html += def.cols[ci].auto ? '<td class="lg-auto">'+v+'</td>' : '<td>'+v+'</td>';
-      }
-      html += '</tr>';
+  // Sempre mostra pelo menos 30 linhas (vazias ou com dados) — igual ao Excel
+  var minRows  = 30;
+  var totalVis = Math.max(rows.length, minRows);
+
+  for (var ri = 0; ri < totalVis; ri++) {
+    var r = rows[ri] || [];
+    var isEmpty = !r.some(function(c){ return c !== '' && c !== null && c !== undefined; });
+    html += '<tr class="'+(isEmpty?'lg-tr-empty':'')+'">';
+    html += '<td class="lg-rn">'+(from+ri+1)+'</td>';
+    for (var ci = 0; ci < def.cols.length; ci++) {
+      var v = (r[ci] !== undefined && r[ci] !== null) ? r[ci] : '';
+      html += def.cols[ci].auto
+        ? '<td class="lg-auto">'+v+'</td>'
+        : '<td>'+v+'</td>';
     }
+    html += '</tr>';
   }
 
   var tbody = this.container.querySelector('.lg-body-'+this.key);

@@ -473,3 +473,8 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 .lg-row-sel td { background: rgba(59,130,246,0.05) !important; }
 .lg-row-sel td.lg-auto { background: rgba(59,0,0,0.3) !important; }
 .lg-row-sel td.lg-rn { background: #0a0f1a !important; color: #60a5fa !important; font-weight: 700; }
+
+/* Linhas vazias — mais sutis que as com dados */
+.lg-tr-empty td { opacity: 0.4; }
+.lg-tr-empty:hover td { opacity: 1; background: var(--blue-50, #eff6ff) !important; }
+.lg-tr-empty td.lg-rn { opacity: 0.25; }
