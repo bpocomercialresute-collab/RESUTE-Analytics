@@ -1,9 +1,10 @@
 // =============================================================================
-// AUTH.JS — Login, sessão e sync via Vercel API (sem credenciais no browser)
+// AUTH.JS — Login, sessão e sync via Vercel API
+// Super Admin pode sincronizar qualquer empresa
 // =============================================================================
 
-// Sem mais credenciais aqui — tudo vai pelo backend /api/
-var SESSION = null;
+var SESSION   = null;
+var EMPRESAS  = []; // lista de empresas com API configurada
 
 function abrirAnaliseVendas() {
   var saved = localStorage.getItem('resute_session');
@@ -38,7 +39,6 @@ async function fazerLogin() {
   btn.innerHTML = '<span class="auth-spin">⟳</span> Entrando...';
 
   try {
-    // Chama a Vercel Function — sem credenciais no browser
     var r = await fetch('/api/login', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -62,9 +62,9 @@ async function fazerLogin() {
 
 function fazerLogout() {
   SESSION = null;
+  EMPRESAS = [];
   localStorage.removeItem('resute_session');
   if (typeof switchView === 'function') switchView('view-home');
-  // Esconde elementos de usuário
   ['sync-area','header-user','sidebar-user','nav-user-info'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -73,18 +73,17 @@ function fazerLogout() {
 
 function _abrirApp() {
   // Atualiza UI com dados do usuário
-  var ids = {
-    'user-nome':             SESSION.nome,
-    'user-empresa':          SESSION.empresa_nome,
-    'sidebar-user-nome':     SESSION.nome,
-    'sidebar-user-empresa':  SESSION.empresa_nome
+  var nomes = {
+    'user-nome':            SESSION.nome,
+    'user-empresa':         SESSION.empresa_nome,
+    'sidebar-user-nome':    SESSION.nome,
+    'sidebar-user-empresa': SESSION.empresa_nome
   };
-  Object.keys(ids).forEach(function(id){
+  Object.keys(nomes).forEach(function(id){
     var el = document.getElementById(id);
-    if (el) el.textContent = ids[id];
+    if (el) el.textContent = nomes[id];
   });
 
-  // Mostra elementos
   ['sync-area','header-user','sidebar-user'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.style.display = 'flex';
@@ -92,42 +91,112 @@ function _abrirApp() {
 
   if (typeof switchView === 'function') switchView('view-app');
 
-  // Carrega dados automaticamente
-  carregarDadosDoSupabase();
+  // Super admin: carrega lista de empresas com API
+  if (SESSION.papel === 'super_admin') {
+    _carregarEmpresasComAPI();
+  } else {
+    // Cliente: carrega direto os dados da própria empresa
+    carregarDadosDoSupabase(SESSION.empresa_id);
+  }
+}
+
+// ── CARREGA EMPRESAS COM API (super_admin) ────────────────────────────────────
+async function _carregarEmpresasComAPI() {
+  try {
+    var r = await fetch('/api/empresas', {
+      headers: { 'Authorization': 'Bearer ' + SESSION.token }
+    });
+    var d = await r.json();
+    EMPRESAS = d.empresas || [];
+
+    var sel = document.getElementById('sync-empresa-select');
+    if (!sel) return;
+
+    // Mostra o seletor para super_admin
+    sel.style.display = 'block';
+    sel.innerHTML = '<option value="">— Escolha a empresa —</option>';
+    EMPRESAS.forEach(function(e) {
+      var opt = document.createElement('option');
+      opt.value = e.empresa_id;
+      opt.textContent = e.nome + ' (' + e.sistema + ')';
+      sel.appendChild(opt);
+    });
+
+    // Ao selecionar empresa, carrega os dados dela
+    sel.addEventListener('change', function() {
+      if (sel.value) carregarDadosDoSupabase(sel.value);
+    });
+
+    // Se só tem 1 empresa, seleciona automaticamente
+    if (EMPRESAS.length === 1) {
+      sel.value = EMPRESAS[0].empresa_id;
+      carregarDadosDoSupabase(EMPRESAS[0].empresa_id);
+    }
+
+  } catch(e) {
+    console.error('Erro ao carregar empresas:', e);
+    // Fallback: carrega sem seletor
+    _setStatus('⚠ Erro ao carregar empresas: ' + e.message, 'erro');
+  }
 }
 
 // ── SINCRONIZAR API ───────────────────────────────────────────────────────────
 async function sincronizarAPI() {
-  if (!SESSION || !SESSION.empresa_id) {
-    alert('Nenhuma empresa vinculada à sua conta.');
+  // Define qual empresa sincronizar
+  var empresa_id = SESSION.empresa_id; // padrão: empresa do usuário
+
+  if (SESSION.papel === 'super_admin') {
+    var sel = document.getElementById('sync-empresa-select');
+    if (sel && sel.value) {
+      empresa_id = sel.value;
+    } else {
+      _setStatus('⚠ Selecione uma empresa para sincronizar.', '');
+      return;
+    }
+  }
+
+  if (!empresa_id) {
+    alert('Nenhuma empresa selecionada.');
     return;
   }
+
   var btn = document.getElementById('btn-sync');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="auth-spin">⟳</span> Sincronizando...'; }
-  _setStatus('⏳ Conectando à API...', '');
+
+  // Nome da empresa para o status
+  var nomeEmpresa = '';
+  if (SESSION.papel === 'super_admin') {
+    var sel = document.getElementById('sync-empresa-select');
+    nomeEmpresa = sel ? (sel.options[sel.selectedIndex]?.text || '') : '';
+  } else {
+    nomeEmpresa = SESSION.empresa_nome;
+  }
+
+  _setStatus('⏳ Conectando à API de ' + nomeEmpresa + '...', '');
 
   try {
-    // Busca última data sincronizada
-    var logR = await fetch('/api/sync-log?empresa_id=' + SESSION.empresa_id, {
+    // Verifica último sync
+    var logR = await fetch('/api/sync-log?empresa_id=' + empresa_id, {
       headers: { 'Authorization': 'Bearer ' + SESSION.token }
     });
     var logD = await logR.json();
     var ultima = logD.ultima_data
       ? new Date(logD.ultima_data).toLocaleDateString('pt-BR')
-      : 'nunca';
-    _setStatus('⏳ Último sync: ' + ultima + ' — buscando novos dados...', '');
+      : 'nunca sincronizado';
+    _setStatus('⏳ Último sync: ' + ultima + ' — buscando dados novos...', '');
 
-    // Chama sync via Vercel Function
+    // Dispara sync
     var r = await fetch('/api/sync', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ empresa_id: SESSION.empresa_id })
+      body:    JSON.stringify({ empresa_id: empresa_id })
     });
     var d = await r.json();
     if (!r.ok || d.erro) throw new Error(d.erro || 'Erro na sincronização.');
 
     _setStatus('✓ ' + (d.mensagem || d.novos + ' registros importados'), 'ok');
-    if (d.novos > 0) await carregarDadosDoSupabase();
+
+    if (d.novos > 0) await carregarDadosDoSupabase(empresa_id);
 
   } catch(e) {
     _setStatus('✗ ' + e.message, 'erro');
@@ -139,14 +208,13 @@ async function sincronizarAPI() {
   }
 }
 
-// ── CARREGA DADOS → BD_DATA → RELATÓRIOS ─────────────────────────────────────
-async function carregarDadosDoSupabase() {
-  if (!SESSION || !SESSION.empresa_id) return;
+// ── CARREGA DADOS DO SUPABASE → BD_DATA → RELATÓRIOS ─────────────────────────
+async function carregarDadosDoSupabase(empresa_id) {
+  if (!empresa_id) return;
   _setStatus('⏳ Carregando dados...', '');
 
   try {
-    // Chama via Vercel Function
-    var r = await fetch('/api/dados?empresa_id=' + SESSION.empresa_id, {
+    var r = await fetch('/api/dados?empresa_id=' + empresa_id, {
       headers: { 'Authorization': 'Bearer ' + SESSION.token }
     });
     var d = await r.json();
@@ -158,7 +226,6 @@ async function carregarDadosDoSupabase() {
       return;
     }
 
-    // Converte para array de arrays (formato BD_DATA)
     var rows = vendas.map(function(v) {
       return [
         v.id_externo||'', v.num_pedido||'', v.produto||'', String(v.qtd||''),
@@ -190,10 +257,10 @@ async function carregarDadosDoSupabase() {
       GRIDS.bd.page = 0; GRIDS.bd._render();
     }
 
-    _setStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' vendas — relatórios gerados!', 'ok');
+    _setStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' vendas carregadas!', 'ok');
 
   } catch(e) {
-    _setStatus('✗ Erro: ' + e.message, 'erro');
+    _setStatus('✗ ' + e.message, 'erro');
     console.error(e);
   }
 }

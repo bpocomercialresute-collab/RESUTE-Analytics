@@ -411,3 +411,18 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 
 /* ── Placeholder removido — nada mais necessário ── */
 .av-rel-placeholder { display: none !important; }
+
+/* ── Seletor de empresa no sync ── */
+.sync-empresa-select {
+  background: #0d1117;
+  border: 1px solid #1e3a5f;
+  border-radius: 7px;
+  color: #c8deff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  font-family: inherit;
+  cursor: pointer;
+  max-width: 200px;
+}
+.sync-empresa-select:focus { outline: none; border-color: #3b82f6; }
