@@ -347,48 +347,26 @@
           </div>
         </div>
 
-        <!-- RELATÓRIOS -->
+        <!-- RELAT PRODUTOS -->
         <div id="av-rel-area" style="display:none">
-          <button class="voltar-btn" onclick="avGoHome()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar
-          </button>
+          <div class="rel-area-header">
+            <button class="voltar-btn" onclick="avGoHome()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar
+            </button>
+            <div class="rel-area-title">Relatórios de Produtos</div>
+          </div>
           <div class="av-tabs-bar">
-            <button class="av-tab active" data-target="av-rel-laudo-grupo">LAUDO_GRUPO</button>
+            <button class="av-tab active" data-target="av-rel-venda-produto">VENDA POR PRODUTO</button>
+            <button class="av-tab" data-target="av-rel-laudo-grupo">LAUDO_GRUPO</button>
             <button class="av-tab" data-target="av-rel-laudo-ano">LAUDO_GRUPOS_ANO</button>
-            <button class="av-tab" data-target="av-rel-laudo-ano02">LAUDO_GRUPOS_ANO_01_ANO_02</button>
-            <button class="av-tab av-tab-highlight" data-target="av-rel-venda-produto">VENDA POR PRODUTO</button>
-            <button class="av-tab" data-target="av-rel-laudo-marca">LAUDO_GRUPO_MARCA</button>
+            <button class="av-tab" data-target="av-rel-laudo-ano02">ANO_01 × ANO_02</button>
+            <button class="av-tab" data-target="av-rel-laudo-marca">LAUDO_MARCA</button>
           </div>
-          <div id="av-rel-laudo-grupo" class="av-tab-pane active">
-            <div class="av-rel-placeholder">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
-              <p>LAUDO_GRUPO</p><span>Cole dados no BD → Processar → os dados aparecem aqui</span>
-            </div>
-          </div>
-          <div id="av-rel-laudo-ano" class="av-tab-pane">
-            <div class="av-rel-placeholder">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-              <p>LAUDO_GRUPOS_ANO</p><span>Cole dados no BD → Processar</span>
-            </div>
-          </div>
-          <div id="av-rel-laudo-ano02" class="av-tab-pane">
-            <div class="av-rel-placeholder">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-              <p>LAUDO_GRUPOS_ANO_01_ANO_02</p><span>Cole dados no BD → Processar</span>
-            </div>
-          </div>
-          <div id="av-rel-venda-produto" class="av-tab-pane">
-            <div class="av-rel-placeholder">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
-              <p>VENDA POR PRODUTO</p><span>Cole dados no BD → Processar</span>
-            </div>
-          </div>
-          <div id="av-rel-laudo-marca" class="av-tab-pane">
-            <div class="av-rel-placeholder">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-              <p>LAUDO_GRUPO_MARCA</p><span>Cole dados no BD → Processar</span>
-            </div>
-          </div>
+          <div id="av-rel-venda-produto" class="av-tab-pane active"></div>
+          <div id="av-rel-laudo-grupo" class="av-tab-pane"></div>
+          <div id="av-rel-laudo-ano" class="av-tab-pane"></div>
+          <div id="av-rel-laudo-ano02" class="av-tab-pane"></div>
+          <div id="av-rel-laudo-marca" class="av-tab-pane"></div>
         </div>
 
       </div>
