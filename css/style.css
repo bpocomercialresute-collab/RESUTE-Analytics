@@ -389,3 +389,25 @@ html, body { height: 100%; font-family: 'Inter', system-ui, sans-serif; backgrou
 
 /* Kbd */
 kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:2px 6px; font-size:11px; font-family:monospace; color:var(--text-muted); }
+
+/* ── Cabeçalho da área de relatórios ── */
+.rel-area-header {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+}
+.rel-area-title {
+  font-size: 18px; font-weight: 800; color: #e2e8f0;
+}
+
+/* ── Sem dados ── */
+.rel-sem-dados {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 12px; padding: 60px 20px;
+  text-align: center; color: #64748b;
+}
+.rel-sem-dados svg { stroke: #374151; }
+.rel-sem-dados p { font-size: 16px; font-weight: 700; color: #94a3b8; }
+.rel-sem-dados span { font-size: 13px; line-height: 1.6; max-width: 400px; }
+.rel-sem-dados b { color: #60a5fa; }
+
+/* ── Placeholder removido — nada mais necessário ── */
+.av-rel-placeholder { display: none !important; }
