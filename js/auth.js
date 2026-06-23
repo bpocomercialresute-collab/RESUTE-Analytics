@@ -1,21 +1,17 @@
 // =============================================================================
-// AUTH.JS — Login, sessão e sync via Vercel API
-// Super Admin pode sincronizar qualquer empresa
+// AUTH.JS — Login, sessão e sync
 // =============================================================================
 
-var SESSION   = null;
-var EMPRESAS  = []; // lista de empresas com API configurada
+const SUPA_URL  = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
+const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsZnpldmRzbW1kdnJ3aHBsemtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzU4NzMsImV4cCI6MjA5NzExMTg3M30.GEcGhBdW9whsdikO181Uvv2rpzXfvyntTHzPKots4bE';
+
+var SESSION  = null;
+var EMPRESAS = [];
 
 function abrirAnaliseVendas() {
   var saved = localStorage.getItem('resute_session');
-  if (saved) {
-    try { SESSION = JSON.parse(saved); } catch(e) { SESSION = null; }
-  }
-  if (SESSION && SESSION.token) {
-    _abrirApp();
-  } else {
-    _mostrarLogin();
-  }
+  if (saved) { try { SESSION = JSON.parse(saved); } catch(e) { SESSION = null; } }
+  if (SESSION && SESSION.token) { _abrirApp(); } else { _mostrarLogin(); }
 }
 
 function _mostrarLogin() {
@@ -39,15 +35,31 @@ async function fazerLogin() {
   btn.innerHTML = '<span class="auth-spin">⟳</span> Entrando...';
 
   try {
-    var r = await fetch('/api/login', {
+    // Autentica no Supabase
+    var r = await fetch(SUPA_URL + '/auth/v1/token?grant_type=password', {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ email, senha })
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
+      body:    JSON.stringify({ email: email, password: senha })
     });
     var d = await r.json();
-    if (!r.ok || d.erro) throw new Error(d.erro || 'Erro ao fazer login.');
+    if (!r.ok || !d.access_token) throw new Error('Email ou senha incorretos.');
 
-    SESSION = d;
+    // Busca dados do usuário
+    var uR = await fetch(SUPA_URL + '/rest/v1/usuarios?email=eq.' + encodeURIComponent(email) + '&select=*,empresas(id,nome,slug)', {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + d.access_token }
+    });
+    var users = await uR.json();
+    if (!users || !users.length) throw new Error('Usuário não encontrado no sistema.');
+
+    var u = users[0];
+    SESSION = {
+      token:        d.access_token,
+      nome:         u.nome,
+      email:        u.email,
+      papel:        u.papel,
+      empresa_id:   u.empresa_id || null,
+      empresa_nome: u.empresas ? u.empresas.nome : 'RESUTE'
+    };
     localStorage.setItem('resute_session', JSON.stringify(SESSION));
     fecharLogin();
     _abrirApp();
@@ -61,29 +73,25 @@ async function fazerLogin() {
 }
 
 function fazerLogout() {
-  SESSION = null;
-  EMPRESAS = [];
+  SESSION = null; EMPRESAS = [];
   localStorage.removeItem('resute_session');
   if (typeof switchView === 'function') switchView('view-home');
-  ['sync-area','header-user','sidebar-user','nav-user-info'].forEach(function(id){
+  ['sync-area','header-user','sidebar-user'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
 }
 
 function _abrirApp() {
-  // Atualiza UI com dados do usuário
-  var nomes = {
-    'user-nome':            SESSION.nome,
-    'user-empresa':         SESSION.empresa_nome,
-    'sidebar-user-nome':    SESSION.nome,
-    'sidebar-user-empresa': SESSION.empresa_nome
+  // Atualiza UI
+  var campos = {
+    'user-nome': SESSION.nome, 'user-empresa': SESSION.empresa_nome,
+    'sidebar-user-nome': SESSION.nome, 'sidebar-user-empresa': SESSION.empresa_nome
   };
-  Object.keys(nomes).forEach(function(id){
+  Object.keys(campos).forEach(function(id){
     var el = document.getElementById(id);
-    if (el) el.textContent = nomes[id];
+    if (el) el.textContent = campos[id];
   });
-
   ['sync-area','header-user','sidebar-user'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.style.display = 'flex';
@@ -91,11 +99,9 @@ function _abrirApp() {
 
   if (typeof switchView === 'function') switchView('view-app');
 
-  // Super admin: carrega lista de empresas com API
   if (SESSION.papel === 'super_admin') {
     _carregarEmpresasComAPI();
   } else {
-    // Cliente: carrega direto os dados da própria empresa
     carregarDadosDoSupabase(SESSION.empresa_id);
   }
 }
@@ -103,18 +109,27 @@ function _abrirApp() {
 // ── CARREGA EMPRESAS COM API (super_admin) ────────────────────────────────────
 async function _carregarEmpresasComAPI() {
   try {
-    var r = await fetch('/api/empresas', {
-      headers: { 'Authorization': 'Bearer ' + SESSION.token }
+    var r = await fetch(
+      SUPA_URL + '/rest/v1/api_config?select=empresa_id,sistema,api_url,empresas(nome,slug)&ativo=eq.true',
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SESSION.token } }
+    );
+    var data = await r.json();
+
+    EMPRESAS = (data || []).filter(function(d){ return d.empresas; }).map(function(d){
+      return { empresa_id: d.empresa_id, nome: d.empresas.nome, slug: d.empresas.slug, sistema: d.sistema, api_url: d.api_url };
     });
-    var d = await r.json();
-    EMPRESAS = d.empresas || [];
 
     var sel = document.getElementById('sync-empresa-select');
     if (!sel) return;
 
-    // Mostra o seletor para super_admin
+    if (EMPRESAS.length === 0) {
+      sel.style.display = 'none';
+      _setStatus('⚠ Nenhuma empresa com API configurada.', '');
+      return;
+    }
+
     sel.style.display = 'block';
-    sel.innerHTML = '<option value="">— Escolha a empresa —</option>';
+    sel.innerHTML = EMPRESAS.length > 1 ? '<option value="">— Selecione a empresa —</option>' : '';
     EMPRESAS.forEach(function(e) {
       var opt = document.createElement('option');
       opt.value = e.empresa_id;
@@ -122,81 +137,72 @@ async function _carregarEmpresasComAPI() {
       sel.appendChild(opt);
     });
 
-    // Ao selecionar empresa, carrega os dados dela
+    // Se só tem 1, seleciona e carrega automaticamente
+    if (EMPRESAS.length === 1) {
+      sel.value = EMPRESAS[0].empresa_id;
+      _setStatus('✓ ' + EMPRESAS[0].nome + ' pronta para sincronizar', 'ok');
+    }
+
     sel.addEventListener('change', function() {
       if (sel.value) carregarDadosDoSupabase(sel.value);
     });
 
-    // Se só tem 1 empresa, seleciona automaticamente
-    if (EMPRESAS.length === 1) {
-      sel.value = EMPRESAS[0].empresa_id;
-      carregarDadosDoSupabase(EMPRESAS[0].empresa_id);
-    }
-
   } catch(e) {
     console.error('Erro ao carregar empresas:', e);
-    // Fallback: carrega sem seletor
-    _setStatus('⚠ Erro ao carregar empresas: ' + e.message, 'erro');
+    _setStatus('✗ Erro: ' + e.message, 'erro');
   }
 }
 
 // ── SINCRONIZAR API ───────────────────────────────────────────────────────────
 async function sincronizarAPI() {
-  // Define qual empresa sincronizar
-  var empresa_id = SESSION.empresa_id; // padrão: empresa do usuário
+  var empresa_id = null;
 
   if (SESSION.papel === 'super_admin') {
     var sel = document.getElementById('sync-empresa-select');
-    if (sel && sel.value) {
-      empresa_id = sel.value;
-    } else {
-      _setStatus('⚠ Selecione uma empresa para sincronizar.', '');
-      return;
-    }
+    empresa_id = sel ? sel.value : null;
+    if (!empresa_id) { _setStatus('⚠ Selecione uma empresa para sincronizar.', ''); return; }
+  } else {
+    empresa_id = SESSION.empresa_id;
   }
 
-  if (!empresa_id) {
-    alert('Nenhuma empresa selecionada.');
-    return;
-  }
+  if (!empresa_id) { _setStatus('⚠ Nenhuma empresa encontrada.', ''); return; }
 
   var btn = document.getElementById('btn-sync');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="auth-spin">⟳</span> Sincronizando...'; }
 
-  // Nome da empresa para o status
-  var nomeEmpresa = '';
+  // Nome da empresa
+  var nomeEmp = SESSION.empresa_nome;
   if (SESSION.papel === 'super_admin') {
-    var sel = document.getElementById('sync-empresa-select');
-    nomeEmpresa = sel ? (sel.options[sel.selectedIndex]?.text || '') : '';
-  } else {
-    nomeEmpresa = SESSION.empresa_nome;
+    var emp = EMPRESAS.find(function(e){ return e.empresa_id === empresa_id; });
+    if (emp) nomeEmp = emp.nome;
   }
-
-  _setStatus('⏳ Conectando à API de ' + nomeEmpresa + '...', '');
 
   try {
     // Verifica último sync
-    var logR = await fetch('/api/sync-log?empresa_id=' + empresa_id, {
-      headers: { 'Authorization': 'Bearer ' + SESSION.token }
-    });
+    var logR = await fetch(
+      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + empresa_id + '&select=ultima_data,ultima_sync,status',
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SESSION.token } }
+    );
     var logD = await logR.json();
-    var ultima = logD.ultima_data
-      ? new Date(logD.ultima_data).toLocaleDateString('pt-BR')
+    var ultima = logD && logD[0] && logD[0].ultima_data
+      ? new Date(logD[0].ultima_data).toLocaleDateString('pt-BR')
       : 'nunca sincronizado';
-    _setStatus('⏳ Último sync: ' + ultima + ' — buscando dados novos...', '');
+    _setStatus('⏳ ' + nomeEmp + ' — último sync: ' + ultima, '');
 
-    // Dispara sync
-    var r = await fetch('/api/sync', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ empresa_id: empresa_id })
-    });
+    // Chama Edge Function do Supabase (já deployada e funcional)
+    var r = await fetch(
+      SUPA_URL + '/functions/v1/sync-visual-saef',
+      {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SESSION.token },
+        body:    JSON.stringify({ empresa_id: empresa_id })
+      }
+    );
     var d = await r.json();
     if (!r.ok || d.erro) throw new Error(d.erro || 'Erro na sincronização.');
 
     _setStatus('✓ ' + (d.mensagem || d.novos + ' registros importados'), 'ok');
-
-    if (d.novos > 0) await carregarDadosDoSupabase(empresa_id);
+    if ((d.novos || 0) > 0) await carregarDadosDoSupabase(empresa_id);
 
   } catch(e) {
     _setStatus('✗ ' + e.message, 'erro');
@@ -208,21 +214,20 @@ async function sincronizarAPI() {
   }
 }
 
-// ── CARREGA DADOS DO SUPABASE → BD_DATA → RELATÓRIOS ─────────────────────────
+// ── CARREGA DADOS SUPABASE → BD_DATA → RELATÓRIOS ────────────────────────────
 async function carregarDadosDoSupabase(empresa_id) {
   if (!empresa_id) return;
   _setStatus('⏳ Carregando dados...', '');
 
   try {
-    var r = await fetch('/api/dados?empresa_id=' + empresa_id, {
-      headers: { 'Authorization': 'Bearer ' + SESSION.token }
-    });
-    var d = await r.json();
-    if (!r.ok || d.erro) throw new Error(d.erro);
+    var r = await fetch(
+      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&select=*&order=dt_saida.asc&limit=50000',
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SESSION.token } }
+    );
+    var vendas = await r.json();
 
-    var vendas = d.vendas || [];
-    if (!vendas.length) {
-      _setStatus('⚠ Nenhuma venda no banco. Clique em Sincronizar.', '');
+    if (!Array.isArray(vendas) || !vendas.length) {
+      _setStatus('⚠ Sem dados. Clique em Sincronizar para buscar da API.', '');
       return;
     }
 
@@ -233,7 +238,7 @@ async function carregarDadosDoSupabase(empresa_id) {
         v.vendedor||'', v.industria||'', v.cliente||'',
         v.ano?String(v.ano):'', v.mes||'', v.grupo||'', v.semana||'',
         v.tipo_mercado||'', v.setor||'', v.cidade||'', v.uf||'',
-        v.tipo_vendedor||'', '', '', v.rota||'', v.desconto||'',
+        v.tipo_vendedor||'', '', '', '', '',
         v.empresa_nome||'', v.cnpj||'', v.grupo_produto||'', v.grupo_pai||'',
         v.subgrupo||'', v.marca||'', v.familia||'', v.classes||''
       ];
@@ -257,7 +262,7 @@ async function carregarDadosDoSupabase(empresa_id) {
       GRIDS.bd.page = 0; GRIDS.bd._render();
     }
 
-    _setStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' vendas carregadas!', 'ok');
+    _setStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' vendas carregadas — relatórios atualizados!', 'ok');
 
   } catch(e) {
     _setStatus('✗ ' + e.message, 'erro');
