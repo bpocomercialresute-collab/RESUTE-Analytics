@@ -83,7 +83,17 @@ LiteGrid.prototype._build = function() {
   var self = this;
   var def  = this.def;
 
-  var hdr = '<div class="lg-wrap"><div class="lg-scroll"><table class="lg-table"><thead><tr><th class="lg-rn">#</th>';
+  // Referência da célula ativa (linha e coluna)
+  this._selRow = 0;
+  this._selCol = 0;
+
+  var hdr = '<div class="lg-wrap" style="position:relative">'
+          + '<div class="lg-ref-bar" id="lg-ref-'+self.key+'">'
+          +   '<span class="lg-ref-cell" id="lg-ref-label-'+self.key+'">A1</span>'
+          +   '<span class="lg-ref-sep"></span>'
+          +   '<span class="lg-ref-val" id="lg-ref-val-'+self.key+'"></span>'
+          + '</div>'
+          + '<div class="lg-scroll" id="lg-scroll-'+self.key+'"><table class="lg-table" id="lg-tbl-'+self.key+'"><thead><tr><th class="lg-rn">#</th>';
   def.cols.forEach(function(c, i) {
     hdr += '<th class="'+(c.auto?'lg-auto':'')+'" style="width:'+c.w+'px;min-width:'+c.w+'px" '
          + 'onclick="lgSortCol(\''+self.key+'\','+i+',this)">'
@@ -93,21 +103,234 @@ LiteGrid.prototype._build = function() {
          + '</th>';
   });
   hdr += '</tr></thead><tbody class="lg-body-'+self.key+'"></tbody></table></div>'
-       + '<div class="lg-pag" id="lg-pag-'+self.key+'"></div></div>';
+       + '<div class="lg-pag" id="lg-pag-'+self.key+'"></div>'
+       // Input flutuante — fica em cima da célula selecionada
+       + '<input type="text" id="lg-inp-'+self.key+'" class="lg-float-input" autocomplete="off" spellcheck="false" />'
+       + '</div>';
 
   this.container.innerHTML = hdr;
 
-  // Paste simples: Ctrl+V em qualquer lugar da grade cola tudo
+  // Input flutuante
+  var inp = document.getElementById('lg-inp-'+self.key);
+
+  // Clique numa célula de dados → seleciona
+  var scroll = document.getElementById('lg-scroll-'+self.key);
+  scroll.addEventListener('mousedown', function(e) {
+    var td = e.target.closest('td');
+    if (!td) return;
+    var tr = td.closest('tr');
+    if (!tr || tr.closest('thead')) return;
+    var ci = Array.from(tr.children).indexOf(td) - 1; // -1 por causa do td#
+    if (ci < 0) return;
+    var ri = parseInt(tr.querySelector('.lg-rn').textContent) - 1;
+    if (isNaN(ri)) return;
+    e.preventDefault();
+    self._selectCell(ri, ci, inp);
+  });
+
+  // Teclado no input
+  inp.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      self._commitEdit(inp);
+      self._selectCell(self._selRow + 1, self._selCol, inp);
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      self._commitEdit(inp);
+      var nextCol = self._selCol + 1;
+      if (nextCol >= def.cols.length) { nextCol = 0; self._selRow++; }
+      self._selectCell(self._selRow, nextCol, inp);
+    } else if (e.key === 'Escape') {
+      self._hideInput(inp);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault(); self._commitEdit(inp);
+      self._selectCell(self._selRow + 1, self._selCol, inp);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault(); self._commitEdit(inp);
+      self._selectCell(Math.max(0, self._selRow - 1), self._selCol, inp);
+    } else if (e.key === 'ArrowRight' && inp.selectionEnd === inp.value.length) {
+      e.preventDefault(); self._commitEdit(inp);
+      self._selectCell(self._selRow, Math.min(def.cols.length-1, self._selCol+1), inp);
+    } else if (e.key === 'ArrowLeft' && inp.selectionStart === 0) {
+      e.preventDefault(); self._commitEdit(inp);
+      self._selectCell(self._selRow, Math.max(0, self._selCol-1), inp);
+    }
+  });
+
+  // Paste no input → cola a partir da célula selecionada
+  inp.addEventListener('paste', function(e) {
+    e.preventDefault();
+    var txt = e.clipboardData ? e.clipboardData.getData('text/plain') : '';
+    if (!txt.trim()) return;
+    self._commitEdit(inp);
+    self._pasteFromCell(txt, self._selRow, self._selCol);
+  });
+
+  // Atualiza barra de referência ao digitar
+  inp.addEventListener('input', function() {
+    var refVal = document.getElementById('lg-ref-val-'+self.key);
+    if (refVal) refVal.textContent = inp.value;
+  });
+
+  // Ctrl+V no container (fora do input) → cole do início
   this.container.setAttribute('tabindex','0');
   this.container.addEventListener('paste', function(e) {
+    if (e.target === inp) return;
     e.preventDefault();
     var txt = e.clipboardData ? e.clipboardData.getData('text/plain') : '';
     if (txt.trim()) self._paste(txt);
   });
-  // Clique na grade dá foco (para capturar Ctrl+V)
-  this.container.addEventListener('click', function() { self.container.focus(); });
 
   this._render();
+};
+
+// ── SELECIONA CÉLULA ──────────────────────────────────────────────────────────
+LiteGrid.prototype._selectCell = function(ri, ci, inp) {
+  var def = this.def;
+  // Limita aos bounds
+  var src = this.filtered || this.allData;
+  ri = Math.max(0, Math.min(ri, Math.max(src.length - 1, 0)));
+  ci = Math.max(0, Math.min(ci, def.cols.length - 1));
+
+  this._selRow = ri;
+  this._selCol = ci;
+
+  // Não edita colunas automáticas
+  if (def.cols[ci] && def.cols[ci].auto) {
+    this._hideInput(inp || document.getElementById('lg-inp-'+this.key));
+    this._highlightCell(ri, ci);
+    return;
+  }
+
+  // Referência (ex: "C5")
+  var label = String.fromCharCode(65 + ci) + (ri + 1);
+  var refEl = document.getElementById('lg-ref-label-'+this.key);
+  if (refEl) refEl.textContent = label;
+
+  // Valor atual da célula
+  var val = '';
+  if (src[ri] && src[ri][ci] !== undefined) val = src[ri][ci];
+  var refVal = document.getElementById('lg-ref-val-'+this.key);
+  if (refVal) refVal.textContent = val;
+
+  // Posiciona o input flutuante sobre a célula
+  var td = this._getTd(ri, ci);
+  if (!inp) inp = document.getElementById('lg-inp-'+this.key);
+
+  if (td && inp) {
+    var scroll = document.getElementById('lg-scroll-'+this.key);
+    var scrollRect = scroll ? scroll.getBoundingClientRect() : null;
+    var tdRect = td.getBoundingClientRect();
+    if (scrollRect) {
+      var top  = tdRect.top  - scrollRect.top  + scroll.scrollTop;
+      var left = tdRect.left - scrollRect.left + scroll.scrollLeft;
+      inp.style.top    = top  + 'px';
+      inp.style.left   = left + 'px';
+      inp.style.width  = tdRect.width  + 'px';
+      inp.style.height = tdRect.height + 'px';
+      inp.style.display = 'block';
+      inp.value = val;
+      inp.focus();
+      inp.select();
+    }
+    this._highlightCell(ri, ci);
+  }
+};
+
+LiteGrid.prototype._getTd = function(ri, ci) {
+  var tbody = this.container.querySelector('.lg-body-'+this.key);
+  if (!tbody) return null;
+  var from = this.page * this.pageSize;
+  var rowIdx = ri - from;
+  var rows = tbody.querySelectorAll('tr');
+  if (rowIdx < 0 || rowIdx >= rows.length) return null;
+  var tds = rows[rowIdx].querySelectorAll('td');
+  return tds[ci + 1] || null; // +1 por causa do td de número
+};
+
+LiteGrid.prototype._highlightCell = function(ri, ci) {
+  var tbody = this.container.querySelector('.lg-body-'+this.key);
+  if (!tbody) return;
+  // Remove highlight anterior
+  tbody.querySelectorAll('.lg-cell-sel').forEach(function(el){ el.classList.remove('lg-cell-sel'); });
+  tbody.querySelectorAll('.lg-row-sel').forEach(function(el){ el.classList.remove('lg-row-sel'); });
+  var td = this._getTd(ri, ci);
+  if (td) {
+    td.classList.add('lg-cell-sel');
+    var tr = td.closest('tr');
+    if (tr) tr.classList.add('lg-row-sel');
+  }
+};
+
+LiteGrid.prototype._commitEdit = function(inp) {
+  if (!inp) return;
+  var ri = this._selRow;
+  var ci = this._selCol;
+  var val = inp.value;
+  var src = this.filtered || this.allData;
+  var ncols = this.def.cols.length;
+
+  // Garante linhas suficientes
+  while (this.allData.length <= ri) {
+    var er = []; for(var j=0;j<ncols;j++) er.push('');
+    this.allData.push(er);
+  }
+  if (!this.allData[ri]) { this.allData[ri] = []; }
+  while (this.allData[ri].length < ncols) this.allData[ri].push('');
+  this.allData[ri][ci] = val;
+
+  FULL_DATA[this.key] = this.allData.filter(function(r){
+    return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; });
+  });
+
+  // Re-renderiza só se mudou
+  this._render();
+  this._updateStatus();
+};
+
+LiteGrid.prototype._hideInput = function(inp) {
+  if (inp) inp.style.display = 'none';
+  var tbody = this.container.querySelector('.lg-body-'+this.key);
+  if (tbody) {
+    tbody.querySelectorAll('.lg-cell-sel').forEach(function(el){ el.classList.remove('lg-cell-sel'); });
+    tbody.querySelectorAll('.lg-row-sel').forEach(function(el){ el.classList.remove('lg-row-sel'); });
+  }
+};
+
+// Cola a partir de uma célula específica (linha + coluna)
+LiteGrid.prototype._pasteFromCell = function(txt, startRow, startCol) {
+  var ncols = this.def.cols.length;
+  var lines = txt.split('\n').filter(function(l){ return l.trim(); });
+  // Remove cabeçalho
+  if (lines.length > 1) {
+    var kw = ['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE','GRUPO','COD'];
+    var fc = lines[0].split('\t');
+    if (fc.some(function(c){ return kw.some(function(k){ return c.toUpperCase().indexOf(k)>=0; }); }))
+      lines.shift();
+  }
+  while (this.allData.length < startRow + lines.length) {
+    var er = []; for(var j=0;j<ncols;j++) er.push('');
+    this.allData.push(er);
+  }
+  lines.forEach(function(line, li) {
+    var ri = startRow + li;
+    if (!this.allData[ri]) { this.allData[ri]=[]; }
+    while (this.allData[ri].length < ncols) this.allData[ri].push('');
+    var cells = line.split('\t');
+    cells.forEach(function(v, ci) {
+      var dest = startCol + ci;
+      if (dest < ncols) this.allData[ri][dest] = v;
+    }.bind(this));
+  }.bind(this));
+
+  FULL_DATA[this.key] = this.allData.filter(function(r){
+    return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; });
+  });
+  this.filtered = null;
+  this._render();
+  this._updateStatus();
+  // Seleciona célula final
+  var inp = document.getElementById('lg-inp-'+this.key);
+  this._selectCell(startRow + lines.length - 1, startCol, inp);
 };
 
 

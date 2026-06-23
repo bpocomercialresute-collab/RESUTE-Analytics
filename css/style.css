@@ -426,3 +426,50 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   max-width: 200px;
 }
 .sync-empresa-select:focus { outline: none; border-color: #3b82f6; }
+
+/* ── LiteGrid: seleção e edição de célula ────────────────── */
+.lg-ref-bar {
+  display: flex; align-items: center; gap: 0;
+  height: 28px; background: #0a0f1a;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0; font-size: 12px; font-family: inherit;
+}
+.lg-ref-cell {
+  min-width: 60px; padding: 0 10px;
+  font-weight: 800; color: #60a5fa;
+  border-right: 2px solid var(--border);
+  display: flex; align-items: center; height: 100%;
+  font-size: 12px; background: #060e20;
+}
+.lg-ref-sep { width: 1px; background: var(--border); height: 100%; }
+.lg-ref-val {
+  flex: 1; padding: 0 10px; color: #e2e8f0;
+  display: flex; align-items: center; height: 100%;
+  font-size: 12px; white-space: nowrap; overflow: hidden;
+}
+
+/* Input flutuante sobre a célula */
+.lg-float-input {
+  display: none;
+  position: absolute;
+  z-index: 100;
+  background: #0a2060;
+  border: 2px solid #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59,130,246,0.3);
+  color: #fff;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 0 6px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* Célula selecionada */
+.lg-cell-sel {
+  background: #0a2060 !important;
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
+}
+.lg-row-sel td { background: rgba(59,130,246,0.05) !important; }
+.lg-row-sel td.lg-auto { background: rgba(59,0,0,0.3) !important; }
+.lg-row-sel td.lg-rn { background: #0a0f1a !important; color: #60a5fa !important; font-weight: 700; }
