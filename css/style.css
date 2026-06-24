@@ -560,3 +560,14 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 .cli-sem-dados p { font-size: 18px; font-weight: 700; color: #64748b; }
 .cli-sem-dados span { font-size: 13px; line-height: 1.6; }
 .cli-sem-dados b { color: #60a5fa; }
+/* ── Interface Cliente ── */
+.cli-tab-btn {
+  padding: 10px 20px; border: none; background: none;
+  color: #475569; font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  transition: all 150ms;
+}
+.cli-tab-btn:hover { color: #94a3b8; }
+.cli-tab-btn.active { color: #60a5fa; border-bottom-color: #2563eb; }
+.cli-pane { padding: 24px; min-height: 200px; }
