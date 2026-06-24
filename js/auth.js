@@ -83,7 +83,7 @@ async function fazerLogin() {
 
 
 // ── CLIENTE — usa a mesma view-app mas sem acesso a BD/edição ─────────────────
-function _abrirComoCliente() {
+function _abrirDashCliente() {
   // Atualiza nome no header
   var campos = {
     'user-nome': SESSION.nome,
@@ -154,7 +154,7 @@ function fazerLogout() {
 function _abrirApp() {
   // Cliente ou admin → mesma interface, mas com permissões diferentes
   if (SESSION.papel === 'cliente') {
-    _abrirComoCliente();
+    _abrirDashCliente();
     return;
   }
 
