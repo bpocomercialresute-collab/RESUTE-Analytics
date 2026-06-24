@@ -1,75 +1,66 @@
 // =============================================================================
-// ACTIONS — Ações globais: limpar tudo e exportar CSV
+// ACTIONS — Ações globais: limpar tudo e exportar
 // =============================================================================
 
-/** Apaga todos os dados carregados e volta ao step 1 */
+/** Apaga todos os dados carregados nos Grids (Excel) e volta ao estado inicial */
 function limparTudo() {
-  state.produtos = { raw: [], headers: [], sample: [], fileName: '' };
-  state.pedidos  = { raw: [], headers: [], sample: [], fileName: '' };
-  state.mapping  = { pedidos: {}, produtos: {} };
-  state.explicitIgnored = { pedidos: new Set(), produtos: new Set() };
-  state.gridView = { pedidos: 'all', produtos: 'all' };
-  state.unified = [];
-  state.filtered = [];
-  state.activeFilters = {};
-  state.activeDimensions = [];
-
-  for (const k in graficos) {
-    if (graficos[k]) { try { graficos[k].destroy(); } catch(e) {} }
+  // 1. Limpa todos os LiteGrids do JSS (BD, Marca, Clientes, Representantes, Grupos, Produto)
+  if (typeof GRIDS !== 'undefined') {
+    Object.keys(GRIDS).forEach(key => {
+      if (GRIDS[key]) {
+        GRIDS[key].allData = [];
+        GRIDS[key].filtered = null;
+        if (typeof FULL_DATA !== 'undefined') FULL_DATA[key] = [];
+        if (typeof JSS_FILTERS !== 'undefined') JSS_FILTERS[key] = {};
+        GRIDS[key].page = 0;
+        GRIDS[key]._render();
+        GRIDS[key]._updateStatus();
+      }
+    });
   }
-  graficos = {};
 
-  ['fileProd', 'filePed'].forEach(id => $(id).value = '');
-  ['zoneProd', 'zonePed'].forEach(id => $(id).classList.remove('loaded'));
+  // 2. Destrói os gráficos antigos da memória
+  if (typeof graficos !== 'undefined') {
+    for (const k in graficos) {
+      if (graficos[k]) { try { graficos[k].destroy(); } catch(e) {} }
+    }
+    graficos = {};
+  }
 
-  $('lblProd').textContent = 'Clique ou arraste a planilha (.csv, .xlsx)';
-  $('lblProd').style.color = 'var(--text-tertiary)';
-  $('lblPed').textContent  = 'Clique ou arraste a planilha (.csv, .xlsx)';
-  $('lblPed').style.color  = 'var(--text-tertiary)';
-
-  $('tagProd').textContent = 'Opcional';    $('tagProd').className = 'tag-tiny opt';
-  $('tagPed').textContent  = 'Obrigatório'; $('tagPed').className  = 'tag-tiny req';
-
-  $('filterGrid').innerHTML  = '';
-  $('dashTabs').innerHTML    = '';
-  $('dashContent').innerHTML = '';
-
-  updateUploadButtons();
-  setStep(1);
-  toast('Tudo apagado', 'success');
+  // Volta para a tela inicial
+  if (typeof switchView === 'function') switchView('view-home');
+  toast('Todos os dados das planilhas foram limpos', 'success');
 }
 
-/** Exporta os dados filtrados como CSV */
+/** Exporta os dados do Grid do BD atual como CSV */
 function exportarCSV() {
-  if (!state.filtered.length) { toast('Não há dados para exportar', 'warn'); return; }
+  if (typeof GRIDS === 'undefined' || !GRIDS.bd || !GRIDS.bd.getData().length) {
+    toast('Não há dados no BD para exportar', 'warn');
+    return;
+  }
 
-  const rows = state.filtered.map(r => {
-    const base = {
-      Data:           fmtData(r.data),
-      Mes_Ano:        r.mesAno,
-      Pedido:         r.pedido,
-      SKU:            r.skuOriginal,
-      Produto:        r.produto,
-      Estampa:        r.estampa,
-      Cor:            r.cor,
-      Tamanho:        r.tamanho,
-      Status:         r.status,
-      Quantidade:     r.quantidade,
-      Valor_Unitario: r.valorUnitario,
-      Valor_Total:    r.valorTotal
-    };
-    getCustomCols('pedidos').forEach(h => {
-      base[h.replace(/[^\w]/g, '_')] = r[`custom::${h}`];
+  // Pega os dados do grid (respeitando filtros se houver)
+  const src = GRIDS.bd.filtered !== null ? GRIDS.bd.filtered : GRIDS.bd.getData();
+  if (!src.length) { toast('Nenhum dado visível para exportar', 'warn'); return; }
+
+  // Monta os cabeçalhos a partir do GRID_DEFS (motor do Excel)
+  const headers = GRID_DEFS.bd.cols.map(c => c.t);
+
+  // Constrói as linhas para o CSV
+  const rows = src.map(r => {
+    let obj = {};
+    headers.forEach((h, i) => {
+      obj[h] = r[i] || '';
     });
-    if (state.produtos.raw.length) base.Origem = r.match;
-    return base;
+    return obj;
   });
 
+  // Usa PapaParse para gerar o arquivo CSV limpo
   const csv  = Papa.unparse(rows, { delimiter: ';' });
   const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href     = URL.createObjectURL(blob);
-  link.download = 'resute_relatorio.csv';
+  link.download = 'resute_dados_bd.csv';
   link.click();
-  toast('CSV exportado', 'success');
+  toast('Planilha exportada com sucesso', 'success');
 }
