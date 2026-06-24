@@ -1,5 +1,5 @@
 // =============================================================================
-// AUTH.JS — Login, sessão e sync
+// AUTH.JS — Login, sessão, sync API e salvar dados manuais
 // =============================================================================
 
 const SUPA_URL = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
@@ -8,6 +8,17 @@ const SVC_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 
 var SESSION  = null;
 var EMPRESAS = [];
+
+// Limpa sessão antiga
+(function() {
+  var saved = localStorage.getItem('resute_session');
+  if (saved) {
+    try {
+      var s = JSON.parse(saved);
+      if (!s.papel) { localStorage.removeItem('resute_session'); }
+    } catch(e) { localStorage.removeItem('resute_session'); }
+  }
+})();
 
 function abrirAnaliseVendas() {
   var saved = localStorage.getItem('resute_session');
@@ -36,25 +47,19 @@ async function fazerLogin() {
   btn.innerHTML = '<span class="auth-spin">⟳</span> Entrando...';
 
   try {
-    // 1. Autentica no Supabase Auth
     var r = await fetch(SUPA_URL + '/auth/v1/token?grant_type=password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
       body: JSON.stringify({ email: email, password: senha })
     });
     var d = await r.json();
-    if (!r.ok || !d.access_token) {
-      throw new Error(d.error_description || d.message || 'Email ou senha incorretos.');
-    }
+    if (!r.ok || !d.access_token) throw new Error(d.error_description || 'Email ou senha incorretos.');
 
-    // 2. Busca dados do usuário na tabela usuarios
     var uR = await fetch(
       SUPA_URL + '/rest/v1/usuarios?email=eq.' + encodeURIComponent(email) + '&select=*',
       { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + d.access_token } }
     );
     var users = await uR.json();
-
-    // Se não achou na tabela usuarios, usa dados básicos do Auth
     var u = (users && users.length) ? users[0] : { nome: email, papel: 'cliente', empresa_id: null };
 
     SESSION = {
@@ -100,74 +105,100 @@ function _abrirApp() {
     var el = document.getElementById(id); if (el) el.style.display = 'flex';
   });
   if (typeof switchView === 'function') switchView('view-app');
+
+  // Aplica permissões: cliente não vê BD, só relatórios
+  _aplicarPermissoes();
+
   _carregarEmpresasComAPI();
+}
+
+// ── PERMISSÕES — Cliente vê só relatórios ────────────────────────────────────
+function _aplicarPermissoes() {
+  if (!SESSION) return;
+  var ehCliente = SESSION.papel === 'cliente';
+
+  // Esconde botão "BD & CADASTROS" para clientes
+  var btnsBd = document.querySelectorAll('[onclick="avShowBD()"]');
+  btnsBd.forEach(function(b){ b.style.display = ehCliente ? 'none' : ''; });
+
+  // Esconde botão "Processar" (manual) para clientes
+  var btnsProc = document.querySelectorAll('[onclick="jssProcess()"]');
+  btnsProc.forEach(function(b){ b.style.display = ehCliente ? 'none' : ''; });
+
+  // Esconde botão "Colar por Coluna" para clientes
+  var btnsCol = document.querySelectorAll('[onclick^="lgOpenColModal"]');
+  btnsCol.forEach(function(b){ b.style.display = ehCliente ? 'none' : ''; });
+
+  // Esconde botão "Limpar" do BD
+  var btnsClear = document.querySelectorAll('[onclick^="jssClearGrid"]');
+  btnsClear.forEach(function(b){ b.style.display = ehCliente ? 'none' : ''; });
+
+  // Esconde área de BD se cliente acidentalmente entrar
+  if (ehCliente) {
+    var bdArea = document.getElementById('av-bd-area');
+    if (bdArea) bdArea.style.display = 'none';
+  }
 }
 
 // ── CARREGA EMPRESAS COM API ─────────────────────────────────────────────────
 async function _carregarEmpresasComAPI() {
   _setStatus('⏳ Carregando empresas...', '');
   try {
-    // Query 1: todas as empresas
     var eR = await fetch(SUPA_URL + '/rest/v1/empresas?select=id,nome,slug&ativo=eq.true', {
       headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
     });
     var empresas = await eR.json();
-    console.log('Empresas:', empresas);
 
-    // Query 2: api_config com api_key preenchida
     var aR = await fetch(SUPA_URL + '/rest/v1/api_config?select=empresa_id,sistema,api_url&ativo=eq.true', {
       headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
     });
     var apiConfigs = await aR.json();
-    console.log('API Configs:', apiConfigs);
 
-    // Junta as duas listas
     EMPRESAS = (empresas || []).map(function(emp) {
       var api = (apiConfigs || []).find(function(a){ return a.empresa_id === emp.id; });
       if (!api) return null;
       return { empresa_id: emp.id, nome: emp.nome, slug: emp.slug, sistema: api.sistema || 'api' };
     }).filter(Boolean);
 
-    console.log('EMPRESAS com API:', EMPRESAS);
-
-    var sel = document.getElementById('sync-empresa-select');
-
-    // Se super_admin: mostra dropdown com todas as empresas
-    // Se cliente: usa só a empresa dele
+    // Cliente: filtra só a empresa dele
     var lista = EMPRESAS;
     if (SESSION.papel !== 'super_admin' && SESSION.empresa_id) {
       lista = EMPRESAS.filter(function(e){ return e.empresa_id === SESSION.empresa_id; });
     }
 
+    var sel = document.getElementById('sync-empresa-select');
+
     if (!lista.length) {
-      if (sel) sel.style.display = 'none';
-      _setStatus('⚠ Nenhuma empresa com API configurada.', '');
-      return;
+      // Fallback Varremaster (super_admin)
+      if (SESSION.papel === 'super_admin') {
+        lista = [{ empresa_id: 'af3b599b-65c5-4868-b8bf-a5934da84f0d', nome: 'Varremaster', slug: 'varremaster', sistema: 'visual_saef' }];
+        EMPRESAS = lista;
+      } else {
+        if (sel) sel.style.display = 'none';
+        _setStatus('⚠ Sem empresa com API configurada.', '');
+        return;
+      }
     }
 
     if (sel) {
       if (lista.length === 1) {
-        // Só uma empresa: esconde dropdown, usa ela
         sel.style.display = 'none';
-        sel.innerHTML = '<option value="' + lista[0].empresa_id + '">' + lista[0].nome + '</option>';
+        sel.innerHTML = '<option value="'+lista[0].empresa_id+'">'+lista[0].nome+'</option>';
         sel.value = lista[0].empresa_id;
-        _setStatus('✓ ' + lista[0].nome + ' — clique Sincronizar para buscar dados.', 'ok');
-        // Carrega dados já existentes
+        _setStatus('✓ ' + lista[0].nome + ' — clique Sincronizar', 'ok');
         await carregarDadosDoSupabase(lista[0].empresa_id);
       } else {
-        // Múltiplas: mostra dropdown
         sel.style.display = 'block';
         sel.innerHTML = '<option value="">— Selecione a empresa —</option>';
         lista.forEach(function(e) {
-          sel.innerHTML += '<option value="' + e.empresa_id + '">' + e.nome + ' (' + e.sistema + ')</option>';
+          sel.innerHTML += '<option value="'+e.empresa_id+'">'+e.nome+'</option>';
         });
         sel.onchange = function() { if (sel.value) carregarDadosDoSupabase(sel.value); };
-        _setStatus('Selecione uma empresa.', '');
       }
     }
   } catch(e) {
-    console.error('Erro _carregarEmpresasComAPI:', e);
-    _setStatus('✗ Erro ao carregar empresas: ' + e.message, 'erro');
+    console.error(e);
+    _setStatus('✗ ' + e.message, 'erro');
   }
 }
 
@@ -175,54 +206,39 @@ async function _carregarEmpresasComAPI() {
 async function sincronizarAPI() {
   var empresa_id = null;
   var sel = document.getElementById('sync-empresa-select');
+  if (sel && sel.value) empresa_id = sel.value;
+  else if (SESSION.empresa_id) empresa_id = SESSION.empresa_id;
+  else if (EMPRESAS.length === 1) empresa_id = EMPRESAS[0].empresa_id;
 
-  if (sel && sel.value) {
-    empresa_id = sel.value;
-  } else if (SESSION.empresa_id) {
-    empresa_id = SESSION.empresa_id;
-  } else if (EMPRESAS.length === 1) {
-    empresa_id = EMPRESAS[0].empresa_id;
-  }
-
-  if (!empresa_id) {
-    _setStatus('⚠ Selecione uma empresa antes de sincronizar.', '');
-    return;
-  }
+  if (!empresa_id) { _setStatus('⚠ Selecione uma empresa.', ''); return; }
 
   var emp = EMPRESAS.find(function(e){ return e.empresa_id === empresa_id; }) || { nome: 'Empresa' };
   var btn = document.getElementById('btn-sync');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="auth-spin">⟳</span> Sincronizando...'; }
 
   try {
-    // Verifica último sync
     var logR = await fetch(
-      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + empresa_id + '&select=ultima_data,status',
+      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + empresa_id + '&select=ultima_data',
       { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
     );
     var logD = await logR.json();
     var ultima = (logD && logD[0] && logD[0].ultima_data)
-      ? new Date(logD[0].ultima_data).toLocaleDateString('pt-BR')
-      : 'nunca';
+      ? new Date(logD[0].ultima_data).toLocaleDateString('pt-BR') : 'nunca';
+    _setStatus('⏳ ' + emp.nome + ' — último sync: ' + ultima, '');
 
-    _setStatus('⏳ ' + emp.nome + ' — último sync: ' + ultima + '. Buscando dados novos...', '');
-
-    // Chama Edge Function
     var r = await fetch(SUPA_URL + '/functions/v1/sync-visual-saef', {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SVC_KEY },
-      body:    JSON.stringify({ empresa_id: empresa_id })
+      body: JSON.stringify({ empresa_id: empresa_id })
     });
     var d = await r.json();
-    console.log('Sync result:', d);
-
     if (!r.ok || d.erro) throw new Error(d.erro || 'Erro na sincronização.');
 
     _setStatus('✓ ' + (d.mensagem || d.novos + ' registros importados'), 'ok');
     if ((d.novos || 0) > 0) await carregarDadosDoSupabase(empresa_id);
-    else _setStatus('✓ Dados já atualizados. ' + (d.mensagem || ''), 'ok');
 
   } catch(e) {
-    console.error('Sync erro:', e);
+    console.error(e);
     _setStatus('✗ ' + e.message, 'erro');
   } finally {
     if (btn) {
@@ -235,17 +251,15 @@ async function sincronizarAPI() {
 // ── CARREGA DADOS → BD_DATA → RELATÓRIOS ─────────────────────────────────────
 async function carregarDadosDoSupabase(empresa_id) {
   if (!empresa_id) return;
-  _setStatus('⏳ Carregando dados do banco...', '');
+  _setStatus('⏳ Carregando dados...', '');
   try {
     var r = await fetch(
       SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&select=*&order=dt_saida.asc&limit=50000',
       { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
     );
     var vendas = await r.json();
-    console.log('Vendas carregadas:', Array.isArray(vendas) ? vendas.length : vendas);
-
     if (!Array.isArray(vendas) || !vendas.length) {
-      _setStatus('⚠ Sem vendas no banco. Clique em Sincronizar.', '');
+      _setStatus('⚠ Sem dados no banco. Clique Sincronizar.', '');
       return;
     }
 
@@ -267,24 +281,93 @@ async function carregarDadosDoSupabase(empresa_id) {
       'tipo mercado','SETOR','CIDADE','UF','TIPO VENDEDOR','Dias Sem Compra',
       'NOTA F','ROTA','DESCONTO','EMPRESA','cnpj','grupo_produto','GRUPO PAI',
       'subgrupo_produto','marca','familia_produto','classes'];
-    BD_DATA.rows  = rows;
-    BD_DATA.count = rows.length;
+    BD_DATA.rows = rows; BD_DATA.count = rows.length;
     if (typeof FULL_DATA !== 'undefined') FULL_DATA.bd = rows;
 
-    try { bdMapColumns(); }    catch(e){ console.error('bdMapColumns:', e); }
-    try { bdAutoFill(); }      catch(e){ console.error('bdAutoFill:', e); }
-    try { bdUpdateAllTabs(); } catch(e){ console.error('bdUpdateAllTabs:', e); }
+    try { bdMapColumns(); }    catch(e){ console.error(e); }
+    try { bdAutoFill(); }      catch(e){ console.error(e); }
+    try { bdUpdateAllTabs(); } catch(e){ console.error(e); }
 
     if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
       GRIDS.bd.allData = rows; GRIDS.bd.filtered = null;
       GRIDS.bd.page = 0; GRIDS.bd._render();
     }
 
-    _setStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' vendas carregadas — relatórios gerados!', 'ok');
-
+    _setStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' vendas carregadas!', 'ok');
   } catch(e) {
-    console.error('carregarDados erro:', e);
+    console.error(e);
     _setStatus('✗ ' + e.message, 'erro');
+  }
+}
+
+// ── SALVAR DADOS MANUAIS NO SUPABASE ─────────────────────────────────────────
+async function salvarDadosManuaisNoSupabase() {
+  if (!SESSION || SESSION.papel !== 'super_admin') {
+    alert('Apenas super_admin pode salvar dados manualmente.');
+    return;
+  }
+  var sel = document.getElementById('sync-empresa-select');
+  var empresa_id = (sel && sel.value) || (EMPRESAS[0] && EMPRESAS[0].empresa_id);
+  if (!empresa_id) { alert('Selecione uma empresa.'); return; }
+
+  var rows = (typeof FULL_DATA !== 'undefined' && FULL_DATA.bd) ? FULL_DATA.bd : [];
+  rows = rows.filter(function(r){ return r && r.some(function(c){ return c!==''&&c!==null; }); });
+  if (!rows.length) { alert('Sem dados para salvar. Cole no BD primeiro.'); return; }
+
+  _setStatus('⏳ Salvando ' + rows.length + ' linhas no Supabase...', '');
+
+  // Converte rows → registros do Supabase
+  var registros = rows.map(function(r) {
+    return {
+      empresa_id:    empresa_id,
+      id_externo:    'manual_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+      num_pedido:    r[1] || null,
+      produto:       r[2] || null,
+      qtd:           parseFloat(r[3]) || null,
+      dt_emissao:    r[4] || null,
+      dt_saida:      r[5] || null,
+      valor:         parseFloat(String(r[6]).replace(',','.')) || null,
+      vendedor:      r[7] || null,
+      industria:     r[8] || null,
+      cliente:       r[9] || null,
+      ano:           parseInt(r[10]) || null,
+      mes:           r[11] || null,
+      grupo:         r[12] || null,
+      cidade:        r[16] || null,
+      uf:            r[17] || null,
+      empresa_nome:  r[23] || null,
+      cnpj:          r[24] || null,
+      marca:         r[28] || null
+    };
+  });
+
+  try {
+    // Upload em lotes de 500
+    var lote = 500;
+    for (var i = 0; i < registros.length; i += lote) {
+      var batch = registros.slice(i, i + lote);
+      var r = await fetch(SUPA_URL + '/rest/v1/vendas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPA_KEY,
+          'Authorization': 'Bearer ' + SVC_KEY,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(batch)
+      });
+      if (!r.ok) {
+        var err = await r.text();
+        throw new Error('Erro ao salvar: ' + err.slice(0, 200));
+      }
+      _setStatus('⏳ ' + Math.min(i + lote, registros.length) + '/' + registros.length + ' salvos...', '');
+    }
+    _setStatus('✓ ' + registros.length + ' linhas salvas no banco!', 'ok');
+    alert('✅ Dados salvos com sucesso!\n\n' + registros.length + ' linhas no Supabase.\nTodos os usuários da empresa verão essas atualizações.');
+  } catch(e) {
+    console.error(e);
+    _setStatus('✗ ' + e.message, 'erro');
+    alert('❌ Erro ao salvar: ' + e.message);
   }
 }
 

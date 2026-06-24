@@ -427,54 +427,45 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 }
 .sync-empresa-select:focus { outline: none; border-color: #3b82f6; }
 
-/* ── LiteGrid: seleção e edição de célula ────────────────── */
+
+/* ── LiteGrid: ref bar, seleção e edição ── */
 .lg-ref-bar {
-  display: flex; align-items: center; gap: 0;
-  height: 28px; background: #0a0f1a;
+  display: flex; align-items: center;
+  height: 26px; background: #060e20;
   border-bottom: 1px solid var(--border);
-  flex-shrink: 0; font-size: 12px; font-family: inherit;
+  flex-shrink: 0;
 }
 .lg-ref-cell {
-  min-width: 60px; padding: 0 10px;
-  font-weight: 800; color: #60a5fa;
-  border-right: 2px solid var(--border);
+  min-width: 52px; padding: 0 8px;
+  font-size: 11px; font-weight: 800; color: #60a5fa;
+  border-right: 1px solid var(--border);
   display: flex; align-items: center; height: 100%;
-  font-size: 12px; background: #060e20;
+  background: #050c1a;
 }
-.lg-ref-sep { width: 1px; background: var(--border); height: 100%; }
 .lg-ref-val {
-  flex: 1; padding: 0 10px; color: #e2e8f0;
-  display: flex; align-items: center; height: 100%;
-  font-size: 12px; white-space: nowrap; overflow: hidden;
+  flex: 1; border: none; background: transparent;
+  color: #e2e8f0; font-size: 12px; padding: 0 10px;
+  outline: none; height: 100%; font-family: inherit;
 }
-
-/* Input flutuante sobre a célula */
-.lg-float-input {
-  display: none;
-  position: absolute;
-  z-index: 100;
-  background: #0a2060;
-  border: 2px solid #3b82f6;
-  box-shadow: 0 0 0 1px rgba(59,130,246,0.3);
-  color: #fff;
-  font-size: 12px;
-  font-family: inherit;
-  padding: 0 6px;
-  outline: none;
-  box-sizing: border-box;
-}
-
 /* Célula selecionada */
-.lg-cell-sel {
-  background: #0a2060 !important;
-  outline: 2px solid #3b82f6;
+.lg-sel-cell {
+  background: rgba(59,130,246,0.15) !important;
+  outline: 2px solid #3b82f6 !important;
   outline-offset: -2px;
 }
-.lg-row-sel td { background: rgba(59,130,246,0.05) !important; }
-.lg-row-sel td.lg-auto { background: rgba(59,0,0,0.3) !important; }
-.lg-row-sel td.lg-rn { background: #0a0f1a !important; color: #60a5fa !important; font-weight: 700; }
+.lg-sel-row {
+  background: rgba(59,130,246,0.04) !important;
+}
+.lg-sel-row.lg-auto { background: rgba(153,0,0,0.1) !important; }
+.lg-sel-row.lg-rn   { color: #60a5fa !important; font-weight: 700; }
 
-/* Linhas vazias — mais sutis que as com dados */
-.lg-tr-empty td { opacity: 0.4; }
-.lg-tr-empty:hover td { opacity: 1; background: var(--blue-50, #eff6ff) !important; }
-.lg-tr-empty td.lg-rn { opacity: 0.25; }
+/* Botão Salvar no Banco */
+.jss-btn-primary {
+  background: var(--blue-600, #2563eb) !important;
+  color: #fff !important;
+  border-color: var(--blue-600, #2563eb) !important;
+}
+.jss-btn-primary:hover {
+  background: var(--blue-700, #1d4ed8) !important;
+  border-color: var(--blue-700, #1d4ed8) !important;
+}
