@@ -460,337 +460,323 @@ document.addEventListener('keydown', function(e) {
     var modal = document.getElementById('login-modal');
     if (modal && modal.style.display !== 'none') fazerLogin();
   }
-});// =============================================================================
-// ADMIN_EMPRESAS.JS — Painel multi-empresa para super_admin
-// =============================================================================
+});
 
-var EMPRESA_ATIVA = null; // { empresa_id, nome, slug, tem_api }
-var EMPRESAS_LISTA = [];  // lista de todas as empresas
+// ── DASHBOARD CLIENTE (unido aqui para evitar 404) ──────────────────────────
+var DC_DATA  = [];  // dados filtrados
+var DC_RAW   = [];  // todos os dados do banco
+var DC_CHARTS = {}; // instâncias Chart.js
 
-var EMPRESA_IDS = {
-  varremaster: 'af3b599b-65c5-4868-b8bf-a5934da84f0d',
-  '44tshirts':  null, // busca do banco
-  llamenina:   'dff89ea1-0c33-48d1-84d7-1fc7826654b8'
-};
+var MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+var MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
-// ── INICIALIZA PAINEL ADMIN ────────────────────────────────────────────────────
-async function adminInicializar() {
-  // Mostra abas imediatamente com fallback enquanto busca do banco
-  EMPRESAS_LISTA = [
-    { empresa_id: 'af3b599b-65c5-4868-b8bf-a5934da84f0d', nome: 'Varremaster',  slug: 'varremaster', tem_api: true,  sistema: 'visual_saef' },
-    { empresa_id: 'ce8623d4-1928-4d7c-ba8c-56e0fca23fcf', nome: '44-Tshirts',   slug: '44tshirts',   tem_api: false, sistema: null },
-    { empresa_id: 'dff89ea1-0c33-48d1-84d7-1fc7826654b8', nome: 'Llamenina',    slug: 'llamenina',   tem_api: false, sistema: null }
-  ];
-  _adminRenderizarAbas();
-  adminSelecionarEmpresa('af3b599b-65c5-4868-b8bf-a5934da84f0d');
-
-  try {
-    // Busca empresas
-    var eR = await fetch(SUPA_URL + '/rest/v1/empresas?select=id,nome,slug&ativo=eq.true&order=nome.asc', {
-      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
-    });
-    var empresas = await eR.json();
-
-    // Busca quais têm API configurada
-    var aR = await fetch(SUPA_URL + '/rest/v1/api_config?select=empresa_id,sistema,api_url&ativo=eq.true', {
-      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
-    });
-    var apis = await aR.json();
-
-    EMPRESAS_LISTA = (empresas || []).map(function(e) {
-      var api = (apis || []).find(function(a){ return a.empresa_id === e.id && a.api_url; });
-      return {
-        empresa_id: e.id,
-        nome:       e.nome,
-        slug:       e.slug,
-        tem_api:    !!api,
-        sistema:    api ? api.sistema : null
-      };
-    });
-
-    // Renderiza abas
-    _adminRenderizarAbas();
-
-    // Seleciona primeira empresa automaticamente
-    if (EMPRESAS_LISTA.length > 0) {
-      adminSelecionarEmpresa(EMPRESAS_LISTA[0].empresa_id);
-    }
-
-  } catch(e) {
-    console.error('Erro ao carregar empresas:', e);
-    // Fallback com empresas hardcoded
-    EMPRESAS_LISTA = [
-      { empresa_id: 'af3b599b-65c5-4868-b8bf-a5934da84f0d', nome: 'Varremaster', slug: 'varremaster', tem_api: true, sistema: 'visual_saef' },
-      { empresa_id: 'dff89ea1-0c33-48d1-84d7-1fc7826654b8', nome: 'Llamenina',   slug: 'llamenina',   tem_api: false, sistema: null },
-    ];
-    _adminRenderizarAbas();
-    adminSelecionarEmpresa(EMPRESAS_LISTA[0].empresa_id);
-  }
-}
-
-function _adminRenderizarAbas() {
-  var container = document.getElementById('admin-empresa-tabs');
-  if (!container) return;
-
-  container.innerHTML = EMPRESAS_LISTA.map(function(e) {
-    var tag = e.tem_api
-      ? '<span class="emp-tag tag-api">API</span>'
-      : '<span class="emp-tag tag-manual">Manual</span>';
-    return '<button class="admin-emp-tab" data-id="' + e.empresa_id + '" onclick="adminSelecionarEmpresa(\'' + e.empresa_id + '\')">'
-         + e.nome + tag + '</button>';
-  }).join('');
-}
-
-// ── SELECIONA EMPRESA ─────────────────────────────────────────────────────────
-async function adminSelecionarEmpresa(empresa_id) {
-  EMPRESA_ATIVA = EMPRESAS_LISTA.find(function(e){ return e.empresa_id === empresa_id; });
-  if (!EMPRESA_ATIVA) return;
-
-  // Atualiza abas visuais
-  document.querySelectorAll('.admin-emp-tab').forEach(function(btn){
-    btn.classList.toggle('active', btn.dataset.id === empresa_id);
+// ── ABRE O DASHBOARD ──────────────────────────────────────────────────────────
+function _abrirDashCliente() {
+  // Esconde layout admin
+  ['cui-sidebar','cui-wrapper'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
   });
 
-  // Mostra action bar
-  var bar = document.getElementById('admin-action-bar');
-  if (bar) bar.style.display = 'flex';
+  var vc = document.getElementById('view-dash-cliente');
+  if (vc) vc.style.display = 'flex';
 
-  // Nome da empresa ativa
-  var nomeEl = document.getElementById('admin-emp-nome');
-  if (nomeEl) nomeEl.textContent = EMPRESA_ATIVA.nome;
+  var emp = document.getElementById('dc-empresa');
+  if (emp) emp.textContent = SESSION.empresa_nome || 'Cliente';
 
-  // Botão Sincronizar: só para empresas com API
-  var btnSync = document.getElementById('admin-btn-sync');
-  if (btnSync) btnSync.style.display = EMPRESA_ATIVA.tem_api ? 'inline-flex' : 'none';
-
-  // Status do sync
-  _adminCarregarSyncLog();
-
-  // Limpa a grade atual
-  if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
-    GRIDS.bd.allData  = [];
-    GRIDS.bd.filtered = null;
-    GRIDS.bd.page     = 0;
-  }
-  if (typeof FULL_DATA !== 'undefined') FULL_DATA.bd = [];
-  if (typeof BD_DATA !== 'undefined') { BD_DATA.rows = []; BD_DATA.count = 0; }
-
-  // Carrega dados do Supabase para esta empresa
-  adminCarregarDadosEmpresa(empresa_id);
+  // Carrega dados
+  dcCarregarDados();
 }
 
-async function _adminCarregarSyncLog() {
-  if (!EMPRESA_ATIVA) return;
+// ── CARREGA DADOS DO SUPABASE ─────────────────────────────────────────────────
+async function dcCarregarDados() {
+  dcStatus('⏳ Carregando dados...');
   try {
     var r = await fetch(
-      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&select=ultima_data,ultima_sync,total_registros,status',
-      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
-    );
-    var d = await r.json();
-    var el = document.getElementById('admin-sync-status');
-    if (!el) return;
-    if (d && d[0] && d[0].ultima_data) {
-      var dt  = new Date(d[0].ultima_data).toLocaleDateString('pt-BR');
-      var tot = (d[0].total_registros || 0).toLocaleString('pt-BR');
-      el.textContent = 'Último sync: ' + dt + ' — ' + tot + ' registros';
-      el.className = 'admin-sync-status ok';
-    } else {
-      el.textContent = 'Nunca sincronizado';
-      el.className = 'admin-sync-status';
-    }
-  } catch(e) { console.error(e); }
-}
-
-// ── CARREGA DADOS DO BANCO PARA A EMPRESA ATIVA ───────────────────────────────
-async function adminCarregarDadosEmpresa(empresa_id) {
-  _adminStatus('⏳ Carregando dados da ' + (EMPRESA_ATIVA ? EMPRESA_ATIVA.nome : '') + '...');
-  try {
-    var r = await fetch(
-      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&select=*&order=dt_saida.asc&limit=100000',
+      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + SESSION.empresa_id +
+      '&select=*&order=dt_saida.asc&limit=100000',
       { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
     );
     var vendas = await r.json();
-
     if (!Array.isArray(vendas) || !vendas.length) {
-      _adminStatus('Sem dados no banco. Cole na grade ou clique Sincronizar.');
-      if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
-        GRIDS.bd.allData = []; GRIDS.bd.filtered = null;
-        GRIDS.bd.page = 0; GRIDS.bd._render();
-      }
+      dcStatus('⚠ Nenhum dado disponível ainda.');
       return;
     }
 
-    var rows = vendas.map(function(v){ return [
-      v.id_externo||'', v.num_pedido||'', v.produto||'', String(v.qtd||''),
-      v.dt_emissao||'', v.dt_saida||'', String(v.valor||''),
-      v.vendedor||'', v.industria||'', v.cliente||'',
-      v.ano?String(v.ano):'', v.mes||'', v.grupo||'', v.semana||'',
-      v.tipo_mercado||'', v.setor||'', v.cidade||'', v.uf||'',
-      v.tipo_vendedor||'','','','','',
-      v.empresa_nome||'', v.cnpj||'', v.grupo_produto||'', v.grupo_pai||'',
-      v.subgrupo||'', v.marca||'', v.familia||'', v.classes||''
-    ]; });
+    DC_RAW = vendas;
 
-    BD_DATA.headers = ['ID','N° PEDIDO','PRODUTO OU SERVIÇO','QTD','Dt. Emissão','Data de Saída',
-      'VALOR','Vendedor','Indústria','Cliente','ANO','MÊS','GRUPO','SEM',
-      'tipo mercado','SETOR','CIDADE','UF','TIPO VENDEDOR','Dias Sem Compra',
-      'NOTA F','ROTA','DESCONTO','EMPRESA','cnpj','grupo_produto','GRUPO PAI',
-      'subgrupo_produto','marca','familia_produto','classes'];
-    BD_DATA.rows  = rows;
-    BD_DATA.count = rows.length;
-    if (typeof FULL_DATA !== 'undefined') FULL_DATA.bd = rows;
-
-    if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
-      GRIDS.bd.allData  = rows;
-      GRIDS.bd.filtered = null;
-      GRIDS.bd.page     = 0;
-      GRIDS.bd._render();
+    // Preenche filtro de anos
+    var anos = [...new Set(vendas.map(function(v){ return v.ano; }).filter(Boolean))].sort();
+    var selAno = document.getElementById('dc-filtro-ano');
+    if (selAno) {
+      selAno.innerHTML = '<option value="0">Todos os anos</option>';
+      anos.forEach(function(a){ selAno.innerHTML += '<option value="'+a+'">'+a+'</option>'; });
+      // Seleciona o ano mais recente
+      if (anos.length) selAno.value = anos[anos.length-1];
     }
 
-    _adminStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' registros da ' + EMPRESA_ATIVA.nome, true);
+    dcAplicarFiltro();
+    dcStatus('✓ ' + vendas.length.toLocaleString('pt-BR') + ' registros carregados', true);
 
   } catch(e) {
+    dcStatus('✗ ' + e.message);
     console.error(e);
-    _adminStatus('✗ ' + e.message);
   }
 }
 
-// ── SINCRONIZAR API (só Varremaster por enquanto) ─────────────────────────────
-async function adminSincronizar() {
-  if (!EMPRESA_ATIVA || !EMPRESA_ATIVA.tem_api) return;
-  var btn = document.getElementById('admin-btn-sync');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="auth-spin">⟳</span> Sincronizando...'; }
-  _adminStatus('⏳ Conectando à API da ' + EMPRESA_ATIVA.nome + '...');
+// ── FILTRO DE PERÍODO ─────────────────────────────────────────────────────────
+function dcAplicarFiltro() {
+  var ano = parseInt(document.getElementById('dc-filtro-ano').value) || 0;
+  var mes = parseInt(document.getElementById('dc-filtro-mes').value) || 0;
 
-  try {
-    var r = await fetch(SUPA_URL + '/functions/v1/sync-visual-saef', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SVC_KEY },
-      body: JSON.stringify({ empresa_id: EMPRESA_ATIVA.empresa_id })
-    });
-    var d = await r.json();
-    if (!r.ok || d.erro) throw new Error(d.erro || 'Erro na sincronização.');
-
-    _adminStatus('✓ ' + (d.mensagem || d.novos + ' registros importados'), true);
-
-    // Recarrega dados e gera relatórios
-    if ((d.novos || 0) > 0) {
-      await adminCarregarDadosEmpresa(EMPRESA_ATIVA.empresa_id);
-      adminProcessar();
-    }
-    _adminCarregarSyncLog();
-
-  } catch(e) {
-    _adminStatus('✗ ' + e.message);
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg> Sincronizar API';
-    }
-  }
-}
-
-// ── PROCESSAR ─────────────────────────────────────────────────────────────────
-function adminProcessar() {
-  if (!EMPRESA_ATIVA) { alert('Selecione uma empresa primeiro.'); return; }
-
-  var rows = (typeof FULL_DATA !== 'undefined' && FULL_DATA.bd && FULL_DATA.bd.length)
-    ? FULL_DATA.bd
-    : (typeof GRIDS !== 'undefined' && GRIDS.bd ? GRIDS.bd.getData() : []);
-  rows = rows.filter(function(r){ return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; }); });
-
-  if (!rows.length) { alert('Sem dados para processar. Cole dados na grade ou sincronize.'); return; }
-
-  _adminStatus('⏳ Processando ' + rows.length.toLocaleString('pt-BR') + ' linhas...');
-
-  BD_DATA.rows  = rows;
-  BD_DATA.count = rows.length;
-
-  setTimeout(function(){
-    try { bdMapColumns(); }    catch(e){ console.error(e); }
-    try { bdAutoFill(); }      catch(e){ console.error(e); }
-    try { bdUpdateAllTabs(); } catch(e){ console.error(e); }
-
-    if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
-      GRIDS.bd.allData = BD_DATA.rows; GRIDS.bd.filtered = null;
-      GRIDS.bd.page = 0; GRIDS.bd._render();
-    }
-    _adminStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' linhas processadas — relatórios gerados!', true);
-  }, 10);
-}
-
-// ── SALVAR NO BANCO ───────────────────────────────────────────────────────────
-async function adminSalvarBanco() {
-  if (!EMPRESA_ATIVA) { alert('Selecione uma empresa primeiro.'); return; }
-
-  var rows = (typeof FULL_DATA !== 'undefined' && FULL_DATA.bd && FULL_DATA.bd.length)
-    ? FULL_DATA.bd
-    : (typeof GRIDS !== 'undefined' && GRIDS.bd ? GRIDS.bd.getData() : []);
-  rows = rows.filter(function(r){ return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; }); });
-
-  if (!rows.length) { alert('Sem dados para salvar.'); return; }
-
-  if (!confirm('Salvar ' + rows.length.toLocaleString('pt-BR') + ' linhas para ' + EMPRESA_ATIVA.nome + ' no Supabase?')) return;
-
-  _adminStatus('⏳ Salvando...');
-
-  var empresa_id = EMPRESA_ATIVA.empresa_id;
-  var registros  = rows.map(function(r, i){
-    return {
-      empresa_id: empresa_id,
-      id_externo: 'manual_' + empresa_id.slice(0,8) + '_' + Date.now() + '_' + i,
-      num_pedido: r[1]||null, produto:  r[2]||null, qtd: parseFloat(r[3])||null,
-      dt_emissao: r[4]||null, dt_saida: r[5]||null,
-      valor:      parseFloat(String(r[6]||'0').replace(',','.'))||null,
-      vendedor:   r[7]||null, industria: r[8]||null, cliente: r[9]||null,
-      ano: parseInt(r[10])||null, mes: r[11]||null, grupo: r[12]||null,
-      cidade: r[16]||null, uf: r[17]||null,
-      empresa_nome: EMPRESA_ATIVA.nome, cnpj: r[24]||null, marca: r[28]||null
-    };
+  DC_DATA = DC_RAW.filter(function(v){
+    if (ano && v.ano != ano) return false;
+    if (mes && v.mes != mes && parseInt(v.mes) != mes) return false;
+    return true;
   });
 
-  try {
-    // Deleta registros manuais antigos desta empresa antes de reinserir
-    await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&id_externo=like.manual_*', {
-      method: 'DELETE',
-      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
-    });
-
-    // Insere em lotes de 500
-    var lote = 500;
-    for (var i = 0; i < registros.length; i += lote) {
-      var batch = registros.slice(i, i + lote);
-      var r = await fetch(SUPA_URL + '/rest/v1/vendas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPA_KEY,
-          'Authorization': 'Bearer ' + SVC_KEY,
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify(batch)
-      });
-      if (!r.ok) {
-        var err = await r.text();
-        throw new Error(err.slice(0,200));
-      }
-      _adminStatus('⏳ ' + Math.min(i+lote, registros.length) + '/' + registros.length + ' salvos...');
-    }
-
-    _adminStatus('✓ ' + registros.length.toLocaleString('pt-BR') + ' linhas salvas para ' + EMPRESA_ATIVA.nome + '!', true);
-    _adminCarregarSyncLog();
-
-  } catch(e) {
-    console.error(e);
-    _adminStatus('✗ Erro ao salvar: ' + e.message);
-    alert('Erro ao salvar: ' + e.message);
-  }
+  dcRenderizar();
 }
 
-// ── STATUS ────────────────────────────────────────────────────────────────────
-function _adminStatus(msg, ok) {
-  var el = document.getElementById('admin-sync-status');
+// ── RENDERIZA TUDO ────────────────────────────────────────────────────────────
+function dcRenderizar() {
+  var rows = DC_DATA;
+  if (!rows.length) { dcStatus('⚠ Nenhum dado no período selecionado.'); return; }
+
+  var fatTotal   = rows.reduce(function(s,r){ return s + (parseFloat(r.valor)||0); }, 0);
+  var nPedidos   = rows.length;
+  var ticket     = nPedidos ? fatTotal / nPedidos : 0;
+  var clientes   = new Set(rows.map(function(r){ return r.cliente; }).filter(Boolean)).size;
+  var produtos   = new Set(rows.map(function(r){ return r.produto; }).filter(Boolean)).size;
+  var reps       = new Set(rows.map(function(r){ return r.vendedor; }).filter(Boolean)).size;
+
+  // KPIs
+  function fmt(v){ return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function set(id,val){ var el=document.getElementById(id); if(el) el.textContent=val; }
+
+  set('dc-faturamento', fmt(fatTotal));
+  set('dc-pedidos',     nPedidos.toLocaleString('pt-BR'));
+  set('dc-ticket',      fmt(ticket));
+  set('dc-clientes',    clientes.toLocaleString('pt-BR'));
+  set('dc-produtos',    produtos.toLocaleString('pt-BR'));
+  set('dc-reps',        reps.toLocaleString('pt-BR'));
+
+  // Gráficos e tabelas
+  dcChartEvolucao(rows);
+  dcChartTrimestre(rows);
+  dcChartProdutos(rows);
+  dcChartGrupos(rows);
+  dcTabelaReps(rows, fatTotal);
+  dcTabelaUFs(rows, fatTotal);
+  dcTabelaClientes(rows, fatTotal);
+  dcTabelaInativos(rows);
+}
+
+// ── EVOLUÇÃO MENSAL ───────────────────────────────────────────────────────────
+function dcChartEvolucao(rows) {
+  var por_mes = {};
+  MESES.forEach(function(m,i){ por_mes[i+1] = 0; });
+  rows.forEach(function(r){
+    var m = parseInt(r.mes) || 0;
+    if (m >= 1 && m <= 12) por_mes[m] = (por_mes[m]||0) + (parseFloat(r.valor)||0);
+  });
+  var labels = MESES;
+  var data   = Object.values(por_mes);
+
+  dcDestroyChart('dc-chart-evolucao');
+  var ctx = document.getElementById('dc-chart-evolucao');
+  if (!ctx) return;
+  DC_CHARTS['evolucao'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Faturamento',
+        data: data,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59,130,246,0.1)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#3b82f6',
+        pointRadius: 4
+      }]
+    },
+    options: dcChartOpts('R$ ')
+  });
+}
+
+// ── TRIMESTRES ────────────────────────────────────────────────────────────────
+function dcChartTrimestre(rows) {
+  var trim = {Q1:0,Q2:0,Q3:0,Q4:0};
+  rows.forEach(function(r){
+    var m = parseInt(r.mes)||0;
+    var v = parseFloat(r.valor)||0;
+    if (m<=3) trim.Q1+=v; else if(m<=6) trim.Q2+=v; else if(m<=9) trim.Q3+=v; else trim.Q4+=v;
+  });
+  dcDestroyChart('dc-chart-trimestre');
+  var ctx = document.getElementById('dc-chart-trimestre');
+  if (!ctx) return;
+  DC_CHARTS['trimestre'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Q1 Jan-Mar','Q2 Abr-Jun','Q3 Jul-Set','Q4 Out-Dez'],
+      datasets: [{ data: Object.values(trim), backgroundColor: ['#3b82f6','#22c55e','#f59e0b','#ec4899'], borderWidth: 0 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom',labels:{color:'#64748b',font:{size:10}}}, tooltip:{callbacks:{label:function(c){ return ' R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0}); }}} } }
+  });
+}
+
+// ── TOP PRODUTOS ──────────────────────────────────────────────────────────────
+function dcChartProdutos(rows) {
+  var map = {};
+  rows.forEach(function(r){ var k=r.produto||'—'; map[k]=(map[k]||0)+(parseFloat(r.valor)||0); });
+  var sorted = Object.entries(map).sort(function(a,b){return b[1]-a[1];}).slice(0,10);
+  var labels = sorted.map(function(e){ return e[0].length>25?e[0].slice(0,25)+'…':e[0]; });
+  var data   = sorted.map(function(e){ return e[1]; });
+
+  dcDestroyChart('dc-chart-produtos');
+  var ctx = document.getElementById('dc-chart-produtos');
+  if (!ctx) return;
+  DC_CHARTS['produtos'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels:labels, datasets:[{label:'Faturamento',data:data,backgroundColor:'rgba(59,130,246,0.7)',borderRadius:4}] },
+    options: Object.assign(dcChartOpts('R$ '),{indexAxis:'y'})
+  });
+}
+
+// ── GRUPOS ────────────────────────────────────────────────────────────────────
+function dcChartGrupos(rows) {
+  var map = {};
+  rows.forEach(function(r){ var k=r.grupo||r.grupo_produto||'Sem grupo'; if(k&&k.trim()) map[k]=(map[k]||0)+(parseFloat(r.valor)||0); });
+  var sorted = Object.entries(map).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  var cores = ['#3b82f6','#22c55e','#f59e0b','#ec4899','#8b5cf6','#14b8a6','#fb923c','#64748b'];
+
+  dcDestroyChart('dc-chart-grupos');
+  var ctx = document.getElementById('dc-chart-grupos');
+  if (!ctx) return;
+  DC_CHARTS['grupos'] = new Chart(ctx, {
+    type: 'pie',
+    data: { labels:sorted.map(function(e){return e[0];}), datasets:[{data:sorted.map(function(e){return e[1];}),backgroundColor:cores,borderWidth:0}] },
+    options: { responsive:true,maintainAspectRatio:false, plugins:{ legend:{position:'right',labels:{color:'#64748b',font:{size:10},boxWidth:10}}, tooltip:{callbacks:{label:function(c){return ' R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0})+' ('+((c.raw/(DC_DATA.reduce(function(s,r){return s+(parseFloat(r.valor)||0);},0))||0)*100).toFixed(1)+'%)';}}} } }
+  });
+}
+
+// ── TABELA REPRESENTANTES ─────────────────────────────────────────────────────
+function dcTabelaReps(rows, fatTotal) {
+  var map = {};
+  rows.forEach(function(r){ var k=r.vendedor||'—'; if(!map[k]) map[k]={fat:0,ped:0}; map[k].fat+=(parseFloat(r.valor)||0); map[k].ped++; });
+  var sorted = Object.entries(map).sort(function(a,b){return b[1].fat-a[1].fat;});
+  var max = sorted.length ? sorted[0][1].fat : 1;
+
+  var html = '<table class="dc-tabela"><thead><tr><th>#</th><th>Representante</th><th>Pedidos</th><th style="text-align:right">Faturamento</th><th>%</th></tr></thead><tbody>';
+  sorted.forEach(function(e,i){
+    var pct = (e[1].fat/fatTotal*100).toFixed(1);
+    var bar = (e[1].fat/max*100).toFixed(0);
+    html += '<tr><td class="pos">'+(i+1)+'</td><td>'+e[0]+'</td><td>'+e[1].ped+'</td>'
+          + '<td class="num">R$ '+e[1].fat.toLocaleString('pt-BR',{minimumFractionDigits:0})+'</td>'
+          + '<td style="min-width:80px"><div style="font-size:10px;color:#475569;margin-bottom:2px">'+pct+'%</div>'
+          + '<div class="dc-bar-wrap"><div class="dc-bar" style="width:'+bar+'%"></div></div></td></tr>';
+  });
+  html += '</tbody></table>';
+  var el = document.getElementById('dc-tabela-reps');
+  if (el) el.innerHTML = html;
+}
+
+// ── TABELA UFs ────────────────────────────────────────────────────────────────
+function dcTabelaUFs(rows, fatTotal) {
+  var map = {};
+  rows.forEach(function(r){ var k=(r.uf||'—').trim()||'—'; map[k]=(map[k]||0)+(parseFloat(r.valor)||0); });
+  var sorted = Object.entries(map).sort(function(a,b){return b[1]-a[1];});
+  var max = sorted.length ? sorted[0][1] : 1;
+
+  var html = '<table class="dc-tabela"><thead><tr><th>#</th><th>Estado</th><th style="text-align:right">Faturamento</th><th>Participação</th></tr></thead><tbody>';
+  sorted.forEach(function(e,i){
+    var pct = (e[1]/fatTotal*100).toFixed(1);
+    var bar = (e[1]/max*100).toFixed(0);
+    html += '<tr><td class="pos">'+(i+1)+'</td><td>'+e[0]+'</td>'
+          + '<td class="num">R$ '+e[1].toLocaleString('pt-BR',{minimumFractionDigits:0})+'</td>'
+          + '<td style="min-width:80px"><div style="font-size:10px;color:#475569;margin-bottom:2px">'+pct+'%</div>'
+          + '<div class="dc-bar-wrap"><div class="dc-bar" style="width:'+bar+'%;background:linear-gradient(90deg,#22c55e,#4ade80)"></div></div></td></tr>';
+  });
+  html += '</tbody></table>';
+  var el = document.getElementById('dc-tabela-ufs');
+  if (el) el.innerHTML = html;
+}
+
+// ── TOP CLIENTES ──────────────────────────────────────────────────────────────
+function dcTabelaClientes(rows, fatTotal) {
+  var map = {};
+  rows.forEach(function(r){ var k=r.cliente||'—'; if(!map[k]) map[k]={fat:0,ped:0}; map[k].fat+=(parseFloat(r.valor)||0); map[k].ped++; });
+  var sorted = Object.entries(map).sort(function(a,b){return b[1].fat-a[1].fat;}).slice(0,10);
+
+  var html = '<table class="dc-tabela"><thead><tr><th>#</th><th>Cliente</th><th>Pedidos</th><th style="text-align:right">Faturamento</th></tr></thead><tbody>';
+  sorted.forEach(function(e,i){
+    html += '<tr><td class="pos">'+(i+1)+'</td><td>'+e[0]+'</td><td>'+e[1].ped+'</td>'
+          + '<td class="num">R$ '+e[1].fat.toLocaleString('pt-BR',{minimumFractionDigits:0})+'</td></tr>';
+  });
+  html += '</tbody></table>';
+  var el = document.getElementById('dc-tabela-clientes');
+  if (el) el.innerHTML = html;
+}
+
+// ── CLIENTES INATIVOS ─────────────────────────────────────────────────────────
+function dcTabelaInativos(rows) {
+  // Pega a data mais recente de compra por cliente
+  var mapa = {};
+  rows.forEach(function(r){
+    var k = r.cliente||'—';
+    var d = r.dt_saida ? new Date(r.dt_saida) : null;
+    if (d && (!mapa[k] || d > mapa[k].ultima)) {
+      mapa[k] = { ultima: d, fat: (mapa[k]?mapa[k].fat:0)+(parseFloat(r.valor)||0) };
+    }
+  });
+  var hoje = new Date();
+  var inativos = Object.entries(mapa).map(function(e){
+    var dias = Math.floor((hoje - e[1].ultima) / 86400000);
+    return { nome: e[0], dias: dias, ultima: e[1].ultima.toLocaleDateString('pt-BR'), fat: e[1].fat };
+  }).filter(function(e){ return e.dias >= 30; }).sort(function(a,b){ return b.dias-a.dias; }).slice(0,10);
+
+  if (!inativos.length) {
+    var el = document.getElementById('dc-tabela-inativos');
+    if (el) el.innerHTML = '<div style="color:#475569;font-size:13px;padding:20px;text-align:center">Nenhum cliente inativo no período ✓</div>';
+    return;
+  }
+
+  var html = '<table class="dc-tabela"><thead><tr><th>Cliente</th><th style="text-align:right">Dias sem compra</th><th>Última compra</th></tr></thead><tbody>';
+  inativos.forEach(function(e){
+    var cor = e.dias > 90 ? '#ef4444' : e.dias > 60 ? '#f59e0b' : '#94a3b8';
+    html += '<tr><td>'+e.nome+'</td>'
+          + '<td style="text-align:right;font-weight:800;color:'+cor+'">'+e.dias+' dias</td>'
+          + '<td style="color:#475569">'+e.ultima+'</td></tr>';
+  });
+  html += '</tbody></table>';
+  var el = document.getElementById('dc-tabela-inativos');
+  if (el) el.innerHTML = html;
+}
+
+// ── UTILITÁRIOS ───────────────────────────────────────────────────────────────
+function dcDestroyChart(id) {
+  var key = id.replace('dc-chart-','');
+  if (DC_CHARTS[key]) { try{ DC_CHARTS[key].destroy(); }catch(e){} delete DC_CHARTS[key]; }
+}
+
+function dcChartOpts(prefix) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: function(c){ return ' '+(prefix||'')+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0}); } } }
+    },
+    scales: {
+      x: { ticks: { color: '#475569', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { ticks: { color: '#475569', font: { size: 10 }, callback: function(v){ return 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:0}); } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+    }
+  };
+}
+
+function dcStatus(msg, ok) {
+  var el = document.getElementById('dc-status');
   if (!el) return;
   el.textContent = msg;
-  el.className = 'admin-sync-status' + (ok ? ' ok' : (msg.startsWith('✗') ? ' erro' : ''));
+  el.style.color = ok ? '#22c55e' : (msg.startsWith('✗') ? '#ef4444' : '#475569');
 }
