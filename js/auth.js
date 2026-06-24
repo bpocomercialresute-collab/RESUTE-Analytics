@@ -158,19 +158,25 @@ function _abrirApp() {
     return;
   }
 
-  // Super admin → interface completa
+  // Super admin → interface completa com abas por empresa
   var campos = {
-    'user-nome': SESSION.nome, 'user-empresa': SESSION.empresa_nome,
-    'sidebar-user-nome': SESSION.nome, 'sidebar-user-empresa': SESSION.empresa_nome
+    'user-nome': SESSION.nome, 'user-empresa': 'RESUTE Admin',
+    'sidebar-user-nome': SESSION.nome, 'sidebar-user-empresa': 'RESUTE Admin'
   };
   Object.keys(campos).forEach(function(id){
     var el = document.getElementById(id); if (el) el.textContent = campos[id];
   });
-  ['sync-area','header-user','sidebar-user'].forEach(function(id){
+  ['header-user','sidebar-user'].forEach(function(id){
     var el = document.getElementById(id); if (el) el.style.display = 'flex';
   });
+  // Esconde o botão Sincronizar do header (cada empresa tem o seu)
+  var syncArea = document.getElementById('sync-area');
+  if (syncArea) syncArea.style.display = 'none';
+
   if (typeof switchView === 'function') switchView('view-app');
-  _carregarEmpresasComAPI();
+
+  // Inicializa painel multi-empresa
+  if (typeof adminInicializar === 'function') adminInicializar();
 }
 
 // ── PERMISSÕES — Cliente vê só relatórios ────────────────────────────────────

@@ -148,6 +148,31 @@
             <h1 class="page-title">Análise de Vendas</h1>
             <p class="page-subtitle">Selecione o módulo que deseja acessar</p>
           </div>
+          <!-- ABAS POR EMPRESA -->
+          <div id="admin-empresa-tabs" class="admin-emp-tabs"></div>
+
+          <!-- BARRA DE ACOES DA EMPRESA ATIVA -->
+          <div id="admin-action-bar" class="admin-action-bar" style="display:none">
+            <div class="admin-emp-info">
+              <div class="admin-emp-ativa" id="admin-emp-nome">Nenhuma empresa selecionada</div>
+              <div id="admin-sync-status" class="admin-sync-status"></div>
+            </div>
+            <div class="admin-emp-btns">
+              <button id="admin-btn-sync" onclick="adminSincronizar()" class="jss-btn jss-btn-primary" style="display:none">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+                Sincronizar API
+              </button>
+              <button onclick="adminProcessar()" class="jss-btn jss-btn-success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Processar
+              </button>
+              <button onclick="adminSalvarBanco()" class="jss-btn" style="background:#0a2a10;border-color:#166534;color:#4ade80">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+                Salvar no Banco
+              </button>
+            </div>
+          </div>
+
           <div class="av-exibir-grid">
             <div class="av-exibir-box">
               <div class="av-exibir-header">EXIBIR</div>
@@ -438,6 +463,7 @@
   <script src="js/dashboard.js?v=2"></script>
   <script src="js/actions.js?v=2"></script>
   <script src="js/dashboard_cliente.js"></script>
+  <script src="js/admin_empresas.js"></script>
   <script src="js/auth.js?v=2"></script>
   <script src="js/jss.js?v=2"></script>
   <script src="js/bd.js?v=2"></script>

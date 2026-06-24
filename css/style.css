@@ -608,3 +608,38 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 /* Scrollbar no dashboard */
 #view-dash-cliente ::-webkit-scrollbar { width: 4px; height: 4px; }
 #view-dash-cliente ::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 2px; }
+/* ── Admin: abas por empresa ── */
+.admin-emp-tabs {
+  display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.admin-emp-tab {
+  padding: 8px 20px; border-radius: 8px 8px 0 0;
+  border: 1px solid var(--border); border-bottom: none;
+  background: #0d1a30; color: #64748b;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: inherit; transition: all 150ms;
+}
+.admin-emp-tab:hover { background: #1e2d45; color: #94a3b8; }
+.admin-emp-tab.active {
+  background: var(--blue-600, #2563eb); color: #fff;
+  border-color: var(--blue-600, #2563eb);
+}
+.admin-emp-tab .emp-tag {
+  font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 10px;
+  margin-left: 6px; vertical-align: middle;
+}
+.tag-api { background: rgba(34,197,94,.15); color: #22c55e; }
+.tag-manual { background: rgba(100,116,139,.15); color: #64748b; }
+
+/* Barra de ações */
+.admin-action-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #0a1628; border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 18px; margin-bottom: 20px; gap: 12px; flex-wrap: wrap;
+}
+.admin-emp-info { display: flex; flex-direction: column; gap: 3px; }
+.admin-emp-ativa { font-size: 16px; font-weight: 800; color: #e2e8f0; }
+.admin-sync-status { font-size: 11px; color: #475569; }
+.admin-sync-status.ok   { color: #22c55e; }
+.admin-sync-status.erro { color: #ef4444; }
+.admin-emp-btns { display: flex; gap: 8px; flex-wrap: wrap; }
