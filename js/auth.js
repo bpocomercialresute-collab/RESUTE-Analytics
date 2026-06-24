@@ -9,19 +9,17 @@ const SVC_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 var SESSION  = null;
 var EMPRESAS = [];
 
-// Limpa sessão antiga
+// F5 / recarregar = sempre volta para o login
+// Usa sessionStorage (some ao fechar/recarregar) em vez de localStorage
 (function() {
-  var saved = localStorage.getItem('resute_session');
-  if (saved) {
-    try {
-      var s = JSON.parse(saved);
-      if (!s.papel) { localStorage.removeItem('resute_session'); }
-    } catch(e) { localStorage.removeItem('resute_session'); }
-  }
+  // Limpa qualquer sessão de página anterior
+  sessionStorage.removeItem('resute_session');
+  // Também limpa localStorage antigo se existir
+  sessionStorage.removeItem('resute_session');
 })();
 
 function abrirAnaliseVendas() {
-  var saved = localStorage.getItem('resute_session');
+  var saved = sessionStorage.getItem('resute_session');
   if (saved) { try { SESSION = JSON.parse(saved); } catch(e) { SESSION = null; } }
   if (SESSION && SESSION.token) { _abrirApp(); } else { _mostrarLogin(); }
 }
@@ -70,7 +68,7 @@ async function fazerLogin() {
       empresa_id:   u.empresa_id || null,
       empresa_nome: 'RESUTE'
     };
-    localStorage.setItem('resute_session', JSON.stringify(SESSION));
+    sessionStorage.setItem('resute_session', JSON.stringify(SESSION));
     fecharLogin();
     _abrirApp();
 
@@ -85,7 +83,7 @@ async function fazerLogin() {
 
 function fazerLogout() {
   SESSION = null; EMPRESAS = [];
-  localStorage.removeItem('resute_session');
+  sessionStorage.removeItem('resute_session');
   if (typeof switchView === 'function') switchView('view-home');
   ['sync-area','header-user','sidebar-user'].forEach(function(id){
     var el = document.getElementById(id);
@@ -415,6 +413,9 @@ async function carregarDadosDoSupabase(empresa_id) {
     try { bdAutoFill(); }      catch(e){ console.error(e); }
     try { bdUpdateAllTabs(); } catch(e){ console.error(e); }
 
+    // Salva automaticamente no Supabase após carregar dados da API
+    // (dados manuais usam o botão "Salvar no Banco" separado)
+
     if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
       GRIDS.bd.allData = rows; GRIDS.bd.filtered = null;
       GRIDS.bd.page = 0; GRIDS.bd._render();
@@ -428,7 +429,7 @@ async function carregarDadosDoSupabase(empresa_id) {
 }
 
 // ── SALVAR DADOS MANUAIS NO SUPABASE ─────────────────────────────────────────
-async function salvarDadosManuaisNoSupabase() {
+async function salvarDadosManuaisNoSupabase(silent) {
   if (!SESSION || SESSION.papel !== 'super_admin') {
     alert('Apenas super_admin pode salvar dados manualmente.');
     return;
@@ -490,11 +491,11 @@ async function salvarDadosManuaisNoSupabase() {
       _setStatus('⏳ ' + Math.min(i + lote, registros.length) + '/' + registros.length + ' salvos...', '');
     }
     _setStatus('✓ ' + registros.length + ' linhas salvas no banco!', 'ok');
-    alert('✅ Dados salvos com sucesso!\n\n' + registros.length + ' linhas no Supabase.\nTodos os usuários da empresa verão essas atualizações.');
+    if (!silent) alert('✅ ' + registros.length + ' linhas salvas no Supabase!');
   } catch(e) {
     console.error(e);
     _setStatus('✗ ' + e.message, 'erro');
-    alert('❌ Erro ao salvar: ' + e.message);
+    if (!silent) alert('❌ Erro ao salvar: ' + e.message);
   }
 }
 
