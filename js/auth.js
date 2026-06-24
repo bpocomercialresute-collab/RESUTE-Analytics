@@ -81,148 +81,63 @@ async function fazerLogin() {
   }
 }
 
-// ── INTERFACE CLIENTE ─────────────────────────────────────────────────────────
-function _abrirCliente() {
-  // Esconde layout admin completamente
-  ['cui-sidebar','cui-wrapper'].forEach(function(id) {
+
+// ── CLIENTE — usa a mesma view-app mas sem acesso a BD/edição ─────────────────
+function _abrirComoCliente() {
+  // Atualiza nome no header
+  var campos = {
+    'user-nome': SESSION.nome,
+    'user-empresa': SESSION.empresa_nome,
+    'sidebar-user-nome': SESSION.nome,
+    'sidebar-user-empresa': SESSION.empresa_nome
+  };
+  Object.keys(campos).forEach(function(id){
     var el = document.getElementById(id);
-    if (el) el.style.display = 'none';
+    if (el) el.textContent = campos[id];
   });
 
-  // Mostra view-cliente (position:fixed, cobre tudo)
-  var vc = document.getElementById('view-cliente');
-  if (vc) vc.style.display = 'flex';
+  // Mostra sync e user
+  ['sync-area','header-user','sidebar-user'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'flex';
+  });
 
-  // Nome da empresa no badge
-  var badge = document.getElementById('cli-badge');
-  if (badge) badge.textContent = SESSION.empresa_nome || 'Empresa';
+  // Vai para view-app
+  if (typeof switchView === 'function') switchView('view-app');
 
-  // Carrega dados do Supabase → gera relatórios
-  _clienteCarregarDados();
-}
+  // ── Esconde tudo que cliente não pode ver ──────────────────────────────────
 
-function cliAba(btn, paneId) {
-  document.querySelectorAll('.cli-tab-btn').forEach(function(b){ b.classList.remove('active'); });
-  document.querySelectorAll('.cli-pane').forEach(function(p){ p.style.display='none'; });
-  btn.classList.add('active');
-  var p = document.getElementById(paneId);
-  if (p) p.style.display = 'block';
-}
-
-async function clienteSincronizar() {
-  var btn = document.getElementById('cli-btn-sync');
-  if (btn) { btn.disabled=true; btn.textContent='⟳ Atualizando...'; }
-  _cliStatus('⏳ Sincronizando...');
-  try {
-    var r = await fetch(SUPA_URL+'/functions/v1/sync-visual-saef', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SVC_KEY},
-      body:JSON.stringify({empresa_id:SESSION.empresa_id})
-    });
-    var d = await r.json();
-    if (d.erro) throw new Error(d.erro);
-    _cliStatus('✓ '+(d.mensagem||'Dados atualizados'), true);
-    await _clienteCarregarDados();
-  } catch(e) {
-    _cliStatus('✗ '+e.message);
-  } finally {
-    if (btn) { btn.disabled=false; btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg> Atualizar'; }
-  }
-}
-
-async function _clienteCarregarDados() {
-  if (!SESSION || !SESSION.empresa_id) {
-    _cliStatus('⚠ Empresa não encontrada. Contacte o suporte.');
-    return;
-  }
-  _cliStatus('⏳ Carregando dados...');
-
-  try {
-    var r = await fetch(
-      SUPA_URL+'/rest/v1/vendas?empresa_id=eq.'+SESSION.empresa_id+'&select=*&order=dt_saida.asc&limit=50000',
-      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer '+SVC_KEY } }
-    );
-    var vendas = await r.json();
-
-    var empty = document.getElementById('cli-empty');
-
-    if (!Array.isArray(vendas) || !vendas.length) {
-      _cliStatus('⚠ Sem dados. Clique Atualizar.');
-      document.querySelectorAll('.cli-pane').forEach(function(p){ p.style.display='none'; });
-      if (empty) empty.style.display = 'flex';
-      return;
+  // Esconde o item "BD & Cadastros" na sidebar
+  document.querySelectorAll('.cui-nav-item').forEach(function(item){
+    if (item.textContent.indexOf('BD') >= 0 || item.textContent.indexOf('Cadastro') >= 0) {
+      item.style.display = 'none';
     }
-    if (empty) empty.style.display = 'none';
+  });
 
-    // Alimenta BD_DATA
-    var rows = vendas.map(function(v){ return [
-      v.id_externo||'',v.num_pedido||'',v.produto||'',String(v.qtd||''),
-      v.dt_emissao||'',v.dt_saida||'',String(v.valor||''),
-      v.vendedor||'',v.industria||'',v.cliente||'',
-      v.ano?String(v.ano):'',v.mes||'',v.grupo||'',v.semana||'',
-      v.tipo_mercado||'',v.setor||'',v.cidade||'',v.uf||'',
-      v.tipo_vendedor||'','','','','',
-      v.empresa_nome||'',v.cnpj||'',v.grupo_produto||'',v.grupo_pai||'',
-      v.subgrupo||'',v.marca||'',v.familia||'',v.classes||''
-    ]; });
+  // Esconde botões: BD & Cadastros, Processar, Salvar no Banco, Limpar
+  var seletores = [
+    '[onclick="avShowBD()"]',
+    '[onclick="jssProcess()"]',
+    '[onclick*="salvarDados"]',
+    '[onclick*="jssClearGrid"]',
+    '[onclick*="bdgAtualizar"]'
+  ];
+  seletores.forEach(function(sel){
+    document.querySelectorAll(sel).forEach(function(el){ el.style.display='none'; });
+  });
 
-    BD_DATA.headers=['ID','N° PEDIDO','PRODUTO OU SERVIÇO','QTD','Dt. Emissão','Data de Saída',
-      'VALOR','Vendedor','Indústria','Cliente','ANO','MÊS','GRUPO','SEM',
-      'tipo mercado','SETOR','CIDADE','UF','TIPO VENDEDOR','Dias Sem Compra',
-      'NOTA F','ROTA','DESCONTO','EMPRESA','cnpj','grupo_produto','GRUPO PAI',
-      'subgrupo_produto','marca','familia_produto','classes'];
-    BD_DATA.rows=rows; BD_DATA.count=rows.length;
-    if(typeof FULL_DATA!=='undefined') FULL_DATA.bd=rows;
+  // Esconde a área BD se acessada
+  var bdArea = document.getElementById('av-bd-area');
+  if (bdArea) bdArea.style.display = 'none';
 
-    try{bdMapColumns();}catch(e){console.error(e);}
-    try{bdAutoFill();}catch(e){console.error(e);}
+  // ── Abre direto nos relatórios ──────────────────────────────────────────────
+  // Vai direto para RELAT PRODUTOS
+  setTimeout(function(){
+    if (typeof avShowRel === 'function') avShowRel('relat-produtos');
+  }, 100);
 
-    // Gera relatórios e injeta nos painéis do cliente
-    _cliStatus('⏳ Gerando relatórios...');
-
-    function injetaRel(fnNome, srcId, dstId) {
-      try {
-        // Cria div temporária para capturar o output
-        var tmp = document.getElementById(srcId);
-        if (!tmp) {
-          tmp = document.createElement('div');
-          tmp.id = srcId;
-          tmp.style.display = 'none';
-          document.body.appendChild(tmp);
-        }
-        if (typeof window[fnNome] === 'function') window[fnNome]();
-        var dst = document.getElementById(dstId);
-        if (dst && tmp) { dst.innerHTML = tmp.innerHTML || '<p style="color:#475569;padding:20px">Sem dados suficientes para este relatório.</p>'; }
-      } catch(e) { console.error(fnNome, e); }
-    }
-
-    setTimeout(function(){
-      injetaRel('bdUpdateVendaProduto',  'av-rel-venda-produto', 'cli-p1');
-      injetaRel('bdUpdateLaudoGrupo',    'av-rel-laudo-grupo',   'cli-p2');
-      injetaRel('bdUpdateLaudoMarca',    'av-rel-laudo-marca',   'cli-p3');
-      try { if(typeof repUpdateAll==='function') repUpdateAll(); } catch(e){}
-      setTimeout(function(){
-        var repSrc = document.getElementById('av-rep-area') || document.getElementById('av-rep-content');
-        var dst4   = document.getElementById('cli-p4');
-        if (repSrc && dst4) dst4.innerHTML = repSrc.innerHTML || '<p style="color:#475569;padding:20px">Sem dados de representantes.</p>';
-        // Mostra primeira aba
-        document.querySelector('.cli-tab-btn').classList.add('active');
-        document.getElementById('cli-p1').style.display = 'block';
-        _cliStatus('✓ '+rows.length.toLocaleString('pt-BR')+' registros carregados', true);
-      }, 600);
-    }, 200);
-
-  } catch(e) {
-    console.error(e);
-    _cliStatus('✗ '+e.message);
-  }
-}
-
-function _cliStatus(msg, ok) {
-  var el = document.getElementById('cli-status');
-  if (!el) return;
-  el.textContent = msg;
-  el.style.color = ok ? '#22c55e' : (msg.startsWith('✗') ? '#ef4444' : '#475569');
+  // ── Carrega dados do banco e gera relatórios ────────────────────────────────
+  carregarDadosDoSupabase(SESSION.empresa_id);
 }
 
 
@@ -237,9 +152,9 @@ function fazerLogout() {
 }
 
 function _abrirApp() {
-  // Cliente → interface limpa só com relatórios
+  // Cliente ou admin → mesma interface, mas com permissões diferentes
   if (SESSION.papel === 'cliente') {
-    _abrirCliente();
+    _abrirComoCliente();
     return;
   }
 
@@ -443,6 +358,13 @@ async function carregarDadosDoSupabase(empresa_id) {
     }
 
     _setStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' vendas carregadas!', 'ok');
+
+    // Se cliente → abre relatórios automaticamente
+    if (SESSION && SESSION.papel === 'cliente') {
+      setTimeout(function(){
+        if (typeof avShowRel === 'function') avShowRel('relat-produtos');
+      }, 300);
+    }
   } catch(e) {
     console.error(e);
     _setStatus('✗ ' + e.message, 'erro');
