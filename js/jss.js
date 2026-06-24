@@ -212,11 +212,12 @@ LiteGrid.prototype._select = function(ri, ci, td) {
   // Posiciona input flutuante sobre a célula
   if (td && this._inp) {
     var scEl = this._tbody.closest('.lg-scroll');
-    var wrap = this._inp.parentElement; // lg-wrap
-    var wr   = wrap ? wrap.getBoundingClientRect() : null;
     var tr2  = td.getBoundingClientRect();
-    if (wr && scEl) {
-      // Posição correta relativa ao wrap (não ao scroll)
+    var wr   = this._inp.offsetParent ? this._inp.offsetParent.getBoundingClientRect()
+                                      : (this._inp.parentElement ? this._inp.parentElement.getBoundingClientRect() : tr2);
+    if (scEl) {
+      // inp é position:absolute dentro do wrap (position:relative)
+      // top = posição do td relativo ao topo do wrap + scroll
       var top  = tr2.top  - wr.top  + scEl.scrollTop;
       var left = tr2.left - wr.left + scEl.scrollLeft;
       this._inp.style.cssText =

@@ -267,7 +267,7 @@ html, body { height: 100%; font-family: 'Inter', system-ui, sans-serif; backgrou
 .jss-btn-danger:hover { background:#dc2626; color:#fff; }
 
 /* LiteGrid */
-.lg-wrap { display:flex; flex-direction:column; height:calc(100vh - 260px); background:#0d1117; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.lg-wrap { position:relative; display:flex; flex-direction:column; height:calc(100vh - 260px); background:#0d1117; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
 .lg-scroll { flex:1; overflow:auto; }
 .lg-scroll::-webkit-scrollbar { width:8px; height:8px; }
 .lg-scroll::-webkit-scrollbar-track { background:var(--bg); }
