@@ -94,6 +94,13 @@ function fazerLogout() {
 }
 
 function _abrirApp() {
+  // Cliente → interface limpa só com relatórios
+  if (SESSION.papel === 'cliente') {
+    _abrirCliente();
+    return;
+  }
+
+  // Super admin → interface completa
   var campos = {
     'user-nome': SESSION.nome, 'user-empresa': SESSION.empresa_nome,
     'sidebar-user-nome': SESSION.nome, 'sidebar-user-empresa': SESSION.empresa_nome
@@ -105,11 +112,131 @@ function _abrirApp() {
     var el = document.getElementById(id); if (el) el.style.display = 'flex';
   });
   if (typeof switchView === 'function') switchView('view-app');
-
-  // Aplica permissões: cliente não vê BD, só relatórios
-  _aplicarPermissoes();
-
   _carregarEmpresasComAPI();
+}
+
+// ── INTERFACE CLIENTE ─────────────────────────────────────────────────────────
+function _abrirCliente() {
+  // Esconde tudo e mostra view-cliente
+  ['view-home','view-tools','view-app','cui-sidebar','cui-wrapper'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  var vc = document.getElementById('view-cliente');
+  if (vc) vc.style.display = 'flex';
+
+  // Preenche nome da empresa
+  var badge = document.getElementById('cli-empresa-nome');
+  if (badge) badge.textContent = SESSION.empresa_nome || 'Empresa';
+
+  // Carrega dados automaticamente
+  _clienteCarregarDados();
+}
+
+function clienteAba(id) {
+  document.querySelectorAll('.cli-tab').forEach(function(t){ t.classList.remove('active'); });
+  document.querySelectorAll('.cli-rel-pane').forEach(function(p){ p.style.display='none'; p.classList.remove('active'); });
+  var pane = document.getElementById(id);
+  if (pane) { pane.style.display='block'; pane.classList.add('active'); }
+  // Ativa aba clicada
+  event.target.classList.add('active');
+}
+
+async function clienteSincronizar() {
+  var btn = document.getElementById('cli-btn-sync');
+  if (btn) { btn.disabled=true; btn.innerHTML='<span class="auth-spin">⟳</span> Atualizando...'; }
+  _clienteStatus('⏳ Sincronizando com a API...', '');
+  try {
+    var r = await fetch('https://glfzevdsmmdvrwhplzkc.supabase.co/functions/v1/sync-visual-saef', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsZnpldmRzbW1kdnJ3aHBsemtjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTUzNTg3MywiZXhwIjoyMDk3MTExODczfQ.SA-rCZ9A6qXkY1lfYW65OjpTVUGSOLFXTb50s9R9nN0'},
+      body:JSON.stringify({empresa_id:SESSION.empresa_id})
+    });
+    var d = await r.json();
+    if (d.erro) throw new Error(d.erro);
+    _clienteStatus('✓ ' + (d.mensagem||'Dados atualizados'), 'sync-ok');
+    if ((d.novos||0)>0) await _clienteCarregarDados();
+  } catch(e) {
+    _clienteStatus('✗ '+e.message, 'sync-erro');
+  } finally {
+    if (btn) { btn.disabled=false; btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg> Atualizar dados'; }
+  }
+}
+
+async function _clienteCarregarDados() {
+  if (!SESSION || !SESSION.empresa_id) return;
+  _clienteStatus('⏳ Carregando relatórios...', '');
+  try {
+    var r = await fetch(
+      'https://glfzevdsmmdvrwhplzkc.supabase.co/rest/v1/vendas?empresa_id=eq.'+SESSION.empresa_id+'&select=*&order=dt_saida.asc&limit=50000',
+      { headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsZnpldmRzbW1kdnJ3aHBsemtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzU4NzMsImV4cCI6MjA5NzExMTg3M30.GEcGhBdW9whsdikO181Uvv2rpzXfvyntTHzPKots4bE', 'Authorization': 'Bearer '+SVC_KEY } }
+    );
+    var vendas = await r.json();
+    if (!Array.isArray(vendas)||!vendas.length) {
+      _clienteStatus('⚠ Sem dados. Clique Atualizar dados.','');
+      document.getElementById('cli-sem-dados').style.display='flex';
+      return;
+    }
+    document.getElementById('cli-sem-dados').style.display='none';
+
+    // Alimenta BD_DATA e gera relatórios
+    var rows = vendas.map(function(v){return[
+      v.id_externo||'',v.num_pedido||'',v.produto||'',String(v.qtd||''),
+      v.dt_emissao||'',v.dt_saida||'',String(v.valor||''),
+      v.vendedor||'',v.industria||'',v.cliente||'',
+      v.ano?String(v.ano):'',v.mes||'',v.grupo||'',v.semana||'',
+      v.tipo_mercado||'',v.setor||'',v.cidade||'',v.uf||'',
+      v.tipo_vendedor||'','','','','',
+      v.empresa_nome||'',v.cnpj||'',v.grupo_produto||'',v.grupo_pai||'',
+      v.subgrupo||'',v.marca||'',v.familia||'',v.classes||''
+    ];});
+
+    BD_DATA.headers=['ID','N° PEDIDO','PRODUTO OU SERVIÇO','QTD','Dt. Emissão','Data de Saída',
+      'VALOR','Vendedor','Indústria','Cliente','ANO','MÊS','GRUPO','SEM',
+      'tipo mercado','SETOR','CIDADE','UF','TIPO VENDEDOR','Dias Sem Compra',
+      'NOTA F','ROTA','DESCONTO','EMPRESA','cnpj','grupo_produto','GRUPO PAI',
+      'subgrupo_produto','marca','familia_produto','classes'];
+    BD_DATA.rows=rows; BD_DATA.count=rows.length;
+    if(typeof FULL_DATA!=='undefined') FULL_DATA.bd=rows;
+
+    try{bdMapColumns();}catch(e){}
+    try{bdAutoFill();}catch(e){}
+
+    // Renderiza relatórios na interface cliente
+    _clienteRenderizarRelatorios();
+
+    _clienteStatus('✓ '+rows.length.toLocaleString('pt-BR')+' registros', 'sync-ok');
+  } catch(e) {
+    _clienteStatus('✗ '+e.message,'sync-erro');
+  }
+}
+
+function _clienteRenderizarRelatorios() {
+  // Gera relatórios e copia para divs do cliente
+  try { if(typeof bdUpdateVendaProduto==='function') bdUpdateVendaProduto(); } catch(e){}
+  try { if(typeof bdUpdateLaudoGrupo==='function')   bdUpdateLaudoGrupo(); }   catch(e){}
+  try { if(typeof bdUpdateLaudoMarca==='function')   bdUpdateLaudoMarca(); }   catch(e){}
+  try { if(typeof repUpdateAll==='function')         repUpdateAll(); }         catch(e){}
+
+  // Copia conteúdo gerado para os containers do cliente
+  function clonar(srcId, dstId) {
+    var src = document.getElementById(srcId);
+    var dst = document.getElementById(dstId);
+    if (src && dst) { dst.innerHTML = src.innerHTML; }
+  }
+  setTimeout(function(){
+    clonar('av-rel-venda-produto',   'cli-venda-produto-content');
+    clonar('av-rel-laudo-grupo',     'cli-laudo-grupo-content');
+    clonar('av-rel-laudo-marca',     'cli-laudo-marca-content');
+    clonar('av-rep-content',         'cli-representantes-content');
+  }, 500);
+}
+
+function _clienteStatus(msg, cls) {
+  var el = document.getElementById('cli-sync-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'cli-sync-status' + (cls ? ' '+cls : '');
 }
 
 // ── PERMISSÕES — Cliente vê só relatórios ────────────────────────────────────
