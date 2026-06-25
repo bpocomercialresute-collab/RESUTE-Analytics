@@ -859,24 +859,151 @@ async function _adminCarregar(empresa_id) {
   } catch(e) { _adminSetStatus('✗ ' + e.message); console.error(e); }
 }
 
+// ── SYNC VISUAL SAEF — chamada direta do browser (sem Edge Function) ──────────
+var VS_API  = 'https://api-plastrio.visualsaef.com';
+var VS_CID  = '7eb42956-e55c-4424-9148-ed6cb1f781ed';
+var VS_CSEC = 'b0HJSjMTNCTDFeptGvWeIDbpn6aFRxZ252VEiN9S';
+
 async function adminSincronizar() {
   if (!EMPRESA_ATIVA || !EMPRESA_ATIVA.tem_api) return;
   var btn = document.getElementById('admin-btn-sync');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="auth-spin">⟳</span> Sincronizando...'; }
-  _adminSetStatus('⏳ Conectando à API da ' + EMPRESA_ATIVA.nome + '...');
+
   try {
-    var r = await fetch(SUPA_URL + '/functions/v1/sync-visual-saef', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SVC_KEY },
-      body: JSON.stringify({ empresa_id: EMPRESA_ATIVA.empresa_id })
+    // Data de início: último sync ou 01/01/2025
+    var logR = await fetch(
+      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&select=ultima_data',
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
+    );
+    var logD = await logR.json();
+    var ultimaData = logD && logD[0] && logD[0].ultima_data ? logD[0].ultima_data : null;
+
+    var dataInicio = ultimaData ? new Date(ultimaData) : new Date('2025-01-01');
+    if (ultimaData) dataInicio.setDate(dataInicio.getDate() + 1);
+    var dataFim = new Date();
+
+    var fmt = function(d) {
+      return String(d.getDate()).padStart(2,'0')
+           + String(d.getMonth()+1).padStart(2,'0')
+           + String(d.getFullYear());
+    };
+    var DI = fmt(dataInicio), DF = fmt(dataFim);
+    _adminSetStatus('⏳ Conectando API Varremaster — período: ' + DI + ' a ' + DF);
+
+    // 1. Login na Visual Saef
+    var lR = await fetch(VS_API + '/login?client_id=' + VS_CID + '&client_secret=' + VS_CSEC);
+    if (!lR.ok) throw new Error('Login API falhou: HTTP ' + lR.status);
+    var lD = await lR.json();
+    var token = lD.token || lD.Token || lD.access_token || lD.accessToken;
+    if (!token) throw new Error('Token não retornado. Campos: ' + Object.keys(lD).join(','));
+    _adminSetStatus('⏳ Login OK — buscando dados...');
+
+    // 2. Busca vendas
+    var dR = await fetch(
+      VS_API + '/relacaovendaitem?DataInicio=' + DI + '&DataTermino=' + DF,
+      { headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } }
+    );
+    if (!dR.ok) throw new Error('Busca dados falhou: HTTP ' + dR.status);
+    var raw = await dR.json();
+    var lista = Array.isArray(raw) ? raw
+      : (raw.data || raw.itens || raw.items || raw.result || raw.dados || raw.registros || []);
+
+    _adminSetStatus('⏳ API retornou ' + lista.length + ' registros — processando...');
+
+    if (!lista.length) {
+      _adminSetStatus('✓ Nenhum dado novo no período ' + DI + ' a ' + DF, true);
+      _atualizarSyncLog(EMPRESA_ATIVA.empresa_id, dataFim, 0, 'Sem dados no período');
+      return;
+    }
+
+    // 3. Mapeamento case-insensitive
+    var get = function(item, keys) {
+      var lw = {};
+      Object.keys(item).forEach(function(k) { lw[k.toLowerCase().replace(/[\s_]/g,'')] = item[k]; });
+      for (var i=0; i<keys.length; i++) {
+        var v = lw[keys[i].toLowerCase().replace(/[\s_]/g,'')];
+        if (v !== undefined && v !== null && v !== '') return v;
+      }
+      return null;
+    };
+
+    var regs = lista.map(function(item, idx) {
+      return {
+        empresa_id:   EMPRESA_ATIVA.empresa_id,
+        id_externo:   String(get(item,['id','codigo','iditem','idvenda','codigoitem','chave','seq','cditem','nritem']) || ('auto_' + idx)),
+        num_pedido:   String(get(item,['numeropedido','numpedido','pedido','cdpedido','nrpedido']) || ''),
+        produto:      String(get(item,['produto','descricao','descricaoproduto','descproduto','nmproduto','dsproduto','descitem']) || ''),
+        qtd:          Number(get(item,['quantidade','qtd','qtde','qtdade']) || 0),
+        dt_emissao:   String(get(item,['dataemissao','dtemissao','emissao']) || ''),
+        dt_saida:     String(get(item,['datasaida','dtsaida','data','datafaturamento','databaixa','datavenda','dtbaixa']) || ''),
+        valor:        Number(get(item,['valortotal','valor','vltotal','totalitem','vlitem','valoritem','vlvenda']) || 0),
+        vendedor:     String(get(item,['vendedor','nomevendedor','nmvendedor','representante','nomerepresentante']) || ''),
+        industria:    String(get(item,['industria','fabricante','fornecedor','marca']) || ''),
+        cliente:      String(get(item,['cliente','nomecliente','nmcliente','razaosocial']) || ''),
+        grupo:        String(get(item,['grupo','grupoitem','grupoproduto','categoria']) || ''),
+        uf:           String(get(item,['uf','estado','ufcliente','siglaestado']) || ''),
+        cidade:       String(get(item,['cidade','municipio','nomecidade']) || ''),
+        empresa_nome: 'Varremaster'
+      };
     });
-    var d = await r.json();
-    if (!r.ok || d.erro) throw new Error(d.erro || 'Erro na sincronização.');
-    _adminSetStatus('✓ ' + (d.mensagem || d.novos + ' registros importados'), true);
-    if ((d.novos || 0) > 0) { await _adminCarregar(EMPRESA_ATIVA.empresa_id); adminProcessar(); }
-  } catch(e) { _adminSetStatus('✗ ' + e.message); console.error(e); }
-  finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg> Sincronizar API'; }
+
+    // 4. Salva no Supabase em lotes de 500
+    var inseridos = 0;
+    // Limpa manuais antigos desta empresa (API sobrescreve)
+    await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&id_externo=like.auto_*',
+      { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } });
+
+    for (var i = 0; i < regs.length; i += 500) {
+      var batch = regs.slice(i, i+500);
+      var sR = await fetch(SUPA_URL + '/rest/v1/vendas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY,
+                   'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' },
+        body: JSON.stringify(batch)
+      });
+      if (!sR.ok) {
+        var sErr = await sR.text();
+        throw new Error('Erro ao salvar lote: ' + sErr.slice(0,200));
+      }
+      inseridos += batch.length;
+      _adminSetStatus('⏳ Salvando... ' + inseridos + '/' + regs.length);
+    }
+
+    // 5. Atualiza sync_log
+    await _atualizarSyncLog(EMPRESA_ATIVA.empresa_id, dataFim, inseridos, inseridos + ' registros de ' + DI + ' a ' + DF);
+
+    // 6. Recarrega dados e processa relatórios
+    _adminSetStatus('✓ ' + inseridos + ' registros importados da Varremaster!', true);
+    await _adminCarregar(EMPRESA_ATIVA.empresa_id);
+    adminProcessar();
+
+  } catch(e) {
+    _adminSetStatus('✗ ' + e.message);
+    console.error('Sync error:', e);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg> Sincronizar API';
+    }
   }
+}
+
+async function _atualizarSyncLog(empresa_id, dataFim, total, mensagem) {
+  try {
+    await fetch(SUPA_URL + '/rest/v1/sync_log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY,
+                 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({
+        empresa_id:      empresa_id,
+        ultima_sync:     new Date().toISOString(),
+        ultima_data:     dataFim.toISOString().split('T')[0],
+        total_registros: total,
+        status:          'ok',
+        mensagem:        mensagem
+      })
+    });
+  } catch(e) { console.error('sync_log error:', e); }
 }
 
 function adminProcessar() {
