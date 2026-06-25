@@ -11,12 +11,7 @@ var EMPRESAS = [];
 
 // F5 / recarregar = sempre volta para o login
 // Usa sessionStorage (some ao fechar/recarregar) em vez de localStorage
-(function() {
-  // Limpa qualquer sessão de página anterior
-  sessionStorage.removeItem('resute_session');
-  // Também limpa localStorage antigo se existir
-  sessionStorage.removeItem('resute_session');
-})();
+sessionStorage.removeItem('resute_session');
 
 function abrirAnaliseVendas() {
   var saved = sessionStorage.getItem('resute_session');
@@ -79,65 +74,6 @@ async function fazerLogin() {
     btn.disabled = false;
     btn.innerHTML = 'Entrar <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M5 12h14M13 5l7 7-7 7"/></svg>';
   }
-}
-
-
-// ── CLIENTE — usa a mesma view-app mas sem acesso a BD/edição ─────────────────
-function _abrirDashCliente() {
-  // Atualiza nome no header
-  var campos = {
-    'user-nome': SESSION.nome,
-    'user-empresa': SESSION.empresa_nome,
-    'sidebar-user-nome': SESSION.nome,
-    'sidebar-user-empresa': SESSION.empresa_nome
-  };
-  Object.keys(campos).forEach(function(id){
-    var el = document.getElementById(id);
-    if (el) el.textContent = campos[id];
-  });
-
-  // Mostra sync e user
-  ['sync-area','header-user','sidebar-user'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el) el.style.display = 'flex';
-  });
-
-  // Vai para view-app
-  if (typeof switchView === 'function') switchView('view-app');
-
-  // ── Esconde tudo que cliente não pode ver ──────────────────────────────────
-
-  // Esconde o item "BD & Cadastros" na sidebar
-  document.querySelectorAll('.cui-nav-item').forEach(function(item){
-    if (item.textContent.indexOf('BD') >= 0 || item.textContent.indexOf('Cadastro') >= 0) {
-      item.style.display = 'none';
-    }
-  });
-
-  // Esconde botões: BD & Cadastros, Processar, Salvar no Banco, Limpar
-  var seletores = [
-    '[onclick="avShowBD()"]',
-    '[onclick="jssProcess()"]',
-    '[onclick*="salvarDados"]',
-    '[onclick*="jssClearGrid"]',
-    '[onclick*="bdgAtualizar"]'
-  ];
-  seletores.forEach(function(sel){
-    document.querySelectorAll(sel).forEach(function(el){ el.style.display='none'; });
-  });
-
-  // Esconde a área BD se acessada
-  var bdArea = document.getElementById('av-bd-area');
-  if (bdArea) bdArea.style.display = 'none';
-
-  // ── Abre direto nos relatórios ──────────────────────────────────────────────
-  // Vai direto para RELAT PRODUTOS
-  setTimeout(function(){
-    if (typeof avShowRel === 'function') avShowRel('relat-produtos');
-  }, 100);
-
-  // ── Carrega dados do banco e gera relatórios ────────────────────────────────
-  carregarDadosDoSupabase(SESSION.empresa_id);
 }
 
 
@@ -779,4 +715,149 @@ function dcStatus(msg, ok) {
   if (!el) return;
   el.textContent = msg;
   el.style.color = ok ? '#22c55e' : (msg.startsWith('✗') ? '#ef4444' : '#475569');
+}
+// =============================================================================
+// ADMIN MULTI-EMPRESA — Abas · Sincronizar · Processar · Salvar · Limpar
+// =============================================================================
+
+var EMPRESA_ATIVA = null;
+var EMPRESAS_ADMIN = [
+  { empresa_id: 'af3b599b-65c5-4868-b8bf-a5934da84f0d', nome: 'Varremaster', tem_api: true  },
+  { empresa_id: 'ce8623d4-1928-4d7c-ba8c-56e0fca23fcf', nome: '44-Tshirts',  tem_api: false },
+  { empresa_id: 'dff89ea1-0c33-48d1-84d7-1fc7826654b8', nome: 'Llamenina',   tem_api: false }
+];
+
+function adminInicializar() {
+  var sa = document.getElementById('sync-area'); if (sa) sa.style.display = 'none';
+  _adminRenderAbas();
+  adminSelecionarEmpresa(EMPRESAS_ADMIN[0].empresa_id);
+}
+
+function _adminRenderAbas() {
+  var c = document.getElementById('admin-empresa-tabs'); if (!c) return;
+  c.innerHTML = EMPRESAS_ADMIN.map(function(e) {
+    var tag = e.tem_api ? '<span class="emp-tag tag-api">API</span>' : '<span class="emp-tag tag-manual">Manual</span>';
+    return '<button class="admin-emp-tab" data-id="' + e.empresa_id + '">' + e.nome + tag + '</button>';
+  }).join('');
+  c.querySelectorAll('.admin-emp-tab').forEach(function(btn) {
+    btn.addEventListener('click', function() { adminSelecionarEmpresa(this.dataset.id); });
+  });
+}
+
+async function adminSelecionarEmpresa(id) {
+  EMPRESA_ATIVA = EMPRESAS_ADMIN.find(function(e){ return e.empresa_id === id; });
+  if (!EMPRESA_ATIVA) return;
+  document.querySelectorAll('.admin-emp-tab').forEach(function(b){ b.classList.toggle('active', b.dataset.id === id); });
+  var bar = document.getElementById('admin-action-bar'); if (bar) bar.style.display = 'flex';
+  var nEl = document.getElementById('admin-emp-nome');   if (nEl) nEl.textContent = EMPRESA_ATIVA.nome;
+  var bs  = document.getElementById('admin-btn-sync');   if (bs)  bs.style.display = EMPRESA_ATIVA.tem_api ? 'inline-flex' : 'none';
+  if (typeof FULL_DATA !== 'undefined') FULL_DATA.bd = [];
+  if (typeof BD_DATA   !== 'undefined') { BD_DATA.rows = []; BD_DATA.count = 0; }
+  if (typeof GRIDS !== 'undefined' && GRIDS.bd) { GRIDS.bd.allData = []; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render(); }
+  _adminSetStatus('⏳ Carregando ' + EMPRESA_ATIVA.nome + '...');
+  await _adminCarregar(id);
+}
+
+async function _adminCarregar(empresa_id) {
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&select=*&order=dt_saida.asc&limit=100000',
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } });
+    var v = await r.json();
+    if (!Array.isArray(v) || !v.length) { _adminSetStatus('Sem dados. Cole na grade ou sincronize.'); return; }
+    var headers = ['ID','N° PEDIDO','PRODUTO OU SERVIÇO','QTD','Dt. Emissão','Data de Saída','VALOR','Vendedor','Indústria','Cliente','ANO','MÊS','GRUPO','SEM','tipo mercado','SETOR','CIDADE','UF','TIPO VENDEDOR','Dias Sem Compra','NOTA F','ROTA','DESCONTO','EMPRESA','cnpj','grupo_produto','GRUPO PAI','subgrupo_produto','marca','familia_produto','classes'];
+    var rows = v.map(function(r){ return [r.id_externo||'',r.num_pedido||'',r.produto||'',String(r.qtd||''),r.dt_emissao||'',r.dt_saida||'',String(r.valor||''),r.vendedor||'',r.industria||'',r.cliente||'',r.ano?String(r.ano):'',r.mes||'',r.grupo||'',r.semana||'',r.tipo_mercado||'',r.setor||'',r.cidade||'',r.uf||'',r.tipo_vendedor||'','','','','',r.empresa_nome||'',r.cnpj||'',r.grupo_produto||'',r.grupo_pai||'',r.subgrupo||'',r.marca||'',r.familia||'',r.classes||'']; });
+    if (typeof BD_DATA   !== 'undefined') { BD_DATA.headers = headers; BD_DATA.rows = rows; BD_DATA.count = rows.length; }
+    if (typeof FULL_DATA !== 'undefined') FULL_DATA.bd = rows;
+    if (typeof GRIDS !== 'undefined' && GRIDS.bd) { GRIDS.bd.allData = rows; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render(); }
+    _adminSetStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' registros — ' + EMPRESA_ATIVA.nome, true);
+  } catch(e) { _adminSetStatus('✗ ' + e.message); console.error(e); }
+}
+
+async function adminSincronizar() {
+  if (!EMPRESA_ATIVA || !EMPRESA_ATIVA.tem_api) return;
+  var btn = document.getElementById('admin-btn-sync');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="auth-spin">⟳</span> Sincronizando...'; }
+  _adminSetStatus('⏳ Conectando à API da ' + EMPRESA_ATIVA.nome + '...');
+  try {
+    var r = await fetch(SUPA_URL + '/functions/v1/sync-visual-saef', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SVC_KEY },
+      body: JSON.stringify({ empresa_id: EMPRESA_ATIVA.empresa_id })
+    });
+    var d = await r.json();
+    if (!r.ok || d.erro) throw new Error(d.erro || 'Erro na sincronização.');
+    _adminSetStatus('✓ ' + (d.mensagem || d.novos + ' registros importados'), true);
+    if ((d.novos || 0) > 0) { await _adminCarregar(EMPRESA_ATIVA.empresa_id); adminProcessar(); }
+  } catch(e) { _adminSetStatus('✗ ' + e.message); console.error(e); }
+  finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg> Sincronizar API'; }
+  }
+}
+
+function adminProcessar() {
+  if (!EMPRESA_ATIVA) { alert('Selecione uma empresa.'); return; }
+  var src = (typeof FULL_DATA !== 'undefined' && FULL_DATA.bd && FULL_DATA.bd.length) ? FULL_DATA.bd : (typeof GRIDS !== 'undefined' && GRIDS.bd ? GRIDS.bd.getData() : []);
+  var rows = src.filter(function(r){ return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; }); });
+  if (!rows.length) { alert('Sem dados. Cole na grade ou sincronize.'); return; }
+  _adminSetStatus('⏳ Processando ' + rows.length.toLocaleString('pt-BR') + ' linhas...');
+  var headers = ['ID','N° PEDIDO','PRODUTO OU SERVIÇO','QTD','Dt. Emissão','Data de Saída','VALOR','Vendedor','Indústria','Cliente','ANO','MÊS','GRUPO','SEM','tipo mercado','SETOR','CIDADE','UF','TIPO VENDEDOR','Dias Sem Compra','NOTA F','ROTA','DESCONTO','EMPRESA','cnpj','grupo_produto','GRUPO PAI','subgrupo_produto','marca','familia_produto','classes'];
+  if (typeof BD_DATA   !== 'undefined') { BD_DATA.headers = headers; BD_DATA.rows = rows; BD_DATA.count = rows.length; }
+  if (typeof FULL_DATA !== 'undefined') FULL_DATA.bd = rows;
+  setTimeout(function() {
+    try { bdMapColumns(); } catch(e) { console.error(e); }
+    try { bdAutoFill(); }   catch(e) { console.error(e); }
+    try { bdUpdateAllTabs(); } catch(e) { console.error(e); }
+    if (typeof GRIDS !== 'undefined' && GRIDS.bd) { GRIDS.bd.allData = BD_DATA.rows; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render(); }
+    _adminSetStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' linhas processadas — relatórios gerados!', true);
+  }, 10);
+}
+
+async function adminSalvarBanco() {
+  if (!EMPRESA_ATIVA) { alert('Selecione uma empresa.'); return; }
+  var src = (typeof FULL_DATA !== 'undefined' && FULL_DATA.bd && FULL_DATA.bd.length) ? FULL_DATA.bd : (typeof GRIDS !== 'undefined' && GRIDS.bd ? GRIDS.bd.getData() : []);
+  var rows = src.filter(function(r){ return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; }); });
+  if (!rows.length) { alert('Sem dados para salvar.'); return; }
+  if (!confirm('Salvar ' + rows.length.toLocaleString('pt-BR') + ' linhas para ' + EMPRESA_ATIVA.nome + '?')) return;
+  var eid = EMPRESA_ATIVA.empresa_id, ts = Date.now();
+  var regs = rows.map(function(r, i) {
+    return { empresa_id:eid, id_externo:'manual_'+eid.slice(0,8)+'_'+ts+'_'+i,
+      num_pedido:r[1]||null, produto:r[2]||null, qtd:parseFloat(r[3])||null,
+      dt_emissao:r[4]||null, dt_saida:r[5]||null, valor:parseFloat(String(r[6]||'0').replace(',','.'))||null,
+      vendedor:r[7]||null, industria:r[8]||null, cliente:r[9]||null,
+      ano:parseInt(r[10])||null, mes:r[11]||null, grupo:r[12]||null,
+      cidade:r[16]||null, uf:r[17]||null, empresa_nome:EMPRESA_ATIVA.nome, cnpj:r[24]||null, marca:r[28]||null };
+  });
+  try {
+    await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid + '&id_externo=like.manual_*',
+      { method:'DELETE', headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SVC_KEY} });
+    for (var i = 0; i < regs.length; i += 500) {
+      var batch = regs.slice(i, i+500);
+      var res = await fetch(SUPA_URL + '/rest/v1/vendas', {
+        method:'POST', headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SVC_KEY,'Prefer':'return=minimal'},
+        body:JSON.stringify(batch) });
+      if (!res.ok) { var err = await res.text(); throw new Error(err.slice(0,200)); }
+      _adminSetStatus('⏳ ' + Math.min(i+500,regs.length) + '/' + regs.length + ' salvos...');
+    }
+    _adminSetStatus('✓ ' + regs.length.toLocaleString('pt-BR') + ' linhas salvas para ' + EMPRESA_ATIVA.nome + '!', true);
+  } catch(e) { _adminSetStatus('✗ ' + e.message); alert('Erro ao salvar: ' + e.message); }
+}
+
+async function adminLimparBanco() {
+  if (!EMPRESA_ATIVA) return;
+  if (!confirm('⚠️ APAGAR TODOS OS DADOS de ' + EMPRESA_ATIVA.nome + '?\nEssa ação não pode ser desfeita!')) return;
+  if (!confirm('Confirme: Apagar TUDO de ' + EMPRESA_ATIVA.nome + '?')) return;
+  _adminSetStatus('⏳ Limpando banco de ' + EMPRESA_ATIVA.nome + '...');
+  try {
+    await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id,
+      { method:'DELETE', headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SVC_KEY} });
+    if (typeof FULL_DATA !== 'undefined') FULL_DATA.bd = [];
+    if (typeof BD_DATA   !== 'undefined') { BD_DATA.rows = []; BD_DATA.count = 0; }
+    if (typeof GRIDS !== 'undefined' && GRIDS.bd) { GRIDS.bd.allData = []; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render(); }
+    _adminSetStatus('✓ Banco de ' + EMPRESA_ATIVA.nome + ' limpo!', true);
+  } catch(e) { _adminSetStatus('✗ ' + e.message); }
+}
+
+function _adminSetStatus(msg, ok) {
+  var el = document.getElementById('admin-sync-status'); if (!el) return;
+  el.textContent = msg;
+  el.className = 'admin-sync-status' + (ok ? ' ok' : (msg.startsWith('✗') ? ' erro' : ''));
 }

@@ -2,142 +2,99 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <title>RESUTE Analytics</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=2" />
+  <link rel="stylesheet" href="css/style.css?v=4" />
   <link rel="icon" href="data:," />
 </head>
 <body class="cui-body">
 
-  <div class="cui-sidebar" id="sidebar">
-    <div class="cui-sidebar-brand">
-      <div class="cui-brand-logo">
-        <svg viewBox="0 0 32 32" fill="none">
-          <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.1)"/>
-          <path d="M6 24 L16 8 L26 24" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M10 18 L16 8 L22 18" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+  <!-- ═══ PÁGINA INICIAL — LOGIN DIRETO ═══ -->
+  <div id="view-login-page" class="login-page">
+    <nav class="lp-nav">
+      <div class="lp-nav-brand">
+        <svg viewBox="0 0 28 28" fill="none" width="26" height="26"><rect width="28" height="28" rx="7" fill="#1e3a8a"/><path d="M5 21L14 7l9 14" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>RESUTE Analytics</span>
       </div>
-      <div class="cui-brand-text">
-        <div class="cui-brand-name">RESUTE</div>
-        <div class="cui-brand-sub">Analytics</div>
+      <div class="lp-nav-right"><span class="lp-nav-badge">Gestão Comercial</span></div>
+    </nav>
+    <main class="lp-main">
+      <div class="lp-hero">
+        <div class="lp-hero-kicker">Plataforma SaaS · Multi-empresa</div>
+        <h1 class="lp-hero-title">Gestão comercial<br/><span class="lp-hero-accent">inteligente</span></h1>
+        <p class="lp-hero-sub">Dados de vendas, relatórios e análises em tempo real para cada empresa que você gerencia.</p>
+        <div class="lp-stats">
+          <div class="lp-stat"><div class="lp-stat-val">3</div><div class="lp-stat-lbl">Empresas</div></div>
+          <div class="lp-stat-div"></div>
+          <div class="lp-stat"><div class="lp-stat-val">100%</div><div class="lp-stat-lbl">Dados isolados</div></div>
+          <div class="lp-stat-div"></div>
+          <div class="lp-stat"><div class="lp-stat-val">API</div><div class="lp-stat-lbl">Sync automático</div></div>
+        </div>
       </div>
-      <button class="cui-sidebar-toggle" onclick="toggleSidebar()" title="Recolher menu">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
-      </button>
-    </div>
+      <div class="lp-form-wrap">
+        <div class="lp-form-box">
+          <div class="lp-form-title">Acessar a plataforma</div>
+          <div class="lp-form-sub">Entre com suas credenciais para continuar</div>
+          <div class="lp-field">
+            <label class="lp-label">E-mail</label>
+            <input id="login-email" type="email" class="lp-input" placeholder="seu@email.com" autocomplete="username" />
+          </div>
+          <div class="lp-field">
+            <label class="lp-label">Senha</label>
+            <input id="login-senha" type="password" class="lp-input" placeholder="senha" autocomplete="current-password" />
+          </div>
+          <div id="login-erro" class="lp-erro"></div>
+          <button id="login-btn" class="lp-btn" onclick="fazerLogin()">
+            Entrar na plataforma
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+          <div class="lp-footer">RESUTE · Gestão Comercial © 2026</div>
+        </div>
+      </div>
+    </main>
+  </div>
 
+  <!-- ═══ SIDEBAR (admin) ═══ -->
+  <div class="cui-sidebar" id="sidebar" style="display:none">
+    <div class="cui-sidebar-brand">
+      <div class="cui-brand-logo"><svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.1)"/><path d="M6 24 L16 8 L26 24" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="cui-brand-text"><div class="cui-brand-name">RESUTE</div><div class="cui-brand-sub">Analytics</div></div>
+      <button class="cui-sidebar-toggle" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+    </div>
     <nav class="cui-nav">
       <div class="cui-nav-title">NAVEGAÇÃO</div>
-      <a class="cui-nav-item active" onclick="switchView('view-home'); setSidebarActive(this)" href="#">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        <span>Início</span>
-      </a>
-      <a class="cui-nav-item" onclick="abrirAnaliseVendas(); setSidebarActive(this)" href="#">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
-        <span>Análise de Vendas</span>
-      </a>
+      <a class="cui-nav-item active" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg><span>Análise de Vendas</span></a>
     </nav>
-
     <div class="cui-sidebar-footer">
-      <div id="sidebar-user" style="display:none" class="cui-sidebar-user">
-        <div class="cui-sidebar-avatar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </div>
-        <div class="cui-sidebar-user-info">
-          <div id="sidebar-user-nome" class="cui-sidebar-user-nome"></div>
-          <div id="sidebar-user-empresa" class="cui-sidebar-user-empresa"></div>
-        </div>
-        <button class="cui-sidebar-logout" onclick="fazerLogout()" title="Sair">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="15" height="15"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        </button>
+      <div id="sidebar-user" class="cui-sidebar-user" style="display:none">
+        <div class="cui-sidebar-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div class="cui-sidebar-user-info"><div id="sidebar-user-nome" class="cui-sidebar-user-nome"></div><div id="sidebar-user-empresa" class="cui-sidebar-user-empresa"></div></div>
+        <button class="cui-sidebar-logout" onclick="fazerLogout()" title="Sair"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="15" height="15"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
       </div>
     </div>
   </div>
-
   <div class="cui-sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-  <div class="cui-wrapper" id="cui-wrapper">
-
+  <!-- ═══ WRAPPER (admin) ═══ -->
+  <div class="cui-wrapper" id="cui-wrapper" style="display:none">
     <header class="cui-header">
       <div class="cui-header-left">
-        <button class="cui-header-toggle" onclick="toggleSidebar()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
-        </button>
-        <div class="cui-breadcrumb">
-          <span id="breadcrumb-text">Início</span>
-        </div>
+        <button class="cui-header-toggle" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+        <div class="cui-breadcrumb">Análise de Vendas</div>
       </div>
       <div class="cui-header-right">
-        <div id="sync-area" style="display:none" class="cui-sync-area">
-          <span id="sync-status" class="cui-sync-status"></span>
-          <select id="sync-empresa-select" class="sync-empresa-select" style="display:none">
-            <option value="">Selecionar empresa...</option>
-          </select>
-          <button id="btn-sync" class="cui-btn-sync" onclick="sincronizarAPI()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
-            Sincronizar
-          </button>
-        </div>
+        <div id="sync-area" style="display:none"></div>
         <div id="header-user" style="display:none" class="cui-header-user">
-          <div class="cui-header-user-avatar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          </div>
-          <div class="cui-header-user-info">
-            <div id="user-nome" class="cui-header-user-nome"></div>
-            <div id="user-empresa" class="cui-header-user-empresa"></div>
-          </div>
+          <div class="cui-header-user-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <div class="cui-header-user-info"><div id="user-nome" class="cui-header-user-nome"></div><div id="user-empresa" class="cui-header-user-empresa"></div></div>
         </div>
       </div>
     </header>
-
     <main class="cui-main">
-
-      <div id="loader" style="display:none">
-        <div class="loader-box">
-          <div class="loader-progress"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20"/></svg></div>
-          <h3>Processando</h3>
-          <p id="loaderMsg">Analisando base de dados…</p>
-        </div>
-      </div>
-
-      <div class="content">
-
-    <div id="view-home" class="page-view active" style="display:block">
-      <section class="hero">
-        <div class="hero-kicker"><span class="hero-kicker-dot"></span>Plataforma RESUTE</div>
-        <h1 class="hero-title">Sistema de Gestão <span class="italic">Comercial</span><br>Dados que viram decisão.</h1>
-        <p class="hero-subtitle">Plataforma universal de análise. Suba a planilha de qualquer empresa, escolha as colunas relevantes e obtenha relatórios gerenciais automaticamente.</p>
-        <div class="hero-actions">
-          <button class="btn btn-primary btn-lg" data-nav="view-tools">Acessar Ferramentas <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
-        </div>
-      </section>
-    </div>
-
-    <div id="view-tools" class="page-view" style="display:none">
-      <button class="voltar-btn" onclick="switchView('view-home')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        Início
-      </button>
-      <div class="page-header">
-        <h1 class="page-title">Ferramentas</h1>
-        <p class="page-subtitle">Módulos disponíveis no ecossistema RESUTE.</p>
-      </div>
-      <div class="tools-grid">
-        <div class="tool-card" data-status="active" onclick="abrirAnaliseVendas()">
-          <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg></div>
-          <h3>Análise de Vendas</h3>
-          <p>Importe planilhas de pedidos de qualquer empresa, selecione as colunas que importam e gere relatórios consolidados automaticamente.</p>
-          <div class="tool-meta"><span class="badge badge-active"><span class="badge-dot"></span>Disponível</span><div class="tool-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div></div>
-        </div>
-
-      </div>
-    </div>
-
-    <div id="view-app" class="page-view" style="display:none">
+      <div id="view-app" class="page-view" style="display:none">
       <div class="content">
 
         <div id="av-home">
@@ -169,6 +126,10 @@
               <button onclick="adminSalvarBanco()" class="jss-btn" style="background:#0a2a10;border-color:#166534;color:#4ade80">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
                 Salvar no Banco
+              </button>
+              <button onclick="adminLimparBanco()" class="jss-btn jss-btn-danger" title="Apaga todos os dados desta empresa">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                Limpar Banco
               </button>
             </div>
           </div>
@@ -489,7 +450,9 @@
   </script>
 </body>
 </html>
-  <!-- ═══ DASHBOARD CLIENTE ═══ -->
+    </main>
+  </div>
+
   <div id="view-dash-cliente" style="display:none;position:fixed;inset:0;z-index:9000;background:#060d1a;flex-direction:column;font-family:'Inter',system-ui,sans-serif;overflow:hidden;">
     <header style="display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:56px;background:#080f1e;border-bottom:1px solid #1a2640;flex-shrink:0;">
       <div style="display:flex;align-items:center;gap:14px;">
@@ -534,4 +497,25 @@
         </div>
       </div>
     </div>
-  </div>
+  </div
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="js/utils.js?v=2"></script>
+  <script src="js/constants.js?v=2"></script>
+  <script src="js/state.js?v=2"></script>
+  <script src="js/nav.js?v=2"></script>
+  <script src="js/charts.js?v=2"></script>
+  <script src="js/dashboard.js?v=2"></script>
+  <script src="js/actions.js?v=2"></script>
+  <script src="js/auth.js?v=4"></script>
+  <script src="js/jss.js?v=2"></script>
+  <script src="js/bd.js?v=2"></script>
+  <script src="js/relatorios.js?v=2"></script>
+  <script src="js/relatrep.js?v=2"></script>
+  <script>
+    function toggleSidebar(){var sb=document.getElementById('sidebar');var ov=document.getElementById('sidebar-overlay');if(sb)sb.classList.toggle('open');if(ov)ov.classList.toggle('active');}
+    document.addEventListener('keydown',function(e){if(e.key==='Enter'){var lp=document.getElementById('view-login-page');if(lp&&lp.style.display!=='none')fazerLogin();}});
+  </script>
+</body>
+</html>
