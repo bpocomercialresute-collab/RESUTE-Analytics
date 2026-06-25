@@ -22,11 +22,11 @@ function switchView(viewId) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Inicializa: esconde todas e mostra só view-home
+// Inicializa: esconde todas as page-views (a login-page é controlada pelo auth.js)
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.page-view').forEach(v => { v.style.display = 'none'; });
-  const home = document.getElementById('view-home');
-  if (home) home.style.display = 'block';
+  // view-home foi substituída por view-login-page (controlada pelo auth.js)
+  // Não tenta mostrar view-home — o auth.js controla o fluxo inicial
 });
 
 // Listeners de navegação — topnav

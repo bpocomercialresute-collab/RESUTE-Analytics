@@ -25,7 +25,12 @@ function _mostrarLogin() {
 }
 
 function fecharLogin() {
-  document.getElementById('login-modal').style.display = 'none';
+  // Fecha modal antigo (se existir)
+  var m = document.getElementById('login-modal');
+  if (m) m.style.display = 'none';
+  // Esconde a página de login nova
+  var lp = document.getElementById('view-login-page');
+  if (lp) lp.style.display = 'none';
 }
 
 async function fazerLogin() {
@@ -88,13 +93,20 @@ function fazerLogout() {
 }
 
 function _abrirApp() {
-  // Cliente ou admin → mesma interface, mas com permissões diferentes
+  // Sempre esconde a login page primeiro
+  var lp = document.getElementById('view-login-page');
+  if (lp) lp.style.display = 'none';
+
+  // Cliente → dashboard executivo
   if (SESSION.papel === 'cliente') {
     _abrirDashCliente();
     return;
   }
 
-  // Super admin → interface completa com abas por empresa
+  // Super admin → mostra sidebar e wrapper
+  var sb = document.getElementById('sidebar');     if (sb) sb.style.display = 'flex';
+  var wr = document.getElementById('cui-wrapper'); if (wr) wr.style.display = 'flex';
+
   var campos = {
     'user-nome': SESSION.nome, 'user-empresa': 'RESUTE Admin',
     'sidebar-user-nome': SESSION.nome, 'sidebar-user-empresa': 'RESUTE Admin'
@@ -408,7 +420,9 @@ var MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
 
 // ── ABRE O DASHBOARD ──────────────────────────────────────────────────────────
 function _abrirDashCliente() {
-  // Esconde layout admin
+  // Esconde login page e layout admin
+  var lp = document.getElementById('view-login-page');
+  if (lp) lp.style.display = 'none';
   ['cui-sidebar','cui-wrapper'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
