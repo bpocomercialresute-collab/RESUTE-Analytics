@@ -438,11 +438,34 @@ function _abrirDashCliente() {
   var vc = document.getElementById('view-dash-cliente');
   if (vc) vc.style.display = 'flex';
 
-  var emp = document.getElementById('dc-empresa');
-  if (emp) emp.textContent = SESSION.empresa_nome || 'Cliente';
+  // Multi-loja: monta seletor de loja se houver mais de uma empresa
+  var ids = SESSION.empresa_ids;
+  var sel = document.getElementById('dc-loja-selector');
 
-  // Carrega dados
-  dcCarregarDados();
+  if (ids && ids.length > 1) {
+    // Constrói os botões de seleção de loja
+    if (sel) {
+      sel.innerHTML = ids.map(function(id) {
+        return '<button class="dc-loja-btn" data-id="' + id + '">'
+             + (LOJA_NOMES[id] || id.slice(0, 8))
+             + '</button>';
+      }).join('');
+      sel.style.display = 'flex';
+      sel.querySelectorAll('.dc-loja-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() { dcSelecionarLoja(this.dataset.id); });
+      });
+    }
+    // Carrega a primeira loja por padrão
+    dcSelecionarLoja(ids[0]);
+  } else {
+    // Loja única
+    if (sel) sel.style.display = 'none';
+    var eid = (ids && ids[0]) || SESSION.empresa_id;
+    var badge = document.getElementById('dc-empresa');
+    if (badge) badge.textContent = LOJA_NOMES[eid] || SESSION.empresa_nome || 'Empresa';
+    if (eid) dcCarregarDados(eid);
+    else dcStatus('⚠ Empresa não configurada.');
+  }
 }
 
 // ── CARREGA DADOS DO SUPABASE ─────────────────────────────────────────────────
