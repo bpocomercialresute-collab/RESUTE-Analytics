@@ -13,6 +13,14 @@ var EMPRESAS = [];
 // Usa sessionStorage (some ao fechar/recarregar) em vez de localStorage
 sessionStorage.removeItem('resute_session');
 
+// ── MULTI-LOJA (Llamenina Matriz / Mega) ──────────────────────────────────────
+var LOJA_NOMES = {
+  'dff89ea1-0c33-48d1-84d7-1fc7826654b8': 'Llamenina Matriz',
+  'af44d320-d663-48ff-b58f-31c5011ad7ba': 'Llamenina Mega',
+  'af3b599b-65c5-4868-b8bf-a5934da84f0d': 'Varremaster',
+  'ce8623d4-1928-4d7c-ba8c-56e0fca23fcf': '44-Tshirts'
+};
+
 function abrirAnaliseVendas() {
   var saved = sessionStorage.getItem('resute_session');
   if (saved) { try { SESSION = JSON.parse(saved); } catch(e) { SESSION = null; } }
@@ -54,7 +62,7 @@ async function fazerLogin() {
     if (!r.ok || !d.access_token) throw new Error(d.error_description || 'Email ou senha incorretos.');
 
     var uR = await fetch(
-      SUPA_URL + '/rest/v1/usuarios?email=eq.' + encodeURIComponent(email) + '&select=*',
+      SUPA_URL + '/rest/v1/usuarios?email=eq.' + encodeURIComponent(email.toLowerCase()) + '&select=*',
       { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + d.access_token } }
     );
     var users = await uR.json();
@@ -92,6 +100,14 @@ async function fazerLogin() {
 function fazerLogout() {
   SESSION = null; EMPRESAS = [];
   sessionStorage.removeItem('resute_session');
+
+// ── MULTI-LOJA (Llamenina Matriz / Mega) ──────────────────────────────────────
+var LOJA_NOMES = {
+  'dff89ea1-0c33-48d1-84d7-1fc7826654b8': 'Llamenina Matriz',
+  'af44d320-d663-48ff-b58f-31c5011ad7ba': 'Llamenina Mega',
+  'af3b599b-65c5-4868-b8bf-a5934da84f0d': 'Varremaster',
+  'ce8623d4-1928-4d7c-ba8c-56e0fca23fcf': '44-Tshirts'
+};
   if (typeof switchView === 'function') switchView('view-home');
   ['sync-area','header-user','sidebar-user'].forEach(function(id){
     var el = document.getElementById(id);
@@ -435,15 +451,16 @@ function _abrirDashCliente() {
     if (el) el.style.display = 'none';
   });
 
+  // Mostra dashboard
   var vc = document.getElementById('view-dash-cliente');
   if (vc) vc.style.display = 'flex';
 
-  // Multi-loja: monta seletor de loja se houver mais de uma empresa
+  // Multi-loja: monta seletor se houver mais de uma empresa
   var ids = SESSION.empresa_ids;
   var sel = document.getElementById('dc-loja-selector');
 
   if (ids && ids.length > 1) {
-    // Constrói os botões de seleção de loja
+    // Renderiza botões de loja
     if (sel) {
       sel.innerHTML = ids.map(function(id) {
         return '<button class="dc-loja-btn" data-id="' + id + '">'
@@ -930,14 +947,6 @@ function _adminSetStatus(msg, ok) {
   el.textContent = msg;
   el.className = 'admin-sync-status' + (ok ? ' ok' : (msg.startsWith('✗') ? ' erro' : ''));
 }
-
-// ── MULTI-LOJA (Llamenina Matriz / Mega) ──────────────────────────────────────
-var LOJA_NOMES = {
-  'dff89ea1-0c33-48d1-84d7-1fc7826654b8': 'Llamenina Matriz',
-  'af44d320-d663-48ff-b58f-31c5011ad7ba': 'Llamenina Mega',
-  'af3b599b-65c5-4868-b8bf-a5934da84f0d': 'Varremaster',
-  'ce8623d4-1928-4d7c-ba8c-56e0fca23fcf': '44-Tshirts'
-};
 
 function dcSelecionarLoja(empresa_id) {
   // Destaca loja ativa
