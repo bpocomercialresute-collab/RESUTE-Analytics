@@ -60,13 +60,20 @@ async function fazerLogin() {
     var users = await uR.json();
     var u = (users && users.length) ? users[0] : { nome: email, papel: 'cliente', empresa_id: null };
 
+    // Processa empresa_ids (múltiplas lojas)
+    var empresaIds = null;
+    if (u.empresa_ids) {
+      try { empresaIds = JSON.parse(u.empresa_ids); } catch(e2) { empresaIds = null; }
+    }
+
     SESSION = {
-      token:        d.access_token,
-      nome:         u.nome || email,
-      email:        email,
-      papel:        u.papel || 'cliente',
-      empresa_id:   u.empresa_id || null,
-      empresa_nome: 'RESUTE'
+      token:       d.access_token,
+      nome:        u.nome || email,
+      email:       email,
+      papel:       u.papel || 'cliente',
+      empresa_id:  u.empresa_id || null,
+      empresa_ids: empresaIds || (u.empresa_id ? [u.empresa_id] : null),
+      empresa_nome:'RESUTE'
     };
     sessionStorage.setItem('resute_session', JSON.stringify(SESSION));
     fecharLogin();
@@ -453,11 +460,13 @@ function cliAba(btn, id) {
   if (pane) { pane.classList.add('active'); pane.style.display = 'block'; }
 }
 
-async function dcCarregarDados() {
-  dcStatus('⏳ Carregando dados...');
+async function dcCarregarDados(empresa_id_param) {
+  var eid = empresa_id_param || SESSION.empresa_id;
+  if (!eid) { dcStatus('⚠ Empresa não selecionada.'); return; }
+  dcStatus('⏳ Carregando...');
   try {
     var r = await fetch(
-      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + SESSION.empresa_id +
+      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid +
       '&select=*&order=dt_saida.asc&limit=100000',
       { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
     );
@@ -758,9 +767,10 @@ function dcStatus(msg, ok) {
 
 var EMPRESA_ATIVA = null;
 var EMPRESAS_ADMIN = [
-  { empresa_id: 'af3b599b-65c5-4868-b8bf-a5934da84f0d', nome: 'Varremaster', tem_api: true  },
-  { empresa_id: 'ce8623d4-1928-4d7c-ba8c-56e0fca23fcf', nome: '44-Tshirts',  tem_api: false },
-  { empresa_id: 'dff89ea1-0c33-48d1-84d7-1fc7826654b8', nome: 'Llamenina',   tem_api: false }
+  { empresa_id: 'af3b599b-65c5-4868-b8bf-a5934da84f0d', nome: 'Varremaster',     tem_api: true  },
+  { empresa_id: 'ce8623d4-1928-4d7c-ba8c-56e0fca23fcf', nome: '44-Tshirts',      tem_api: false },
+  { empresa_id: 'dff89ea1-0c33-48d1-84d7-1fc7826654b8', nome: 'Llamenina Matriz', tem_api: false },
+  { empresa_id: 'af44d320-d663-48ff-b58f-31c5011ad7ba', nome: 'Llamenina Mega',   tem_api: false }
 ];
 
 function adminInicializar() {
@@ -896,4 +906,40 @@ function _adminSetStatus(msg, ok) {
   var el = document.getElementById('admin-sync-status'); if (!el) return;
   el.textContent = msg;
   el.className = 'admin-sync-status' + (ok ? ' ok' : (msg.startsWith('✗') ? ' erro' : ''));
+}
+
+// ── MULTI-LOJA (Llamenina Matriz / Mega) ──────────────────────────────────────
+var LOJA_NOMES = {
+  'dff89ea1-0c33-48d1-84d7-1fc7826654b8': 'Llamenina Matriz',
+  'af44d320-d663-48ff-b58f-31c5011ad7ba': 'Llamenina Mega',
+  'af3b599b-65c5-4868-b8bf-a5934da84f0d': 'Varremaster',
+  'ce8623d4-1928-4d7c-ba8c-56e0fca23fcf': '44-Tshirts'
+};
+
+function dcSelecionarLoja(empresa_id) {
+  // Destaca loja ativa
+  document.querySelectorAll('.dc-loja-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.id === empresa_id);
+  });
+  // Atualiza badge
+  var badge = document.getElementById('dc-empresa');
+  if (badge) badge.textContent = LOJA_NOMES[empresa_id] || 'Empresa';
+  // Carrega dados da loja selecionada
+  dcCarregarDados(empresa_id);
+}
+
+function _montarSeletorLojas() {
+  var ids = SESSION.empresa_ids;
+  if (!ids || ids.length <= 1) return;
+  var sel = document.getElementById('dc-loja-selector');
+  if (!sel) return;
+  sel.innerHTML = ids.map(function(id) {
+    return '<button class="dc-loja-btn" data-id="'+id+'">'+(LOJA_NOMES[id]||id.slice(0,8))+'</button>';
+  }).join('');
+  sel.style.display = 'flex';
+  sel.querySelectorAll('.dc-loja-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { dcSelecionarLoja(this.dataset.id); });
+  });
+  // Seleciona a primeira por padrão
+  dcSelecionarLoja(ids[0]);
 }

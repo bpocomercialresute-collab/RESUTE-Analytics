@@ -940,3 +940,19 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   .dc-kpis-grid { grid-template-columns: 1fr 1fr; }
   .dc-tab { padding: 12px 14px; font-size: 12px; }
 }
+/* ── Seletor de lojas (multi-empresa cliente) ── */
+.dc-loja-selector {
+  display: flex; gap: 6px; align-items: center;
+}
+.dc-loja-btn {
+  padding: 6px 16px; border-radius: 20px;
+  border: 1px solid #1e2d45; background: #0c1628;
+  color: #64748b; font-size: 12px; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: all 150ms;
+  white-space: nowrap;
+}
+.dc-loja-btn:hover { border-color: #3b82f6; color: #94a3b8; }
+.dc-loja-btn.active {
+  background: #1e3a8a; border-color: #3b82f6;
+  color: #fff;
+}
