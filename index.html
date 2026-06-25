@@ -26,7 +26,13 @@
         <div class="lp-hero-kicker">Plataforma SaaS · Multi-empresa</div>
         <h1 class="lp-hero-title">Gestão comercial<br/><span class="lp-hero-accent">inteligente</span></h1>
         <p class="lp-hero-sub">Dados de vendas, relatórios e análises em tempo real para cada empresa que você gerencia.</p>
-
+        <div class="lp-stats">
+          <div class="lp-stat"><div class="lp-stat-val">3</div><div class="lp-stat-lbl">Empresas</div></div>
+          <div class="lp-stat-div"></div>
+          <div class="lp-stat"><div class="lp-stat-val">100%</div><div class="lp-stat-lbl">Dados isolados</div></div>
+          <div class="lp-stat-div"></div>
+          <div class="lp-stat"><div class="lp-stat-val">API</div><div class="lp-stat-lbl">Sync automático</div></div>
+        </div>
       </div>
       <div class="lp-form-wrap">
         <div class="lp-form-box">
@@ -433,51 +439,65 @@
     </main>
   </div>
 
-  <div id="view-dash-cliente" style="display:none;position:fixed;inset:0;z-index:9000;background:#060d1a;flex-direction:column;font-family:'Inter',system-ui,sans-serif;overflow:hidden;">
-    <header style="display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:56px;background:#080f1e;border-bottom:1px solid #1a2640;flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:14px;">
-        <svg viewBox="0 0 30 30" fill="none" width="28" height="28"><rect width="30" height="30" rx="8" fill="#1e3a8a"/><path d="M6 23L15 7l9 16" stroke="white" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <div>
-          <div style="font-size:13px;font-weight:800;color:#e2e8f0;letter-spacing:.04em">RESUTE Analytics</div>
-          <div id="dc-empresa" style="font-size:10px;color:#3b82f6;font-weight:700;letter-spacing:.1em;text-transform:uppercase;"></div>
+  <!-- DASHBOARD CLIENTE -->
+  <div id="view-dash-cliente" style="display:none;position:fixed;inset:0;z-index:9000;background:#07101f;flex-direction:column;font-family:'Inter',system-ui,sans-serif;overflow:hidden;">
+
+    <!-- Header -->
+    <header class="dc-header">
+      <div class="dc-header-left">
+        <svg viewBox="0 0 32 32" fill="none" width="28" height="28"><rect width="32" height="32" rx="8" fill="#1e3a8a"/><path d="M6 24L16 8l10 16" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="dc-header-brand">
+          <div class="dc-header-name">RESUTE Analytics</div>
+          <div id="dc-empresa" class="dc-header-empresa"></div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:12px;">
-        <span id="dc-status" style="font-size:11px;color:#475569;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-        <button onclick="fazerLogout()" style="background:none;border:1px solid #1e2d45;color:#475569;width:32px;height:32px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Sair">
+      <div class="dc-header-right">
+        <span id="dc-status" class="dc-header-status"></span>
+        <button onclick="fazerLogout()" class="dc-btn-sair" title="Sair">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sair
         </button>
       </div>
     </header>
-    <div style="display:flex;gap:0;padding:0 24px;background:#070d1a;border-bottom:2px solid #1a2640;flex-shrink:0;">
-      <button class="cli-tab-btn active" onclick="cliAba(this,'cli-p1')">📊 Faturamento</button>
-      <button class="cli-tab-btn" onclick="cliAba(this,'cli-p2')">📦 Produtos</button>
-      <button class="cli-tab-btn" onclick="cliAba(this,'cli-p3')">👥 Representantes</button>
-      <button class="cli-tab-btn" onclick="cliAba(this,'cli-p4')">🗺️ Regiões</button>
-      <button class="cli-tab-btn" onclick="cliAba(this,'cli-p5')">🧑‍💼 Clientes</button>
-    </div>
-    <div style="flex:1;overflow-y:auto;overflow-x:hidden;padding:24px 28px;">
-      <div id="cli-p1" class="cli-pane">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px;" id="dc-kpis"></div>
-        <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
-          <div class="dc-panel"><div class="dc-panel-title">📈 Evolução Mensal</div><div style="position:relative;height:220px;"><canvas id="dc-chart-evolucao"></canvas></div></div>
-          <div class="dc-panel"><div class="dc-panel-title">📊 Por Trimestre</div><div style="position:relative;height:220px;"><canvas id="dc-chart-trim"></canvas></div></div>
+
+    <!-- Abas de navegação -->
+    <nav class="dc-tabs">
+      <button class="dc-tab active" onclick="cliAba(this,'cli-p1')">Faturamento</button>
+      <button class="dc-tab" onclick="cliAba(this,'cli-p2')">Produtos</button>
+      <button class="dc-tab" onclick="cliAba(this,'cli-p3')">Representantes</button>
+      <button class="dc-tab" onclick="cliAba(this,'cli-p4')">Regiões</button>
+      <button class="dc-tab" onclick="cliAba(this,'cli-p5')">Clientes</button>
+    </nav>
+
+    <!-- Painéis -->
+    <div class="dc-body">
+      <div id="cli-p1" class="dc-pane active">
+        <div id="dc-kpis" class="dc-kpis-grid"></div>
+        <div class="dc-grid-2">
+          <div class="dc-card"><div class="dc-card-title">Evolução Mensal de Faturamento</div><div class="dc-chart-box"><canvas id="dc-chart-evolucao"></canvas></div></div>
+          <div class="dc-card"><div class="dc-card-title">Faturamento por Trimestre</div><div class="dc-chart-box"><canvas id="dc-chart-trim"></canvas></div></div>
         </div>
       </div>
-      <div id="cli-p2" class="cli-pane" style="display:none">
-        <div class="dc-panel"><div class="dc-panel-title">🏆 Top 10 Produtos</div><div style="position:relative;height:280px;"><canvas id="dc-chart-prod"></canvas></div></div>
-        <div class="dc-panel" style="margin-top:16px"><div class="dc-panel-title">📦 Por Grupo</div><div style="position:relative;height:260px;"><canvas id="dc-chart-grupo"></canvas></div></div>
+      <div id="cli-p2" class="dc-pane">
+        <div class="dc-grid-2">
+          <div class="dc-card"><div class="dc-card-title">Top 10 Produtos por Faturamento</div><div class="dc-chart-box-tall"><canvas id="dc-chart-prod"></canvas></div></div>
+          <div class="dc-card"><div class="dc-card-title">Faturamento por Grupo</div><div class="dc-chart-box-tall"><canvas id="dc-chart-grupo"></canvas></div></div>
+        </div>
       </div>
-      <div id="cli-p3" class="cli-pane" style="display:none"><div class="dc-panel"><div class="dc-panel-title">👥 Ranking Representantes</div><div id="dc-tab-reps" class="dc-tabela-wrap"></div></div></div>
-      <div id="cli-p4" class="cli-pane" style="display:none"><div class="dc-panel"><div class="dc-panel-title">🗺️ Por Estado (UF)</div><div id="dc-tab-ufs" class="dc-tabela-wrap"></div></div></div>
-      <div id="cli-p5" class="cli-pane" style="display:none">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-          <div class="dc-panel"><div class="dc-panel-title">🧑‍💼 Top 10 Clientes</div><div id="dc-tab-cli" class="dc-tabela-wrap"></div></div>
-          <div class="dc-panel"><div class="dc-panel-title">⚠️ Sem Compra Recente</div><div id="dc-tab-inat" class="dc-tabela-wrap"></div></div>
+      <div id="cli-p3" class="dc-pane">
+        <div class="dc-card"><div class="dc-card-title">Ranking de Representantes</div><div id="dc-tab-reps" class="dc-tabela-wrap"></div></div>
+      </div>
+      <div id="cli-p4" class="dc-pane">
+        <div class="dc-card"><div class="dc-card-title">Faturamento por Estado</div><div id="dc-tab-ufs" class="dc-tabela-wrap"></div></div>
+      </div>
+      <div id="cli-p5" class="dc-pane">
+        <div class="dc-grid-2">
+          <div class="dc-card"><div class="dc-card-title">Top Clientes</div><div id="dc-tab-cli" class="dc-tabela-wrap"></div></div>
+          <div class="dc-card"><div class="dc-card-title">Clientes sem Compra Recente</div><div id="dc-tab-inat" class="dc-tabela-wrap"></div></div>
         </div>
       </div>
     </div>
-  </div
+  </div>
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

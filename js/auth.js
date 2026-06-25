@@ -439,6 +439,20 @@ function _abrirDashCliente() {
 }
 
 // ── CARREGA DADOS DO SUPABASE ─────────────────────────────────────────────────
+
+function cliAba(btn, id) {
+  // Remove active de todas as abas
+  var tabs = document.querySelectorAll('.dc-tab');
+  tabs.forEach(function(t) { t.classList.remove('active'); });
+  // Esconde todos os painéis
+  var panes = document.querySelectorAll('.dc-pane');
+  panes.forEach(function(p) { p.classList.remove('active'); p.style.display = 'none'; });
+  // Ativa aba e painel clicados
+  if (btn) btn.classList.add('active');
+  var pane = document.getElementById(id);
+  if (pane) { pane.classList.add('active'); pane.style.display = 'block'; }
+}
+
 async function dcCarregarDados() {
   dcStatus('⏳ Carregando dados...');
   try {
@@ -491,25 +505,33 @@ function dcAplicarFiltro() {
 // ── RENDERIZA TUDO ────────────────────────────────────────────────────────────
 function dcRenderizar() {
   var rows = DC_DATA;
-  if (!rows.length) { dcStatus('⚠ Nenhum dado no período selecionado.'); return; }
+  if (!rows.length) { dcStatus('⚠ Nenhum dado disponível.'); return; }
 
-  var fatTotal   = rows.reduce(function(s,r){ return s + (parseFloat(r.valor)||0); }, 0);
-  var nPedidos   = rows.length;
-  var ticket     = nPedidos ? fatTotal / nPedidos : 0;
-  var clientes   = new Set(rows.map(function(r){ return r.cliente; }).filter(Boolean)).size;
-  var produtos   = new Set(rows.map(function(r){ return r.produto; }).filter(Boolean)).size;
-  var reps       = new Set(rows.map(function(r){ return r.vendedor; }).filter(Boolean)).size;
+  var fatTotal = rows.reduce(function(s,r){ return s+(parseFloat(r.valor)||0); }, 0);
+  var nPedidos = rows.length;
+  var ticket   = nPedidos ? fatTotal/nPedidos : 0;
+  var clientes = new Set(rows.map(function(r){ return r.cliente; }).filter(Boolean)).size;
+  var produtos = new Set(rows.map(function(r){ return r.produto; }).filter(Boolean)).size;
+  var reps     = new Set(rows.map(function(r){ return r.vendedor; }).filter(Boolean)).size;
 
-  // KPIs
-  function fmt(v){ return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-  function set(id,val){ var el=document.getElementById(id); if(el) el.textContent=val; }
+  function fmt(v){ return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:0}); }
 
-  set('dc-faturamento', fmt(fatTotal));
-  set('dc-pedidos',     nPedidos.toLocaleString('pt-BR'));
-  set('dc-ticket',      fmt(ticket));
-  set('dc-clientes',    clientes.toLocaleString('pt-BR'));
-  set('dc-produtos',    produtos.toLocaleString('pt-BR'));
-  set('dc-reps',        reps.toLocaleString('pt-BR'));
+  // Renderiza KPIs no grid
+  var kEl = document.getElementById('dc-kpis');
+  if (kEl) kEl.innerHTML = [
+    { ico:'💰', val:fmt(fatTotal),                lbl:'Faturamento Total' },
+    { ico:'📋', val:nPedidos.toLocaleString('pt-BR'), lbl:'Pedidos' },
+    { ico:'🎯', val:fmt(ticket),                  lbl:'Ticket Médio' },
+    { ico:'🏢', val:clientes.toLocaleString('pt-BR'), lbl:'Clientes Ativos' },
+    { ico:'📦', val:produtos.toLocaleString('pt-BR'), lbl:'Produtos' },
+    { ico:'👥', val:reps.toLocaleString('pt-BR'),     lbl:'Representantes' }
+  ].map(function(k){
+    return '<div class="dc-kpi-card">'
+         + '<div class="dc-kpi-icon">'+k.ico+'</div>'
+         + '<div class="dc-kpi-value">'+k.val+'</div>'
+         + '<div class="dc-kpi-label">'+k.lbl+'</div>'
+         + '</div>';
+  }).join('');
 
   // Gráficos e tabelas
   dcChartEvolucao(rows);
