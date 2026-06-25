@@ -927,6 +927,20 @@ async function adminSincronizar() {
       return null;
     };
 
+    // Converte data DD/MM/YYYY ou qualquer formato → YYYY-MM-DD para o Supabase
+    var cvData = function(v) {
+      if (!v) return null;
+      var s = String(v).trim();
+      // Já em YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+      // DD/MM/YYYY ou DD-MM-YYYY
+      var m = s.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+      if (m) return m[3] + '-' + m[2] + '-' + m[1];
+      // Tenta via Date
+      var d = new Date(s);
+      return isNaN(d.getTime()) ? null : d.toISOString().slice(0,10);
+    };
+
     var regs = lista.map(function(item, idx) {
       return {
         empresa_id:   EMPRESA_ATIVA.empresa_id,
@@ -934,8 +948,8 @@ async function adminSincronizar() {
         num_pedido:   String(get(item,['numeropedido','numpedido','pedido','cdpedido','nrpedido']) || ''),
         produto:      String(get(item,['produto','descricao','descricaoproduto','descproduto','nmproduto','dsproduto','descitem']) || ''),
         qtd:          Number(get(item,['quantidade','qtd','qtde','qtdade']) || 0),
-        dt_emissao:   String(get(item,['dataemissao','dtemissao','emissao']) || ''),
-        dt_saida:     String(get(item,['datasaida','dtsaida','data','datafaturamento','databaixa','datavenda','dtbaixa']) || ''),
+        dt_emissao:   cvData(get(item,['dataemissao','dtemissao','emissao'])),
+        dt_saida:     cvData(get(item,['datasaida','dtsaida','data','datafaturamento','databaixa','datavenda','dtbaixa'])),
         valor:        Number(get(item,['valortotal','valor','vltotal','totalitem','vlitem','valoritem','vlvenda']) || 0),
         vendedor:     String(get(item,['vendedor','nomevendedor','nmvendedor','representante','nomerepresentante']) || ''),
         industria:    String(get(item,['industria','fabricante','fornecedor','marca']) || ''),
