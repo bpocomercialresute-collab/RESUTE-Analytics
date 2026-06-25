@@ -893,8 +893,48 @@ function adminProcessar() {
     try { bdAutoFill(); }   catch(e) { console.error(e); }
     try { bdUpdateAllTabs(); } catch(e) { console.error(e); }
     if (typeof GRIDS !== 'undefined' && GRIDS.bd) { GRIDS.bd.allData = BD_DATA.rows; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render(); }
-    _adminSetStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' linhas processadas — relatórios gerados!', true);
+    _adminSetStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' linhas processadas — salvando no banco...', true);
+    // Salva automaticamente no Supabase para o cliente ver
+    adminSalvarBancoSilencioso(rows);
   }, 10);
+}
+
+async function adminSalvarBancoSilencioso(rowsParam) {
+  if (!EMPRESA_ATIVA) return;
+  var eid = EMPRESA_ATIVA.empresa_id, ts = Date.now();
+  var rows = rowsParam || [];
+  if (!rows.length) return;
+
+  var regs = rows.map(function(r, i) {
+    return { empresa_id:eid, id_externo:'manual_'+eid.slice(0,8)+'_'+ts+'_'+i,
+      num_pedido:r[1]||null, produto:r[2]||null, qtd:parseFloat(r[3])||null,
+      dt_emissao:r[4]||null, dt_saida:r[5]||null,
+      valor:parseFloat(String(r[6]||'0').replace(',','.'))||null,
+      vendedor:r[7]||null, industria:r[8]||null, cliente:r[9]||null,
+      ano:parseInt(r[10])||null, mes:r[11]||null, grupo:r[12]||null,
+      cidade:r[16]||null, uf:r[17]||null,
+      empresa_nome:EMPRESA_ATIVA.nome, cnpj:r[24]||null, marca:r[28]||null };
+  });
+
+  try {
+    // Remove manuais antigos e insere novos
+    await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid + '&id_externo=like.manual_*',
+      { method:'DELETE', headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SVC_KEY} });
+
+    for (var i = 0; i < regs.length; i += 500) {
+      var batch = regs.slice(i, i+500);
+      await fetch(SUPA_URL + '/rest/v1/vendas', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SVC_KEY,'Prefer':'return=minimal'},
+        body:JSON.stringify(batch)
+      });
+      _adminSetStatus('⏳ Salvando... ' + Math.min(i+500,regs.length) + '/' + regs.length);
+    }
+    _adminSetStatus('✓ ' + regs.length.toLocaleString('pt-BR') + ' linhas salvas — cliente pode ver os relatórios!', true);
+  } catch(e) {
+    _adminSetStatus('⚠ Processado mas erro ao salvar: ' + e.message);
+    console.error(e);
+  }
 }
 
 async function adminSalvarBanco() {
