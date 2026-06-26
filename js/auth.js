@@ -1234,6 +1234,13 @@ async function adminSincronizar() {
     // 6. Recarrega dados e processa relatórios
     _adminSetStatus('✓ ' + inseridos + ' registros importados da Varremaster!', true);
     await _adminCarregar(EMPRESA_ATIVA.empresa_id);
+    try { bdMapColumns(); } catch(e) { console.error(e); }
+    try { bdAutoFill(); }   catch(e) { console.error(e); }
+    try { bdUpdateAllTabs(); } catch(e) { console.error(e); }
+    if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
+      GRIDS.bd.allData = BD_DATA.rows; GRIDS.bd.filtered = null;
+      GRIDS.bd.page = 0; GRIDS.bd._render();
+    }
     adminProcessar();
 
   } catch(e) {
@@ -1415,7 +1422,7 @@ async function _adminCarregarOrigemEmpresa(empresa_id) {
     var origem = (d && d[0] && d[0].exibir_origem) || 'manual';
     if (EMPRESA_ATIVA) EMPRESA_ATIVA.exibir_origem = origem;
     // Atualiza toggle
-    document.querySelectorAll('.toggle-btn').forEach(function(b) {
+    document.querySelectorAll('.adm-toggle-btn').forEach(function(b) {
       b.classList.toggle('active', b.dataset.origem === origem);
     });
   } catch(e) { console.error(e); }
@@ -1438,7 +1445,7 @@ function adminSubAba(btn, sub) {
 // ── TOGGLE — o que o cliente vê ───────────────────────────────────────────────
 async function adminToggleOrigem(origem) {
   if (!EMPRESA_ATIVA) return;
-  document.querySelectorAll('.toggle-btn').forEach(function(b) {
+  document.querySelectorAll('.adm-toggle-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.origem === origem);
   });
   try {
@@ -1751,6 +1758,14 @@ adminSincronizar = async function() {
     await _adminCarregar(EMPRESA_ATIVA.empresa_id);
 
     _adminSetStatus('✓ ' + inseridos.toLocaleString('pt-BR') + ' registros sincronizados — relatórios gerados!', true);
+
+    try { bdMapColumns(); } catch(e) { console.error(e); }
+    try { bdAutoFill(); }   catch(e) { console.error(e); }
+    try { bdUpdateAllTabs(); } catch(e) { console.error(e); }
+    if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
+      GRIDS.bd.allData = BD_DATA.rows; GRIDS.bd.filtered = null;
+      GRIDS.bd.page = 0; GRIDS.bd._render();
+    }
 
     var relAviso = document.getElementById('adm-api-relatorios');
     if (relAviso) relAviso.style.display = 'block';
