@@ -1129,10 +1129,14 @@ async function adminSincronizar() {
 
     for (var i = 0; i < regs.length; i += 500) {
       var batch = regs.slice(i, i+500);
-      var sR = await fetch(SUPA_URL + '/rest/v1/vendas', {
+      var sR = await fetch(SUPA_URL + '/rest/v1/vendas?on_conflict=empresa_id,id_externo', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY,
-                   'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' },
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPA_KEY,
+          'Authorization': 'Bearer ' + SVC_KEY,
+          'Prefer': 'return=minimal,resolution=merge-duplicates'
+        },
         body: JSON.stringify(batch)
       });
       if (!sR.ok) {
