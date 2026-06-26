@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=4" />
+  <link rel="stylesheet" href="css/style.css?v=5" />
   <link rel="icon" href="data:," />
 </head>
 <body class="cui-body">
@@ -24,12 +24,37 @@
     <main class="lp-main">
       <div class="lp-hero">
         <div class="lp-hero-kicker">Plataforma SaaS · Multi-empresa</div>
-        <h1 class="lp-hero-title">Gestão comercial<br/><span class="lp-hero-accent">inteligente</span></h1>
-        <p class="lp-hero-sub">Dados de vendas, relatórios e análises em tempo real para cada empresa que você gerencia.</p>
+        <h1 class="lp-hero-title">Operação comercial<br/><span class="lp-hero-accent">com controle real</span></h1>
+        <p class="lp-hero-sub">Painel executivo para acompanhar vendas, mix de produtos, clientes, representantes e sincronizações por empresa com uma entrada mais segura e organizada.</p>
+        <div class="lp-hero-highlights">
+          <div class="lp-highlight-card lp-highlight-card-primary">
+            <div class="lp-highlight-kicker">Varremaster</div>
+            <div class="lp-highlight-title">Integração Visual Saef pronta para evoluir</div>
+            <div class="lp-highlight-text">Base preparada para sincronizar vendas e ampliar cadastros de clientes, produtos e representantes.</div>
+            <div class="lp-highlight-tags">
+              <span>Sincronização por período</span>
+              <span>Relatórios automáticos</span>
+              <span>Operação centralizada</span>
+            </div>
+          </div>
+          <div class="lp-highlight-grid">
+            <div class="lp-mini-card">
+              <span class="lp-mini-label">Empresas</span>
+              <strong>4 operações</strong>
+              <small>Varremaster, Llamenina, Llamenina Mega e 44-Tshirts</small>
+            </div>
+            <div class="lp-mini-card">
+              <span class="lp-mini-label">Sessão</span>
+              <strong>Acesso persistente</strong>
+              <small>Fluxo mais próximo de ambiente corporativo, com expiração automática.</small>
+            </div>
+          </div>
+        </div>
       <div class="lp-form-wrap">
         <div class="lp-form-box">
+          <div class="lp-form-chip">Ambiente corporativo RESUTE</div>
           <div class="lp-form-title">Acessar a plataforma</div>
-          <div class="lp-form-sub">Entre com suas credenciais para continuar</div>
+          <div class="lp-form-sub">Entre com suas credenciais para abrir o painel, acompanhar os relatórios e continuar o trabalho da empresa no mesmo ambiente.</div>
           <div class="lp-field">
             <label class="lp-label">E-mail</label>
             <input id="login-email" type="email" class="lp-input" placeholder="nome@empresa.com.br" autocomplete="username" />
@@ -43,6 +68,10 @@
             Entrar
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
           </button>
+          <div class="lp-form-assurance">
+            <span>Login centralizado por empresa</span>
+            <span>Sincronização protegida na Vercel</span>
+          </div>
           <div class="lp-footer">RESUTE · Gestão Comercial © 2026</div>
         </div>
       </div>
@@ -149,6 +178,7 @@
                 <div id="adm-periodo-resumo" class="adm-periodo-resumo"></div>
                 <!-- KPIs do sync -->
                 <div id="adm-api-kpis" class="adm-api-kpis" style="display:none"></div>
+                <div id="adm-api-modulos" class="adm-api-modulos"></div>
                 <!-- Relatórios aparecem aqui após sync -->
                 <div id="adm-api-relatorios" class="adm-api-relatorios" style="display:none">
                   <div class="adm-rel-aviso">
@@ -672,7 +702,7 @@
   <script src="js/charts.js?v=2"></script>
   <script src="js/dashboard.js?v=2"></script>
   <script src="js/actions.js?v=2"></script>
-  <script src="js/auth.js?v=7"></script>
+  <script src="js/auth.js?v=8"></script>
   <script src="js/jss.js?v=2"></script>
   <script src="js/bd.js?v=2"></script>
   <script src="js/relatorios.js?v=2"></script>

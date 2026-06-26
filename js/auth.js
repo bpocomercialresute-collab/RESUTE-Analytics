@@ -1237,6 +1237,7 @@ async function adminSelecionarEmpresa(id) {
 
   // Carrega dados existentes
   await _adminCarregar(id);
+  await _adminCarregarCadastrosApiSalvos();
 }
 
 async function _adminCarregar(empresa_id) {
@@ -1297,6 +1298,427 @@ function _adminObterPeriodoSync() {
   }
   if (resumo) resumo.textContent = 'Período atual da sincronização: ' + dataInicio.toLocaleDateString('pt-BR') + ' até ' + dataFim.toLocaleDateString('pt-BR');
   return { dataInicio: dataInicio, dataFim: dataFim };
+}
+
+var VS_ENDPOINTS = {
+  clientes: ['/clientes', '/cliente', '/relacaocliente', '/cadastrocliente'],
+  produtos: ['/produtos', '/produto', '/relacaoproduto', '/cadastroproduto'],
+  representantes: ['/representantes', '/vendedores', '/vendedor', '/relacaorepresentante']
+};
+
+function _vsNormalizeMap(item) {
+  var map = {};
+  Object.keys(item || {}).forEach(function(key) {
+    map[key.toLowerCase().replace(/[\s_\-./]/g, '')] = item[key];
+  });
+  return map;
+}
+
+function _vsPick(item, keys) {
+  var map = _vsNormalizeMap(item);
+  for (var i = 0; i < keys.length; i += 1) {
+    var val = map[String(keys[i]).toLowerCase().replace(/[\s_\-./]/g, '')];
+    if (val !== undefined && val !== null && val !== '') return val;
+  }
+  return null;
+}
+
+function _vsExtractList(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== 'object') return [];
+  var keys = ['data', 'items', 'itens', 'result', 'results', 'dados', 'registros', 'value'];
+  for (var i = 0; i < keys.length; i += 1) {
+    if (Array.isArray(payload[keys[i]])) return payload[keys[i]];
+  }
+  return [];
+}
+
+function _vsToNumber(value) {
+  if (value === null || value === undefined || value === '') return 0;
+  var raw = String(value).trim();
+  if (!raw) return 0;
+  if (raw.indexOf(',') >= 0 && raw.indexOf('.') >= 0) raw = raw.replace(/\./g, '').replace(',', '.');
+  else raw = raw.replace(',', '.');
+  return Number(raw) || 0;
+}
+
+function _vsToBool(value) {
+  if (typeof value === 'boolean') return value;
+  var text = String(value || '').trim().toLowerCase();
+  if (!text) return true;
+  return ['1', 'true', 'sim', 's', 'ativo', 'a'].indexOf(text) >= 0;
+}
+
+async function _vsFetchCandidate(token, endpoint, params) {
+  var qs = new URLSearchParams(params || {}).toString();
+  var url = VS_API + endpoint + (qs ? '?' + qs : '');
+  var resp = await fetch(url, {
+    headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' }
+  });
+  var text = await resp.text();
+  var payload = null;
+  try { payload = text ? JSON.parse(text) : []; } catch (e) { payload = text; }
+  return { ok: resp.ok, status: resp.status, endpoint: endpoint, payload: payload, text: text };
+}
+
+async function _vsFindEndpointData(token, candidates, params) {
+  var attempts = [];
+  var withoutDates = {};
+  Object.keys(params || {}).forEach(function(key) {
+    if (key !== 'DataInicio' && key !== 'DataTermino') withoutDates[key] = params[key];
+  });
+
+  for (var i = 0; i < candidates.length; i += 1) {
+    var endpoint = candidates[i];
+    var first = await _vsFetchCandidate(token, endpoint, params);
+    attempts.push({ endpoint: endpoint, status: first.status });
+    if (first.ok) {
+      var list = _vsExtractList(first.payload);
+      if (Array.isArray(list) && list.length) return { endpoint: endpoint, items: list, attempts: attempts };
+      if (Array.isArray(first.payload) && !list.length) return { endpoint: endpoint, items: first.payload, attempts: attempts };
+    }
+
+    var second = await _vsFetchCandidate(token, endpoint, withoutDates);
+    attempts.push({ endpoint: endpoint + ' (sem período)', status: second.status });
+    if (second.ok) {
+      var list2 = _vsExtractList(second.payload);
+      if (Array.isArray(list2) && list2.length) return { endpoint: endpoint, items: list2, attempts: attempts };
+      if (Array.isArray(second.payload) && !list2.length) return { endpoint: endpoint, items: second.payload, attempts: attempts };
+    }
+  }
+
+  return { endpoint: '', items: [], attempts: attempts };
+}
+
+async function _adminReplaceApiTable(table, rows) {
+  var delResp = await fetch(SUPA_URL + '/rest/v1/' + table + '?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id, {
+    method: 'DELETE',
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SVC_KEY,
+      'Prefer': 'return=minimal',
+      'Content-Type': 'application/json'
+    }
+  });
+  if (!delResp.ok) {
+    var delText = await delResp.text();
+    throw new Error('Falha ao limpar ' + table + ': HTTP ' + delResp.status + ' ' + delText.slice(0, 220));
+  }
+
+  if (!rows.length) return { count: 0, ok: true };
+
+  var inserted = 0;
+  for (var i = 0; i < rows.length; i += 300) {
+    var batch = rows.slice(i, i + 300);
+    var insResp = await fetch(SUPA_URL + '/rest/v1/' + table, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SVC_KEY,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(batch)
+    });
+    var insText = await insResp.text();
+    if (!insResp.ok) {
+      throw new Error('Falha ao salvar ' + table + ': HTTP ' + insResp.status + ' ' + insText.slice(0, 220));
+    }
+    inserted += batch.length;
+  }
+  return { count: inserted, ok: true };
+}
+
+function _adminPadRows(rows, totalCols, minRows) {
+  var filled = rows.slice();
+  while (filled.length < minRows) {
+    filled.push(Array(totalCols).fill(''));
+  }
+  return filled;
+}
+
+function _adminAplicarGridApi(kind, rows, totalCols, minRows) {
+  var padded = _adminPadRows(rows, totalCols, minRows);
+  FULL_DATA[kind] = rows.slice();
+  GRID_DATA_STORE[kind] = rows.filter(function(r) {
+    return r && r.some(function(c) { return c !== '' && c !== null && c !== undefined; });
+  });
+  if (GRIDS && GRIDS[kind]) GRIDS[kind].setData(padded);
+}
+
+function _adminMapClientesApi(items) {
+  var seen = {};
+  return items.map(function(item, idx) {
+    var codigo = String(_vsPick(item, ['id', 'codigo', 'codcliente', 'clienteid', 'idcliente']) || idx + 1).trim();
+    var id = codigo || ('cli_' + (idx + 1));
+    var base = id;
+    var seq = 1;
+    while (seen[id]) { seq += 1; id = base + '__' + seq; }
+    seen[id] = true;
+    return {
+      empresa_id: EMPRESA_ATIVA.empresa_id,
+      id_externo: id,
+      nome: String(_vsPick(item, ['nome', 'cliente', 'nomecliente', 'razaosocial']) || '').trim(),
+      razao_social: String(_vsPick(item, ['razaosocial', 'nome', 'cliente']) || '').trim(),
+      cnpj_cpf: String(_vsPick(item, ['cnpj', 'cpf', 'cnpjcpf', 'documento']) || '').trim(),
+      cidade: String(_vsPick(item, ['cidade', 'municipio']) || '').trim(),
+      uf: String(_vsPick(item, ['uf', 'estado']) || '').trim(),
+      telefone: String(_vsPick(item, ['telefone', 'fone', 'celular']) || '').trim(),
+      email: String(_vsPick(item, ['email', 'mail']) || '').trim(),
+      endereco: String(_vsPick(item, ['endereco', 'logradouro']) || '').trim(),
+      grupo_cliente: String(_vsPick(item, ['grupo', 'grupocliente', 'categoria', 'tipo']) || '').trim(),
+      vendedor: String(_vsPick(item, ['vendedor', 'representante', 'nomevendedor']) || '').trim(),
+      data_cadastro: (function(v) {
+        var raw = _vsPick(item, ['datacadastro', 'cadastro', 'data']);
+        if (!raw) return null;
+        var s = String(raw).trim();
+        var m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+        if (m) return m[3] + '-' + m[2] + '-' + m[1];
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+        return null;
+      })()
+    };
+  });
+}
+
+function _adminMapProdutosApi(items) {
+  var seen = {};
+  return items.map(function(item, idx) {
+    var codigo = String(_vsPick(item, ['codigo', 'codproduto', 'id', 'idproduto']) || '').trim();
+    var nome = String(_vsPick(item, ['nome', 'descricao', 'produto', 'descricaoproduto']) || '').trim();
+    var id = codigo || nome || ('prd_' + (idx + 1));
+    var base = id;
+    var seq = 1;
+    while (seen[id]) { seq += 1; id = base + '__' + seq; }
+    seen[id] = true;
+    return {
+      empresa_id: EMPRESA_ATIVA.empresa_id,
+      id_externo: id,
+      nome: nome,
+      codigo: codigo,
+      grupo: String(_vsPick(item, ['grupo', 'grupoproduto', 'categoria']) || '').trim(),
+      marca: String(_vsPick(item, ['marca', 'fabricante', 'industria']) || '').trim(),
+      preco: _vsToNumber(_vsPick(item, ['preco', 'precounitario', 'valor', 'valorunitario'])),
+      unidade: String(_vsPick(item, ['unidade', 'unidademedida', 'und']) || '').trim(),
+      ativo: _vsToBool(_vsPick(item, ['ativo', 'status', 'situacao']))
+    };
+  });
+}
+
+function _adminMapRepresentantesApi(items) {
+  var seen = {};
+  return items.map(function(item, idx) {
+    var codigo = String(_vsPick(item, ['codigo', 'codrepresentante', 'codvendedor', 'id']) || '').trim();
+    var nome = String(_vsPick(item, ['nome', 'representante', 'vendedor']) || '').trim();
+    var id = codigo || nome || ('rep_' + (idx + 1));
+    var base = id;
+    var seq = 1;
+    while (seen[id]) { seq += 1; id = base + '__' + seq; }
+    seen[id] = true;
+    return {
+      empresa_id: EMPRESA_ATIVA.empresa_id,
+      id_externo: id,
+      nome: nome,
+      codigo: codigo,
+      regiao: String(_vsPick(item, ['regiao', 'zona', 'areaatuacao']) || '').trim(),
+      uf: String(_vsPick(item, ['uf', 'estado']) || '').trim(),
+      telefone: String(_vsPick(item, ['telefone', 'fone', 'celular']) || '').trim(),
+      email: String(_vsPick(item, ['email', 'mail']) || '').trim(),
+      ativo: _vsToBool(_vsPick(item, ['ativo', 'status', 'situacao']))
+    };
+  });
+}
+
+function _adminAplicarCadastrosApiNaInterface(summary) {
+  var cliSource = summary.clientes && summary.clientes.rows ? summary.clientes.rows : [];
+  var cliRows = cliSource.map(function(row, idx) {
+    return [
+      String(idx + 1),
+      row.id_externo || '',
+      row.nome || row.razao_social || '',
+      row.grupo_cliente || '',
+      row.cnpj_cpf || '',
+      '',
+      row.cidade || '',
+      row.uf || '',
+      row.endereco || '',
+      row.telefone || '',
+      row.email || '',
+      row.razao_social || row.nome || '',
+      row.vendedor || '',
+      row.uf || '',
+      '', '', '', '', row.data_cadastro || '', '', ''
+    ];
+  });
+  _adminAplicarGridApi('clientes', cliRows, 21, 200);
+
+  var repSource = summary.representantes && summary.representantes.rows ? summary.representantes.rows : [];
+  var repRows = repSource.map(function(row, idx) {
+    return [
+      String(idx + 1),
+      row.codigo || row.id_externo || '',
+      row.nome || '',
+      row.ativo ? 'ATIVO' : 'INATIVO',
+      row.regiao || '',
+      row.telefone || '',
+      '',
+      row.email || '',
+      row.uf || '',
+      row.regiao || '',
+      '', '', '', '', '', '', '', ''
+    ];
+  });
+  _adminAplicarGridApi('representantes', repRows, 18, 120);
+
+  var prodSource = summary.produtos && summary.produtos.rows ? summary.produtos.rows : [];
+  var prodRows = prodSource.map(function(row, idx) {
+    return [
+      String(idx + 1),
+      row.codigo || row.id_externo || '',
+      row.nome || '',
+      row.grupo || '',
+      row.marca || '',
+      row.unidade || '',
+      row.ativo ? 'ATIVO' : 'INATIVO',
+      row.marca || '',
+      '', '', '', '', '', '', '', ''
+    ];
+  });
+  _adminAplicarGridApi('produto', prodRows, 16, 200);
+}
+
+function _adminRenderApiModules(summary) {
+  var host = document.getElementById('adm-api-modulos');
+  if (!host) return;
+  var modules = [
+    { key: 'vendas', label: 'Vendas', fallback: 'Base principal sincronizada' },
+    { key: 'clientes', label: 'Clientes', fallback: 'Cadastro para enriquecer cidade, setor e ciclo' },
+    { key: 'produtos', label: 'Produtos', fallback: 'Cadastro para grupo, marca e mix' },
+    { key: 'representantes', label: 'Representantes', fallback: 'Cadastro para cobertura comercial' }
+  ];
+  host.innerHTML = modules.map(function(mod) {
+    var item = summary && summary[mod.key] ? summary[mod.key] : {};
+    var count = Number(item.count || 0).toLocaleString('pt-BR');
+    var badgeClass = item.ok ? 'ok' : (item.pending ? 'warn' : '');
+    var badge = item.ok ? 'Conectado' : (item.pending ? 'Pendente' : 'Aguardando');
+    var meta = item.message || mod.fallback;
+    var endpoint = item.endpoint ? ('Endpoint: ' + item.endpoint) : 'Endpoint: aguardando confirmação';
+    return ''
+      + '<div class="adm-module-card">'
+      +   '<div class="adm-module-top">'
+      +     '<div class="adm-module-name">' + mod.label + '</div>'
+      +     '<span class="adm-module-badge ' + badgeClass + '">' + badge + '</span>'
+      +   '</div>'
+      +   '<div class="adm-module-count">' + count + '</div>'
+      +   '<div class="adm-module-meta">' + meta + '</div>'
+      +   '<div class="adm-module-endpoint">' + endpoint + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+async function _adminCarregarCadastrosApiSalvos() {
+  if (!EMPRESA_ATIVA || !EMPRESA_ATIVA.tem_api) {
+    _adminRenderApiModules({});
+    return;
+  }
+
+  var jobs = [
+    { key: 'clientes', table: 'clientes_api' },
+    { key: 'produtos', table: 'produtos_api' },
+    { key: 'representantes', table: 'representantes_api' }
+  ];
+  var summary = {
+    vendas: {
+      pending: true,
+      count: typeof BD_DATA !== 'undefined' && BD_DATA.rows ? BD_DATA.rows.length : 0,
+      endpoint: '/relacaovendaitem',
+      message: 'Base principal pronta para gerar relatórios.'
+    }
+  };
+
+  for (var i = 0; i < jobs.length; i += 1) {
+    var job = jobs[i];
+    try {
+      var resp = await fetch(SUPA_URL + '/rest/v1/' + job.table + '?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&select=*&limit=100000', {
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      var data = await resp.json();
+      summary[job.key] = {
+        ok: Array.isArray(data) && data.length > 0,
+        pending: !Array.isArray(data) || data.length === 0,
+        count: Array.isArray(data) ? data.length : 0,
+        endpoint: '',
+        rows: Array.isArray(data) ? data : [],
+        message: Array.isArray(data) && data.length
+          ? data.length + ' registros carregados do banco para enriquecer a visualização.'
+          : 'Sem cadastros sincronizados ainda para este módulo.'
+      };
+    } catch (e) {
+      summary[job.key] = {
+        ok: false,
+        pending: true,
+        count: 0,
+        endpoint: '',
+        message: 'Tabela ainda não disponível ou sem acesso neste ambiente.'
+      };
+    }
+  }
+
+  _adminAplicarCadastrosApiNaInterface(summary);
+  _adminRenderApiModules(summary);
+}
+
+async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
+  var params = {
+    DataInicio: String(dataInicio.getDate()).padStart(2, '0') + String(dataInicio.getMonth() + 1).padStart(2, '0') + String(dataInicio.getFullYear()),
+    DataTermino: String(dataFim.getDate()).padStart(2, '0') + String(dataFim.getMonth() + 1).padStart(2, '0') + String(dataFim.getFullYear())
+  };
+  var jobs = [
+    { key: 'clientes', table: 'clientes_api', candidates: VS_ENDPOINTS.clientes, mapper: _adminMapClientesApi },
+    { key: 'produtos', table: 'produtos_api', candidates: VS_ENDPOINTS.produtos, mapper: _adminMapProdutosApi },
+    { key: 'representantes', table: 'representantes_api', candidates: VS_ENDPOINTS.representantes, mapper: _adminMapRepresentantesApi }
+  ];
+  var summary = {};
+
+  for (var i = 0; i < jobs.length; i += 1) {
+    var job = jobs[i];
+    try {
+      var found = await _vsFindEndpointData(token, job.candidates, params);
+      if (!found.items.length) {
+        summary[job.key] = {
+          ok: false,
+          pending: true,
+          count: 0,
+          endpoint: found.endpoint || '',
+          message: 'Nenhum endpoint confirmou dados neste ambiente. Estrutura pronta para ligar assim que a API responder.'
+        };
+        continue;
+      }
+
+      var mapped = job.mapper(found.items);
+      var save = await _adminReplaceApiTable(job.table, mapped);
+      summary[job.key] = {
+        ok: true,
+        pending: false,
+        count: save.count,
+        endpoint: found.endpoint,
+        rows: mapped,
+        message: save.count + ' registros sincronizados para enriquecer relatórios e cadastros.'
+      };
+    } catch (e) {
+      summary[job.key] = {
+        ok: false,
+        pending: true,
+        count: 0,
+        endpoint: '',
+        message: e.message
+      };
+    }
+  }
+
+  _adminAplicarCadastrosApiNaInterface(summary);
+  return summary;
 }
 
 // ── SYNC VISUAL SAEF — chamada direta do browser (sem Edge Function) ──────────
@@ -1865,6 +2287,12 @@ adminSincronizar = async function() {
   if (!EMPRESA_ATIVA || !EMPRESA_ATIVA.tem_api) return;
   var btn = document.getElementById('admin-btn-sync');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="auth-spin">⟳</span> Sincronizando...'; }
+  _adminRenderApiModules({
+    vendas: { pending: true, count: 0, message: 'Sincronização iniciada para a base principal.' },
+    clientes: { pending: true, count: 0, message: 'Preparando busca de cadastros auxiliares.' },
+    produtos: { pending: true, count: 0, message: 'Preparando busca de produtos para enriquecer o mix.' },
+    representantes: { pending: true, count: 0, message: 'Preparando busca da equipe comercial.' }
+  });
 
   try {
     var periodo = _adminObterPeriodoSync();
@@ -2003,8 +2431,20 @@ adminSincronizar = async function() {
     // Atualiza sync_log
     await _adminAtualizarUltimSync(dataFim, inseridos);
 
-    // Mostra KPIs do sync
-    _adminMostrarKpisSync(regs);
+    // Tenta enriquecer a base com cadastros auxiliares da API
+    _adminSetStatus('⏳ Enriquecendo cadastros auxiliares...');
+    var cadastrosResumo = await _adminSincronizarCadastrosApi(token, dataInicio, dataFim);
+
+    // Mostra KPIs e módulos do sync
+    _adminMostrarKpisSync(regs, cadastrosResumo);
+    _adminRenderApiModules(Object.assign({
+      vendas: {
+        ok: true,
+        count: inseridos,
+        endpoint: '/relacaovendaitem',
+        message: 'Base de vendas sincronizada para alimentar dashboards e relatórios.'
+      }
+    }, cadastrosResumo || {}));
 
     // Gera relatórios automaticamente
     _adminSetStatus('⏳ Gerando relatórios...');
@@ -2041,12 +2481,16 @@ function _adminMostrarKpisSync(regs) {
   var cli = new Set(regs.map(function(r){ return r.cliente; }).filter(Boolean)).size;
   var prd = new Set(regs.map(function(r){ return r.produto; }).filter(Boolean)).size;
   function fmt(v){ return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:0}); }
+  var extra = arguments[1] || {};
   var kpis = [
     { val: regs.length.toLocaleString('pt-BR'), lbl: 'Registros' },
     { val: fmt(fat),                            lbl: 'Faturamento' },
     { val: cli.toLocaleString('pt-BR'),         lbl: 'Clientes' },
     { val: prd.toLocaleString('pt-BR'),         lbl: 'Produtos' }
   ];
+  if (extra.representantes && extra.representantes.count) {
+    kpis.push({ val: Number(extra.representantes.count).toLocaleString('pt-BR'), lbl: 'Representantes API' });
+  }
   var el = document.getElementById('adm-api-kpis');
   if (!el) return;
   el.innerHTML = kpis.map(function(k){

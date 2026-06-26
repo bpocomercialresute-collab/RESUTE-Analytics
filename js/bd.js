@@ -183,13 +183,13 @@ function bdAutoFill() {
 function buildProdMap() {
   const map  = new Map();
   const data = window.GRID_DATA_STORE?.produto || ((window.GRIDS && window.GRIDS.produto) ? window.GRIDS.produto.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
-  // Colunas PRODUTO SERVIÇO: ID, CODPROD, DESCRIÇÃO, GRUPO, subgrupo, familia, ATIV_INAT, tipo_produto
+  // Colunas PRODUTO SERVIÇO: ID, CODPROD, DESCRIÇÃO, GRUPO, subgrupo/marca, familia/unidade, ATIV_INAT, tipo_produto/marca
   data.forEach(r => {
     const desc   = String(r[2]||'').trim();
     const grupo  = String(r[3]||'').trim();
     const sub    = String(r[4]||'').trim();
     const fam    = String(r[5]||'').trim();
-    const marca  = '';
+    const marca  = String(r[7]||r[4]||'').trim();
     const gpai   = '';
     if (desc) map.set(desc, {grupo, subgrupo:sub, familia:fam, marca, grupoPai:gpai, grupoProd:grupo});
   });
@@ -199,15 +199,16 @@ function buildProdMap() {
 function buildCliMap() {
   const map  = new Map();
   const data = window.GRID_DATA_STORE?.clientes || ((window.GRIDS && window.GRIDS.clientes) ? window.GRIDS.clientes.getData().filter(r=>r&&r.some(c=>c!=='')) : []);
-  // Colunas CLIENTES: ID, COD_CLI, CLIENTES(2), TIPO, ORIG, CNPJ, RG, CEP, Cidade(8), UF(9), End, Nro, Comp, Bairro, Tel, Cel, Email, Fantasia, VENDEDOR(18), Zona(19), ...
+  // Compatibiliza o layout atual da grade com versões antigas do projeto.
   data.forEach(r => {
     const nome   = String(r[2]||'').trim();
-    const cidade = String(r[8]||'').trim();
-    const uf     = String(r[9]||'').trim();
-    const setor  = String(r[13]||'').trim(); // Bairro como proxy de SETOR
-    const vend   = String(r[18]||'').trim();
-    const zona   = String(r[19]||'').trim();
-    if (nome) map.set(nome, {cidade, uf, setor, mercado:'VAREJO', tipoVend:vend, zona});
+    const cidade = String(r[6]||r[8]||'').trim();
+    const uf     = String(r[7]||r[9]||'').trim();
+    const setor  = String(r[8]||r[13]||'').trim();
+    const vend   = String(r[12]||r[18]||'').trim();
+    const zona   = String(r[13]||r[19]||'').trim();
+    const mercado = String(r[3]||'VAREJO').trim() || 'VAREJO';
+    if (nome) map.set(nome, {cidade, uf, setor, mercado, tipoVend:vend, zona});
   });
   return map;
 }

@@ -4,7 +4,27 @@ const ALLOWED_SUPABASE_PATHS = [
   '/rest/v1/empresas',
   '/rest/v1/api_config',
   '/rest/v1/sync_log',
+  '/rest/v1/clientes_api',
+  '/rest/v1/produtos_api',
+  '/rest/v1/representantes_api',
   '/functions/v1/sync-visual-saef'
+];
+
+const ALLOWED_VISUAL_PATHS = [
+  '/login',
+  '/relacaovendaitem',
+  '/clientes',
+  '/cliente',
+  '/relacaocliente',
+  '/cadastrocliente',
+  '/produtos',
+  '/produto',
+  '/relacaoproduto',
+  '/cadastroproduto',
+  '/representantes',
+  '/vendedores',
+  '/vendedor',
+  '/relacaorepresentante'
 ];
 
 function getSessionEmpresaIds(appUser) {
@@ -135,6 +155,17 @@ function assertAuthorized(appUser, targetUrl, method, body) {
     return;
   }
 
+  if (
+    targetUrl.pathname === '/rest/v1/clientes_api' ||
+    targetUrl.pathname === '/rest/v1/produtos_api' ||
+    targetUrl.pathname === '/rest/v1/representantes_api'
+  ) {
+    if (appUser.papel !== 'super_admin') {
+      throw new Error('Apenas super_admin pode acessar cadastros sincronizados.');
+    }
+    return;
+  }
+
   if (targetUrl.pathname === '/functions/v1/sync-visual-saef') {
     if (appUser.papel !== 'super_admin') {
       throw new Error('Apenas super_admin pode sincronizar.');
@@ -200,13 +231,17 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env
     return res.status(403).json({ erro: 'Apenas super_admin pode acessar a API externa.' });
   }
 
+  if (!ALLOWED_VISUAL_PATHS.includes(targetUrl.pathname)) {
+    return res.status(403).json({ erro: 'Rota externa nao permitida.' });
+  }
+
   let upstream;
   if (targetUrl.pathname === '/login') {
     upstream = await fetch(
       `${env.visualUrl}/login?client_id=${encodeURIComponent(env.visualClientId)}&client_secret=${encodeURIComponent(env.visualClientSecret)}`,
       { method: 'GET', headers: { 'Accept': 'application/json' } }
     );
-  } else if (targetUrl.pathname === '/relacaovendaitem') {
+  } else {
     upstream = await fetch(`${env.visualUrl}${targetUrl.pathname}${targetUrl.search}`, {
       method,
       headers: {
@@ -214,8 +249,6 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env
         'Accept': incomingHeaders['accept'] || 'application/json'
       }
     });
-  } else {
-    return res.status(403).json({ erro: 'Rota externa nao permitida.' });
   }
 
   const text = await upstream.text();
