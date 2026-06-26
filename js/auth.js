@@ -1125,36 +1125,30 @@ async function adminSincronizar() {
     var inseridos = 0;
     // Limpa manuais antigos desta empresa (API sobrescreve)
     // Apaga TODOS os registros desta empresa antes de reinserir
+    // Evita qualquer conflito de chave duplicada
     _adminSetStatus('⏳ Limpando registros anteriores...');
-    var delR = await fetch(
-      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id,
-      { method: 'DELETE', headers: {
-          'apikey': SUPA_KEY,
-          'Authorization': 'Bearer ' + SVC_KEY,
-          'Prefer': 'return=minimal',
-          'Content-Type': 'application/json'
-      }}
-    );
-    console.log('DELETE status:', delR.status);
-    if (!delR.ok && delR.status !== 404) {
-      var delErr = await delR.text();
-      throw new Error('Erro ao limpar registros anteriores: ' + delErr.slice(0,200));
-    }
+    var delR = await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id,
+      { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } });
+    if (!delR.ok) console.warn('DELETE retornou:', delR.status);
 
     for (var i = 0; i < regs.length; i += 500) {
       var batch = regs.slice(i, i+500);
       var sR = await fetch(SUPA_URL + '/rest/v1/vendas', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY,
-                   'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' },
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPA_KEY,
+          'Authorization': 'Bearer ' + SVC_KEY,
+          'Prefer': 'return=minimal,resolution=ignore-duplicates'
+        },
         body: JSON.stringify(batch)
       });
-      if (!sR.ok) {
+      if (!sR.ok && sR.status !== 409) {
         var sErr = await sR.text();
-        throw new Error('Erro ao salvar lote: ' + sErr.slice(0,200));
+        throw new Error('Erro ao inserir lote: ' + sErr.slice(0,200));
       }
       inseridos += batch.length;
-      _adminSetStatus('⏳ Salvando... ' + inseridos + '/' + regs.length);
+      _adminSetStatus('⏳ Inserindo... ' + inseridos + '/' + regs.length);
     }
 
     // 5. Atualiza sync_log
