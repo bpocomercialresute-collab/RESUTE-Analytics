@@ -1125,11 +1125,21 @@ async function adminSincronizar() {
     var inseridos = 0;
     // Limpa manuais antigos desta empresa (API sobrescreve)
     // Apaga TODOS os registros desta empresa antes de reinserir
-    // Evita qualquer conflito de chave duplicada
     _adminSetStatus('⏳ Limpando registros anteriores...');
-    var delR = await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id,
-      { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } });
-    if (!delR.ok) console.warn('DELETE retornou:', delR.status);
+    var delR = await fetch(
+      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id,
+      { method: 'DELETE', headers: {
+          'apikey': SUPA_KEY,
+          'Authorization': 'Bearer ' + SVC_KEY,
+          'Prefer': 'return=minimal',
+          'Content-Type': 'application/json'
+      }}
+    );
+    console.log('DELETE status:', delR.status);
+    if (!delR.ok && delR.status !== 404) {
+      var delErr = await delR.text();
+      throw new Error('Erro ao limpar registros anteriores: ' + delErr.slice(0,200));
+    }
 
     for (var i = 0; i < regs.length; i += 500) {
       var batch = regs.slice(i, i+500);
