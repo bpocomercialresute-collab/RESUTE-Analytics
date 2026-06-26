@@ -144,6 +144,8 @@ function _mostrarLogin() {
   if (modal) modal.style.display = 'none';
   var lp = document.getElementById('view-login-page');
   if (lp) lp.style.display = 'flex';
+  var about = document.getElementById('lp-about-page');
+  if (about) about.style.display = 'none';
   var sb = document.getElementById('sidebar');
   if (sb) sb.style.display = 'none';
   var wr = document.getElementById('cui-wrapper');
@@ -163,6 +165,16 @@ function fecharLogin() {
   // Esconde a página de login nova
   var lp = document.getElementById('view-login-page');
   if (lp) lp.style.display = 'none';
+}
+
+function abrirSaibaMaisResute() {
+  var about = document.getElementById('lp-about-page');
+  if (about) about.style.display = 'block';
+}
+
+function fecharSaibaMaisResute() {
+  var about = document.getElementById('lp-about-page');
+  if (about) about.style.display = 'none';
 }
 
 async function fazerLogin() {
