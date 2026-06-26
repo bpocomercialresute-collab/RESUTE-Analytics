@@ -432,9 +432,9 @@
   </div>
 
   <!-- DASHBOARD CLIENTE -->
-  <div id="view-dash-cliente" style="display:none;position:fixed;inset:0;z-index:9000;background:#07101f;flex-direction:column;font-family:'Inter',system-ui,sans-serif;overflow:hidden;">
+  <div id="view-dash-cliente" style="display:none;position:fixed;inset:0;z-index:9000;background:#060d1a;flex-direction:column;font-family:'Inter',system-ui,sans-serif;overflow:hidden;">
 
-    <!-- Header -->
+    <!-- Header fixo -->
     <header class="dc-header">
       <div class="dc-header-left">
         <svg viewBox="0 0 32 32" fill="none" width="28" height="28"><rect width="32" height="32" rx="8" fill="#1e3a8a"/><path d="M6 24L16 8l10 16" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -444,52 +444,145 @@
         </div>
       </div>
       <div class="dc-header-right">
+        <!-- Filtros -->
+        <select id="dc-filtro-ano" class="dc-filtro" onchange="dcAplicarFiltro()"></select>
+        <select id="dc-filtro-mes" class="dc-filtro" onchange="dcAplicarFiltro()">
+          <option value="0">Todos os meses</option>
+          <option value="1">Janeiro</option><option value="2">Fevereiro</option>
+          <option value="3">Março</option><option value="4">Abril</option>
+          <option value="5">Maio</option><option value="6">Junho</option>
+          <option value="7">Julho</option><option value="8">Agosto</option>
+          <option value="9">Setembro</option><option value="10">Outubro</option>
+          <option value="11">Novembro</option><option value="12">Dezembro</option>
+        </select>
         <div id="dc-loja-selector" class="dc-loja-selector" style="display:none"></div>
         <span id="dc-status" class="dc-header-status"></span>
         <button onclick="fazerLogout()" class="dc-btn-sair" title="Sair">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Sair
         </button>
       </div>
     </header>
 
-    <!-- Abas de navegação -->
-    <nav class="dc-tabs">
-      <button class="dc-tab active" onclick="cliAba(this,'cli-p1')">Faturamento</button>
-      <button class="dc-tab" onclick="cliAba(this,'cli-p2')">Produtos</button>
-      <button class="dc-tab" onclick="cliAba(this,'cli-p3')">Representantes</button>
-      <button class="dc-tab" onclick="cliAba(this,'cli-p4')">Regiões</button>
-      <button class="dc-tab" onclick="cliAba(this,'cli-p5')">Clientes</button>
-    </nav>
+    <!-- Conteúdo em scroll único -->
+    <main class="dc-main">
 
-    <!-- Painéis -->
-    <div class="dc-body">
-      <div id="cli-p1" class="dc-pane active">
+      <!-- KPIs principais -->
+      <section class="dc-section">
         <div id="dc-kpis" class="dc-kpis-grid"></div>
-        <div class="dc-grid-2">
-          <div class="dc-card"><div class="dc-card-title">Evolução Mensal de Faturamento</div><div class="dc-chart-box"><canvas id="dc-chart-evolucao"></canvas></div></div>
-          <div class="dc-card"><div class="dc-card-title">Faturamento por Trimestre</div><div class="dc-chart-box"><canvas id="dc-chart-trim"></canvas></div></div>
+      </section>
+
+      <!-- Faturamento -->
+      <section class="dc-section">
+        <h2 class="dc-section-title">Faturamento</h2>
+        <div class="dc-grid-2-1">
+          <div class="dc-card">
+            <div class="dc-card-title">Evolução Mensal</div>
+            <div class="dc-chart-box"><canvas id="dc-chart-evolucao"></canvas></div>
+          </div>
+          <div class="dc-card">
+            <div class="dc-card-title">Por Trimestre</div>
+            <div class="dc-chart-box"><canvas id="dc-chart-trim"></canvas></div>
+          </div>
         </div>
-      </div>
-      <div id="cli-p2" class="dc-pane">
         <div class="dc-grid-2">
-          <div class="dc-card"><div class="dc-card-title">Top 10 Produtos por Faturamento</div><div class="dc-chart-box-tall"><canvas id="dc-chart-prod"></canvas></div></div>
-          <div class="dc-card"><div class="dc-card-title">Faturamento por Grupo</div><div class="dc-chart-box-tall"><canvas id="dc-chart-grupo"></canvas></div></div>
+          <div class="dc-card">
+            <div class="dc-card-title">Comparativo Anual</div>
+            <div class="dc-chart-box"><canvas id="dc-chart-ano"></canvas></div>
+          </div>
+          <div class="dc-card">
+            <div class="dc-card-title">Faturamento por Dia da Semana</div>
+            <div class="dc-chart-box"><canvas id="dc-chart-diasem"></canvas></div>
+          </div>
         </div>
-      </div>
-      <div id="cli-p3" class="dc-pane">
-        <div class="dc-card"><div class="dc-card-title">Ranking de Representantes</div><div id="dc-tab-reps" class="dc-tabela-wrap"></div></div>
-      </div>
-      <div id="cli-p4" class="dc-pane">
-        <div class="dc-card"><div class="dc-card-title">Faturamento por Estado</div><div id="dc-tab-ufs" class="dc-tabela-wrap"></div></div>
-      </div>
-      <div id="cli-p5" class="dc-pane">
+      </section>
+
+      <!-- Produtos -->
+      <section class="dc-section">
+        <h2 class="dc-section-title">Produtos</h2>
         <div class="dc-grid-2">
-          <div class="dc-card"><div class="dc-card-title">Top Clientes</div><div id="dc-tab-cli" class="dc-tabela-wrap"></div></div>
-          <div class="dc-card"><div class="dc-card-title">Clientes sem Compra Recente</div><div id="dc-tab-inat" class="dc-tabela-wrap"></div></div>
+          <div class="dc-card">
+            <div class="dc-card-title">Top 10 Produtos por Faturamento</div>
+            <div class="dc-chart-box-tall"><canvas id="dc-chart-prod"></canvas></div>
+          </div>
+          <div class="dc-card">
+            <div class="dc-card-title">Top 10 Produtos por Quantidade</div>
+            <div class="dc-chart-box-tall"><canvas id="dc-chart-prodqtd"></canvas></div>
+          </div>
         </div>
+        <div class="dc-grid-2">
+          <div class="dc-card">
+            <div class="dc-card-title">Faturamento por Grupo</div>
+            <div class="dc-chart-box"><canvas id="dc-chart-grupo"></canvas></div>
+          </div>
+          <div class="dc-card">
+            <div class="dc-card-title">Faturamento por Marca</div>
+            <div class="dc-chart-box"><canvas id="dc-chart-marca"></canvas></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Representantes -->
+      <section class="dc-section">
+        <h2 class="dc-section-title">Representantes</h2>
+        <div class="dc-grid-3-2">
+          <div class="dc-card">
+            <div class="dc-card-title">Ranking Geral</div>
+            <div id="dc-tab-reps" class="dc-tabela-wrap"></div>
+          </div>
+          <div class="dc-card">
+            <div class="dc-card-title">Positivação (clientes únicos)</div>
+            <div id="dc-tab-positiv" class="dc-tabela-wrap"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Regiões -->
+      <section class="dc-section">
+        <h2 class="dc-section-title">Regiões</h2>
+        <div class="dc-grid-2">
+          <div class="dc-card">
+            <div class="dc-card-title">Faturamento por Estado</div>
+            <div id="dc-tab-ufs" class="dc-tabela-wrap"></div>
+          </div>
+          <div class="dc-card">
+            <div class="dc-card-title">Top 10 Cidades</div>
+            <div id="dc-tab-cidades" class="dc-tabela-wrap"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Clientes -->
+      <section class="dc-section">
+        <h2 class="dc-section-title">Clientes</h2>
+        <div class="dc-grid-2">
+          <div class="dc-card">
+            <div class="dc-card-title">Top 10 Clientes</div>
+            <div id="dc-tab-cli" class="dc-tabela-wrap"></div>
+          </div>
+          <div class="dc-card">
+            <div class="dc-card-title">Sem Compra Recente (30+ dias)</div>
+            <div id="dc-tab-inat" class="dc-tabela-wrap"></div>
+          </div>
+        </div>
+        <div class="dc-grid-2">
+          <div class="dc-card">
+            <div class="dc-card-title">Novos Clientes no Período</div>
+            <div id="dc-tab-novos" class="dc-tabela-wrap"></div>
+          </div>
+          <div class="dc-card">
+            <div class="dc-card-title">Ticket Médio por Cliente</div>
+            <div id="dc-tab-ticket" class="dc-tabela-wrap"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Rodapé -->
+      <div class="dc-footer">
+        <span>RESUTE Analytics</span>
+        <span id="dc-last-update"></span>
       </div>
-    </div>
+
+    </main>
   </div>
 
   <!-- Scripts -->

@@ -500,10 +500,13 @@ function cliAba(btn, id) {
   if (pane) { pane.classList.add('active'); pane.style.display = 'block'; }
 }
 
+var DC_RAW = [];
+var DC_DATA = [];
+
 async function dcCarregarDados(empresa_id_param) {
   var eid = empresa_id_param || SESSION.empresa_id;
   if (!eid) { dcStatus('⚠ Empresa não selecionada.'); return; }
-  dcStatus('⏳ Carregando...');
+  dcStatus('⏳ Carregando dados...');
   try {
     var r = await fetch(
       SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid +
@@ -553,27 +556,26 @@ function dcAplicarFiltro() {
 
 // ── RENDERIZA TUDO ────────────────────────────────────────────────────────────
 function dcRenderizar() {
-  var rows = DC_DATA;
-  if (!rows.length) { dcStatus('⚠ Nenhum dado disponível.'); return; }
+  var rows = (typeof DC_DATA !== 'undefined' && DC_DATA.length) ? DC_DATA : DC_RAW;
+  if (!rows || !rows.length) { dcStatus('⚠ Nenhum dado disponível.'); return; }
 
-  var fatTotal = rows.reduce(function(s,r){ return s+(parseFloat(r.valor)||0); }, 0);
-  var nPedidos = rows.length;
-  var ticket   = nPedidos ? fatTotal/nPedidos : 0;
-  var clientes = new Set(rows.map(function(r){ return r.cliente; }).filter(Boolean)).size;
-  var produtos = new Set(rows.map(function(r){ return r.produto; }).filter(Boolean)).size;
-  var reps     = new Set(rows.map(function(r){ return r.vendedor; }).filter(Boolean)).size;
-
+  // ── KPIs principais ──
+  var fat = rows.reduce(function(s,r){ return s+(parseFloat(r.valor)||0); }, 0);
+  var ped = rows.length;
+  var cli = new Set(rows.map(function(r){ return r.cliente; }).filter(Boolean)).size;
+  var prd = new Set(rows.map(function(r){ return r.produto; }).filter(Boolean)).size;
+  var rep = new Set(rows.map(function(r){ return r.vendedor; }).filter(Boolean)).size;
+  var tick = ped ? fat/ped : 0;
   function fmt(v){ return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:0}); }
 
-  // Renderiza KPIs no grid
   var kEl = document.getElementById('dc-kpis');
   if (kEl) kEl.innerHTML = [
-    { ico:'💰', val:fmt(fatTotal),                lbl:'Faturamento Total' },
-    { ico:'📋', val:nPedidos.toLocaleString('pt-BR'), lbl:'Pedidos' },
-    { ico:'🎯', val:fmt(ticket),                  lbl:'Ticket Médio' },
-    { ico:'🏢', val:clientes.toLocaleString('pt-BR'), lbl:'Clientes Ativos' },
-    { ico:'📦', val:produtos.toLocaleString('pt-BR'), lbl:'Produtos' },
-    { ico:'👥', val:reps.toLocaleString('pt-BR'),     lbl:'Representantes' }
+    { ico:'💰', val:fmt(fat),                       lbl:'Faturamento Total' },
+    { ico:'📋', val:ped.toLocaleString('pt-BR'),    lbl:'Pedidos' },
+    { ico:'🎯', val:fmt(tick),                      lbl:'Ticket Médio' },
+    { ico:'🏢', val:cli.toLocaleString('pt-BR'),    lbl:'Clientes Ativos' },
+    { ico:'📦', val:prd.toLocaleString('pt-BR'),    lbl:'Produtos' },
+    { ico:'👥', val:rep.toLocaleString('pt-BR'),    lbl:'Representantes' }
   ].map(function(k){
     return '<div class="dc-kpi-card">'
          + '<div class="dc-kpi-icon">'+k.ico+'</div>'
@@ -582,15 +584,173 @@ function dcRenderizar() {
          + '</div>';
   }).join('');
 
-  // Gráficos e tabelas
-  dcChartEvolucao(rows);
-  dcChartTrimestre(rows);
-  dcChartProdutos(rows);
-  dcChartGrupos(rows);
-  dcTabelaReps(rows, fatTotal);
-  dcTabelaUFs(rows, fatTotal);
-  dcTabelaClientes(rows, fatTotal);
-  dcTabelaInativos(rows);
+  // ── Gráficos ──
+  _dcChartEvolucao(rows);
+  _dcChartTrim(rows);
+  _dcChartAno(rows);
+  _dcChartDiaSemana(rows);
+  _dcChartProd(rows);
+  _dcChartProdQtd(rows);
+  _dcChartGrupo(rows);
+  _dcChartMarca(rows);
+
+  // ── Tabelas ──
+  _dcTabela('dc-tab-reps',     'vendedor', rows, fat, 'Representante');
+  _dcTabelaPositivacao(rows);
+  _dcTabela('dc-tab-ufs',      'uf',       rows, fat, 'Estado');
+  _dcTabela('dc-tab-cidades',  'cidade',   rows, fat, 'Cidade');
+  _dcTabela('dc-tab-cli',      'cliente',  rows, fat, 'Cliente');
+  _dcTabelaInativos(rows);
+  _dcTabelaNovosClientes(rows);
+  _dcTabelaTicketCliente(rows);
+
+  // ── Última atualização ──
+  var lu = document.getElementById('dc-last-update');
+  if (lu) lu.textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR');
+}
+
+// Novos gráficos
+function _dcChartAno(rows) {
+  var porAno = {};
+  rows.forEach(function(r) {
+    var ano = parseInt(r.ano);
+    if (!ano && r.dt_saida) ano = new Date(r.dt_saida).getFullYear();
+    if (ano) porAno[ano] = (porAno[ano] || 0) + (parseFloat(r.valor) || 0);
+  });
+  var anos = Object.keys(porAno).sort();
+  _dcDestroy('dc-chart-ano');
+  var ctx = document.getElementById('dc-chart-ano'); if (!ctx) return;
+  DC_CHARTS['ano'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: anos, datasets: [{ data: anos.map(function(a){return porAno[a];}), backgroundColor: '#3b82f6', borderRadius: 6 }] },
+    options: _dcOpts(false)
+  });
+}
+
+function _dcChartDiaSemana(rows) {
+  var dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  var mp = [0,0,0,0,0,0,0];
+  rows.forEach(function(r) {
+    if (!r.dt_saida) return;
+    var d = new Date(r.dt_saida);
+    if (!isNaN(d.getTime())) mp[d.getDay()] += (parseFloat(r.valor) || 0);
+  });
+  _dcDestroy('dc-chart-diasem');
+  var ctx = document.getElementById('dc-chart-diasem'); if (!ctx) return;
+  DC_CHARTS['diasem'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: dias, datasets: [{ data: mp, backgroundColor: '#8b5cf6', borderRadius: 6 }] },
+    options: _dcOpts(false)
+  });
+}
+
+function _dcChartProdQtd(rows) {
+  var m = {};
+  rows.forEach(function(r){ var k=r.produto||'—'; m[k]=(m[k]||0)+(parseFloat(r.qtd)||0); });
+  var s = Object.entries(m).sort(function(a,b){return b[1]-a[1];}).slice(0,10);
+  _dcDestroy('dc-chart-prodqtd');
+  var ctx = document.getElementById('dc-chart-prodqtd'); if (!ctx) return;
+  DC_CHARTS['prodqtd'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: s.map(function(e){return e[0].length>22?e[0].slice(0,22)+'…':e[0];}),
+            datasets: [{ data: s.map(function(e){return e[1];}), backgroundColor: '#22c55e', borderRadius: 4 }] },
+    options: Object.assign(_dcOpts(false), { indexAxis: 'y' })
+  });
+}
+
+function _dcChartMarca(rows) {
+  var m = {};
+  rows.forEach(function(r){ var k=r.marca||r.industria||'Sem marca'; if(k&&k.trim()) m[k]=(m[k]||0)+(parseFloat(r.valor)||0); });
+  var s = Object.entries(m).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  _dcDestroy('dc-chart-marca');
+  var ctx = document.getElementById('dc-chart-marca'); if (!ctx) return;
+  DC_CHARTS['marca'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels: s.map(function(e){return e[0];}),
+            datasets: [{ data: s.map(function(e){return e[1];}),
+              backgroundColor: ['#3b82f6','#22c55e','#f59e0b','#ec4899','#8b5cf6','#14b8a6','#fb923c','#64748b'], borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { color: '#64748b', font: { size: 10 }, boxWidth: 10 } },
+                 tooltip: { callbacks: { label: function(c){ return ' R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0}); } } } } }
+  });
+}
+
+// Tabelas novas
+function _dcTabelaPositivacao(rows) {
+  var mp = {};
+  rows.forEach(function(r) {
+    var v = r.vendedor || '—';
+    if (!mp[v]) mp[v] = { clientes: new Set(), pedidos: 0 };
+    mp[v].clientes.add(r.cliente || 'x');
+    mp[v].pedidos++;
+  });
+  var arr = Object.entries(mp).map(function(e){ return { nome:e[0], cli:e[1].clientes.size, ped:e[1].pedidos }; }).sort(function(a,b){return b.cli-a.cli;}).slice(0,12);
+  var max = arr.length ? arr[0].cli : 1;
+  var h = '<table class="dc-tabela"><thead><tr><th>#</th><th>Representante</th><th>Clientes</th><th>Pedidos</th><th>Cobertura</th></tr></thead><tbody>';
+  arr.forEach(function(e,i){
+    var bar = (e.cli/max*100).toFixed(0);
+    h+='<tr><td class="pos">'+(i+1)+'</td><td>'+e.nome+'</td><td class="num">'+e.cli+'</td><td>'+e.ped+'</td>'
+      +'<td><div class="dc-bar-track" style="width:90px"><div class="dc-bar-fill" style="width:'+bar+'%"></div></div></td></tr>';
+  });
+  var el = document.getElementById('dc-tab-positiv');
+  if (el) el.innerHTML = h+'</tbody></table>';
+}
+
+function _dcTabelaNovosClientes(rows) {
+  // Cliente cuja primeira compra está no período visualizado
+  var primeira = {};
+  rows.forEach(function(r) {
+    var c = r.cliente || '—';
+    var d = r.dt_saida ? new Date(r.dt_saida) : null;
+    if (!d) return;
+    if (!primeira[c] || d < primeira[c]) primeira[c] = d;
+  });
+  // Considera "novos" os 10 mais recentes
+  var arr = Object.entries(primeira).map(function(e){ return { nome:e[0], dt:e[1] }; })
+    .sort(function(a,b){return b.dt-a.dt;}).slice(0,10);
+  var el = document.getElementById('dc-tab-novos');
+  if (!el) return;
+  if (!arr.length) { el.innerHTML = '<div style="color:#475569;font-size:13px;padding:20px;text-align:center">Nenhum cliente novo no período.</div>'; return; }
+  var h = '<table class="dc-tabela"><thead><tr><th>Cliente</th><th style="text-align:right">Primeira compra</th></tr></thead><tbody>';
+  arr.forEach(function(e){
+    h+='<tr><td>'+e.nome+'</td><td style="text-align:right;color:#22c55e;font-weight:700">'+e.dt.toLocaleDateString('pt-BR')+'</td></tr>';
+  });
+  el.innerHTML = h+'</tbody></table>';
+}
+
+function _dcTabelaTicketCliente(rows) {
+  var mp = {};
+  rows.forEach(function(r) {
+    var c = r.cliente || '—';
+    if (!mp[c]) mp[c] = { fat:0, ped:0 };
+    mp[c].fat += (parseFloat(r.valor) || 0);
+    mp[c].ped++;
+  });
+  var arr = Object.entries(mp).map(function(e){ return { nome:e[0], fat:e[1].fat, ped:e[1].ped, tick:e[1].fat/e[1].ped }; })
+    .filter(function(e){ return e.ped >= 2; }).sort(function(a,b){return b.tick-a.tick;}).slice(0,10);
+  var el = document.getElementById('dc-tab-ticket');
+  if (!el) return;
+  if (!arr.length) { el.innerHTML = '<div style="color:#475569;font-size:13px;padding:20px;text-align:center">Sem dados suficientes.</div>'; return; }
+  var h = '<table class="dc-tabela"><thead><tr><th>#</th><th>Cliente</th><th>Pedidos</th><th class="num">Ticket</th></tr></thead><tbody>';
+  arr.forEach(function(e,i){
+    h+='<tr><td class="pos">'+(i+1)+'</td><td>'+e.nome+'</td><td>'+e.ped+'</td><td class="num">R$ '+e.tick.toLocaleString('pt-BR',{minimumFractionDigits:0})+'</td></tr>';
+  });
+  el.innerHTML = h+'</tbody></table>';
+}
+
+function _dcOpts(horizontal) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    indexAxis: horizontal ? 'y' : 'x',
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: function(c){ return ' R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0}); } } } },
+    scales: {
+      x: { ticks: { color: '#475569', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { ticks: { color: '#475569', font: { size: 10 },
+            callback: function(v){ return typeof v==='number' ? 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:0}) : v; } },
+           grid: { color: 'rgba(255,255,255,0.04)' } }
+    }
+  };
 }
 
 // ── EVOLUÇÃO MENSAL ───────────────────────────────────────────────────────────
