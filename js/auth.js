@@ -753,6 +753,7 @@ function dcAbrirRelatorio(tipo) {
   var app = document.getElementById('view-app');
   if (app) app.style.display = 'block';
   document.body.classList.add('client-report-mode');
+  if (typeof switchView === 'function') switchView('view-app');
 
   var campos = {
     'user-nome': SESSION.nome,

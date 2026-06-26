@@ -25,6 +25,22 @@ function repFmtFull(v) {
   return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
 }
 
+function repMiniCell(valor, max) {
+  const pct = max > 0 ? Math.max(3, Math.min(100, (valor / max) * 100)) : 0;
+  return `<div class="rep-mini-cell">
+    <span>${repFmt(valor)}</span>
+    <i><b style="width:${pct}%"></b></i>
+  </div>`;
+}
+
+function repShareCell(valor, total) {
+  const pct = total > 0 ? (valor / total) * 100 : 0;
+  return `<div class="rep-share-cell">
+    <strong>${pct.toFixed(1)}%</strong>
+    <i><b style="width:${Math.max(3, Math.min(100, pct))}%"></b></i>
+  </div>`;
+}
+
 // ── TOGGLE BUTTON HTML ────────────────────────────────────────────────────────
 function repToggleHtml() {
   return `<div class="rel-toggle">
@@ -144,6 +160,7 @@ function repMix() {
     // Totais para calcular MED_ANT (semana anterior)
     const idxAnt = semanasOrdenadas.indexOf(chave) - 1;
     const semAnt = idxAnt >= 0 ? semanas[semanasOrdenadas[idxAnt]] : null;
+    const maxDia = Math.max(1, ...Object.values(semanas[chave]).flat());
 
     vendedores.forEach(vend => {
       const dias7 = semanas[chave][vend] || Array(7).fill(0);
@@ -158,11 +175,11 @@ function repMix() {
       const cor = result >= 0 ? '#10b981' : '#ef4444';
       html += `<tr>
         <td colspan="2" class="rep-lbl">${vend}</td>
-        ${dias7.map(v=>`<td>${repFmt(v)}</td>`).join('')}
-        <td>${repFmt(media)}</td>
-        <td style="color:#ffd24a;font-weight:700">${repFmt(tot)}</td>
-        <td>${repFmt(medAnt)}</td>
-        <td style="color:${cor};font-weight:700">${result>=0?'▲':'▼'} ${Math.abs(result).toFixed(1)}%</td>
+        ${dias7.map(v=>`<td>${repMiniCell(v, maxDia)}</td>`).join('')}
+        <td>${repMiniCell(media, maxDia)}</td>
+        <td class="rep-total-cell">${repMiniCell(tot, Math.max(1, tot))}</td>
+        <td>${repMiniCell(medAnt, maxDia)}</td>
+        <td><span class="rep-trend" style="color:${cor}">${result>=0?'▲':'▼'} ${Math.abs(result).toFixed(1)}%</span></td>
       </tr>`;
     });
 
@@ -171,7 +188,7 @@ function repMix() {
     vendedores.forEach(v => { const d=semanas[chave][v]||Array(7).fill(0); d.forEach((vv,i)=>totSemana[i]+=vv); });
     html += `<tr class="rep-row-total">
       <td colspan="2">TOTAL</td>
-      ${totSemana.map(v=>`<td>${repFmt(v)}</td>`).join('')}
+      ${totSemana.map(v=>`<td>${repMiniCell(v, Math.max(1, ...totSemana))}</td>`).join('')}
       <td colspan="3"></td><td></td>
     </tr></tbody></table><div style="height:16px"></div>`;
   });
@@ -221,6 +238,7 @@ function repPositiv() {
     totVend[v] = mesesAtivos.reduce((s,m) => s+SEMS.reduce((ss,sem)=>ss+pivot[v][m][sem],0),0);
     totalGeral += totVend[v];
   });
+  const maxGeral = Math.max(1, ...vendedores.flatMap(v => mesesAtivos.flatMap(m => SEMS.map(s => pivot[v][m][s]))), ...Object.values(totVend));
 
   let html = `<div class="rel-header-bar">
     ${repToggleHtml()}
@@ -241,16 +259,15 @@ function repPositiv() {
   vendedores.forEach(vend => {
     const tot = totVend[vend];
     if (tot === 0) return;
-    const pct = totalGeral > 0 ? (tot/totalGeral*100).toFixed(1) : '0.0';
-    const celulas = mesesAtivos.map(m => SEMS.map(s=>`<td>${repFmt(pivot[vend][m][s])}</td>`).join('')).join('');
+    const celulas = mesesAtivos.map(m => SEMS.map(s=>`<td>${repMiniCell(pivot[vend][m][s], maxGeral)}</td>`).join('')).join('');
     const mesesComValor = mesesAtivos.filter(m => SEMS.some(s=>pivot[vend][m][s]>0)).length;
     const media = mesesComValor > 0 ? tot/mesesComValor : 0;
     html += `<tr>
       <td class="rep-lbl">${vend}</td>
       ${celulas}
-      <td>${repFmt(media)}</td>
-      <td style="font-weight:700">${repFmtFull(tot)}</td>
-      <td>${pct}%</td>
+      <td>${repMiniCell(media, maxGeral)}</td>
+      <td class="rep-total-cell">${repFmtFull(tot)}</td>
+      <td>${repShareCell(tot, totalGeral)}</td>
     </tr>`;
   });
 
@@ -313,6 +330,7 @@ function repSem() {
   vendedores.forEach(v => { totVend[v]=SEMS.reduce((s,sem)=>s+pivot[v][sem],0); totalGeral+=totVend[v]; });
   const totAntVend = {};
   vendedores.forEach(v => totAntVend[v]=SEMS.reduce((s,sem)=>s+pivotAnt[v][sem],0));
+  const maxSem = Math.max(1, ...vendedores.flatMap(v => SEMS.map(s => pivot[v][s])), ...Object.values(totVend));
 
   let html = `<div class="rel-header-bar">
     ${repToggleHtml()}
@@ -337,12 +355,12 @@ function repSem() {
     const cor = varp >= 0 ? '#10b981' : '#ef4444';
     html += `<tr>
       <td class="rep-lbl">${vend}</td>
-      ${SEMS.map(s=>`<td>${repFmt(pivot[vend][s])}</td>`).join('')}
-      <td>${repFmt(media)}</td>
-      <td style="font-weight:700">${repFmtFull(tot)}</td>
-      <td>${pct}%</td>
-      <td>${repFmt(ant)}</td>
-      <td style="color:${cor};font-weight:700">${varp>=0?'▲':'▼'} ${Math.abs(varp).toFixed(1)}%</td>
+      ${SEMS.map(s=>`<td>${repMiniCell(pivot[vend][s], maxSem)}</td>`).join('')}
+      <td>${repMiniCell(media, maxSem)}</td>
+      <td class="rep-total-cell">${repFmtFull(tot)}</td>
+      <td>${repShareCell(tot, totalGeral)}</td>
+      <td>${repMiniCell(ant, maxSem)}</td>
+      <td><span class="rep-trend" style="color:${cor}">${varp>=0?'▲':'▼'} ${Math.abs(varp).toFixed(1)}%</span></td>
     </tr>`;
   });
 
@@ -350,8 +368,8 @@ function repSem() {
   const totSems = SEMS.map(s=>vendedores.reduce((sum,v)=>sum+pivot[v][s],0));
   html += `<tr class="rep-row-total">
     <td>TOTAL</td>
-    ${totSems.map(v=>`<td>${repFmtFull(v)}</td>`).join('')}
-    <td></td><td style="color:#ffd24a;font-weight:800">${repFmtFull(totalGeral)}</td>
+    ${totSems.map(v=>`<td>${repMiniCell(v, Math.max(1, ...totSems))}</td>`).join('')}
+    <td></td><td class="rep-total-cell">${repFmtFull(totalGeral)}</td>
     <td>100%</td><td colspan="2"></td>
   </tr>
   <tr class="rep-row-pct">
@@ -413,6 +431,7 @@ function repMeta() {
     totVend[v] = diasArr.reduce((s,d)=>s+(vendasDia[`${v}|${d}`]||0),0);
     totalGeral += totVend[v];
   });
+  const maxDiaMeta = Math.max(1, ...vendedores.flatMap(v => diasArr.map(d => vendasDia[`${v}|${d}`] || 0)), ...Object.values(totVend));
 
   vendedores.forEach(vend => {
     const tot = totVend[vend];
@@ -422,10 +441,10 @@ function repMeta() {
     const media = diasComVenda>0 ? tot/diasComVenda : 0;
     html += `<tr>
       <td class="rep-lbl">${vend}</td>
-      ${diasArr.map(d=>`<td>${repFmt(vendasDia[`${vend}|${d}`]||0)}</td>`).join('')}
-      <td>${repFmt(media)}</td>
-      <td style="font-weight:700">${repFmtFull(tot)}</td>
-      <td>${pct}%</td>
+      ${diasArr.map(d=>`<td>${repMiniCell(vendasDia[`${vend}|${d}`]||0, maxDiaMeta)}</td>`).join('')}
+      <td>${repMiniCell(media, maxDiaMeta)}</td>
+      <td class="rep-total-cell">${repFmtFull(tot)}</td>
+      <td>${repShareCell(tot, totalGeral)}</td>
     </tr>`;
   });
 
@@ -477,6 +496,7 @@ function repCrescMes() {
   let totalGeral = 0;
   const totVend = {};
   vendedores.forEach(v => { totVend[v]=mesesAtivos.reduce((s,m)=>s+pivot[v][m],0); totalGeral+=totVend[v]; });
+  const maxCresc = Math.max(1, ...vendedores.flatMap(v => mesesAtivos.map(m => pivot[v][m])), ...Object.values(totVend));
 
   let html = `<div class="rel-header-bar">
     ${repToggleHtml()}
@@ -512,10 +532,10 @@ function repCrescMes() {
     html += `<tr>
       <td style="font-size:10px;color:#7a9cc8">${tipo}</td>
       <td class="rep-lbl">${vend}</td>
-      ${mesesAtivos.map(m=>`<td>${repFmt(pivot[vend][m])}</td>`).join('')}
-      <td>${repFmt(media)}</td>
-      <td style="font-weight:700">${repFmtFull(tot)}</td>
-      <td>${pct}%</td>
+      ${mesesAtivos.map(m=>`<td>${repMiniCell(pivot[vend][m], maxCresc)}</td>`).join('')}
+      <td>${repMiniCell(media, maxCresc)}</td>
+      <td class="rep-total-cell">${repFmtFull(tot)}</td>
+      <td>${repShareCell(tot, totalGeral)}</td>
       <td style="color:#ef4444">${nQueda}</td>
       <td style="color:#10b981">${nCresc}</td>
     </tr>`;
@@ -525,9 +545,9 @@ function repCrescMes() {
   const totMes = mesesAtivos.map(m=>vendedores.reduce((s,v)=>s+(pivot[v][m]||0),0));
   html += `<tr class="rep-row-total">
     <td colspan="2">TOTAL</td>
-    ${totMes.map(v=>`<td>${repFmtFull(v)}</td>`).join('')}
+    ${totMes.map(v=>`<td>${repMiniCell(v, Math.max(1, ...totMes))}</td>`).join('')}
     <td></td>
-    <td style="color:#ffd24a;font-weight:800">${repFmtFull(totalGeral)}</td>
+    <td class="rep-total-cell">${repFmtFull(totalGeral)}</td>
     <td>100%</td><td colspan="2"></td>
   </tr>
   <tr class="rep-row-pct">

@@ -490,6 +490,22 @@ function toggleBtnHtml() {
   </div>`;
 }
 
+function relMiniBarCell(valor, max, label) {
+  const pct = max > 0 ? Math.max(3, Math.min(100, (valor / max) * 100)) : 0;
+  return `<div class="rel-mini-cell">
+    <span class="rel-mini-value">${label || fmtMetrica(valor)}</span>
+    <span class="rel-mini-track"><span style="width:${pct}%"></span></span>
+  </div>`;
+}
+
+function relShareCell(valor, total) {
+  const pct = total > 0 ? (valor / total) * 100 : 0;
+  return `<div class="rel-share-cell">
+    <strong>${pct.toFixed(1)}%</strong>
+    <span class="rel-mini-track"><span style="width:${Math.max(3, Math.min(100, pct))}%"></span></span>
+  </div>`;
+}
+
 function bdUpdateCadastroInsights() {
   const pane = document.getElementById('av-rel-cadastro-insights');
   if (!pane) return;
@@ -580,12 +596,11 @@ function bdUpdateVendaProduto() {
   if (!window.BD_DATA.rows.length) return;
 
   const anos = [...new Set(window.BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
-  const anoAtual = anos[anos.length-1] || String(new Date().getFullYear());
+  const tituloPeriodo = anos.length === 1 ? anos[0] : 'PERIODO CARREGADO';
 
   const pivot = new Map();
   let totalGeral = 0;
   window.BD_DATA.rows.forEach(r => {
-    if (g(r,'ano') !== anoAtual) return;
     const p  = g(r,'produto');
     const mi = MES_IDX[g(r,'mes').toLowerCase()] ?? -1;
     const v  = metrica(r);
@@ -600,6 +615,9 @@ function bdUpdateVendaProduto() {
   const lista = [...pivot.entries()].sort((a,b)=>b[1].total-a[1].total);
   const totMes = Array(12).fill(0);
   lista.forEach(([,d]) => d.meses.forEach((v,i)=>totMes[i]+=v));
+  const maxCell = Math.max(1, ...lista.flatMap(([,d]) => d.meses), ...totMes);
+  const totalProdutos = lista.length;
+  const ticketMedioProduto = totalProdutos ? totalGeral / totalProdutos : 0;
 
   // Linha de evolução mensal (% vs mês anterior)
   const evol = totMes.map((v,i) => {
@@ -609,26 +627,32 @@ function bdUpdateVendaProduto() {
 
   let html = `<div class="rel-header-bar">
       ${toggleBtnHtml()}
-      <div class="rel-title">VENDA POR PRODUTO — ${anoAtual}</div>
+      <div class="rel-title">VENDA POR PRODUTO - ${tituloPeriodo}</div>
+    </div>
+    <div class="rel-kpi-strip">
+      <div class="rel-kpi-card"><span>Produtos</span><strong>${totalProdutos.toLocaleString('pt-BR')}</strong></div>
+      <div class="rel-kpi-card"><span>Total</span><strong>${fmtMetricaFull(totalGeral)}</strong></div>
+      <div class="rel-kpi-card"><span>Media por produto</span><strong>${fmtMetricaFull(ticketMedioProduto)}</strong></div>
+      <div class="rel-kpi-card"><span>Maior mes</span><strong>${fmtMetricaFull(Math.max(...totMes))}</strong></div>
     </div>
     <div class="av-table-wrap" style="border-top:none"><table class="av-table">
     <thead>
       <tr class="rel-subtotal-row">
-        <td colspan="2" style="background:#1a1a00;color:#ffd24a;font-weight:800;padding:7px 12px">SUBTOTAL MENSAL</td>
-        ${totMes.map(v=>`<td style="background:#1a1a00;color:#ffd24a;font-weight:700;padding:7px 8px">${fmtMetrica(v)}</td>`).join('')}
-        <td style="background:#1a1a00"></td>
-        <td style="background:#1a1a00;color:#ffd24a;font-weight:800;padding:7px 8px">${fmtMetricaFull(totalGeral)}</td>
-        <td style="background:#1a1a00"></td>
+        <td colspan="2">SUBTOTAL MENSAL</td>
+        ${totMes.map(v=>`<td>${relMiniBarCell(v, maxCell, fmtMetrica(v))}</td>`).join('')}
+        <td></td>
+        <td><strong>${fmtMetricaFull(totalGeral)}</strong></td>
+        <td></td>
       </tr>
       <tr class="rel-evol-row">
-        <td colspan="2" style="background:#10131f;color:#8aa;font-size:10px;padding:5px 12px">EVOLUÇÃO MENSAL</td>
+        <td colspan="2">EVOLUÇÃO MENSAL</td>
         ${evol.map(e=>{
-          if (e===null) return '<td style="background:#10131f"></td>';
-          const cor = e>=0?'#10b981':'#ef4444';
+          if (e===null) return '<td></td>';
+          const cls = e>=0?'up':'down';
           const arrow = e>=0?'▲':'▼';
-          return `<td style="background:#10131f;color:${cor};font-size:10px;font-weight:700;padding:5px 8px">${arrow} ${Math.abs(e).toFixed(1)}%</td>`;
+          return `<td><span class="rel-trend ${cls}">${arrow} ${Math.abs(e).toFixed(1)}%</span></td>`;
         }).join('')}
-        <td colspan="3" style="background:#10131f"></td>
+        <td colspan="3"></td>
       </tr>
       <tr>
         <th>PRODUTO</th><th>GRUPO</th>
@@ -642,11 +666,11 @@ function bdUpdateVendaProduto() {
     const media  = ativos.length ? ativos.reduce((s,v)=>s+v,0)/ativos.length : 0;
     const pct    = totalGeral > 0 ? ((d.total/totalGeral)*100).toFixed(1) : '0.0';
     html += `<tr>
-      <td>${p}</td><td>${d.grupo}</td>
-      ${d.meses.map(v=>`<td>${fmtMetrica(v)}</td>`).join('')}
-      <td>${fmtMetrica(media)}</td>
+      <td><span class="rel-prod-name">${p}</span><span class="rel-prod-meta">${d.marca || 'Sem marca'}</span></td><td>${d.grupo || 'Sem grupo'}</td>
+      ${d.meses.map(v=>`<td>${relMiniBarCell(v, maxCell, fmtMetrica(v))}</td>`).join('')}
+      <td>${relMiniBarCell(media, maxCell, fmtMetrica(media))}</td>
       <td><strong>${fmtMetricaFull(d.total)}</strong></td>
-      <td>${pct}%</td>
+      <td>${relShareCell(d.total, totalGeral)}</td>
     </tr>`;
   });
   html += '</tbody></table></div>';

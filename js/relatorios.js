@@ -75,8 +75,8 @@ function avShowRel(tipo) {
   }
 
   // Ativa a aba correta
-  var alvo = 'av-rel-cadastro-insights';
-  if (tipo === 'relat-produtos') alvo = 'av-rel-cadastro-insights';
+  var alvo = 'av-rel-venda-produto';
+  if (tipo === 'relat-produtos') alvo = 'av-rel-venda-produto';
   document.querySelectorAll('#av-rel-area .av-tab').forEach(function(t){ t.classList.remove('active'); });
   document.querySelectorAll('#av-rel-area .av-tab-pane').forEach(function(p){ p.classList.remove('active'); });
   var tab  = document.querySelector('#av-rel-area [data-target="'+alvo+'"]');

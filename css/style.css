@@ -409,6 +409,196 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 .rel-sem-dados span { font-size: 13px; line-height: 1.6; max-width: 400px; }
 .rel-sem-dados b { color: #60a5fa; }
 
+.rel-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(96,165,250,.14);
+  border-radius: 8px;
+  background: #0b1424;
+}
+.rel-title {
+  color: #eef6ff;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+.rel-toggle { display: flex; gap: 6px; flex-wrap: wrap; }
+.rel-toggle-btn {
+  background: #0f1d32;
+  border: 1px solid rgba(96,165,250,.16);
+  color: #8ea3c0;
+  border-radius: 7px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+}
+.rel-toggle-btn.active {
+  background: #2563eb;
+  border-color: #3b82f6;
+  color: #fff;
+}
+.rel-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.rel-kpi-card {
+  border: 1px solid rgba(96,165,250,.12);
+  border-radius: 8px;
+  background: #0d1728;
+  padding: 13px 14px;
+}
+.rel-kpi-card span {
+  display: block;
+  color: #7d91af;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.rel-kpi-card strong {
+  display: block;
+  margin-top: 7px;
+  color: #f8fafc;
+  font-size: 18px;
+}
+.av-table-wrap,
+.rep-scroll-area {
+  overflow: auto;
+  border: 1px solid rgba(96,165,250,.12);
+  border-radius: 8px;
+  background: #07101d;
+}
+.av-table,
+.rep-tbl {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+.av-table th,
+.rep-tbl thead td {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #0b1728;
+  color: #8ea3c0;
+  padding: 10px 12px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(96,165,250,.16);
+  white-space: nowrap;
+}
+.av-table td,
+.rep-tbl td {
+  padding: 9px 12px;
+  color: #dbe4f0;
+  border-bottom: 1px solid rgba(148,163,184,.08);
+  border-right: 1px solid rgba(148,163,184,.05);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.av-table tbody tr:hover td,
+.rep-tbl tbody tr:hover td {
+  background: rgba(37,99,235,.08);
+}
+.rel-subtotal-row td,
+.rep-row-total td {
+  background: #122033 !important;
+  color: #f8fafc !important;
+  font-weight: 800;
+}
+.rel-evol-row td {
+  background: #08111f !important;
+  color: #8ea3c0;
+}
+.rel-mini-cell,
+.rep-mini-cell,
+.rel-share-cell,
+.rep-share-cell {
+  display: grid;
+  min-width: 82px;
+  gap: 5px;
+}
+.rel-mini-value,
+.rep-mini-cell span,
+.rel-share-cell strong,
+.rep-share-cell strong {
+  font-weight: 800;
+  color: #e8f1ff;
+}
+.rel-mini-track,
+.rep-mini-cell i,
+.rep-share-cell i {
+  display: block;
+  height: 5px;
+  width: 100%;
+  min-width: 58px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148,163,184,.14);
+}
+.rel-mini-track span,
+.rep-mini-cell i b,
+.rep-share-cell i b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2dd4bf, #60a5fa);
+}
+.rel-share-cell .rel-mini-track span {
+  background: linear-gradient(90deg, #f59e0b, #22c55e);
+}
+.rel-trend,
+.rep-trend {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 66px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(255,255,255,.04);
+  font-size: 11px;
+  font-weight: 800;
+}
+.rel-trend.up { color: #34d399; }
+.rel-trend.down { color: #f87171; }
+.rel-prod-name {
+  display: block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #f8fafc;
+  font-weight: 800;
+}
+.rel-prod-meta {
+  display: block;
+  margin-top: 3px;
+  color: #7d91af;
+  font-size: 10px;
+}
+.rep-lbl {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #0b1728 !important;
+  color: #f8fafc !important;
+  font-weight: 800;
+}
+.rep-total-cell {
+  color: #f8fafc !important;
+  font-weight: 900;
+}
+
 .cad-kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
