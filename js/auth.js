@@ -1131,6 +1131,11 @@ async function adminSincronizar() {
       { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } });
     if (!delR.ok) console.warn('DELETE retornou:', delR.status);
 
+    // Loga o primeiro registro para debug
+    if (regs.length > 0) {
+      console.log('[SYNC] Primeiro registro a inserir:', JSON.stringify(regs[0]));
+    }
+
     for (var i = 0; i < regs.length; i += 500) {
       var batch = regs.slice(i, i+500);
       var sR = await fetch(SUPA_URL + '/rest/v1/vendas', {
@@ -1139,13 +1144,14 @@ async function adminSincronizar() {
           'Content-Type': 'application/json',
           'apikey': SUPA_KEY,
           'Authorization': 'Bearer ' + SVC_KEY,
-          'Prefer': 'return=minimal,resolution=ignore-duplicates'
+          'Prefer': 'return=minimal'
         },
         body: JSON.stringify(batch)
       });
-      if (!sR.ok && sR.status !== 409) {
-        var sErr = await sR.text();
-        throw new Error('Erro ao inserir lote: ' + sErr.slice(0,200));
+      var respBody = await sR.text();
+      console.log('[SYNC] Lote', i, 'status:', sR.status, 'body:', respBody.slice(0,200));
+      if (!sR.ok) {
+        throw new Error('Erro HTTP ' + sR.status + ': ' + respBody.slice(0,300));
       }
       inseridos += batch.length;
       _adminSetStatus('⏳ Inserindo... ' + inseridos + '/' + regs.length);
