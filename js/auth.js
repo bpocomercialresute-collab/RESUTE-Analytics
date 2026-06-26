@@ -1172,10 +1172,32 @@ async function adminSincronizar() {
       return isNaN(d.getTime()) ? null : d.toISOString().slice(0,10);
     };
 
+    var idsSync = {};
+    function montarIdExternoSync(item, idx) {
+      var pedidoBase = String(get(item,['numeropedido','numpedido','pedido','cdpedido','nrpedido','idvenda','codigo']) || '').trim();
+      var itemBase = String(get(item,['iditem','codigoitem','seq','cditem','nritem','item']) || '').trim();
+      var altBase = String(get(item,['id','chave']) || '').trim();
+      var produtoBase = String(get(item,['produto','descricao','descricaoproduto','descproduto','nmproduto','descitem','dsproduto']) || '').trim();
+      var dataBase = String(cvData(get(item,['datasaida','dtsaida','data','datafaturamento','databaixa','datavenda'])) || '').trim();
+      var baseId = [pedidoBase || altBase || 'api', itemBase, dataBase, produtoBase || String(idx + 1)]
+        .filter(Boolean)
+        .join('_')
+        .replace(/[^\w.-]+/g, '_');
+      if (!baseId) baseId = 'api_' + idx;
+      var finalId = baseId;
+      var n = 1;
+      while (idsSync[finalId]) {
+        n += 1;
+        finalId = baseId + '__' + n;
+      }
+      idsSync[finalId] = true;
+      return finalId;
+    }
+
     var regs = lista.map(function(item, idx) {
       return {
         empresa_id:   EMPRESA_ATIVA.empresa_id,
-        id_externo:   String(get(item,['id','codigo','iditem','idvenda','codigoitem','chave','seq','cditem','nritem']) || ('auto_' + idx)),
+        id_externo:   montarIdExternoSync(item, idx),
         num_pedido:   String(get(item,['numeropedido','numpedido','pedido','cdpedido','nrpedido']) || ''),
         produto:      String(get(item,['produto','descricao','descricaoproduto','descproduto','nmproduto','dsproduto','descitem']) || ''),
         qtd:          Number(get(item,['quantidade','qtd','qtde','qtdade']) || 0),
@@ -1200,7 +1222,10 @@ async function adminSincronizar() {
     _adminSetStatus('⏳ Limpando registros anteriores...');
     var delR = await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id,
       { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } });
-    if (!delR.ok) console.warn('DELETE retornou:', delR.status);
+    if (!delR.ok) {
+      var delErr = await delR.text();
+      throw new Error('Falha ao limpar dados antigos: HTTP ' + delR.status + ' ' + delErr.slice(0, 200));
+    }
 
     // Loga o primeiro registro para debug
     if (regs.length > 0) {
@@ -1701,11 +1726,33 @@ adminSincronizar = async function() {
       return isNaN(d.getTime()) ? null : d.toISOString().slice(0,10);
     };
 
+    var idsSync = {};
+    function montarIdExternoSync(item, idx) {
+      var pedidoBase = String(get(item,['numeropedido','numpedido','pedido','cdpedido','nrpedido','idvenda','codigo']) || '').trim();
+      var itemBase = String(get(item,['iditem','codigoitem','seq','cditem','nritem','item']) || '').trim();
+      var altBase = String(get(item,['id','chave']) || '').trim();
+      var produtoBase = String(get(item,['produto','descricao','descricaoproduto','descproduto','nmproduto','descitem','dsproduto']) || '').trim();
+      var dataBase = String(cvData(get(item,['datasaida','dtsaida','data','datafaturamento','databaixa','datavenda'])) || '').trim();
+      var baseId = [pedidoBase || altBase || 'api', itemBase, dataBase, produtoBase || String(idx + 1)]
+        .filter(Boolean)
+        .join('_')
+        .replace(/[^\w.-]+/g, '_');
+      if (!baseId) baseId = 'api_' + idx;
+      var finalId = baseId;
+      var n = 1;
+      while (idsSync[finalId]) {
+        n += 1;
+        finalId = baseId + '__' + n;
+      }
+      idsSync[finalId] = true;
+      return finalId;
+    }
+
     var regs = lista.map(function(item, idx) {
       return {
         empresa_id:   EMPRESA_ATIVA.empresa_id,
         origem:       'api',
-        id_externo:   String(get(item,['id','codigo','iditem','idvenda','codigoitem','chave','seq','cditem','nritem']) || ('api_' + idx)),
+        id_externo:   montarIdExternoSync(item, idx),
         num_pedido:   String(get(item,['numeropedido','numpedido','pedido','cdpedido','nrpedido']) || ''),
         produto:      String(get(item,['produto','descricao','descricaoproduto','descproduto','nmproduto','descitem','dsproduto']) || ''),
         qtd:          Number(get(item,['quantidade','qtd','qtde','qtdade']) || 0),
@@ -1730,6 +1777,10 @@ adminSincronizar = async function() {
       { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal', 'Content-Type': 'application/json' } }
     );
     console.log('[SYNC] DELETE status:', delAll.status);
+    if (!delAll.ok) {
+      var delBody = await delAll.text();
+      throw new Error('Falha ao limpar dados antigos: HTTP ' + delAll.status + ': ' + delBody.slice(0,300));
+    }
 
     // Insere
     var inseridos = 0;
