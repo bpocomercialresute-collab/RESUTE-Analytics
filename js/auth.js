@@ -139,7 +139,26 @@ function abrirAnaliseVendas() {
   if (SESSION && SESSION.token) { _abrirApp(); } else { _mostrarLogin(); }
 }
 
+function _limparBlocosInstitucionaisAntigos() {
+  var staleSelectors = [
+    '.lp-hero-highlights',
+    '.lp-hero-cta',
+    '.lp-form-assurance',
+    '.lp-service-icon-img'
+  ];
+  staleSelectors.forEach(function(selector) {
+    document.querySelectorAll(selector).forEach(function(node) {
+      if (node && node.parentNode) node.parentNode.removeChild(node);
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  _limparBlocosInstitucionaisAntigos();
+});
+
 function _mostrarLogin() {
+  _limparBlocosInstitucionaisAntigos();
   var modal = document.getElementById('login-modal');
   if (modal) modal.style.display = 'none';
   var lp = document.getElementById('view-login-page');

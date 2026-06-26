@@ -1093,7 +1093,7 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) 420px;
   gap: 28px 56px;
-  align-items: center;
+  align-items: start;
 }
 .lp-hero-kicker {
   grid-column: 1;
@@ -1228,7 +1228,7 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 .lp-form-wrap {
   grid-column: 2;
   grid-row: 1 / span 3;
-  align-self: center;
+  align-self: start;
   width: 100%;
 }
 .lp-form-box {
