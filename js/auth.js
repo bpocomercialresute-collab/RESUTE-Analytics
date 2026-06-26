@@ -1002,18 +1002,14 @@ async function adminSelecionarEmpresa(id) {
   if (typeof GRIDS !== 'undefined' && GRIDS.bd) { GRIDS.bd.allData = []; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render(); }
   _adminSetStatus('⏳ Carregando ' + EMPRESA_ATIVA.nome + '...');
 
-  // Reseta para sub-aba API se empresa tem API, senão Manual
-  var subInicial = EMPRESA_ATIVA.tem_api ? 'api' : 'manual';
-  var btnSub = document.querySelector('.admin-sub-tab[data-sub="'+subInicial+'"]');
-  adminSubAba(btnSub, subInicial);
+  // Mostra modo correto
+  _adminMostrarModo(EMPRESA_ATIVA.tem_api);
 
-  // Esconde sub-aba API se empresa não tem API
-  var tabApi = document.getElementById('admin-subtab-api');
-  if (tabApi) tabApi.style.display = EMPRESA_ATIVA.tem_api ? '' : 'none';
-
-  // Carrega exibir_origem da empresa
+  // Carrega origem configurada e contagens
   await _adminCarregarOrigemEmpresa(id);
   await _adminAtualizarContagens();
+
+  // Carrega dados existentes
   await _adminCarregar(id);
 }
 
@@ -1534,4 +1530,206 @@ function _cvData(v) {
   if (m) return m[3] + '-' + m[2] + '-' + m[1];
   var d = new Date(s);
   return isNaN(d.getTime()) ? null : d.toISOString().slice(0,10);
+}
+// =============================================================================
+// PAINEL ADMIN — Modo API vs Manual
+// =============================================================================
+
+function _adminMostrarModo(temApi) {
+  var mApi = document.getElementById('adm-modo-api');
+  var mMan = document.getElementById('adm-modo-manual');
+  var btnSync = document.getElementById('admin-btn-sync');
+
+  // Mostra o modo correto
+  if (mApi) mApi.style.display = temApi ? 'block' : 'none';
+  if (mMan) mMan.style.display = 'block'; // Manual sempre disponível
+  if (btnSync) btnSync.style.display = temApi ? 'inline-flex' : 'none';
+
+  // Se não tem API, esconde modo API
+  if (!temApi && mApi) mApi.style.display = 'none';
+
+  // Esconde toggle se não tem API (sem escolha)
+  var tog = document.getElementById('toggle-origem');
+  if (tog) tog.style.display = temApi ? 'flex' : 'none';
+  var togLbl = document.querySelector('.adm-toggle-label');
+  if (togLbl) togLbl.style.display = temApi ? '' : 'none';
+}
+
+// ── SYNC API — salva + gera relatórios ────────────────────────────────────────
+// Substitui adminSincronizar com versão que gera relatórios após sync
+var _syncOriginalFn = adminSincronizar;
+adminSincronizar = async function() {
+  if (!EMPRESA_ATIVA || !EMPRESA_ATIVA.tem_api) return;
+  var btn = document.getElementById('admin-btn-sync');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="auth-spin">⟳</span> Sincronizando...'; }
+
+  try {
+    // Data de início
+    var logR = await fetch(
+      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&select=ultima_data',
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
+    );
+    var logD = await logR.json();
+    var ultimaData = logD && logD[0] && logD[0].ultima_data ? logD[0].ultima_data : null;
+    var dataInicio = ultimaData ? new Date(ultimaData) : new Date('2025-01-01');
+    if (ultimaData) dataInicio.setDate(dataInicio.getDate() + 1);
+    var dataFim = new Date();
+
+    var fmt = function(d) {
+      return String(d.getDate()).padStart(2,'0') + String(d.getMonth()+1).padStart(2,'0') + String(d.getFullYear());
+    };
+    var DI = fmt(dataInicio), DF = fmt(dataFim);
+    _adminSetStatus('⏳ Conectando à API — período: ' + DI + ' → ' + DF);
+
+    // Login Visual Saef
+    var VS_API  = 'https://api-plastrio.visualsaef.com';
+    var VS_CID  = '7eb42956-e55c-4424-9148-ed6cb1f781ed';
+    var VS_CSEC = 'b0HJSjMTNCTDFeptGvWeIDbpn6aFRxZ252VEiN9S';
+
+    var lR = await fetch(VS_API + '/login?client_id=' + VS_CID + '&client_secret=' + VS_CSEC);
+    if (!lR.ok) throw new Error('Login API falhou: HTTP ' + lR.status);
+    var lD = await lR.json();
+    var token = lD.token || lD.Token || lD.access_token || lD.accessToken;
+    if (!token) throw new Error('Token não retornado. Campos: ' + Object.keys(lD).join(','));
+    _adminSetStatus('⏳ Login OK — buscando dados...');
+
+    // Busca dados
+    var dR = await fetch(VS_API + '/relacaovendaitem?DataInicio=' + DI + '&DataTermino=' + DF,
+      { headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } });
+    if (!dR.ok) throw new Error('Busca falhou: HTTP ' + dR.status);
+    var raw = await dR.json();
+    var lista = Array.isArray(raw) ? raw : (raw.data || raw.itens || raw.items || raw.result || raw.dados || []);
+    _adminSetStatus('⏳ ' + lista.length + ' registros recebidos — salvando...');
+
+    if (!lista.length) {
+      _adminSetStatus('✓ Nenhum dado novo no período.', true);
+      _adminAtualizarUltimSync(dataFim, 0);
+      return;
+    }
+
+    // Log dos campos do primeiro item (diagnóstico)
+    console.log('[SYNC] Campos:', Object.keys(lista[0]));
+    console.log('[SYNC] 1º item:', JSON.stringify(lista[0]));
+
+    // Mapeamento
+    var get = function(item, keys) {
+      var lw = {};
+      Object.keys(item).forEach(function(k) { lw[k.toLowerCase().replace(/[\s_\-]/g,'')] = item[k]; });
+      for (var i=0; i<keys.length; i++) {
+        var v = lw[keys[i].toLowerCase().replace(/[\s_\-]/g,'')];
+        if (v !== undefined && v !== null && v !== '') return v;
+      }
+      return null;
+    };
+
+    var cvData = function(v) {
+      if (!v) return null;
+      var s = String(v).trim();
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+      var m = s.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+      if (m) return m[3]+'-'+m[2]+'-'+m[1];
+      var d = new Date(s);
+      return isNaN(d.getTime()) ? null : d.toISOString().slice(0,10);
+    };
+
+    var regs = lista.map(function(item, idx) {
+      return {
+        empresa_id:   EMPRESA_ATIVA.empresa_id,
+        origem:       'api',
+        id_externo:   String(get(item,['id','codigo','iditem','idvenda','codigoitem','chave','seq','cditem','nritem']) || ('api_' + idx)),
+        num_pedido:   String(get(item,['numeropedido','numpedido','pedido','cdpedido','nrpedido']) || ''),
+        produto:      String(get(item,['produto','descricao','descricaoproduto','descproduto','nmproduto','descitem','dsproduto']) || ''),
+        qtd:          Number(get(item,['quantidade','qtd','qtde','qtdade']) || 0),
+        dt_emissao:   cvData(get(item,['dataemissao','dtemissao','emissao'])),
+        dt_saida:     cvData(get(item,['datasaida','dtsaida','data','datafaturamento','databaixa','datavenda'])),
+        valor:        Number(String(get(item,['valortotal','valor','vltotal','totalitem','vlitem','valoritem']) || '0').replace(',','.')),
+        vendedor:     String(get(item,['vendedor','nomevendedor','nmvendedor','representante','nomerepresentante']) || ''),
+        industria:    String(get(item,['industria','fabricante','fornecedor','marca']) || ''),
+        cliente:      String(get(item,['cliente','nomecliente','nmcliente','razaosocial']) || ''),
+        grupo:        String(get(item,['grupo','grupoitem','grupoproduto','categoria']) || ''),
+        uf:           String(get(item,['uf','estado','ufcliente','siglaestado']) || ''),
+        cidade:       String(get(item,['cidade','municipio','nomecidade']) || ''),
+        empresa_nome: 'Varremaster'
+      };
+    });
+
+    // Apaga dados API antigos
+    await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&origem=eq.api', {
+      method: 'DELETE',
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal', 'Content-Type': 'application/json' }
+    });
+
+    // Insere
+    var inseridos = 0;
+    for (var i = 0; i < regs.length; i += 300) {
+      var batch = regs.slice(i, i+300);
+      var sR = await fetch(SUPA_URL + '/rest/v1/vendas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' },
+        body: JSON.stringify(batch)
+      });
+      var body = await sR.text();
+      console.log('[SYNC] Lote', i, 'status:', sR.status, body.slice(0,100));
+      if (!sR.ok) throw new Error('HTTP ' + sR.status + ': ' + body.slice(0,300));
+      inseridos += batch.length;
+      _adminSetStatus('⏳ Inserindo... ' + inseridos + '/' + regs.length);
+    }
+
+    // Atualiza sync_log
+    await _adminAtualizarUltimSync(dataFim, inseridos);
+
+    // Mostra KPIs do sync
+    _adminMostrarKpisSync(regs);
+
+    // Gera relatórios automaticamente
+    _adminSetStatus('⏳ Gerando relatórios...');
+    await _adminCarregar(EMPRESA_ATIVA.empresa_id);
+
+    _adminSetStatus('✓ ' + inseridos.toLocaleString('pt-BR') + ' registros sincronizados — relatórios gerados!', true);
+
+    var relAviso = document.getElementById('adm-api-relatorios');
+    if (relAviso) relAviso.style.display = 'block';
+
+    await _adminAtualizarContagens();
+
+  } catch(e) {
+    _adminSetStatus('✗ ' + e.message);
+    console.error('[SYNC]', e);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg> Sincronizar API';
+    }
+  }
+};
+
+function _adminMostrarKpisSync(regs) {
+  var fat = regs.reduce(function(s,r){ return s+(parseFloat(r.valor)||0); }, 0);
+  var cli = new Set(regs.map(function(r){ return r.cliente; }).filter(Boolean)).size;
+  var prd = new Set(regs.map(function(r){ return r.produto; }).filter(Boolean)).size;
+  function fmt(v){ return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:0}); }
+  var kpis = [
+    { val: regs.length.toLocaleString('pt-BR'), lbl: 'Registros' },
+    { val: fmt(fat),                            lbl: 'Faturamento' },
+    { val: cli.toLocaleString('pt-BR'),         lbl: 'Clientes' },
+    { val: prd.toLocaleString('pt-BR'),         lbl: 'Produtos' }
+  ];
+  var el = document.getElementById('adm-api-kpis');
+  if (!el) return;
+  el.innerHTML = kpis.map(function(k){
+    return '<div class="adm-kpi"><div class="adm-kpi-val">'+k.val+'</div><div class="adm-kpi-lbl">'+k.lbl+'</div></div>';
+  }).join('');
+  el.style.display = 'grid';
+}
+
+async function _adminAtualizarUltimSync(dataFim, total) {
+  try {
+    await fetch(SUPA_URL + '/rest/v1/sync_log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ empresa_id: EMPRESA_ATIVA.empresa_id, ultima_sync: new Date().toISOString(), ultima_data: dataFim.toISOString().split('T')[0], total_registros: total, status: 'ok' })
+    });
+    var el = document.getElementById('adm-api-ultima');
+    if (el) el.textContent = 'Último sync: ' + new Date().toLocaleString('pt-BR') + ' — ' + total.toLocaleString('pt-BR') + ' registros';
+  } catch(e) { console.error(e); }
 }
