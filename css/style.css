@@ -409,6 +409,138 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 .rel-sem-dados span { font-size: 13px; line-height: 1.6; max-width: 400px; }
 .rel-sem-dados b { color: #60a5fa; }
 
+.cad-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.cad-kpi {
+  background: linear-gradient(180deg, rgba(13,26,48,.96) 0%, rgba(9,18,33,.96) 100%);
+  border: 1px solid rgba(96,165,250,.12);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 16px 36px rgba(2,8,20,.18);
+}
+.cad-kpi strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 800;
+  color: #f8fafc;
+}
+.cad-kpi-label {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #8ea3c0;
+}
+.cad-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.cad-card {
+  background: #101a2d;
+  border: 1px solid rgba(96,165,250,.1);
+  border-radius: 14px;
+  padding: 16px;
+}
+.cad-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cad-card-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #dbeafe;
+}
+.cad-card-pct {
+  font-size: 12px;
+  font-weight: 800;
+  color: #60a5fa;
+}
+.cad-card-val {
+  margin-top: 12px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #f8fafc;
+}
+.cad-card-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #7d91af;
+}
+.cad-card-bar {
+  margin-top: 14px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(148,163,184,.12);
+  overflow: hidden;
+}
+.cad-card-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+}
+.cad-tables {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+.cad-table-box {
+  background: #0d1628;
+  border: 1px solid rgba(96,165,250,.1);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.cad-table-title {
+  padding: 14px 16px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+  border-bottom: 1px solid rgba(148,163,184,.08);
+  background: rgba(7,14,24,.72);
+}
+.cad-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.cad-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #7d91af;
+  background: rgba(255,255,255,.02);
+}
+.cad-table td {
+  padding: 11px 14px;
+  border-top: 1px solid rgba(148,163,184,.08);
+  color: #dbe4f0;
+}
+.cad-table tbody tr:hover td {
+  background: rgba(37,99,235,.08);
+}
+.cad-table td.num {
+  text-align: right;
+  font-weight: 700;
+  color: #60a5fa;
+}
+
 /* ── Placeholder removido — nada mais necessário ── */
 .av-rel-placeholder { display: none !important; }
 
@@ -889,6 +1021,8 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   .lp-hero-sub { font-size: 15px; }
   .lp-label { margin-bottom: 7px; }
   .lp-input, .lp-btn { border-radius: 12px; }
+  .cad-kpi strong { font-size: 24px; }
+  .cad-table-title { font-size: 11px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════

@@ -184,9 +184,6 @@
             </div>
             <div class="av-exibir-box">
               <div class="av-exibir-header">EXIBIR</div>
-              <button class="av-exibir-btn av-btn-rel" onclick="avShowRel('laudo-grupo')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>RELATÓRIOS
-              </button>
               <button class="av-exibir-btn av-btn-rel" onclick="avShowRel('relat-produtos')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>RELAT PRODUTOS
               </button>
@@ -367,13 +364,15 @@
             <div class="rel-area-title">Relatórios de Produtos</div>
           </div>
           <div class="av-tabs-bar">
-            <button class="av-tab active" data-target="av-rel-venda-produto">VENDA POR PRODUTO</button>
-            <button class="av-tab" data-target="av-rel-laudo-grupo">LAUDO_GRUPO</button>
-            <button class="av-tab" data-target="av-rel-laudo-ano">LAUDO_GRUPOS_ANO</button>
-            <button class="av-tab" data-target="av-rel-laudo-ano02">ANO_01 × ANO_02</button>
-            <button class="av-tab" data-target="av-rel-laudo-marca">LAUDO_MARCA</button>
+            <button class="av-tab active" data-target="av-rel-cadastro-insights">VISÃO CADASTRAL</button>
+            <button class="av-tab" data-target="av-rel-venda-produto">VENDA POR PRODUTO</button>
+            <button class="av-tab" data-target="av-rel-laudo-grupo">GRUPOS E SUBGRUPOS</button>
+            <button class="av-tab" data-target="av-rel-laudo-ano">GRUPOS POR ANO</button>
+            <button class="av-tab" data-target="av-rel-laudo-ano02">COMPARATIVO ANUAL</button>
+            <button class="av-tab" data-target="av-rel-laudo-marca">MARCAS</button>
           </div>
-          <div id="av-rel-venda-produto" class="av-tab-pane active"></div>
+          <div id="av-rel-cadastro-insights" class="av-tab-pane active"></div>
+          <div id="av-rel-venda-produto" class="av-tab-pane"></div>
           <div id="av-rel-laudo-grupo" class="av-tab-pane"></div>
           <div id="av-rel-laudo-ano" class="av-tab-pane"></div>
           <div id="av-rel-laudo-ano02" class="av-tab-pane"></div>
@@ -388,13 +387,13 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar
           </button>
           <div class="av-tabs-bar">
-            <button class="av-tab active" data-area="rep" data-target="rep-tab-mix">REP_MIX</button>
-            <button class="av-tab" data-area="rep" data-target="rep-tab-positiv">REP_POSITIV</button>
-            <button class="av-tab" data-area="rep" data-target="rep-tab-semano">REP_SEM_ANO</button>
-            <button class="av-tab" data-area="rep" data-target="rep-tab-sem">REP_SEM</button>
+            <button class="av-tab active" data-area="rep" data-target="rep-tab-mix">MIX SEMANAL</button>
+            <button class="av-tab" data-area="rep" data-target="rep-tab-positiv">VISÃO GERAL</button>
+            <button class="av-tab" data-area="rep" data-target="rep-tab-semano">SEMANAS DO ANO</button>
+            <button class="av-tab" data-area="rep" data-target="rep-tab-sem">SEMANAS DO MÊS</button>
             <button class="av-tab" data-area="rep" data-target="rep-tab-meta">META</button>
-            <button class="av-tab" data-area="rep" data-target="rep-tab-dia">REP_DIA</button>
-            <button class="av-tab" data-area="rep" data-target="rep-tab-cresc">REP_CRESC_MES</button>
+            <button class="av-tab" data-area="rep" data-target="rep-tab-dia">DIAS DA SEMANA</button>
+            <button class="av-tab" data-area="rep" data-target="rep-tab-cresc">CRESCIMENTO</button>
           </div>
           <div id="rep-tab-mix"     class="av-tab-pane active"><div class="av-rel-placeholder"><p>REP_MIX</p><span>Cole dados no BD e clique em Processar</span></div></div>
           <div id="rep-tab-positiv" class="av-tab-pane"><div class="av-rel-placeholder"><p>REP_POSITIV</p></div></div>

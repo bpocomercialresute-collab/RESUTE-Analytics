@@ -13,14 +13,12 @@ const NATIVE_FETCH = window.fetch.bind(window);
 
 function _getSessionToken() {
   if (SESSION && SESSION.token) return SESSION.token;
-  try {
-    var saved = sessionStorage.getItem('resute_session');
-    if (!saved) return '';
-    var parsed = JSON.parse(saved);
-    return parsed && parsed.token ? parsed.token : '';
-  } catch (e) {
-    return '';
+  var parsed = _readStoredSession();
+  if (parsed && parsed.token) {
+    SESSION = parsed;
+    return parsed.token;
   }
+  return '';
 }
 
 function _normalizeFetchHeaders(headers) {
@@ -50,6 +48,7 @@ window.fetch = function(input, init) {
     url.indexOf(SUPA_URL + '/functions/v1/') === 0 ||
     url.indexOf(VISUAL_SAEF_API_URL + '/') === 0
   ) {
+    _touchSession();
     return NATIVE_FETCH('/api/secure-proxy', {
       method: 'POST',
       headers: {
@@ -70,10 +69,62 @@ window.fetch = function(input, init) {
 
 var SESSION  = null;
 var EMPRESAS = [];
+var SESSION_KEY = 'resute_session';
+var SESSION_TTL_MS = 1000 * 60 * 90;
 
-// F5 / recarregar = sempre volta para o login
-// Usa sessionStorage (some ao fechar/recarregar) em vez de localStorage
-sessionStorage.removeItem('resute_session');
+function _clearStoredSession() {
+  try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+}
+
+function _sessionTick() {
+  if (!SESSION || !SESSION.token) return;
+  if (!SESSION.expires_at || SESSION.expires_at < Date.now()) {
+    alert('Sua sessão expirou. Faça login novamente.');
+    fazerLogout();
+    _mostrarLogin();
+    return;
+  }
+}
+
+setInterval(_sessionTick, 60000);
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') _sessionTick();
+});
+['click', 'keydown', 'mousemove', 'touchstart'].forEach(function(evt) {
+  document.addEventListener(evt, function() {
+    if (SESSION && SESSION.token) _touchSession();
+  }, { passive: true });
+});
+
+function _touchSession() {
+  if (!SESSION || !SESSION.token) return;
+  SESSION.expires_at = Date.now() + SESSION_TTL_MS;
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify(SESSION)); } catch (e) {}
+}
+
+function _readStoredSession() {
+  try {
+    var saved = localStorage.getItem(SESSION_KEY);
+    if (!saved) return null;
+    var parsed = JSON.parse(saved);
+    if (!parsed || !parsed.token) return null;
+    if (!parsed.expires_at || parsed.expires_at < Date.now()) {
+      _clearStoredSession();
+      return null;
+    }
+    parsed.expires_at = Date.now() + SESSION_TTL_MS;
+    localStorage.setItem(SESSION_KEY, JSON.stringify(parsed));
+    return parsed;
+  } catch (e) {
+    _clearStoredSession();
+    return null;
+  }
+}
+
+function _saveSession(sessionData) {
+  SESSION = sessionData;
+  _touchSession();
+}
 
 // ── MULTI-LOJA (Llamenina Matriz / Mega) ──────────────────────────────────────
 var LOJA_NOMES = {
@@ -84,14 +135,25 @@ var LOJA_NOMES = {
 };
 
 function abrirAnaliseVendas() {
-  var saved = sessionStorage.getItem('resute_session');
-  if (saved) { try { SESSION = JSON.parse(saved); } catch(e) { SESSION = null; } }
+  SESSION = _readStoredSession();
   if (SESSION && SESSION.token) { _abrirApp(); } else { _mostrarLogin(); }
 }
 
 function _mostrarLogin() {
-  document.getElementById('login-modal').style.display = 'flex';
-  setTimeout(function(){ document.getElementById('login-email').focus(); }, 100);
+  var modal = document.getElementById('login-modal');
+  if (modal) modal.style.display = 'none';
+  var lp = document.getElementById('view-login-page');
+  if (lp) lp.style.display = 'flex';
+  var sb = document.getElementById('sidebar');
+  if (sb) sb.style.display = 'none';
+  var wr = document.getElementById('cui-wrapper');
+  if (wr) wr.style.display = 'none';
+  var vc = document.getElementById('view-dash-cliente');
+  if (vc) vc.style.display = 'none';
+  setTimeout(function(){
+    var email = document.getElementById('login-email');
+    if (email) email.focus();
+  }, 100);
 }
 
 function fecharLogin() {
@@ -145,7 +207,7 @@ async function fazerLogin() {
       empresa_ids: empresaIds || (u.empresa_id ? [u.empresa_id] : null),
       empresa_nome:'RESUTE'
     };
-    sessionStorage.setItem('resute_session', JSON.stringify(SESSION));
+    _saveSession(SESSION);
     fecharLogin();
     _abrirApp();
 
@@ -161,7 +223,7 @@ async function fazerLogin() {
 
 function fazerLogout() {
   SESSION = null; EMPRESAS = [];
-  sessionStorage.removeItem('resute_session');
+  _clearStoredSession();
 
 // ── MULTI-LOJA (Llamenina Matriz / Mega) ──────────────────────────────────────
 var LOJA_NOMES = {
@@ -175,9 +237,14 @@ var LOJA_NOMES = {
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
+  var vc = document.getElementById('view-dash-cliente');
+  if (vc) vc.style.display = 'none';
+  _mostrarLogin();
 }
 
 function _abrirApp() {
+  _touchSession();
+
   // Sempre esconde a login page primeiro
   var lp = document.getElementById('view-login-page');
   if (lp) lp.style.display = 'none';
@@ -491,7 +558,8 @@ function _setStatus(msg, tipo) {
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Enter') {
     var modal = document.getElementById('login-modal');
-    if (modal && modal.style.display !== 'none') fazerLogin();
+    var loginPage = document.getElementById('view-login-page');
+    if ((modal && modal.style.display !== 'none') || (loginPage && loginPage.style.display !== 'none')) fazerLogin();
   }
 });
 

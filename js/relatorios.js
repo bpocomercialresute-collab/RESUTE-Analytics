@@ -44,6 +44,7 @@ function avShowRel(tipo) {
 
   // Gera todos os relatórios se tiver dados
   if (typeof BD_DATA !== 'undefined' && BD_DATA.rows && BD_DATA.rows.length > 0) {
+    try { if (typeof bdUpdateCadastroInsights === 'function') bdUpdateCadastroInsights(); } catch(e){ console.error(e); }
     try { if (typeof bdUpdateVendaProduto    === 'function') bdUpdateVendaProduto(); }    catch(e){ console.error(e); }
     try { if (typeof bdUpdateLaudoGrupo      === 'function') bdUpdateLaudoGrupo(); }      catch(e){ console.error(e); }
     try { if (typeof bdUpdateLaudoMarca      === 'function') bdUpdateLaudoMarca(); }      catch(e){ console.error(e); }
@@ -56,14 +57,15 @@ function avShowRel(tipo) {
       + '<p>Nenhum dado carregado</p>'
       + '<span>Clique em <b>Sincronizar</b> para buscar os dados da API, ou acesse <b>BD & Cadastros</b> e cole manualmente.</span>'
       + '</div>';
-    ['av-rel-venda-produto','av-rel-laudo-grupo','av-rel-laudo-ano','av-rel-laudo-ano02','av-rel-laudo-marca'].forEach(function(id){
+    ['av-rel-cadastro-insights','av-rel-venda-produto','av-rel-laudo-grupo','av-rel-laudo-ano','av-rel-laudo-ano02','av-rel-laudo-marca'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.innerHTML = msg;
     });
   }
 
   // Ativa a aba correta
-  var alvo = tipo === 'relat-produtos' ? 'av-rel-venda-produto' : 'av-rel-laudo-grupo';
+  var alvo = 'av-rel-cadastro-insights';
+  if (tipo === 'relat-produtos') alvo = 'av-rel-cadastro-insights';
   document.querySelectorAll('#av-rel-area .av-tab').forEach(function(t){ t.classList.remove('active'); });
   document.querySelectorAll('#av-rel-area .av-tab-pane').forEach(function(p){ p.classList.remove('active'); });
   var tab  = document.querySelector('#av-rel-area [data-target="'+alvo+'"]');

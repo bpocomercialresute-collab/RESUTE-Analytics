@@ -145,6 +145,15 @@ function bdAutoFill() {
       if (window.IDX.tipoVend >= 0 && !r[window.IDX.tipoVend]) r[window.IDX.tipoVend] = rv.tipo;
     }
 
+    // === FALLBACKS das colunas automáticas para deixar o BD mais consistente ===
+    if (window.IDX.grupoProd >= 0 && !r[window.IDX.grupoProd] && g(r, 'grupo')) r[window.IDX.grupoProd] = g(r, 'grupo');
+    if (window.IDX.grupoPai  >= 0 && !r[window.IDX.grupoPai]  && g(r, 'grupo')) r[window.IDX.grupoPai]  = g(r, 'grupo');
+    if (window.IDX.marca     >= 0 && !r[window.IDX.marca]     && g(r, 'industria')) r[window.IDX.marca] = g(r, 'industria');
+    if (window.IDX.familia   >= 0 && !r[window.IDX.familia]   && g(r, 'subgrupo')) r[window.IDX.familia] = g(r, 'subgrupo');
+    if (window.IDX.classes   >= 0 && !r[window.IDX.classes]) {
+      r[window.IDX.classes] = g(r, 'familia') || g(r, 'subgrupo') || g(r, 'grupo') || '';
+    }
+
     return r;
   });
 
@@ -245,7 +254,7 @@ function getSem(dt) {
 function bdUpdateAllTabs() {
   // Relatórios primeiro (mais importantes)
   const relatorios = [
-    bdUpdateVendaProduto, bdUpdateLaudoGrupo,
+    bdUpdateCadastroInsights, bdUpdateVendaProduto, bdUpdateLaudoGrupo,
     bdUpdateLaudoMarca, bdUpdateLaudoGruposAno, bdUpdateLaudoGruposAno02
   ];
   relatorios.forEach(fn => { try { fn(); } catch(e) { console.warn(fn.name, e); } });
@@ -479,6 +488,89 @@ function toggleBtnHtml() {
     <button class="rel-toggle-btn ${window.RELATORIO_MODO==='valor'?'active':''}" onclick="toggleModo('valor')">R$ VALOR</button>
     <button class="rel-toggle-btn ${window.RELATORIO_MODO==='qtd'?'active':''}" onclick="toggleModo('qtd')">QTD</button>
   </div>`;
+}
+
+function bdUpdateCadastroInsights() {
+  const pane = document.getElementById('av-rel-cadastro-insights');
+  if (!pane) return;
+  if (!window.BD_DATA.rows.length) {
+    pane.innerHTML = '<div class="av-rel-placeholder"><p>VISÃO CADASTRAL</p><span>Carregue ou sincronize os dados para gerar os indicadores automáticos.</span></div>';
+    return;
+  }
+
+  const rows = window.BD_DATA.rows;
+  const total = rows.length;
+  const totalClientes = new Set(rows.map(r => g(r,'cliente')).filter(Boolean)).size;
+  const totalProdutos = new Set(rows.map(r => g(r,'produto')).filter(Boolean)).size;
+  const totalVendedores = new Set(rows.map(r => g(r,'vendedor')).filter(Boolean)).size;
+  const campos = [
+    { key:'grupo', label:'Grupo' },
+    { key:'subgrupo', label:'Subgrupo' },
+    { key:'familia', label:'Família' },
+    { key:'marca', label:'Marca' },
+    { key:'setor', label:'Setor' },
+    { key:'cidade', label:'Cidade' },
+    { key:'uf', label:'UF' },
+    { key:'mercado', label:'Tipo de mercado' },
+    { key:'tipoVend', label:'Tipo de vendedor' },
+    { key:'diasSem', label:'Dias sem compra' }
+  ];
+
+  const cards = campos.map(function(campo) {
+    const preenchidos = rows.filter(r => !!g(r, campo.key)).length;
+    const percentual = total ? Math.round((preenchidos / total) * 100) : 0;
+    return `<div class="cad-card">
+      <div class="cad-card-top">
+        <span class="cad-card-label">${campo.label}</span>
+        <span class="cad-card-pct">${percentual}%</span>
+      </div>
+      <div class="cad-card-val">${preenchidos.toLocaleString('pt-BR')}</div>
+      <div class="cad-card-sub">de ${total.toLocaleString('pt-BR')} linhas com preenchimento automático</div>
+      <div class="cad-card-bar"><span style="width:${percentual}%"></span></div>
+    </div>`;
+  }).join('');
+
+  function topValores(key, max) {
+    const mapa = {};
+    rows.forEach(function(r) {
+      const valor = g(r, key);
+      if (!valor) return;
+      mapa[valor] = (mapa[valor] || 0) + metrica(r);
+    });
+    return Object.entries(mapa)
+      .sort((a,b) => b[1] - a[1])
+      .slice(0, max)
+      .map(function(entry, idx) {
+        return `<tr><td>${idx + 1}</td><td>${entry[0]}</td><td class="num">${fmtMetricaFull(entry[1])}</td></tr>`;
+      }).join('');
+  }
+
+  pane.innerHTML = `
+    <div class="rel-header-bar">
+      ${toggleBtnHtml()}
+      <div class="rel-title">VISÃO CADASTRAL E COLUNAS AUTOMÁTICAS</div>
+    </div>
+    <div class="cad-kpis">
+      <div class="cad-kpi"><span class="cad-kpi-label">Linhas no BD</span><strong>${total.toLocaleString('pt-BR')}</strong></div>
+      <div class="cad-kpi"><span class="cad-kpi-label">Clientes</span><strong>${totalClientes.toLocaleString('pt-BR')}</strong></div>
+      <div class="cad-kpi"><span class="cad-kpi-label">Produtos</span><strong>${totalProdutos.toLocaleString('pt-BR')}</strong></div>
+      <div class="cad-kpi"><span class="cad-kpi-label">Representantes</span><strong>${totalVendedores.toLocaleString('pt-BR')}</strong></div>
+    </div>
+    <div class="cad-grid">${cards}</div>
+    <div class="cad-tables">
+      <div class="cad-table-box">
+        <div class="cad-table-title">Top grupos por desempenho</div>
+        <table class="cad-table"><thead><tr><th>#</th><th>Grupo</th><th>Resultado</th></tr></thead><tbody>${topValores('grupo', 8)}</tbody></table>
+      </div>
+      <div class="cad-table-box">
+        <div class="cad-table-title">Top marcas por desempenho</div>
+        <table class="cad-table"><thead><tr><th>#</th><th>Marca</th><th>Resultado</th></tr></thead><tbody>${topValores('marca', 8)}</tbody></table>
+      </div>
+      <div class="cad-table-box">
+        <div class="cad-table-title">Top cidades por desempenho</div>
+        <table class="cad-table"><thead><tr><th>#</th><th>Cidade</th><th>Resultado</th></tr></thead><tbody>${topValores('cidade', 8)}</tbody></table>
+      </div>
+    </div>`;
 }
 
 // ── VENDA POR PRODUTO ─────────────────────────────────────────────────────────
