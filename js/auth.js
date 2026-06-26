@@ -1124,19 +1124,19 @@ async function adminSincronizar() {
     // 4. Salva no Supabase em lotes de 500
     var inseridos = 0;
     // Limpa manuais antigos desta empresa (API sobrescreve)
-    await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&id_externo=like.auto_*',
+    // Apaga TODOS os registros desta empresa antes de reinserir
+    // Evita qualquer conflito de chave duplicada
+    _adminSetStatus('⏳ Limpando registros anteriores...');
+    var delR = await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id,
       { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } });
+    if (!delR.ok) console.warn('DELETE retornou:', delR.status);
 
     for (var i = 0; i < regs.length; i += 500) {
       var batch = regs.slice(i, i+500);
-      var sR = await fetch(SUPA_URL + '/rest/v1/vendas?on_conflict=empresa_id,id_externo', {
+      var sR = await fetch(SUPA_URL + '/rest/v1/vendas', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPA_KEY,
-          'Authorization': 'Bearer ' + SVC_KEY,
-          'Prefer': 'return=minimal,resolution=merge-duplicates'
-        },
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY,
+                   'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' },
         body: JSON.stringify(batch)
       });
       if (!sR.ok) {
