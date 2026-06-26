@@ -1091,8 +1091,8 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 .lp-hero {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) 420px;
-  gap: 28px 56px;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 22px 48px;
   align-items: start;
 }
 .lp-hero-kicker {
@@ -1227,7 +1227,7 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 /* Form */
 .lp-form-wrap {
   grid-column: 2;
-  grid-row: 1 / span 3;
+  grid-row: 1 / span 4;
   align-self: start;
   width: 100%;
 }
@@ -1235,7 +1235,7 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   background: linear-gradient(180deg, rgba(12,22,39,.98) 0%, rgba(8,17,31,.98) 100%);
   border: 1px solid rgba(96,165,250,.14);
   border-radius: 24px;
-  padding: 36px 34px 32px;
+  padding: 32px 32px 28px;
   box-shadow:
     0 28px 60px rgba(1,8,20,.48),
     inset 0 1px 0 rgba(255,255,255,.03);

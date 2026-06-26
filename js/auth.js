@@ -153,11 +153,48 @@ function _limparBlocosInstitucionaisAntigos() {
   });
 }
 
+function _normalizarTelaInicial() {
+  var hero = document.querySelector('#view-login-page .lp-hero');
+  if (hero) {
+    hero.innerHTML = ''
+      + '<div class="lp-hero-kicker">Plataforma SaaS · Multi-empresa</div>'
+      + '<h1 class="lp-hero-title">Operacao comercial<br/><span class="lp-hero-accent">com controle real</span></h1>'
+      + '<p class="lp-hero-sub">Painel executivo para acompanhar vendas, mix de produtos, clientes, representantes e sincronizacoes por empresa com uma entrada mais segura e organizada.</p>'
+      + '<div class="lp-form-wrap">'
+      +   '<div class="lp-form-box">'
+      +     '<div class="lp-form-chip">Ambiente corporativo RESUTE</div>'
+      +     '<div class="lp-form-title">Acessar a plataforma</div>'
+      +     '<div class="lp-form-sub">Entre com suas credenciais para abrir o painel e continuar o trabalho da empresa no mesmo ambiente.</div>'
+      +     '<div class="lp-field">'
+      +       '<label class="lp-label">E-mail</label>'
+      +       '<input id="login-email" type="email" class="lp-input" placeholder="nome@empresa.com.br" autocomplete="username" />'
+      +     '</div>'
+      +     '<div class="lp-field">'
+      +       '<label class="lp-label">Senha</label>'
+      +       '<input id="login-senha" type="password" class="lp-input" placeholder="Digite sua senha" autocomplete="current-password" />'
+      +     '</div>'
+      +     '<div id="login-erro" class="lp-erro"></div>'
+      +     '<button id="login-btn" class="lp-btn" onclick="fazerLogin()">'
+      +       'Entrar'
+      +       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M5 12h14M13 5l7 7-7 7"/></svg>'
+      +     '</button>'
+      +     '<div class="lp-footer">RESUTE · Gestao Comercial © 2026</div>'
+      +   '</div>'
+      + '</div>';
+  }
+
+  document.querySelectorAll('#lp-about-page .lp-service-icon-img').forEach(function(node) {
+    if (node && node.parentNode) node.parentNode.removeChild(node);
+  });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+  _normalizarTelaInicial();
   _limparBlocosInstitucionaisAntigos();
 });
 
 function _mostrarLogin() {
+  _normalizarTelaInicial();
   _limparBlocosInstitucionaisAntigos();
   var modal = document.getElementById('login-modal');
   if (modal) modal.style.display = 'none';
