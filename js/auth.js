@@ -1653,11 +1653,14 @@ adminSincronizar = async function() {
       };
     });
 
-    // Apaga dados API antigos
-    await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&origem=eq.api', {
-      method: 'DELETE',
-      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal', 'Content-Type': 'application/json' }
-    });
+    // Apaga TODOS os registros desta empresa (origem=api, manual ou NULL)
+    // para evitar conflito de chave duplicada
+    _adminSetStatus('⏳ Limpando dados anteriores...');
+    var delAll = await fetch(
+      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id,
+      { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal', 'Content-Type': 'application/json' } }
+    );
+    console.log('[SYNC] DELETE status:', delAll.status);
 
     // Insere
     var inseridos = 0;
