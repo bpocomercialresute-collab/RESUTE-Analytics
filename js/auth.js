@@ -3,8 +3,70 @@
 // =============================================================================
 
 const SUPA_URL = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsZnpldmRzbW1kdnJ3aHBsemtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzU4NzMsImV4cCI6MjA5NzExMTg3M30.GEcGhBdW9whsdikO181Uvv2rpzXfvyntTHzPKots4bE';
-const SVC_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsZnpldmRzbW1kdnJ3aHBsemtjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTUzNTg3MywiZXhwIjoyMDk3MTExODczfQ.SA-rCZ9A6qXkY1lfYW65OjpTVUGSOLFXTb50s9R9nN0';
+const SUPA_KEY = '__SERVER_ONLY__';
+const SVC_KEY  = '__SERVER_ONLY__';
+const VISUAL_SAEF_API_URL = 'https://api-plastrio.visualsaef.com';
+const VISUAL_SAEF_CLIENT_ID = '__SERVER_ONLY__';
+const VISUAL_SAEF_CLIENT_SECRET = '__SERVER_ONLY__';
+
+const NATIVE_FETCH = window.fetch.bind(window);
+
+function _getSessionToken() {
+  if (SESSION && SESSION.token) return SESSION.token;
+  try {
+    var saved = sessionStorage.getItem('resute_session');
+    if (!saved) return '';
+    var parsed = JSON.parse(saved);
+    return parsed && parsed.token ? parsed.token : '';
+  } catch (e) {
+    return '';
+  }
+}
+
+function _normalizeFetchHeaders(headers) {
+  if (!headers) return {};
+  if (headers instanceof Headers) {
+    var out = {};
+    headers.forEach(function(value, key) { out[key] = value; });
+    return out;
+  }
+  return headers;
+}
+
+window.fetch = function(input, init) {
+  var url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+  var opts = init || {};
+
+  if (url === SUPA_URL + '/auth/v1/token?grant_type=password') {
+    return NATIVE_FETCH('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: opts.body
+    });
+  }
+
+  if (
+    url.indexOf(SUPA_URL + '/rest/v1/') === 0 ||
+    url.indexOf(SUPA_URL + '/functions/v1/') === 0 ||
+    url.indexOf(VISUAL_SAEF_API_URL + '/') === 0
+  ) {
+    return NATIVE_FETCH('/api/secure-proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-token': _getSessionToken()
+      },
+      body: JSON.stringify({
+        url: url,
+        method: opts.method || 'GET',
+        headers: _normalizeFetchHeaders(opts.headers),
+        body: opts.body || null
+      })
+    });
+  }
+
+  return NATIVE_FETCH(input, init);
+};
 
 var SESSION  = null;
 var EMPRESAS = [];
@@ -55,11 +117,11 @@ async function fazerLogin() {
   try {
     var r = await fetch(SUPA_URL + '/auth/v1/token?grant_type=password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email, password: senha })
     });
     var d = await r.json();
-    if (!r.ok || !d.access_token) throw new Error(d.error_description || 'Email ou senha incorretos.');
+    if (!r.ok || !d.token) throw new Error(d.erro || 'Email ou senha incorretos.');
 
     var uR = await fetch(
       SUPA_URL + '/rest/v1/usuarios?email=eq.' + encodeURIComponent(email.toLowerCase()) + '&select=*',
@@ -75,7 +137,7 @@ async function fazerLogin() {
     }
 
     SESSION = {
-      token:       d.access_token,
+      token:       d.token,
       nome:        u.nome || email,
       email:       email,
       papel:       u.papel || 'cliente',
@@ -1029,9 +1091,9 @@ async function _adminCarregar(empresa_id) {
 }
 
 // ── SYNC VISUAL SAEF — chamada direta do browser (sem Edge Function) ──────────
-var VS_API  = 'https://api-plastrio.visualsaef.com';
-var VS_CID  = '7eb42956-e55c-4424-9148-ed6cb1f781ed';
-var VS_CSEC = 'b0HJSjMTNCTDFeptGvWeIDbpn6aFRxZ252VEiN9S';
+var VS_API  = VISUAL_SAEF_API_URL;
+var VS_CID  = VISUAL_SAEF_CLIENT_ID;
+var VS_CSEC = VISUAL_SAEF_CLIENT_SECRET;
 
 async function adminSincronizar() {
   if (!EMPRESA_ATIVA || !EMPRESA_ATIVA.tem_api) return;
@@ -1582,9 +1644,9 @@ adminSincronizar = async function() {
     _adminSetStatus('⏳ Conectando à API — período: ' + DI + ' → ' + DF);
 
     // Login Visual Saef
-    var VS_API  = 'https://api-plastrio.visualsaef.com';
-    var VS_CID  = '7eb42956-e55c-4424-9148-ed6cb1f781ed';
-    var VS_CSEC = 'b0HJSjMTNCTDFeptGvWeIDbpn6aFRxZ252VEiN9S';
+    var VS_API  = VISUAL_SAEF_API_URL;
+    var VS_CID  = VISUAL_SAEF_CLIENT_ID;
+    var VS_CSEC = VISUAL_SAEF_CLIENT_SECRET;
 
     var lR = await fetch(VS_API + '/login?client_id=' + VS_CID + '&client_secret=' + VS_CSEC);
     if (!lR.ok) throw new Error('Login API falhou: HTTP ' + lR.status);
