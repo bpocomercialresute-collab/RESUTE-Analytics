@@ -677,17 +677,111 @@ function dcAplicarFiltro() {
 
   DC_DATA = DC_RAW.filter(function(v){
     if (ano && v.ano != ano) return false;
-    if (mes && v.mes != mes && parseInt(v.mes) != mes) return false;
+    if (mes && dcMesNumero(v.mes) !== mes) return false;
     return true;
   });
 
   dcRenderizar();
 }
 
+function dcMesNumero(valor) {
+  if (!valor) return 0;
+  var numero = parseInt(valor, 10);
+  if (numero >= 1 && numero <= 12) return numero;
+  var txt = String(valor).trim().toLowerCase();
+  var idx = ['janeiro','fevereiro','março','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
+    .indexOf(txt);
+  if (idx >= 0) return idx + 1;
+  var curto = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'].indexOf(txt.slice(0,3));
+  return curto >= 0 ? curto + 1 : 0;
+}
+
+function dcAtualizarPeriodoLabel(rows) {
+  var el = document.getElementById('dc-periodo-label');
+  if (!el) return;
+  var ano = parseInt(document.getElementById('dc-filtro-ano').value, 10) || 0;
+  var mes = parseInt(document.getElementById('dc-filtro-mes').value, 10) || 0;
+  var partes = [];
+  partes.push(ano ? 'Ano ' + ano : 'Todos os anos');
+  partes.push(mes ? MESES_FULL[mes - 1] : 'Todos os meses');
+  partes.push((rows || []).length.toLocaleString('pt-BR') + ' registros no recorte');
+  el.textContent = partes.join(' • ');
+}
+
+function dcPrepararDadosRelatorios(rows) {
+  var fonte = (rows && rows.length) ? rows : DC_RAW;
+  var headers = ['ID','N° PEDIDO','PRODUTO OU SERVIÇO','QTD','Dt. Emissão','Data de Saída','VALOR','Vendedor','Indústria','Cliente','ANO','MÊS','GRUPO','SEM','tipo mercado','SETOR','CIDADE','UF','TIPO VENDEDOR','Dias Sem Compra','NOTA F','ROTA','DESCONTO','EMPRESA','cnpj','grupo_produto','GRUPO PAI','subgrupo_produto','marca','familia_produto','classes'];
+  var tabela = fonte.map(function(r) {
+    return [
+      r.id_externo || '', r.num_pedido || '', r.produto || '', String(r.qtd || ''),
+      r.dt_emissao || '', r.dt_saida || '', String(r.valor || ''),
+      r.vendedor || '', r.industria || '', r.cliente || '',
+      r.ano ? String(r.ano) : '', r.mes || '', r.grupo || '', r.semana || '',
+      r.tipo_mercado || '', r.setor || '', r.cidade || '', r.uf || '',
+      r.tipo_vendedor || '', r.dias_sem_compra || '', r.nota_f || '', r.rota || '', r.desconto || '',
+      r.empresa_nome || '', r.cnpj || '', r.grupo_produto || '', r.grupo_pai || '',
+      r.subgrupo || '', r.marca || '', r.familia || '', r.classes || ''
+    ];
+  });
+  if (typeof BD_DATA !== 'undefined') {
+    BD_DATA.headers = headers;
+    BD_DATA.rows = tabela;
+    BD_DATA.count = tabela.length;
+  }
+  if (typeof FULL_DATA !== 'undefined') FULL_DATA.bd = tabela;
+  try { if (typeof bdMapColumns === 'function') bdMapColumns(); } catch (e) { console.error(e); }
+  try { if (typeof bdAutoFill === 'function') bdAutoFill(); } catch (e) { console.error(e); }
+  try { if (typeof bdUpdateAllTabs === 'function') bdUpdateAllTabs(); } catch (e) { console.error(e); }
+}
+
+function dcAbrirRelatorio(tipo) {
+  var rows = (typeof DC_DATA !== 'undefined' && DC_DATA.length) ? DC_DATA : DC_RAW;
+  if (!rows || !rows.length) {
+    dcStatus('⚠ Nenhum dado disponível para abrir o relatório.');
+    return;
+  }
+
+  dcPrepararDadosRelatorios(rows);
+
+  var dash = document.getElementById('view-dash-cliente');
+  if (dash) dash.style.display = 'none';
+
+  var wrapper = document.getElementById('cui-wrapper');
+  if (wrapper) wrapper.style.display = 'flex';
+  var sidebar = document.getElementById('sidebar');
+  if (sidebar) sidebar.style.display = 'none';
+  var app = document.getElementById('view-app');
+  if (app) app.style.display = 'block';
+  document.body.classList.add('client-report-mode');
+
+  var campos = {
+    'user-nome': SESSION.nome,
+    'user-empresa': document.getElementById('dc-empresa') ? document.getElementById('dc-empresa').textContent : (SESSION.empresa_nome || 'Empresa'),
+    'sidebar-user-nome': SESSION.nome,
+    'sidebar-user-empresa': document.getElementById('dc-empresa') ? document.getElementById('dc-empresa').textContent : (SESSION.empresa_nome || 'Empresa')
+  };
+  Object.keys(campos).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = campos[id];
+  });
+  ['header-user'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'flex';
+  });
+
+  if (typeof avShowRel === 'function') avShowRel(tipo);
+}
+
 // ── RENDERIZA TUDO ────────────────────────────────────────────────────────────
 function dcRenderizar() {
   var rows = (typeof DC_DATA !== 'undefined' && DC_DATA.length) ? DC_DATA : DC_RAW;
-  if (!rows || !rows.length) { dcStatus('⚠ Nenhum dado disponível.'); return; }
+  dcAtualizarPeriodoLabel(rows || []);
+  if (!rows || !rows.length) {
+    dcStatus('⚠ Nenhum dado disponível para esse filtro.');
+    var kEl = document.getElementById('dc-kpis');
+    if (kEl) kEl.innerHTML = '<div class="dc-kpi-empty">Nenhum registro encontrado para o período selecionado.</div>';
+    return;
+  }
 
   // ── KPIs principais ──
   var fat = rows.reduce(function(s,r){ return s+(parseFloat(r.valor)||0); }, 0);
@@ -1138,6 +1232,7 @@ async function adminSelecionarEmpresa(id) {
   // Carrega origem configurada e contagens
   await _adminCarregarOrigemEmpresa(id);
   await _adminAtualizarContagens();
+  await _adminPreencherPeriodoSync(id);
 
   // Carrega dados existentes
   await _adminCarregar(id);
@@ -1156,6 +1251,51 @@ async function _adminCarregar(empresa_id) {
     if (typeof GRIDS !== 'undefined' && GRIDS.bd) { GRIDS.bd.allData = rows; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render(); }
     _adminSetStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' registros — ' + EMPRESA_ATIVA.nome, true);
   } catch(e) { _adminSetStatus('✗ ' + e.message); console.error(e); }
+}
+
+async function _adminPreencherPeriodoSync(empresa_id) {
+  var inicioEl = document.getElementById('adm-sync-inicio');
+  var fimEl = document.getElementById('adm-sync-fim');
+  var resumo = document.getElementById('adm-periodo-resumo');
+  if (!inicioEl || !fimEl) return;
+
+  var hoje = new Date();
+  var dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+
+  try {
+    var logR = await fetch(
+      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + empresa_id + '&select=ultima_data',
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
+    );
+    var logD = await logR.json();
+    var ultimaData = logD && logD[0] && logD[0].ultima_data ? logD[0].ultima_data : null;
+    if (ultimaData) {
+      dataInicio = new Date(ultimaData);
+      dataInicio.setDate(dataInicio.getDate() + 1);
+    }
+  } catch (e) {
+    console.error(e);
+  }
+
+  function iso(d) { return d.toISOString().slice(0, 10); }
+  inicioEl.value = iso(dataInicio);
+  fimEl.value = iso(hoje);
+  if (resumo) resumo.textContent = 'Período atual da sincronização: ' + dataInicio.toLocaleDateString('pt-BR') + ' até ' + hoje.toLocaleDateString('pt-BR');
+}
+
+function _adminObterPeriodoSync() {
+  var inicioEl = document.getElementById('adm-sync-inicio');
+  var fimEl = document.getElementById('adm-sync-fim');
+  var resumo = document.getElementById('adm-periodo-resumo');
+  var dataInicio = inicioEl && inicioEl.value ? new Date(inicioEl.value + 'T00:00:00') : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  var dataFim = fimEl && fimEl.value ? new Date(fimEl.value + 'T00:00:00') : new Date();
+  if (dataInicio > dataFim) {
+    var troca = dataInicio;
+    dataInicio = dataFim;
+    dataFim = troca;
+  }
+  if (resumo) resumo.textContent = 'Período atual da sincronização: ' + dataInicio.toLocaleDateString('pt-BR') + ' até ' + dataFim.toLocaleDateString('pt-BR');
+  return { dataInicio: dataInicio, dataFim: dataFim };
 }
 
 // ── SYNC VISUAL SAEF — chamada direta do browser (sem Edge Function) ──────────
@@ -1726,16 +1866,9 @@ adminSincronizar = async function() {
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="auth-spin">⟳</span> Sincronizando...'; }
 
   try {
-    // Data de início
-    var logR = await fetch(
-      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&select=ultima_data',
-      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
-    );
-    var logD = await logR.json();
-    var ultimaData = logD && logD[0] && logD[0].ultima_data ? logD[0].ultima_data : null;
-    var dataInicio = ultimaData ? new Date(ultimaData) : new Date('2025-01-01');
-    if (ultimaData) dataInicio.setDate(dataInicio.getDate() + 1);
-    var dataFim = new Date();
+    var periodo = _adminObterPeriodoSync();
+    var dataInicio = periodo.dataInicio;
+    var dataFim = periodo.dataFim;
 
     var fmt = function(d) {
       return String(d.getDate()).padStart(2,'0') + String(d.getMonth()+1).padStart(2,'0') + String(d.getFullYear());
