@@ -100,30 +100,75 @@
           <!-- ABAS POR EMPRESA -->
           <div id="admin-empresa-tabs" class="admin-emp-tabs"></div>
 
-          <!-- BARRA DE ACOES DA EMPRESA ATIVA -->
-          <div id="admin-action-bar" class="admin-action-bar" style="display:none">
-            <div class="admin-emp-info">
-              <div class="admin-emp-ativa" id="admin-emp-nome">Nenhuma empresa selecionada</div>
-              <div id="admin-sync-status" class="admin-sync-status"></div>
+          <!-- PAINEL EMPRESA ATIVA -->
+          <div id="admin-action-bar" class="admin-painel" style="display:none">
+
+            <!-- Cabeçalho da empresa -->
+            <div class="admin-painel-header">
+              <div class="admin-painel-empresa">
+                <div class="admin-painel-nome" id="admin-emp-nome">—</div>
+                <div class="admin-painel-status" id="admin-sync-status"></div>
+              </div>
+              <div class="admin-painel-toggle">
+                <span class="toggle-label">Cliente vê:</span>
+                <div class="toggle-grupo" id="toggle-origem">
+                  <button class="toggle-btn" data-origem="api" onclick="adminToggleOrigem('api')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+                    Dados API
+                  </button>
+                  <button class="toggle-btn" data-origem="manual" onclick="adminToggleOrigem('manual')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Dados Manuais
+                  </button>
+                </div>
+              </div>
             </div>
-            <div class="admin-emp-btns">
-              <button id="admin-btn-sync" onclick="adminSincronizar()" class="jss-btn jss-btn-primary" style="display:none">
+
+            <!-- Sub-abas: API vs Manual -->
+            <div class="admin-sub-tabs">
+              <button class="admin-sub-tab active" data-sub="api" onclick="adminSubAba(this,'api')" id="admin-subtab-api">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
-                Sincronizar API
+                Dados da API
+                <span class="admin-sub-count" id="api-count">—</span>
               </button>
-              <button onclick="adminProcessar()" class="jss-btn jss-btn-success">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                Processar
-              </button>
-              <button onclick="adminSalvarBanco()" class="jss-btn" style="background:#0a2a10;border-color:#166534;color:#4ade80">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
-                Salvar no Banco
-              </button>
-              <button onclick="adminLimparBanco()" class="jss-btn jss-btn-danger" title="Apaga todos os dados desta empresa">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-                Limpar Banco
+              <button class="admin-sub-tab" data-sub="manual" onclick="adminSubAba(this,'manual')" id="admin-subtab-manual">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg>
+                Dados Manuais
+                <span class="admin-sub-count" id="manual-count">—</span>
               </button>
             </div>
+
+            <!-- Painel API -->
+            <div id="admin-painel-api" class="admin-sub-content">
+              <div class="admin-api-toolbar">
+                <button id="admin-btn-sync" onclick="adminSincronizar()" class="jss-btn jss-btn-primary">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+                  Sincronizar API
+                </button>
+                <button onclick="adminLimparOrigem('api')" class="jss-btn jss-btn-danger">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                  Limpar Dados API
+                </button>
+                <span class="admin-api-info" id="admin-api-info">Clique Sincronizar para puxar dados</span>
+              </div>
+              <div id="admin-api-resumo" class="admin-api-resumo" style="display:none"></div>
+            </div>
+
+            <!-- Painel Manual -->
+            <div id="admin-painel-manual" class="admin-sub-content" style="display:none">
+              <div class="admin-api-toolbar">
+                <button onclick="adminProcessarManual()" class="jss-btn jss-btn-success">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  Processar e Salvar
+                </button>
+                <button onclick="adminLimparOrigem('manual')" class="jss-btn jss-btn-danger">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                  Limpar Dados Manuais
+                </button>
+                <span class="admin-api-info">Cole dados do Excel → Ctrl+V na grade abaixo</span>
+              </div>
+            </div>
+
           </div>
 
           <div class="av-exibir-grid">
@@ -594,7 +639,7 @@
   <script src="js/charts.js?v=2"></script>
   <script src="js/dashboard.js?v=2"></script>
   <script src="js/actions.js?v=2"></script>
-  <script src="js/auth.js?v=5"></script>
+  <script src="js/auth.js?v=6"></script>
   <script src="js/jss.js?v=2"></script>
   <script src="js/bd.js?v=2"></script>
   <script src="js/relatorios.js?v=2"></script>

@@ -1001,6 +1001,19 @@ async function adminSelecionarEmpresa(id) {
   if (typeof BD_DATA   !== 'undefined') { BD_DATA.rows = []; BD_DATA.count = 0; }
   if (typeof GRIDS !== 'undefined' && GRIDS.bd) { GRIDS.bd.allData = []; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render(); }
   _adminSetStatus('⏳ Carregando ' + EMPRESA_ATIVA.nome + '...');
+
+  // Reseta para sub-aba API se empresa tem API, senão Manual
+  var subInicial = EMPRESA_ATIVA.tem_api ? 'api' : 'manual';
+  var btnSub = document.querySelector('.admin-sub-tab[data-sub="'+subInicial+'"]');
+  adminSubAba(btnSub, subInicial);
+
+  // Esconde sub-aba API se empresa não tem API
+  var tabApi = document.getElementById('admin-subtab-api');
+  if (tabApi) tabApi.style.display = EMPRESA_ATIVA.tem_api ? '' : 'none';
+
+  // Carrega exibir_origem da empresa
+  await _adminCarregarOrigemEmpresa(id);
+  await _adminAtualizarContagens();
   await _adminCarregar(id);
 }
 
@@ -1329,4 +1342,196 @@ function _montarSeletorLojas() {
   });
   // Seleciona a primeira por padrão
   dcSelecionarLoja(ids[0]);
+}
+// =============================================================================
+// SISTEMA MULTI-ORIGEM — API vs Manual · Toggle cliente
+// =============================================================================
+
+var EMPRESA_ORIGEM_ATIVA = 'api'; // sub-aba ativa no admin
+
+async function _adminCarregarOrigemEmpresa(empresa_id) {
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/empresas?id=eq.' + empresa_id + '&select=exibir_origem',
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } });
+    var d = await r.json();
+    var origem = (d && d[0] && d[0].exibir_origem) || 'manual';
+    if (EMPRESA_ATIVA) EMPRESA_ATIVA.exibir_origem = origem;
+    // Atualiza toggle
+    document.querySelectorAll('.toggle-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.origem === origem);
+    });
+  } catch(e) { console.error(e); }
+}
+
+// ── SUB-ABA (API | Manual) ────────────────────────────────────────────────────
+function adminSubAba(btn, sub) {
+  EMPRESA_ORIGEM_ATIVA = sub;
+  document.querySelectorAll('.admin-sub-tab').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  var pApi = document.getElementById('admin-painel-api');
+  var pMan = document.getElementById('admin-painel-manual');
+  if (pApi) pApi.style.display = sub === 'api'    ? 'block' : 'none';
+  if (pMan) pMan.style.display = sub === 'manual' ? 'block' : 'none';
+  // Mostra/esconde o botão Sincronizar conforme sub-aba
+  var bs = document.getElementById('admin-btn-sync');
+  if (bs) bs.style.display = (sub === 'api' && EMPRESA_ATIVA && EMPRESA_ATIVA.tem_api) ? 'inline-flex' : 'none';
+}
+
+// ── TOGGLE — o que o cliente vê ───────────────────────────────────────────────
+async function adminToggleOrigem(origem) {
+  if (!EMPRESA_ATIVA) return;
+  document.querySelectorAll('.toggle-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.origem === origem);
+  });
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/empresas?id=eq.' + EMPRESA_ATIVA.empresa_id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ exibir_origem: origem })
+    });
+    if (r.ok) {
+      _adminSetStatus('✓ Cliente verá dados ' + (origem === 'api' ? 'da API' : 'manuais') + ' da ' + EMPRESA_ATIVA.nome, true);
+      EMPRESA_ATIVA.exibir_origem = origem;
+    }
+  } catch(e) { console.error(e); }
+}
+
+// ── PROCESSAR MANUAL + SALVAR ─────────────────────────────────────────────────
+async function adminProcessarManual() {
+  if (!EMPRESA_ATIVA) { alert('Selecione uma empresa.'); return; }
+
+  var src = (typeof FULL_DATA !== 'undefined' && FULL_DATA.bd && FULL_DATA.bd.length)
+    ? FULL_DATA.bd
+    : (typeof GRIDS !== 'undefined' && GRIDS.bd ? GRIDS.bd.getData() : []);
+
+  var rows = src.filter(function(r) {
+    return r && r.some(function(c) { return c !== '' && c !== null && c !== undefined; });
+  });
+
+  if (!rows.length) { alert('Sem dados na grade. Cole do Excel primeiro (Ctrl+V na grade).'); return; }
+  if (!confirm('Processar e salvar ' + rows.length.toLocaleString('pt-BR') + ' linhas manuais para ' + EMPRESA_ATIVA.nome + '?')) return;
+
+  _adminSetStatus('⏳ Processando ' + rows.length.toLocaleString('pt-BR') + ' linhas...');
+
+  // Gera relatórios
+  var headers = ['ID','N° PEDIDO','PRODUTO OU SERVIÇO','QTD','Dt. Emissão','Data de Saída','VALOR','Vendedor','Indústria','Cliente','ANO','MÊS','GRUPO','SEM','tipo mercado','SETOR','CIDADE','UF','TIPO VENDEDOR','Dias Sem Compra','NOTA F','ROTA','DESCONTO','EMPRESA','cnpj','grupo_produto','GRUPO PAI','subgrupo_produto','marca','familia_produto','classes'];
+  if (typeof BD_DATA !== 'undefined') { BD_DATA.headers = headers; BD_DATA.rows = rows; BD_DATA.count = rows.length; }
+  if (typeof FULL_DATA !== 'undefined') FULL_DATA.bd = rows;
+
+  setTimeout(function() {
+    try { bdMapColumns(); } catch(e) {}
+    try { bdAutoFill(); }   catch(e) {}
+    try { bdUpdateAllTabs(); } catch(e) {}
+    if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
+      GRIDS.bd.allData = rows; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render();
+    }
+  }, 10);
+
+  // Salva no Supabase com origem = 'manual'
+  var eid = EMPRESA_ATIVA.empresa_id;
+  var ts  = Date.now();
+  var regs = rows.map(function(r, i) {
+    return {
+      empresa_id:   eid,
+      origem:       'manual',
+      id_externo:   'manual_' + eid.slice(0,8) + '_' + ts + '_' + i,
+      num_pedido:   r[1]||null, produto:   r[2]||null,
+      qtd:          parseFloat(r[3])||null,
+      dt_emissao:   _cvData(r[4]), dt_saida: _cvData(r[5]),
+      valor:        parseFloat(String(r[6]||'0').replace(',','.'))||null,
+      vendedor:     r[7]||null, industria: r[8]||null, cliente:   r[9]||null,
+      ano:          parseInt(r[10])||null, mes: r[11]||null, grupo: r[12]||null,
+      cidade:       r[16]||null, uf: r[17]||null,
+      empresa_nome: EMPRESA_ATIVA.nome, cnpj: r[24]||null, marca: r[28]||null
+    };
+  });
+
+  try {
+    // Apaga manuais antigos desta empresa
+    await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid + '&origem=eq.manual', {
+      method: 'DELETE',
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' }
+    });
+
+    // Insere em lotes
+    var inseridos = 0;
+    for (var i = 0; i < regs.length; i += 500) {
+      var batch = regs.slice(i, i+500);
+      var r = await fetch(SUPA_URL + '/rest/v1/vendas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' },
+        body: JSON.stringify(batch)
+      });
+      if (!r.ok) { var e = await r.text(); throw new Error(e.slice(0,200)); }
+      inseridos += batch.length;
+      _adminSetStatus('⏳ Salvando... ' + inseridos + '/' + regs.length);
+    }
+
+    _adminSetStatus('✓ ' + inseridos.toLocaleString('pt-BR') + ' linhas manuais salvas para ' + EMPRESA_ATIVA.nome + '!', true);
+    _adminAtualizarContagens();
+
+  } catch(e) {
+    _adminSetStatus('✗ ' + e.message);
+    console.error(e);
+  }
+}
+
+// ── LIMPAR ORIGEM ESPECÍFICA ──────────────────────────────────────────────────
+async function adminLimparOrigem(origem) {
+  if (!EMPRESA_ATIVA) return;
+  var label = origem === 'api' ? 'dados da API' : 'dados manuais';
+  if (!confirm('Apagar TODOS os ' + label + ' de ' + EMPRESA_ATIVA.nome + '?')) return;
+  if (!confirm('Confirme: Apagar ' + label + ' de ' + EMPRESA_ATIVA.nome + '?')) return;
+  _adminSetStatus('⏳ Apagando ' + label + '...');
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&origem=eq.' + origem, {
+      method: 'DELETE',
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' }
+    });
+    if (r.ok) {
+      _adminSetStatus('✓ ' + label + ' de ' + EMPRESA_ATIVA.nome + ' apagados!', true);
+      _adminAtualizarContagens();
+    }
+  } catch(e) { _adminSetStatus('✗ ' + e.message); }
+}
+
+// ── CONTAGENS POR ORIGEM ──────────────────────────────────────────────────────
+async function _adminAtualizarContagens() {
+  if (!EMPRESA_ATIVA) return;
+  try {
+    // Conta API
+    var rA = await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&origem=eq.api&select=id',
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'count=exact', 'Range': '0-0' } });
+    var cA = rA.headers.get('content-range') || '0';
+    var totalApi = cA.includes('/') ? cA.split('/')[1] : '0';
+
+    // Conta Manual
+    var rM = await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&origem=eq.manual&select=id',
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'count=exact', 'Range': '0-0' } });
+    var cM = rM.headers.get('content-range') || '0';
+    var totalManual = cM.includes('/') ? cM.split('/')[1] : '0';
+
+    var elA = document.getElementById('api-count');
+    var elM = document.getElementById('manual-count');
+    if (elA) elA.textContent = Number(totalApi).toLocaleString('pt-BR');
+    if (elM) elM.textContent = Number(totalManual).toLocaleString('pt-BR');
+
+    // Resumo API
+    var resumo = document.getElementById('admin-api-resumo');
+    if (resumo && Number(totalApi) > 0) {
+      resumo.style.display = 'grid';
+      resumo.innerHTML = '<div class="admin-api-stat"><div class="admin-api-stat-val">' + Number(totalApi).toLocaleString('pt-BR') + '</div><div class="admin-api-stat-lbl">Registros API</div></div>';
+    }
+  } catch(e) { console.error(e); }
+}
+
+// ── UTILITÁRIO CONVERSÃO DE DATA ───────────────────────────────────────────────
+function _cvData(v) {
+  if (!v) return null;
+  var s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  var m = s.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+  if (m) return m[3] + '-' + m[2] + '-' + m[1];
+  var d = new Date(s);
+  return isNaN(d.getTime()) ? null : d.toISOString().slice(0,10);
 }
