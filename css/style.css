@@ -559,6 +559,30 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 }
 .sync-empresa-select:focus { outline: none; border-color: #3b82f6; }
 
+.adm-periodo-wrap { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.adm-periodo-field { display: flex; flex-direction: column; gap: 4px; }
+.adm-periodo-field span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #8ea3c0;
+}
+.adm-periodo-field input {
+  min-width: 148px;
+  background: #0c1628;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+  color: #e2e8f0;
+  padding: 8px 10px;
+  font: inherit;
+}
+.adm-periodo-resumo {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #8ea3c0;
+}
+
 
 /* ── LiteGrid: ref bar, seleção e edição ── */
 .lg-ref-bar {
@@ -1083,6 +1107,91 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 .dc-main::-webkit-scrollbar-track { background: #060d1a; }
 .dc-main::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 3px; }
 
+.dc-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, .9fr);
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.dc-hero-copy,
+.dc-hero-actions {
+  background: linear-gradient(180deg, rgba(12,22,39,.98) 0%, rgba(8,17,31,.98) 100%);
+  border: 1px solid rgba(96,165,250,.14);
+  border-radius: 20px;
+  padding: 22px 22px 20px;
+  box-shadow: 0 18px 40px rgba(2,8,20,.24);
+}
+.dc-hero-kicker {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(30,58,138,.2);
+  border: 1px solid rgba(96,165,250,.16);
+  color: #93c5fd;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+}
+.dc-hero-title {
+  margin-top: 14px;
+  font-size: clamp(26px, 3vw, 36px);
+  line-height: 1.08;
+  letter-spacing: -.04em;
+  color: #f8fafc;
+}
+.dc-hero-sub {
+  margin-top: 12px;
+  max-width: 720px;
+  color: #8ea3c0;
+  font-size: 15px;
+  line-height: 1.7;
+}
+.dc-periodo-label {
+  margin-top: 14px;
+  color: #60a5fa;
+  font-size: 12px;
+  font-weight: 700;
+}
+.dc-hero-actions {
+  display: grid;
+  gap: 12px;
+  align-content: center;
+}
+.dc-action-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(96,165,250,.18);
+  background: #0e1c32;
+  color: #dbeafe;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  cursor: pointer;
+  transition: .18s ease;
+}
+.dc-action-btn:hover {
+  transform: translateY(-1px);
+  border-color: #3b82f6;
+  background: #12305c;
+  color: #fff;
+}
+.dc-kpi-empty {
+  grid-column: 1 / -1;
+  background: #0d1628;
+  border: 1px dashed rgba(96,165,250,.18);
+  border-radius: 14px;
+  padding: 24px;
+  text-align: center;
+  color: #8ea3c0;
+}
+
 /* Seções */
 .dc-section { margin-bottom: 32px; }
 .dc-section-title {
@@ -1163,8 +1272,18 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   font-size: 11px; color: #374151;
 }
 
+.client-report-mode #sidebar,
+.client-report-mode #admin-empresa-tabs,
+.client-report-mode #admin-action-bar,
+.client-report-mode .av-btn-bd {
+  display: none !important;
+}
+.client-report-mode .cui-wrapper { margin-left: 0; }
+.client-report-mode .cui-header { padding-left: 18px; }
+
 /* Responsivo */
 @media (max-width: 1100px) {
+  .dc-hero { grid-template-columns: 1fr; }
   .dc-grid-2, .dc-grid-2-1, .dc-grid-3-2 { grid-template-columns: 1fr; }
   .dc-chart-box, .dc-chart-box-tall { height: 240px; }
 }
@@ -1172,6 +1291,7 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   .dc-header { padding: 0 14px; height: auto; flex-wrap: wrap; gap: 10px; padding: 10px 14px; }
   .dc-header-right { flex-wrap: wrap; gap: 8px; }
   .dc-main { padding: 16px; }
+  .dc-hero-copy, .dc-hero-actions { padding: 18px; }
   .dc-kpis-grid { grid-template-columns: repeat(2, 1fr); }
   .dc-kpi-value { font-size: 18px; }
   .dc-card { padding: 16px; }
@@ -1179,6 +1299,8 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 }
 @media (max-width: 480px) {
   .dc-filtro { font-size: 11px; padding: 6px 8px; }
+  .adm-periodo-field input { min-width: 132px; }
+  .dc-action-btn { padding: 14px 16px; }
 }
 /* ═══════════════════════════════════════════════
    PAINEL ADMIN MULTI-ORIGEM

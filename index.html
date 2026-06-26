@@ -75,7 +75,7 @@
     <header class="cui-header">
       <div class="cui-header-left">
         <button class="cui-header-toggle" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
-        <div class="cui-breadcrumb">Análise de Vendas</div>
+        <div id="breadcrumb-text" class="cui-breadcrumb">Análise de Vendas</div>
       </div>
       <div class="cui-header-right">
         <div id="sync-area" style="display:none"></div>
@@ -130,12 +130,23 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
                     Sincronizar API
                   </button>
+                  <div class="adm-periodo-wrap">
+                    <label class="adm-periodo-field">
+                      <span>Início</span>
+                      <input id="adm-sync-inicio" type="date" onchange="_adminObterPeriodoSync()" />
+                    </label>
+                    <label class="adm-periodo-field">
+                      <span>Fim</span>
+                      <input id="adm-sync-fim" type="date" onchange="_adminObterPeriodoSync()" />
+                    </label>
+                  </div>
                   <button onclick="adminLimparOrigem('api')" class="adm-btn adm-btn-danger">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
                     Limpar
                   </button>
                   <div id="adm-api-ultima" class="adm-api-ultima"></div>
                 </div>
+                <div id="adm-periodo-resumo" class="adm-periodo-resumo"></div>
                 <!-- KPIs do sync -->
                 <div id="adm-api-kpis" class="adm-api-kpis" style="display:none"></div>
                 <!-- Relatórios aparecem aqui após sync -->
@@ -513,6 +524,25 @@
 
     <!-- Conteúdo em scroll único -->
     <main class="dc-main">
+
+      <section class="dc-hero">
+        <div class="dc-hero-copy">
+          <div class="dc-hero-kicker">Painel executivo</div>
+          <h1 class="dc-hero-title">Resultados organizados por período, produto e representante.</h1>
+          <p class="dc-hero-sub">Use os filtros de ano e mês para focar no recorte certo e abra os relatórios completos sempre que quiser aprofundar.</p>
+          <div id="dc-periodo-label" class="dc-periodo-label"></div>
+        </div>
+        <div class="dc-hero-actions">
+          <button class="dc-action-btn" onclick="dcAbrirRelatorio('relat-produtos')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            <span>RELAT PRODUTOS</span>
+          </button>
+          <button class="dc-action-btn" onclick="dcAbrirRelatorio('relat-representantes')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>RELAT REPRESENTANTES</span>
+          </button>
+        </div>
+      </section>
 
       <!-- KPIs principais -->
       <section class="dc-section">

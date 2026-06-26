@@ -7,6 +7,17 @@ function _show(id){ var e=document.getElementById(id); if(e) e.style.display='bl
 function _setBreadcrumb(txt){ var e=document.getElementById('breadcrumb-text'); if(e) e.textContent=txt; }
 
 function avGoHome() {
+  if (typeof SESSION !== 'undefined' && SESSION && SESSION.papel === 'cliente') {
+    var wrapper = document.getElementById('cui-wrapper');
+    if (wrapper) wrapper.style.display = 'none';
+    var app = document.getElementById('view-app');
+    if (app) app.style.display = 'none';
+    var dash = document.getElementById('view-dash-cliente');
+    if (dash) dash.style.display = 'flex';
+    document.body.classList.remove('client-report-mode');
+    _setBreadcrumb('Análise de Vendas');
+    return;
+  }
   _hide('av-bd-area');
   _hide('av-rel-area');
   _hide('av-rep-area');
