@@ -1,3 +1,11 @@
+function parseBody(body) {
+  if (!body) return {};
+  if (typeof body === 'string') {
+    try { return JSON.parse(body); } catch (e) { return {}; }
+  }
+  return body;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -6,7 +14,9 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Metodo nao permitido' });
 
-  const { email, senha } = req.body || {};
+  const payload = parseBody(req.body);
+  const email = payload.email;
+  const senha = payload.senha || payload.password;
   if (!email || !senha) {
     return res.status(400).json({ erro: 'Email e senha sao obrigatorios.' });
   }
