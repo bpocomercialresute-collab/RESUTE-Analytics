@@ -1791,6 +1791,115 @@ async function _adminCarregarCadastrosApiSalvos() {
   _adminRenderApiModules(summary);
 }
 
+// =============================================================================
+// CADASTROS: Tenta API → se 403, deriva das vendas (fallback automático)
+// =============================================================================
+async function _adminSincronizarOuDerivarCadastros(token, dataInicio, dataFim, vendasRegs) {
+  var summary = {};
+
+  // ── Tenta API ──
+  try {
+    var apiResumo = await _adminSincronizarCadastrosApi(token, dataInicio, dataFim);
+    // Se algum veio com dados reais, usa
+    var algumOk = Object.values(apiResumo).some(function(v){ return v.ok && v.count > 0; });
+    if (algumOk) return apiResumo;
+    summary = apiResumo; // mantém para exibir pendente
+  } catch(e) {
+    console.warn('[CADASTROS] API falhou:', e.message);
+  }
+
+  // ── Fallback: deriva das vendas já inseridas ──
+  _adminSetStatus('⏳ API sem acesso (403) — derivando cadastros das vendas...');
+
+  try {
+    // ── Clientes únicos ──
+    var cliMap = {};
+    vendasRegs.forEach(function(r) {
+      if (!r.cliente) return;
+      var key = r.cliente.trim();
+      if (!cliMap[key]) cliMap[key] = { nome: key, cidade: r.cidade||'', uf: r.uf||'', vendedor: r.vendedor||'' };
+    });
+    var clientes = Object.values(cliMap).map(function(c, i) {
+      return { empresa_id: EMPRESA_ATIVA.empresa_id, cod_cli: 'der_' + i, nome: c.nome,
+               cidade: c.cidade, uf: c.uf, vendedor: c.vendedor, ativo: true };
+    });
+
+    if (clientes.length) {
+      await _adminReplaceOrigemTable('clientes_cad', clientes);
+      summary.clientes = { ok: true, count: clientes.length, pending: false,
+        endpoint: '(derivado de vendas)',
+        message: clientes.length + ' clientes únicos extraídos das vendas.' };
+      console.log('[CADASTROS] Clientes derivados:', clientes.length);
+    }
+
+    // ── Produtos únicos ──
+    var prodMap = {};
+    vendasRegs.forEach(function(r) {
+      if (!r.produto) return;
+      var key = r.produto.trim();
+      if (!prodMap[key]) prodMap[key] = { descricao: key, grupo: r.grupo||'', marca: r.marca||r.industria||'' };
+    });
+    var produtos = Object.values(prodMap).map(function(p, i) {
+      return { empresa_id: EMPRESA_ATIVA.empresa_id, cod_prod: 'der_' + i,
+               descricao: p.descricao, grupo: p.grupo, familia: p.marca, ativo_inat: 'ATIVO' };
+    });
+
+    if (produtos.length) {
+      await _adminReplaceOrigemTable('produtos', produtos);
+      summary.produtos = { ok: true, count: produtos.length, pending: false,
+        endpoint: '(derivado de vendas)',
+        message: produtos.length + ' produtos únicos extraídos das vendas.' };
+      console.log('[CADASTROS] Produtos derivados:', produtos.length);
+    }
+
+    // ── Representantes únicos ──
+    var repMap = {};
+    vendasRegs.forEach(function(r) {
+      if (!r.vendedor) return;
+      var key = r.vendedor.trim();
+      if (!repMap[key]) repMap[key] = { nome: key };
+    });
+    var reps = Object.values(repMap).map(function(r, i) {
+      return { empresa_id: EMPRESA_ATIVA.empresa_id, cod: 'der_' + i, nome: r.nome };
+    });
+
+    if (reps.length) {
+      await _adminReplaceOrigemTable('representantes', reps);
+      summary.representantes = { ok: true, count: reps.length, pending: false,
+        endpoint: '(derivado de vendas)',
+        message: reps.length + ' representantes únicos extraídos das vendas.' };
+      console.log('[CADASTROS] Representantes derivados:', reps.length);
+    }
+
+  } catch(e) {
+    console.error('[CADASTROS] Fallback falhou:', e);
+  }
+
+  return summary;
+}
+
+async function _adminReplaceOrigemTable(table, rows) {
+  if (!rows.length) return;
+  // Apaga tudo da empresa nesta tabela
+  await fetch(SUPA_URL + '/rest/v1/' + table + '?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id, {
+    method: 'DELETE',
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal', 'Content-Type': 'application/json' }
+  });
+  // Insere em lotes
+  for (var i = 0; i < rows.length; i += 500) {
+    var batch = rows.slice(i, i+500);
+    var r = await fetch(SUPA_URL + '/rest/v1/' + table, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify(batch)
+    });
+    if (!r.ok) {
+      var err = await r.text();
+      throw new Error('Erro ao salvar ' + table + ': ' + err.slice(0,200));
+    }
+  }
+}
+
 async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
   var params = {
     DataInicio: String(dataInicio.getDate()).padStart(2, '0') + String(dataInicio.getMonth() + 1).padStart(2, '0') + String(dataInicio.getFullYear()),
@@ -2553,9 +2662,10 @@ adminSincronizar = async function() {
     // Atualiza sync_log
     await _adminAtualizarUltimSync(dataFim, inseridos);
 
-    // Tenta enriquecer a base com cadastros auxiliares da API
-    _adminSetStatus('⏳ Enriquecendo cadastros auxiliares...');
-    var cadastrosResumo = await _adminSincronizarCadastrosApi(token, dataInicio, dataFim);
+    // Tenta enriquecer a base com cadastros auxiliares da API (pode retornar 403)
+    // Se API bloquear (403), deriva automaticamente dos dados de vendas inseridos
+    _adminSetStatus('⏳ Enriquecendo cadastros a partir dos dados de vendas...');
+    var cadastrosResumo = await _adminSincronizarOuDerivarCadastros(token, dataInicio, dataFim, regs);
 
     // Mostra KPIs e módulos do sync
     _adminMostrarKpisSync(regs, cadastrosResumo);
