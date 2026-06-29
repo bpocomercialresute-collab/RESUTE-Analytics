@@ -1377,6 +1377,12 @@ var VS_ENDPOINTS = {
   representantes: ['/representantes', '/vendedores', '/vendedor', '/relacaorepresentante']
 };
 
+var CADASTRO_TABLES = {
+  clientes: ['clientes_api', 'clientes_cad', 'clientes'],
+  produtos: ['produtos_api', 'produtos'],
+  representantes: ['representantes_api', 'representantes']
+};
+
 function _vsNormalizeMap(item) {
   var map = {};
   Object.keys(item || {}).forEach(function(key) {
@@ -1498,6 +1504,41 @@ async function _adminReplaceApiTable(table, rows) {
     inserted += batch.length;
   }
   return { count: inserted, ok: true };
+}
+
+async function _adminFetchCadastroTable(candidates) {
+  var ultimoErro = null;
+  for (var i = 0; i < candidates.length; i += 1) {
+    var table = candidates[i];
+    try {
+      var resp = await fetch(SUPA_URL + '/rest/v1/' + table + '?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&select=*&limit=100000', {
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
+      });
+      if (!resp.ok) {
+        ultimoErro = new Error('HTTP ' + resp.status + ' em ' + table);
+        continue;
+      }
+      var data = await resp.json();
+      return { table: table, rows: Array.isArray(data) ? data : [] };
+    } catch (e) {
+      ultimoErro = e;
+    }
+  }
+  throw ultimoErro || new Error('Nenhuma tabela de cadastro disponível.');
+}
+
+async function _adminReplaceApiTableCandidates(candidates, rows) {
+  var ultimoErro = null;
+  for (var i = 0; i < candidates.length; i += 1) {
+    var table = candidates[i];
+    try {
+      var save = await _adminReplaceApiTable(table, rows);
+      return { table: table, count: save.count, ok: save.ok };
+    } catch (e) {
+      ultimoErro = e;
+    }
+  }
+  throw ultimoErro || new Error('Nenhuma tabela de cadastro pôde ser gravada.');
 }
 
 function _adminPadRows(rows, totalCols, minRows) {
@@ -1686,9 +1727,9 @@ async function _adminCarregarCadastrosApiSalvos() {
   }
 
   var jobs = [
-    { key: 'clientes', table: 'clientes_cad' },
-    { key: 'produtos', table: 'produtos' },
-    { key: 'representantes', table: 'representantes' }
+    { key: 'clientes', tables: CADASTRO_TABLES.clientes },
+    { key: 'produtos', tables: CADASTRO_TABLES.produtos },
+    { key: 'representantes', tables: CADASTRO_TABLES.representantes }
   ];
   var summary = {
     vendas: {
@@ -1702,16 +1743,13 @@ async function _adminCarregarCadastrosApiSalvos() {
   for (var i = 0; i < jobs.length; i += 1) {
     var job = jobs[i];
     try {
-      var resp = await fetch(SUPA_URL + '/rest/v1/' + job.table + '?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&select=*&limit=100000', {
-        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
-      });
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      var data = await resp.json();
+      var foundTable = await _adminFetchCadastroTable(job.tables);
+      var data = foundTable.rows;
       summary[job.key] = {
         ok: Array.isArray(data) && data.length > 0,
         pending: !Array.isArray(data) || data.length === 0,
         count: Array.isArray(data) ? data.length : 0,
-        endpoint: '',
+        endpoint: foundTable.table ? ('/' + foundTable.table) : '',
         rows: Array.isArray(data) ? data : [],
         message: Array.isArray(data) && data.length
           ? data.length + ' registros carregados do banco para enriquecer a visualização.'
@@ -1738,9 +1776,9 @@ async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
     DataTermino: String(dataFim.getDate()).padStart(2, '0') + String(dataFim.getMonth() + 1).padStart(2, '0') + String(dataFim.getFullYear())
   };
   var jobs = [
-    { key: 'clientes', table: 'clientes_cad', candidates: VS_ENDPOINTS.clientes, mapper: _adminMapClientesApi },
-    { key: 'produtos', table: 'produtos', candidates: VS_ENDPOINTS.produtos, mapper: _adminMapProdutosApi },
-    { key: 'representantes', table: 'representantes', candidates: VS_ENDPOINTS.representantes, mapper: _adminMapRepresentantesApi }
+    { key: 'clientes', tables: CADASTRO_TABLES.clientes, candidates: VS_ENDPOINTS.clientes, mapper: _adminMapClientesApi },
+    { key: 'produtos', tables: CADASTRO_TABLES.produtos, candidates: VS_ENDPOINTS.produtos, mapper: _adminMapProdutosApi },
+    { key: 'representantes', tables: CADASTRO_TABLES.representantes, candidates: VS_ENDPOINTS.representantes, mapper: _adminMapRepresentantesApi }
   ];
   var summary = {};
 
@@ -1760,12 +1798,12 @@ async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
       }
 
       var mapped = job.mapper(found.items);
-      var save = await _adminReplaceApiTable(job.table, mapped);
+      var save = await _adminReplaceApiTableCandidates(job.tables, mapped);
       summary[job.key] = {
         ok: true,
         pending: false,
         count: save.count,
-        endpoint: found.endpoint,
+        endpoint: found.endpoint + ' -> ' + save.table,
         rows: mapped,
         message: save.count + ' registros sincronizados para enriquecer relatórios e cadastros.'
       };
