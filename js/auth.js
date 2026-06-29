@@ -492,7 +492,7 @@ async function carregarDadosDoSupabase(empresa_id) {
   _setStatus('⏳ Carregando dados...', '');
   try {
     var r = await fetch(
-      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&select=*&order=dt_saida.asc&limit=50000',
+      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&select=*&order=dt_saida.asc',
       { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
     );
     var vendas = await r.json();
@@ -704,21 +704,68 @@ function cliAba(btn, id) {
 var DC_RAW = [];
 var DC_DATA = [];
 
+
+// =============================================================================
+// PAGINAÇÃO — busca TODOS os registros do Supabase em lotes de 1000
+// =============================================================================
+async function _fetchAll(baseUrl, headers) {
+  var all = [];
+  var from = 0;
+  var pageSize = 1000;
+  var tentativas = 0;
+  var maxPaginas = 200; // limite de segurança: 200k registros
+
+  while (tentativas < maxPaginas) {
+    var r = await fetch(baseUrl, {
+      headers: Object.assign({}, headers, {
+        'Range': from + '-' + (from + pageSize - 1),
+        'Range-Unit': 'items'
+      })
+    });
+
+    if (!r.ok && r.status !== 206) {
+      console.error('[fetchAll] Erro HTTP', r.status, 'na página', tentativas);
+      break;
+    }
+
+    var batch = await r.json();
+    if (!Array.isArray(batch) || !batch.length) break;
+
+    all = all.concat(batch);
+    tentativas++;
+
+    // Se veio menos que pageSize, chegou ao fim
+    if (batch.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return all;
+}
+
 async function dcCarregarDados(empresa_id_param) {
   var eid = empresa_id_param || SESSION.empresa_id;
   if (!eid) { dcStatus('⚠ Empresa não selecionada.'); return; }
-  dcStatus('⏳ Carregando dados...');
+
   try {
-    var r = await fetch(
-      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid +
-      '&select=*&order=dt_saida.asc&limit=100000',
-      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
+    // Busca qual origem o admin configurou para este cliente ver
+    var origemR = await fetch(SUPA_URL + '/rest/v1/empresas?id=eq.' + eid + '&select=exibir_origem',
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } });
+    var origemD = await origemR.json();
+    var exibir  = (origemD && origemD[0] && origemD[0].exibir_origem) || 'manual';
+
+    // Paginação: busca TODOS os registros em lotes (sem limite de 1000)
+    dcStatus('⏳ Carregando dados...');
+    var vendas = await _fetchAll(
+      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid + '&origem=eq.' + exibir + '&select=*&order=dt_saida.asc',
+      { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
     );
-    var vendas = await r.json();
+
     if (!Array.isArray(vendas) || !vendas.length) {
       dcStatus('⚠ Nenhum dado disponível ainda.');
       return;
     }
+
+    dcStatus('⏳ ' + vendas.length.toLocaleString('pt-BR') + ' registros — gerando relatórios...');
 
     DC_RAW = vendas;
 
@@ -1313,9 +1360,10 @@ async function adminSelecionarEmpresa(id) {
 
 async function _adminCarregar(empresa_id) {
   try {
-    var r = await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&select=*&order=dt_saida.asc&limit=100000',
-      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } });
-    var v = await r.json();
+    var v = await _fetchAll(
+      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&select=*&order=dt_saida.asc',
+      { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
+    );
     if (!Array.isArray(v) || !v.length) { _adminSetStatus('Sem dados. Cole na grade ou sincronize.'); return; }
     var headers = ['ID','N° PEDIDO','PRODUTO OU SERVIÇO','QTD','Dt. Emissão','Data de Saída','VALOR','Vendedor','Indústria','Cliente','ANO','MÊS','GRUPO','SEM','tipo mercado','SETOR','CIDADE','UF','TIPO VENDEDOR','Dias Sem Compra','NOTA F','ROTA','DESCONTO','EMPRESA','cnpj','grupo_produto','GRUPO PAI','subgrupo_produto','marca','familia_produto','classes'];
     var rows = v.map(function(r){ return [r.id_externo||'',r.num_pedido||'',r.produto||'',String(r.qtd||''),r.dt_emissao||'',r.dt_saida||'',String(r.valor||''),r.vendedor||'',r.industria||'',r.cliente||'',r.ano?String(r.ano):'',r.mes||'',r.grupo||'',r.semana||'',r.tipo_mercado||'',r.setor||'',r.cidade||'',r.uf||'',r.tipo_vendedor||'','','','','',r.empresa_nome||'',r.cnpj||'',r.grupo_produto||'',r.grupo_pai||'',r.subgrupo||'',r.marca||'',r.familia||'',r.classes||'']; });
