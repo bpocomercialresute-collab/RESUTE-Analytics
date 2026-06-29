@@ -2103,3 +2103,8 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   .adm-header { flex-direction: column; align-items: flex-start; }
   .adm-api-top, .adm-manual-top { flex-direction: column; align-items: flex-start; }
 }
+
+/* Badge derivado */
+.adm-module-badge.derived { background: rgba(251,191,36,.15); color: #fbbf24; border: 1px solid rgba(251,191,36,.3); }
+.adm-module-badge.ok      { background: rgba(34,197,94,.15);  color: #22c55e; border: 1px solid rgba(34,197,94,.3); }
+.adm-module-badge.warn    { background: rgba(239,68,68,.15);  color: #f87171; border: 1px solid rgba(239,68,68,.3); }

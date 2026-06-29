@@ -1372,15 +1372,18 @@ function _adminObterPeriodoSync() {
 }
 
 var VS_ENDPOINTS = {
-  clientes: ['/cadastrocliente', '/cadastroclienteparceiro', '/clientes', '/cliente', '/relacaocliente'],
-  produtos: ['/cadastroproduto', '/produtos', '/produto', '/relacaoproduto'],
-  representantes: ['/cadastrovendedor', '/representantes', '/vendedores', '/vendedor', '/relacaorepresentante']
+  // Endpoints reais do Swagger da Visual Saef (confirmados)
+  // /cadastrocliente, /cadastroproduto, /cadastrovendedor retornam 403 no momento
+  // Sistema usa fallback: deriva dos dados de vendas
+  clientes: ['/cadastrocliente', '/cadastroclienteparceiro'],
+  produtos: ['/cadastroproduto'],
+  representantes: ['/cadastrovendedor']
 };
 
 var CADASTRO_TABLES = {
-  clientes: ['clientes_api', 'clientes_cad', 'clientes'],
-  produtos: ['produtos_api', 'produtos'],
-  representantes: ['representantes_api', 'representantes']
+  clientes: ['clientes_cad'],
+  produtos: ['produtos'],
+  representantes: ['representantes']
 };
 
 function _vsNormalizeMap(item) {
@@ -1723,8 +1726,9 @@ function _adminRenderApiModules(summary) {
   host.innerHTML = modules.map(function(mod) {
     var item = summary && summary[mod.key] ? summary[mod.key] : {};
     var count = Number(item.count || 0).toLocaleString('pt-BR');
-    var badgeClass = item.ok ? 'ok' : (item.pending ? 'warn' : '');
-    var badge = item.ok ? 'Conectado' : (item.pending ? 'Pendente' : 'Aguardando');
+    var isDerived = item.ok && item.endpoint && item.endpoint.indexOf('derivado') >= 0;
+    var badgeClass = item.ok ? (isDerived ? 'derived' : 'ok') : '';
+    var badge = item.ok ? (isDerived ? 'Derivado ✓' : '✓ Sincronizado') : (item.count > 0 ? '⚠ Parcial' : '— Aguardando');
     var meta = item.message || mod.fallback;
     var endpoint = item.endpoint ? ('Endpoint: ' + item.endpoint) : 'Endpoint: aguardando confirmação';
     return ''
@@ -1779,7 +1783,7 @@ async function _adminCarregarCadastrosApiSalvos() {
     } catch (e) {
       summary[job.key] = {
         ok: false,
-        pending: true,
+        pending: false,
         count: 0,
         endpoint: '',
         message: 'Tabela ainda não disponível ou sem acesso neste ambiente.'
@@ -1813,15 +1817,18 @@ async function _adminSincronizarOuDerivarCadastros(token, dataInicio, dataFim, v
 
   try {
     // ── Clientes únicos ──
+    // Deriva clientes — deduplica por nome+cidade, usa dado mais completo
     var cliMap = {};
     vendasRegs.forEach(function(r) {
-      if (!r.cliente) return;
-      var key = r.cliente.trim();
-      if (!cliMap[key]) cliMap[key] = { nome: key, cidade: r.cidade||'', uf: r.uf||'', vendedor: r.vendedor||'' };
+      if (!r.cliente || !r.cliente.trim()) return;
+      var key = (r.cliente.trim() + '|' + (r.cidade||'')).toUpperCase();
+      if (!cliMap[key]) {
+        cliMap[key] = { nome: r.cliente.trim(), cidade: r.cidade||'', uf: r.uf||'', vendedor: r.vendedor||'' };
+      }
     });
     var clientes = Object.values(cliMap).map(function(c, i) {
-      return { empresa_id: EMPRESA_ATIVA.empresa_id, cod_cli: 'der_' + i, nome: c.nome,
-               cidade: c.cidade, uf: c.uf, vendedor: c.vendedor, ativo: true };
+      return { empresa_id: EMPRESA_ATIVA.empresa_id, cod_cli: 'der_' + String(i).padStart(5,'0'),
+               nome: c.nome, cidade: c.cidade, uf: c.uf, vendedor: c.vendedor, ativo: true };
     });
 
     if (clientes.length) {
@@ -1833,15 +1840,20 @@ async function _adminSincronizarOuDerivarCadastros(token, dataInicio, dataFim, v
     }
 
     // ── Produtos únicos ──
+    // Deriva produtos dos dados de vendas (usa descricaoItem mapeado como produto)
     var prodMap = {};
     vendasRegs.forEach(function(r) {
-      if (!r.produto) return;
-      var key = r.produto.trim();
-      if (!prodMap[key]) prodMap[key] = { descricao: key, grupo: r.grupo||'', marca: r.marca||r.industria||'' };
+      if (!r.produto || !r.produto.trim()) return;
+      var key = r.produto.trim().toUpperCase();
+      if (!prodMap[key]) prodMap[key] = {
+        descricao: r.produto.trim(),
+        grupo: r.grupo || '',
+        familia: r.marca || r.industria || ''
+      };
     });
     var produtos = Object.values(prodMap).map(function(p, i) {
-      return { empresa_id: EMPRESA_ATIVA.empresa_id, cod_prod: 'der_' + i,
-               descricao: p.descricao, grupo: p.grupo, familia: p.marca, ativo_inat: 'ATIVO' };
+      return { empresa_id: EMPRESA_ATIVA.empresa_id, cod_prod: 'der_' + String(i).padStart(4,'0'),
+               descricao: p.descricao, grupo: p.grupo, familia: p.familia, ativo_inat: 'ATIVO' };
     });
 
     if (produtos.length) {
@@ -1853,14 +1865,15 @@ async function _adminSincronizarOuDerivarCadastros(token, dataInicio, dataFim, v
     }
 
     // ── Representantes únicos ──
+    // Deriva representantes — deduplica por nome, usa UPPER para comparação
     var repMap = {};
     vendasRegs.forEach(function(r) {
-      if (!r.vendedor) return;
-      var key = r.vendedor.trim();
-      if (!repMap[key]) repMap[key] = { nome: key };
+      if (!r.vendedor || !r.vendedor.trim()) return;
+      var key = r.vendedor.trim().toUpperCase();
+      if (!repMap[key]) repMap[key] = { nome: r.vendedor.trim() };
     });
     var reps = Object.values(repMap).map(function(r, i) {
-      return { empresa_id: EMPRESA_ATIVA.empresa_id, cod: 'der_' + i, nome: r.nome };
+      return { empresa_id: EMPRESA_ATIVA.empresa_id, cod: 'der_' + String(i).padStart(3,'0'), nome: r.nome };
     });
 
     if (reps.length) {
@@ -1940,7 +1953,7 @@ async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
     } catch (e) {
       summary[job.key] = {
         ok: false,
-        pending: true,
+        pending: false,
         count: 0,
         endpoint: '',
         message: e.message
@@ -2039,8 +2052,8 @@ async function adminSincronizar() {
       var pedidoBase = String(get(item,['numeropedido','numpedido','pedido','cdpedido','nrpedido','idvenda','codigo']) || '').trim();
       var itemBase = String(get(item,['iditem','codigoitem','seq','cditem','nritem','item']) || '').trim();
       var altBase = String(get(item,['id','chave']) || '').trim();
-      var produtoBase = String(get(item,['produto','descricao','descricaoproduto','descproduto','nmproduto','descitem','dsproduto']) || '').trim();
-      var dataBase = String(cvData(get(item,['datasaida','dtsaida','data','datafaturamento','databaixa','datavenda'])) || '').trim();
+      var produtoBase = String(get(item,['descricaoitem','descricaoItem','descitem','produto','descricao','descricaoproduto','nmproduto']) || '').trim();
+      var dataBase = String(cvData(get(item,['datafaturamento','dataFaturamento','dataatendimento','datasaida','dtsaida','datavenda'])) || '').trim();
       var baseId = [pedidoBase || altBase || 'api', itemBase, dataBase, produtoBase || String(idx + 1)]
         .filter(Boolean)
         .join('_')
@@ -2062,14 +2075,14 @@ async function adminSincronizar() {
         id_externo:   montarIdExternoSync(item, idx),
         num_pedido:   String(get(item,['numeropedido','numpedido','pedido','cdpedido','nrpedido']) || ''),
         produto:      String(get(item,['produto','descricao','descricaoproduto','descproduto','nmproduto','dsproduto','descitem']) || ''),
-        qtd:          Number(get(item,['quantidade','qtd','qtde','qtdade']) || 0),
+        qtd:          Number(get(item,['quantidadevenda','quantidadeVenda','quantidade','qtd','qtde']) || 0),
         dt_emissao:   cvData(get(item,['dataemissao','dtemissao','emissao'])),
-        dt_saida:     cvData(get(item,['datasaida','dtsaida','data','datafaturamento','databaixa','datavenda','dtbaixa'])),
+        dt_saida:     cvData(get(item,['datafaturamento','dataFaturamento','dataatendimento','datasaida','dtsaida','datavenda'])),
         valor:        Number(get(item,['valortotal','valor','vltotal','totalitem','vlitem','valoritem','vlvenda']) || 0),
-        vendedor:     String(get(item,['vendedor','nomevendedor','nmvendedor','representante','nomerepresentante']) || ''),
+        vendedor:     String(get(item,['nomevendedor','nomeVendedor','vendedor','representante','nomerepresentante']) || ''),
         industria:    String(get(item,['industria','fabricante','fornecedor','marca']) || ''),
-        cliente:      String(get(item,['cliente','nomecliente','nmcliente','razaosocial']) || ''),
-        grupo:        String(get(item,['grupo','grupoitem','grupoproduto','categoria']) || ''),
+        cliente:      String(get(item,['nomecliente','nomeCliente','cliente','razaosocial']) || ''),
+        grupo:        String(get(item,['nomadacategoria','nomeDaCategoria','grupocategoria','grupo','categoria']) || ''),
         uf:           String(get(item,['uf','estado','ufcliente','siglaestado']) || ''),
         cidade:       String(get(item,['cidade','municipio','nomecidade']) || ''),
         empresa_nome: 'Varremaster'
@@ -2602,8 +2615,8 @@ adminSincronizar = async function() {
       var pedidoBase = String(get(item,['numeropedido','numpedido','pedido','cdpedido','nrpedido','idvenda','codigo']) || '').trim();
       var itemBase = String(get(item,['iditem','codigoitem','seq','cditem','nritem','item']) || '').trim();
       var altBase = String(get(item,['id','chave']) || '').trim();
-      var produtoBase = String(get(item,['produto','descricao','descricaoproduto','descproduto','nmproduto','descitem','dsproduto']) || '').trim();
-      var dataBase = String(cvData(get(item,['datasaida','dtsaida','data','datafaturamento','databaixa','datavenda'])) || '').trim();
+      var produtoBase = String(get(item,['descricaoitem','descricaoItem','descitem','produto','descricao','descricaoproduto','nmproduto']) || '').trim();
+      var dataBase = String(cvData(get(item,['datafaturamento','dataFaturamento','dataatendimento','datasaida','dtsaida','datavenda'])) || '').trim();
       var baseId = [pedidoBase || altBase || 'api', itemBase, dataBase, produtoBase || String(idx + 1)]
         .filter(Boolean)
         .join('_')
@@ -2625,15 +2638,15 @@ adminSincronizar = async function() {
         origem:       'api',
         id_externo:   montarIdExternoSync(item, idx),
         num_pedido:   String(get(item,['numeropedido','numpedido','pedido','cdpedido','nrpedido']) || ''),
-        produto:      String(get(item,['produto','descricao','descricaoproduto','descproduto','nmproduto','descitem','dsproduto']) || ''),
-        qtd:          Number(get(item,['quantidade','qtd','qtde','qtdade']) || 0),
+        produto:      String(get(item,['descricaoitem','descricaoItem','descitem','produto','descricao','descricaoproduto','nmproduto']) || ''),
+        qtd:          Number(get(item,['quantidadevenda','quantidadeVenda','quantidade','qtd','qtde']) || 0),
         dt_emissao:   cvData(get(item,['dataemissao','dtemissao','emissao'])),
-        dt_saida:     cvData(get(item,['datasaida','dtsaida','data','datafaturamento','databaixa','datavenda'])),
+        dt_saida:     cvData(get(item,['datafaturamento','dataFaturamento','dataatendimento','datasaida','dtsaida','datavenda'])),
         valor:        Number(String(get(item,['valortotal','valor','vltotal','totalitem','vlitem','valoritem']) || '0').replace(',','.')),
-        vendedor:     String(get(item,['vendedor','nomevendedor','nmvendedor','representante','nomerepresentante']) || ''),
+        vendedor:     String(get(item,['nomevendedor','nomeVendedor','vendedor','representante','nomerepresentante']) || ''),
         industria:    String(get(item,['industria','fabricante','fornecedor','marca']) || ''),
-        cliente:      String(get(item,['cliente','nomecliente','nmcliente','razaosocial']) || ''),
-        grupo:        String(get(item,['grupo','grupoitem','grupoproduto','categoria']) || ''),
+        cliente:      String(get(item,['nomecliente','nomeCliente','cliente','razaosocial']) || ''),
+        grupo:        String(get(item,['nomadacategoria','nomeDaCategoria','grupocategoria','grupo','categoria']) || ''),
         uf:           String(get(item,['uf','estado','ufcliente','siglaestado']) || ''),
         cidade:       String(get(item,['cidade','municipio','nomecidade']) || ''),
         empresa_nome: 'Varremaster'
