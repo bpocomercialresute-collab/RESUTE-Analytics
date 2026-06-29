@@ -1372,9 +1372,9 @@ function _adminObterPeriodoSync() {
 }
 
 var VS_ENDPOINTS = {
-  clientes: ['/clientes', '/cliente', '/relacaocliente', '/cadastrocliente'],
-  produtos: ['/produtos', '/produto', '/relacaoproduto', '/cadastroproduto'],
-  representantes: ['/representantes', '/vendedores', '/vendedor', '/relacaorepresentante']
+  clientes: ['/cadastrocliente', '/cadastroclienteparceiro', '/clientes', '/cliente', '/relacaocliente'],
+  produtos: ['/cadastroproduto', '/produtos', '/produto', '/relacaoproduto'],
+  representantes: ['/cadastrovendedor', '/representantes', '/vendedores', '/vendedor', '/relacaorepresentante']
 };
 
 var CADASTRO_TABLES = {
@@ -1403,9 +1403,13 @@ function _vsPick(item, keys) {
 function _vsExtractList(payload) {
   if (Array.isArray(payload)) return payload;
   if (!payload || typeof payload !== 'object') return [];
-  var keys = ['data', 'items', 'itens', 'result', 'results', 'dados', 'registros', 'value'];
+  var keys = ['data', 'Data', 'items', 'Items', 'itens', 'Itens', 'result', 'Result', 'results', 'Results', 'resultado', 'Resultado', 'dados', 'Dados', 'registros', 'Registros', 'retorno', 'Retorno', 'value', 'Value'];
   for (var i = 0; i < keys.length; i += 1) {
     if (Array.isArray(payload[keys[i]])) return payload[keys[i]];
+  }
+  var values = Object.keys(payload).map(function(key) { return payload[key]; });
+  for (var j = 0; j < values.length; j += 1) {
+    if (Array.isArray(values[j])) return values[j];
   }
   return [];
 }
@@ -1467,6 +1471,13 @@ async function _vsFindEndpointData(token, candidates, params) {
   return { endpoint: '', items: [], attempts: attempts };
 }
 
+function _vsResumoTentativas(attempts) {
+  if (!Array.isArray(attempts) || !attempts.length) return '';
+  return attempts.map(function(item) {
+    return item.endpoint + ': HTTP ' + item.status;
+  }).join(' | ');
+}
+
 async function _adminReplaceApiTable(table, rows) {
   var delResp = await fetch(SUPA_URL + '/rest/v1/' + table + '?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id, {
     method: 'DELETE',
@@ -1508,6 +1519,7 @@ async function _adminReplaceApiTable(table, rows) {
 
 async function _adminFetchCadastroTable(candidates) {
   var ultimoErro = null;
+  var primeiraDisponivel = null;
   for (var i = 0; i < candidates.length; i += 1) {
     var table = candidates[i];
     try {
@@ -1519,10 +1531,13 @@ async function _adminFetchCadastroTable(candidates) {
         continue;
       }
       var data = await resp.json();
-      return { table: table, rows: Array.isArray(data) ? data : [] };
+      var rows = Array.isArray(data) ? data : [];
+      if (rows.length) return { table: table, rows: rows };
+      if (!primeiraDisponivel) primeiraDisponivel = { table: table, rows: rows };
     } catch (e) {
       ultimoErro = e;
     }
+    if (i === candidates.length - 1 && primeiraDisponivel) return primeiraDisponivel;
   }
   throw ultimoErro || new Error('Nenhuma tabela de cadastro disponível.');
 }
@@ -1569,19 +1584,18 @@ function _adminMapClientesApi(items) {
     seen[id] = true;
     return {
       empresa_id: EMPRESA_ATIVA.empresa_id,
-      cod_cli: id,
+      id_externo: id,
       nome: String(_vsPick(item, ['nome', 'cliente', 'nomecliente', 'razaosocial']) || '').trim(),
-      fantasia: String(_vsPick(item, ['fantasia', 'nomefantasia', 'apelido']) || '').trim(),
+      razao_social: String(_vsPick(item, ['razaosocial', 'razao', 'nome']) || '').trim(),
       cnpj_cpf: String(_vsPick(item, ['cnpj', 'cpf', 'cnpjcpf', 'documento']) || '').trim(),
       cidade: String(_vsPick(item, ['cidade', 'municipio']) || '').trim(),
       uf: String(_vsPick(item, ['uf', 'estado']) || '').trim(),
       telefone: String(_vsPick(item, ['telefone', 'fone', 'celular']) || '').trim(),
       email: String(_vsPick(item, ['email', 'mail']) || '').trim(),
-      bairro: String(_vsPick(item, ['bairro']) || '').trim(),
-      cep: String(_vsPick(item, ['cep', 'codigopostal']) || '').trim(),
-      zona_venda: String(_vsPick(item, ['zonavenda', 'zona', 'rota', 'regiao']) || '').trim(),
+      endereco: String(_vsPick(item, ['endereco', 'logradouro', 'rua', 'bairro']) || '').trim(),
+      grupo_cliente: String(_vsPick(item, ['grupocliente', 'grupo', 'categoria', 'tipo']) || '').trim(),
       vendedor: String(_vsPick(item, ['vendedor', 'representante', 'nomevendedor']) || '').trim(),
-      tipo: String(_vsPick(item, ['tipo', 'tipocliente', 'categoria']) || '').trim()
+      data_cadastro: _cvData(_vsPick(item, ['datacadastro', 'cadastro', 'dtcadastro']))
     };
   });
 }
@@ -1598,13 +1612,14 @@ function _adminMapProdutosApi(items) {
     seen[id] = true;
     return {
       empresa_id: EMPRESA_ATIVA.empresa_id,
-      cod_prod: id,
-      descricao: nome,
+      id_externo: id,
+      codigo: codigo || id,
+      nome: nome,
       grupo: String(_vsPick(item, ['grupo', 'grupoproduto', 'categoria']) || '').trim(),
-      subgrupo: String(_vsPick(item, ['subgrupo', 'subgrupoproduto']) || '').trim(),
-      familia: String(_vsPick(item, ['familia', 'familiaproduto']) || '').trim(),
-      tipo_produto: String(_vsPick(item, ['tipo', 'tipoproduto']) || '').trim(),
-      ativo_inat: (_vsToBool(_vsPick(item, ['ativo', 'status', 'situacao'])) !== false) ? 'ATIVO' : 'INATIVO'
+      marca: String(_vsPick(item, ['marca', 'fabricante', 'industria']) || '').trim(),
+      preco: _vsToNumber(_vsPick(item, ['preco', 'precovenda', 'valor', 'valorunitario'])),
+      unidade: String(_vsPick(item, ['unidade', 'un', 'unidademedida']) || '').trim(),
+      ativo: _vsToBool(_vsPick(item, ['ativo', 'status', 'situacao']))
     };
   });
 }
@@ -1621,19 +1636,24 @@ function _adminMapRepresentantesApi(items) {
     seen[id] = true;
     return {
       empresa_id: EMPRESA_ATIVA.empresa_id,
-      cod: id,
+      id_externo: id,
+      codigo: codigo || id,
       nome: nome,
-      tipo: String(_vsPick(item, ['tipo', 'tiporepresentante', 'tipovendedor']) || '').trim(),
-      fantasia: String(_vsPick(item, ['fantasia', 'nomefantasia']) || '').trim(),
-      fone: String(_vsPick(item, ['telefone', 'fone', 'celular']) || '').trim(),
+      regiao: String(_vsPick(item, ['regiao', 'zona', 'rota']) || '').trim(),
+      uf: String(_vsPick(item, ['uf', 'estado']) || '').trim(),
+      telefone: String(_vsPick(item, ['telefone', 'fone', 'celular']) || '').trim(),
       email: String(_vsPick(item, ['email', 'mail']) || '').trim(),
-      obs: String(_vsPick(item, ['obs', 'observacao']) || '').trim(),
-      tipo_produto: String(_vsPick(item, ['tipoproduto']) || '').trim()
+      ativo: _vsToBool(_vsPick(item, ['ativo', 'status', 'situacao']))
     };
   });
 }
 
 function _adminAplicarCadastrosApiNaInterface(summary) {
+  var statusAtivo = function(row) {
+    if (row.ativo_inat) return row.ativo_inat;
+    if (row.ativo === false) return 'INATIVO';
+    return 'ATIVO';
+  };
   var cliSource = summary.clientes && summary.clientes.rows ? summary.clientes.rows : [];
   var cliRows = cliSource.map(function(row, idx) {
     return [
@@ -1662,7 +1682,7 @@ function _adminAplicarCadastrosApiNaInterface(summary) {
       String(idx + 1),
       row.cod || row.codigo || row.id_externo || '',
       row.nome || '',
-      row.ativo_inat || row.tipo || 'ATIVO',
+      row.tipo || statusAtivo(row),
       row.regiao || row.tipo_produto || '',
       row.telefone || row.fone || '',
       '',
@@ -1683,7 +1703,7 @@ function _adminAplicarCadastrosApiNaInterface(summary) {
       row.grupo || '',
       row.marca || '',
       row.unidade || '',
-      row.ativo_inat || 'ATIVO',
+      statusAtivo(row),
       row.tipo_produto || row.marca || '',
       '', '', '', '', '', '', '', ''
     ];
@@ -1733,7 +1753,8 @@ async function _adminCarregarCadastrosApiSalvos() {
   ];
   var summary = {
     vendas: {
-      pending: true,
+      ok: typeof BD_DATA !== 'undefined' && BD_DATA.rows && BD_DATA.rows.length > 0,
+      pending: !(typeof BD_DATA !== 'undefined' && BD_DATA.rows && BD_DATA.rows.length > 0),
       count: typeof BD_DATA !== 'undefined' && BD_DATA.rows ? BD_DATA.rows.length : 0,
       endpoint: '/relacaovendaitem',
       message: 'Base principal pronta para gerar relatórios.'
@@ -1792,7 +1813,7 @@ async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
           pending: true,
           count: 0,
           endpoint: found.endpoint || '',
-          message: 'Nenhum endpoint confirmou dados neste ambiente. Estrutura pronta para ligar assim que a API responder.'
+          message: _vsResumoTentativas(found.attempts) || 'Nenhum endpoint confirmou dados neste ambiente. Estrutura pronta para ligar assim que a API responder.'
         };
         continue;
       }
