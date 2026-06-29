@@ -2563,7 +2563,17 @@ adminSincronizar = async function() {
     }
 
     // Log dos campos do primeiro item (diagnóstico)
-    console.log('[SYNC] Campos:', Object.keys(lista[0]));
+    console.log('[SYNC] Campos:', JSON.stringify(Object.keys(lista[0])));
+    console.log('[SYNC] 1o item raw:', JSON.stringify(lista[0]));
+    console.log('[SYNC] 2o item raw:', lista.length > 1 ? JSON.stringify(lista[1]) : 'N/A');
+    // Salva amostra no banco para debug (consulte sync_log.mensagem)
+    try {
+      await fetch(SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ mensagem: 'CAMPOS_API:' + JSON.stringify(Object.keys(lista[0])) + ' | 1o:' + JSON.stringify(lista[0]).slice(0,500) })
+      });
+    } catch(e) { console.warn('debug log fail:', e); }
     console.log('[SYNC] 1º item:', JSON.stringify(lista[0]));
 
     // Mapeamento
