@@ -158,8 +158,8 @@ function _normalizarTelaInicial() {
   if (hero) {
     hero.innerHTML = ''
       + '<div class="lp-hero-kicker">Plataforma SaaS · Multi-empresa</div>'
-      + '<h1 class="lp-hero-title">Operacao comercial<br/><span class="lp-hero-accent">com controle real</span></h1>'
-      + '<p class="lp-hero-sub">Painel executivo para acompanhar vendas, mix de produtos, clientes, representantes e sincronizacoes por empresa com uma entrada mais segura e organizada.</p>'
+      + '<h1 class="lp-hero-title">Operação comercial<br/><span class="lp-hero-accent">com controle real</span></h1>'
+      + '<p class="lp-hero-sub">Painel executivo para acompanhar vendas, mix de produtos, clientes, representantes e sincronizações por empresa — seguro e organizado.</p>'
       + '<div class="lp-form-wrap">'
       +   '<div class="lp-form-box">'
       +     '<div class="lp-form-chip">Ambiente corporativo RESUTE</div>'
