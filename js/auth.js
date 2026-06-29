@@ -1597,20 +1597,20 @@ function _adminAplicarCadastrosApiNaInterface(summary) {
   var cliRows = cliSource.map(function(row, idx) {
     return [
       String(idx + 1),
-      row.id_externo || '',
+      row.cod_cli || row.id_externo || '',
       row.nome || row.razao_social || '',
-      row.grupo_cliente || '',
+      row.tipo || row.grupo_cliente || '',
       row.cnpj_cpf || '',
       '',
       row.cidade || '',
       row.uf || '',
-      row.endereco || '',
+      row.endereco || row.bairro || '',
       row.telefone || '',
       row.email || '',
-      row.razao_social || row.nome || '',
+      row.fantasia || row.razao_social || row.nome || '',
       row.vendedor || '',
       row.uf || '',
-      '', '', '', '', row.data_cadastro || '', '', ''
+      '', '', '', '', row.data_cadastro || '', row.zona_venda || '', ''
     ];
   });
   _adminAplicarGridApi('clientes', cliRows, 21, 200);
@@ -1619,15 +1619,15 @@ function _adminAplicarCadastrosApiNaInterface(summary) {
   var repRows = repSource.map(function(row, idx) {
     return [
       String(idx + 1),
-      row.codigo || row.id_externo || '',
+      row.cod || row.codigo || row.id_externo || '',
       row.nome || '',
-      row.ativo ? 'ATIVO' : 'INATIVO',
-      row.regiao || '',
-      row.telefone || '',
+      row.ativo_inat || row.tipo || 'ATIVO',
+      row.regiao || row.tipo_produto || '',
+      row.telefone || row.fone || '',
       '',
       row.email || '',
       row.uf || '',
-      row.regiao || '',
+      row.regiao || row.tipo_produto || '',
       '', '', '', '', '', '', '', ''
     ];
   });
@@ -1637,13 +1637,13 @@ function _adminAplicarCadastrosApiNaInterface(summary) {
   var prodRows = prodSource.map(function(row, idx) {
     return [
       String(idx + 1),
-      row.codigo || row.id_externo || '',
-      row.nome || '',
+      row.cod_prod || row.codigo || row.id_externo || '',
+      row.descricao || row.nome || '',
       row.grupo || '',
       row.marca || '',
       row.unidade || '',
-      row.ativo ? 'ATIVO' : 'INATIVO',
-      row.marca || '',
+      row.ativo_inat || 'ATIVO',
+      row.tipo_produto || row.marca || '',
       '', '', '', '', '', '', '', ''
     ];
   });
@@ -2526,6 +2526,7 @@ adminSincronizar = async function() {
     var relAviso = document.getElementById('adm-api-relatorios');
     if (relAviso) relAviso.style.display = 'block';
 
+    await _adminCarregarCadastrosApiSalvos();
     await _adminAtualizarContagens();
 
   } catch(e) {
