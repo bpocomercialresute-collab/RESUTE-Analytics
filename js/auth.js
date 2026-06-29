@@ -6,8 +6,8 @@ const SUPA_URL = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
 const SUPA_KEY = '__SERVER_ONLY__';
 const SVC_KEY  = '__SERVER_ONLY__';
 const VISUAL_SAEF_API_URL = 'https://api-plastrio.visualsaef.com';
-const VISUAL_SAEF_CLIENT_ID = '__SERVER_ONLY__';
-const VISUAL_SAEF_CLIENT_SECRET = '__SERVER_ONLY__';
+const VISUAL_SAEF_CLIENT_ID = '7eb42956-e55c-4424-9148-ed6cb1f781ed';
+const VISUAL_SAEF_CLIENT_SECRET = 'b0HJSjMTNCTDFeptGvWeIDbpn6aFRxZ252VEiN9S';
 
 const NATIVE_FETCH = window.fetch.bind(window);
 
@@ -1528,26 +1528,19 @@ function _adminMapClientesApi(items) {
     seen[id] = true;
     return {
       empresa_id: EMPRESA_ATIVA.empresa_id,
-      id_externo: id,
+      cod_cli: id,
       nome: String(_vsPick(item, ['nome', 'cliente', 'nomecliente', 'razaosocial']) || '').trim(),
-      razao_social: String(_vsPick(item, ['razaosocial', 'nome', 'cliente']) || '').trim(),
+      fantasia: String(_vsPick(item, ['fantasia', 'nomefantasia', 'apelido']) || '').trim(),
       cnpj_cpf: String(_vsPick(item, ['cnpj', 'cpf', 'cnpjcpf', 'documento']) || '').trim(),
       cidade: String(_vsPick(item, ['cidade', 'municipio']) || '').trim(),
       uf: String(_vsPick(item, ['uf', 'estado']) || '').trim(),
       telefone: String(_vsPick(item, ['telefone', 'fone', 'celular']) || '').trim(),
       email: String(_vsPick(item, ['email', 'mail']) || '').trim(),
-      endereco: String(_vsPick(item, ['endereco', 'logradouro']) || '').trim(),
-      grupo_cliente: String(_vsPick(item, ['grupo', 'grupocliente', 'categoria', 'tipo']) || '').trim(),
+      bairro: String(_vsPick(item, ['bairro']) || '').trim(),
+      cep: String(_vsPick(item, ['cep', 'codigopostal']) || '').trim(),
+      zona_venda: String(_vsPick(item, ['zonavenda', 'zona', 'rota', 'regiao']) || '').trim(),
       vendedor: String(_vsPick(item, ['vendedor', 'representante', 'nomevendedor']) || '').trim(),
-      data_cadastro: (function(v) {
-        var raw = _vsPick(item, ['datacadastro', 'cadastro', 'data']);
-        if (!raw) return null;
-        var s = String(raw).trim();
-        var m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-        if (m) return m[3] + '-' + m[2] + '-' + m[1];
-        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-        return null;
-      })()
+      tipo: String(_vsPick(item, ['tipo', 'tipocliente', 'categoria']) || '').trim()
     };
   });
 }
@@ -1564,14 +1557,13 @@ function _adminMapProdutosApi(items) {
     seen[id] = true;
     return {
       empresa_id: EMPRESA_ATIVA.empresa_id,
-      id_externo: id,
-      nome: nome,
-      codigo: codigo,
+      cod_prod: id,
+      descricao: nome,
       grupo: String(_vsPick(item, ['grupo', 'grupoproduto', 'categoria']) || '').trim(),
-      marca: String(_vsPick(item, ['marca', 'fabricante', 'industria']) || '').trim(),
-      preco: _vsToNumber(_vsPick(item, ['preco', 'precounitario', 'valor', 'valorunitario'])),
-      unidade: String(_vsPick(item, ['unidade', 'unidademedida', 'und']) || '').trim(),
-      ativo: _vsToBool(_vsPick(item, ['ativo', 'status', 'situacao']))
+      subgrupo: String(_vsPick(item, ['subgrupo', 'subgrupoproduto']) || '').trim(),
+      familia: String(_vsPick(item, ['familia', 'familiaproduto']) || '').trim(),
+      tipo_produto: String(_vsPick(item, ['tipo', 'tipoproduto']) || '').trim(),
+      ativo_inat: (_vsToBool(_vsPick(item, ['ativo', 'status', 'situacao'])) !== false) ? 'ATIVO' : 'INATIVO'
     };
   });
 }
@@ -1588,14 +1580,14 @@ function _adminMapRepresentantesApi(items) {
     seen[id] = true;
     return {
       empresa_id: EMPRESA_ATIVA.empresa_id,
-      id_externo: id,
+      cod: id,
       nome: nome,
-      codigo: codigo,
-      regiao: String(_vsPick(item, ['regiao', 'zona', 'areaatuacao']) || '').trim(),
-      uf: String(_vsPick(item, ['uf', 'estado']) || '').trim(),
-      telefone: String(_vsPick(item, ['telefone', 'fone', 'celular']) || '').trim(),
+      tipo: String(_vsPick(item, ['tipo', 'tiporepresentante', 'tipovendedor']) || '').trim(),
+      fantasia: String(_vsPick(item, ['fantasia', 'nomefantasia']) || '').trim(),
+      fone: String(_vsPick(item, ['telefone', 'fone', 'celular']) || '').trim(),
       email: String(_vsPick(item, ['email', 'mail']) || '').trim(),
-      ativo: _vsToBool(_vsPick(item, ['ativo', 'status', 'situacao']))
+      obs: String(_vsPick(item, ['obs', 'observacao']) || '').trim(),
+      tipo_produto: String(_vsPick(item, ['tipoproduto']) || '').trim()
     };
   });
 }
@@ -1694,9 +1686,9 @@ async function _adminCarregarCadastrosApiSalvos() {
   }
 
   var jobs = [
-    { key: 'clientes', table: 'clientes_api' },
-    { key: 'produtos', table: 'produtos_api' },
-    { key: 'representantes', table: 'representantes_api' }
+    { key: 'clientes', table: 'clientes_cad' },
+    { key: 'produtos', table: 'produtos' },
+    { key: 'representantes', table: 'representantes' }
   ];
   var summary = {
     vendas: {
@@ -1746,9 +1738,9 @@ async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
     DataTermino: String(dataFim.getDate()).padStart(2, '0') + String(dataFim.getMonth() + 1).padStart(2, '0') + String(dataFim.getFullYear())
   };
   var jobs = [
-    { key: 'clientes', table: 'clientes_api', candidates: VS_ENDPOINTS.clientes, mapper: _adminMapClientesApi },
-    { key: 'produtos', table: 'produtos_api', candidates: VS_ENDPOINTS.produtos, mapper: _adminMapProdutosApi },
-    { key: 'representantes', table: 'representantes_api', candidates: VS_ENDPOINTS.representantes, mapper: _adminMapRepresentantesApi }
+    { key: 'clientes', table: 'clientes_cad', candidates: VS_ENDPOINTS.clientes, mapper: _adminMapClientesApi },
+    { key: 'produtos', table: 'produtos', candidates: VS_ENDPOINTS.produtos, mapper: _adminMapProdutosApi },
+    { key: 'representantes', table: 'representantes', candidates: VS_ENDPOINTS.representantes, mapper: _adminMapRepresentantesApi }
   ];
   var summary = {};
 
@@ -2015,75 +2007,26 @@ function adminProcessar() {
     if (typeof GRIDS !== 'undefined' && GRIDS.bd) { GRIDS.bd.allData = BD_DATA.rows; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render(); }
     _adminSetStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' linhas processadas — salvando no banco...', true);
     // Salva automaticamente no Supabase para o cliente ver
-    adminSalvarBancoSilencioso(BD_DATA.rows);
+    adminSalvarBancoSilencioso(rows);
   }, 10);
-}
-
-function _adminObterRowsProcessados(rowsParam) {
-  var rows = Array.isArray(rowsParam) && rowsParam.length ? rowsParam : [];
-  if (typeof BD_DATA !== 'undefined' && Array.isArray(BD_DATA.rows) && BD_DATA.rows.length) {
-    rows = BD_DATA.rows;
-  }
-  return rows.filter(function(r){
-    return r && r.some(function(c){ return c !== '' && c !== null && c !== undefined; });
-  });
-}
-
-function _adminRowToVendaRecord(r, eid, origem, idExterno) {
-  return {
-    empresa_id:      eid,
-    origem:          origem || 'manual',
-    id_externo:      idExterno || null,
-    num_pedido:      r[1] || null,
-    produto:         r[2] || null,
-    qtd:             parseFloat(r[3]) || null,
-    dt_emissao:      _cvData(r[4]),
-    dt_saida:        _cvData(r[5]),
-    valor:           parseFloat(String(r[6] || '0').replace(',','.')) || null,
-    vendedor:        r[7] || null,
-    industria:       r[8] || null,
-    cliente:         r[9] || null,
-    ano:             parseInt(r[10]) || null,
-    mes:             r[11] || null,
-    grupo:           r[12] || null,
-    semana:          r[13] || null,
-    tipo_mercado:    r[14] || null,
-    setor:           r[15] || null,
-    cidade:          r[16] || null,
-    uf:              r[17] || null,
-    tipo_vendedor:   r[18] || null,
-    dias_sem_compra: parseFloat(r[19]) || null,
-    nota_f:          r[20] || null,
-    rota:            r[21] || null,
-    desconto:        parseFloat(String(r[22] || '0').replace(',','.')) || null,
-    empresa_nome:    r[23] || EMPRESA_ATIVA.nome,
-    cnpj:            r[24] || null,
-    grupo_produto:   r[25] || null,
-    grupo_pai:       r[26] || null,
-    subgrupo:        r[27] || null,
-    marca:           r[28] || null,
-    familia:         r[29] || null,
-    classes:         r[30] || null
-  };
-}
-
-function _adminMontarRegistrosPersistencia(rows, origem, opts) {
-  var eid = EMPRESA_ATIVA.empresa_id;
-  var ts = Date.now();
-  opts = opts || {};
-  return rows.map(function(r, i) {
-    var fallbackId = origem + '_' + eid.slice(0,8) + '_' + ts + '_' + i;
-    var idExterno = opts.preserveId ? (r[0] || fallbackId) : fallbackId;
-    return _adminRowToVendaRecord(r, eid, origem, idExterno);
-  });
 }
 
 async function adminSalvarBancoSilencioso(rowsParam) {
   if (!EMPRESA_ATIVA) return;
-  var eid = EMPRESA_ATIVA.empresa_id;
-  var rows = _adminObterRowsProcessados(rowsParam);
+  var eid = EMPRESA_ATIVA.empresa_id, ts = Date.now();
+  var rows = rowsParam || [];
   if (!rows.length) return;
-  var regs = _adminMontarRegistrosPersistencia(rows, 'manual');
+
+  var regs = rows.map(function(r, i) {
+    return { empresa_id:eid, id_externo:'manual_'+eid.slice(0,8)+'_'+ts+'_'+i,
+      num_pedido:r[1]||null, produto:r[2]||null, qtd:parseFloat(r[3])||null,
+      dt_emissao:r[4]||null, dt_saida:r[5]||null,
+      valor:parseFloat(String(r[6]||'0').replace(',','.'))||null,
+      vendedor:r[7]||null, industria:r[8]||null, cliente:r[9]||null,
+      ano:parseInt(r[10])||null, mes:r[11]||null, grupo:r[12]||null,
+      cidade:r[16]||null, uf:r[17]||null,
+      empresa_nome:EMPRESA_ATIVA.nome, cnpj:r[24]||null, marca:r[28]||null };
+  });
 
   try {
     // Remove manuais antigos e insere novos
@@ -2109,11 +2052,18 @@ async function adminSalvarBancoSilencioso(rowsParam) {
 async function adminSalvarBanco() {
   if (!EMPRESA_ATIVA) { alert('Selecione uma empresa.'); return; }
   var src = (typeof FULL_DATA !== 'undefined' && FULL_DATA.bd && FULL_DATA.bd.length) ? FULL_DATA.bd : (typeof GRIDS !== 'undefined' && GRIDS.bd ? GRIDS.bd.getData() : []);
-  var rows = _adminObterRowsProcessados(src);
+  var rows = src.filter(function(r){ return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; }); });
   if (!rows.length) { alert('Sem dados para salvar.'); return; }
   if (!confirm('Salvar ' + rows.length.toLocaleString('pt-BR') + ' linhas para ' + EMPRESA_ATIVA.nome + '?')) return;
-  var eid = EMPRESA_ATIVA.empresa_id;
-  var regs = _adminMontarRegistrosPersistencia(rows, 'manual');
+  var eid = EMPRESA_ATIVA.empresa_id, ts = Date.now();
+  var regs = rows.map(function(r, i) {
+    return { empresa_id:eid, id_externo:'manual_'+eid.slice(0,8)+'_'+ts+'_'+i,
+      num_pedido:r[1]||null, produto:r[2]||null, qtd:parseFloat(r[3])||null,
+      dt_emissao:r[4]||null, dt_saida:r[5]||null, valor:parseFloat(String(r[6]||'0').replace(',','.'))||null,
+      vendedor:r[7]||null, industria:r[8]||null, cliente:r[9]||null,
+      ano:parseInt(r[10])||null, mes:r[11]||null, grupo:r[12]||null,
+      cidade:r[16]||null, uf:r[17]||null, empresa_nome:EMPRESA_ATIVA.nome, cnpj:r[24]||null, marca:r[28]||null };
+  });
   try {
     await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid + '&id_externo=like.manual_*',
       { method:'DELETE', headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SVC_KEY} });
@@ -2252,16 +2202,33 @@ async function adminProcessarManual() {
   if (typeof BD_DATA !== 'undefined') { BD_DATA.headers = headers; BD_DATA.rows = rows; BD_DATA.count = rows.length; }
   if (typeof FULL_DATA !== 'undefined') FULL_DATA.bd = rows;
 
-  try { bdMapColumns(); } catch(e) {}
-  try { bdAutoFill(); }   catch(e) {}
-  try { bdUpdateAllTabs(); } catch(e) {}
-  if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
-    GRIDS.bd.allData = BD_DATA.rows; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render();
-  }
+  setTimeout(function() {
+    try { bdMapColumns(); } catch(e) {}
+    try { bdAutoFill(); }   catch(e) {}
+    try { bdUpdateAllTabs(); } catch(e) {}
+    if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
+      GRIDS.bd.allData = rows; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render();
+    }
+  }, 10);
 
   // Salva no Supabase com origem = 'manual'
   var eid = EMPRESA_ATIVA.empresa_id;
-  var regs = _adminMontarRegistrosPersistencia(_adminObterRowsProcessados(rows), 'manual');
+  var ts  = Date.now();
+  var regs = rows.map(function(r, i) {
+    return {
+      empresa_id:   eid,
+      origem:       'manual',
+      id_externo:   'manual_' + eid.slice(0,8) + '_' + ts + '_' + i,
+      num_pedido:   r[1]||null, produto:   r[2]||null,
+      qtd:          parseFloat(r[3])||null,
+      dt_emissao:   _cvData(r[4]), dt_saida: _cvData(r[5]),
+      valor:        parseFloat(String(r[6]||'0').replace(',','.'))||null,
+      vendedor:     r[7]||null, industria: r[8]||null, cliente:   r[9]||null,
+      ano:          parseInt(r[10])||null, mes: r[11]||null, grupo: r[12]||null,
+      cidade:       r[16]||null, uf: r[17]||null,
+      empresa_nome: EMPRESA_ATIVA.nome, cnpj: r[24]||null, marca: r[28]||null
+    };
+  });
 
   try {
     // Apaga manuais antigos desta empresa
@@ -2294,41 +2261,6 @@ async function adminProcessarManual() {
 }
 
 // ── LIMPAR ORIGEM ESPECÍFICA ──────────────────────────────────────────────────
-async function adminSalvarBancoApiProcessado() {
-  if (!EMPRESA_ATIVA) return;
-  var eid = EMPRESA_ATIVA.empresa_id;
-  var rows = _adminObterRowsProcessados();
-  if (!rows.length) return;
-  var regs = _adminMontarRegistrosPersistencia(rows, 'api', { preserveId: true });
-
-  var del = await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid + '&origem=eq.api', {
-    method: 'DELETE',
-    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' }
-  });
-  if (!del.ok) {
-    var delErr = await del.text();
-    throw new Error('Erro ao limpar base processada da API: ' + delErr.slice(0, 200));
-  }
-
-  for (var i = 0; i < regs.length; i += 500) {
-    var batch = regs.slice(i, i + 500);
-    var res = await fetch(SUPA_URL + '/rest/v1/vendas', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPA_KEY,
-        'Authorization': 'Bearer ' + SVC_KEY,
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify(batch)
-    });
-    if (!res.ok) {
-      var err = await res.text();
-      throw new Error('Erro ao salvar relatórios da API: ' + err.slice(0, 200));
-    }
-  }
-}
-
 async function adminLimparOrigem(origem) {
   if (!EMPRESA_ATIVA) return;
   var label = origem === 'api' ? 'dados da API' : 'dados manuais';
@@ -2590,7 +2522,6 @@ adminSincronizar = async function() {
       GRIDS.bd.allData = BD_DATA.rows; GRIDS.bd.filtered = null;
       GRIDS.bd.page = 0; GRIDS.bd._render();
     }
-    await adminSalvarBancoApiProcessado();
 
     var relAviso = document.getElementById('adm-api-relatorios');
     if (relAviso) relAviso.style.display = 'block';
