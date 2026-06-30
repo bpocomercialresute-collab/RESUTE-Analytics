@@ -165,9 +165,9 @@ function repGetVendedores() {
 function repParseDate(s) {
   if (!s) return null;
   s = String(s).trim();
-  let m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  let m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
   if (m) return new Date(+m[3], +m[2]-1, +m[1]);
-  m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (m) return new Date(+m[1], +m[2]-1, +m[3]);
   return null;
 }
@@ -699,6 +699,66 @@ function repPremiacao() {
   const porCliente = [...arr].sort((a,b)=>b.clientes-a.clientes).slice(0,10);
   const porMix = [...arr].sort((a,b)=>b.produtos-a.produtos).slice(0,10);
   const totalFat = arr.reduce((s,r)=>s+r.fat,0);
+  const datasValidas = rows.map(r => repParseDate(String(r[IDX.saida]||r[IDX.emissao]||'').trim())).filter(Boolean).sort((a,b)=>a-b);
+  const dataRef = datasValidas[datasValidas.length - 1] || new Date();
+  const semanaInicio = new Date(dataRef);
+  semanaInicio.setDate(dataRef.getDate() - ((dataRef.getDay() + 6) % 7));
+  semanaInicio.setHours(0,0,0,0);
+  const semanaFim = new Date(semanaInicio);
+  semanaFim.setDate(semanaInicio.getDate() + 6);
+  semanaFim.setHours(23,59,59,999);
+  const diasSemana = Array.from({length:7}, (_,i) => {
+    const d = new Date(semanaInicio);
+    d.setDate(semanaInicio.getDate() + i);
+    return d;
+  });
+  const mesNomeRef = MES_LABEL_PT[dataRef.getMonth()] + '/' + dataRef.getFullYear();
+  const semanaLabel = diasSemana[0].toLocaleDateString('pt-BR') + ' a ' + diasSemana[6].toLocaleDateString('pt-BR');
+
+  function filtrarPorData(baseRows, fn) {
+    return baseRows.filter(r => {
+      const dt = repParseDate(String(r[IDX.saida]||r[IDX.emissao]||'').trim());
+      return dt && fn(dt);
+    });
+  }
+  const rowsMes = filtrarPorData(rows, dt => dt.getFullYear() === dataRef.getFullYear() && dt.getMonth() === dataRef.getMonth());
+  const rowsSemana = filtrarPorData(rows, dt => dt >= semanaInicio && dt <= semanaFim);
+
+  function resumoPeriodo(baseRows) {
+    const mapa = {};
+    baseRows.forEach(r => {
+      const vend = String(r[IDX.vendedor]||'').trim() || 'Sem representante';
+      if (!mapa[vend]) mapa[vend] = { nome:vend, fat:0, qtd:0, pedidos:0, clientes:new Set(), produtos:new Set() };
+      mapa[vend].fat += parseFloat(String(r[IDX.valor]||'').replace(/\./g,'').replace(',','.')) || 0;
+      mapa[vend].qtd += parseFloat(r[IDX.qtd]||0) || 0;
+      mapa[vend].pedidos += 1;
+      if (r[IDX.cliente]) mapa[vend].clientes.add(String(r[IDX.cliente]).trim());
+      if (r[IDX.produto]) mapa[vend].produtos.add(String(r[IDX.produto]).trim());
+    });
+    return Object.values(mapa).map(r => ({
+      nome:r.nome,
+      fat:r.fat,
+      qtd:r.qtd,
+      pedidos:r.pedidos,
+      clientes:r.clientes.size,
+      produtos:r.produtos.size,
+      ticket:r.pedidos ? r.fat / r.pedidos : 0,
+      tipo:repGetTipo(r.nome)
+    }));
+  }
+
+  const mensal = resumoPeriodo(rowsMes).sort((a,b)=>b.fat-a.fat);
+  const semanal = resumoPeriodo(rowsSemana).sort((a,b)=>b.fat-a.fat);
+  const diaPivot = {};
+  rowsSemana.forEach(r => {
+    const vend = String(r[IDX.vendedor]||'').trim() || 'Sem representante';
+    const dt = repParseDate(String(r[IDX.saida]||r[IDX.emissao]||'').trim());
+    if (!dt) return;
+    const idx = Math.floor((new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()) - semanaInicio) / 86400000);
+    if (idx < 0 || idx > 6) return;
+    if (!diaPivot[vend]) diaPivot[vend] = Array(7).fill(0);
+    diaPivot[vend][idx] += repVal(r);
+  });
 
   function moeda(v) { return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 0 }); }
   function rankingTable(titulo, lista, campo, fmt) {
@@ -711,6 +771,48 @@ function repPremiacao() {
         <td>${fmt ? fmt(r[campo] || 0, r) : (r[campo] || 0).toLocaleString('pt-BR')}</td>
       </tr>`).join('')}
     </tbody></table></div>`;
+  }
+  function periodoRanking(titulo, subtitulo, lista) {
+    const top = lista.slice(0, 6);
+    const max = Math.max(1, ...top.map(r=>r.fat || 0));
+    return `<div class="premio-card premio-periodo">
+      <div class="premio-card-title">${titulo}</div>
+      <p>${subtitulo}</p>
+      <table class="premio-table"><tbody>
+        ${top.map((r,i)=>`<tr>
+          <td class="premio-pos">${i+1}</td>
+          <td><strong>${repEsc(r.nome)}</strong><span>${r.pedidos} pedidos · ${r.clientes} clientes · ${r.produtos} produtos</span></td>
+          <td>${repMiniCell(r.fat, max)}</td>
+          <td>${moeda(r.fat)}</td>
+        </tr>`).join('') || '<tr><td>Sem vendas neste periodo.</td></tr>'}
+      </tbody></table>
+    </div>`;
+  }
+  function tabelaSemana() {
+    const repsSemana = Object.keys(diaPivot).sort((a,b) => {
+      const ta = diaPivot[a].reduce((s,v)=>s+v,0);
+      const tb = diaPivot[b].reduce((s,v)=>s+v,0);
+      return tb - ta;
+    });
+    const max = Math.max(1, ...Object.values(diaPivot).flat());
+    return `<div class="premio-card premio-full">
+      <div class="premio-card-title">Semana detalhada · segunda a domingo</div>
+      <div class="rep-scroll-area"><table class="rep-tbl"><thead><tr>
+        <td>Representante</td>
+        ${diasSemana.map(d=>`<td>${DIA_LABEL[d.getDay()]}<br>${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}</td>`).join('')}
+        <td>Total</td>
+      </tr></thead><tbody>
+        ${repsSemana.map(vend => {
+          const dias = diaPivot[vend];
+          const total = dias.reduce((s,v)=>s+v,0);
+          return `<tr>
+            <td class="rep-lbl">${repEsc(vend)}</td>
+            ${dias.map(v=>`<td>${repMiniCell(v, max)}</td>`).join('')}
+            <td class="rep-total-cell">${repFmtFull(total)}</td>
+          </tr>`;
+        }).join('') || '<tr><td>Sem vendas nesta semana.</td></tr>'}
+      </tbody></table></div>
+    </div>`;
   }
 
   el.innerHTML = `<div class="rel-header-bar premio-header">
@@ -735,6 +837,11 @@ function repPremiacao() {
     <div><span>Pedidos</span><strong>${arr.reduce((s,r)=>s+r.pedidos,0).toLocaleString('pt-BR')}</strong></div>
     <div><span>Clientes atendidos</span><strong>${new Set(rows.map(r=>String(r[IDX.cliente]||'').trim()).filter(Boolean)).size}</strong></div>
   </div>
+  <div class="premio-periodo-grid">
+    ${periodoRanking('Premiacao mensal', 'Mes de referencia: ' + mesNomeRef, mensal)}
+    ${periodoRanking('Premiacao semanal', 'Semana: ' + semanaLabel, semanal)}
+  </div>
+  ${tabelaSemana()}
   <div class="premio-grid">
     <div class="premio-chart-box"><div class="premio-card-title">Top pontuação geral</div><canvas id="rep-premio-score"></canvas></div>
     <div class="premio-chart-box"><div class="premio-card-title">Distribuição por faturamento</div><canvas id="rep-premio-fat"></canvas></div>
