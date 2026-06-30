@@ -248,7 +248,8 @@ async function fazerLogin() {
   btn.innerHTML = '<span class="auth-spin">⟳</span> Entrando...';
 
   try {
-    var r = await fetch(SUPA_URL + '/auth/v1/token?grant_type=password', {
+    // Login via proxy seguro (/api/login) — chaves ficam no servidor
+    var r = await NATIVE_FETCH('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email, password: senha })
@@ -256,26 +257,19 @@ async function fazerLogin() {
     var d = await r.json();
     if (!r.ok || !d.token) throw new Error(d.erro || 'Email ou senha incorretos.');
 
-    var uR = await fetch(
-      SUPA_URL + '/rest/v1/usuarios?email=eq.' + encodeURIComponent(email.toLowerCase()) + '&select=*',
-      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + d.access_token } }
-    );
-    var users = await uR.json();
-    var u = (users && users.length) ? users[0] : { nome: email, papel: 'cliente', empresa_id: null };
-
-    // Processa empresa_ids (múltiplas lojas)
-    var empresaIds = null;
-    if (u.empresa_ids) {
-      try { empresaIds = JSON.parse(u.empresa_ids); } catch(e2) { empresaIds = null; }
+    // Proxy já retorna dados do usuário — não precisa segunda chamada
+    var empresaIds = d.empresa_ids;
+    if (empresaIds && typeof empresaIds === 'string') {
+      try { empresaIds = JSON.parse(empresaIds); } catch(e2) { empresaIds = null; }
     }
 
     SESSION = {
       token:       d.token,
-      nome:        u.nome || email,
-      email:       email,
-      papel:       u.papel || 'cliente',
-      empresa_id:  u.empresa_id || null,
-      empresa_ids: empresaIds || (u.empresa_id ? [u.empresa_id] : null),
+      nome:        d.nome || email,
+      email:       email.toLowerCase(),
+      papel:       d.papel || 'cliente',
+      empresa_id:  d.empresa_id || null,
+      empresa_ids: empresaIds || (d.empresa_id ? [d.empresa_id] : null),
       empresa_nome:'RESUTE'
     };
     _saveSession(SESSION);

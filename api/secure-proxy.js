@@ -11,6 +11,7 @@ const ALLOWED_SUPABASE_PATHS = [
   '/rest/v1/produtos',
   '/rest/v1/representantes_api',
   '/rest/v1/representantes',
+  '/rest/v1/grupos',
   '/functions/v1/sync-visual-saef'
 ];
 
@@ -148,8 +149,21 @@ function assertAuthorized(appUser, targetUrl, method, body) {
   }
 
   if (targetUrl.pathname === '/rest/v1/empresas') {
+    // Clientes podem ler dados da sua própria empresa (exibir_origem)
     if (appUser.papel !== 'super_admin') {
-      throw new Error('Apenas super_admin pode acessar empresas.');
+      if (isWrite) {
+        throw new Error('Apenas super_admin pode alterar empresas.');
+      }
+      // Verifica se está filtrando pela empresa do cliente
+      var filtroId = targetUrl.searchParams.get('id') || '';
+      if (filtroId.startsWith('eq.')) {
+        var idFiltrado = filtroId.slice(3);
+        if (!canAccessEmpresa(appUser, idFiltrado)) {
+          throw new Error('Acesso negado a esta empresa.');
+        }
+      } else {
+        throw new Error('Filtro de empresa obrigatorio.');
+      }
     }
     return;
   }
@@ -170,8 +184,15 @@ function assertAuthorized(appUser, targetUrl, method, body) {
     targetUrl.pathname === '/rest/v1/representantes_api' ||
     targetUrl.pathname === '/rest/v1/representantes'
   ) {
+    // Clientes podem ler cadastros da sua empresa
     if (appUser.papel !== 'super_admin') {
-      throw new Error('Apenas super_admin pode acessar cadastros sincronizados.');
+      if (isWrite) {
+        throw new Error('Apenas super_admin pode alterar cadastros.');
+      }
+      var empresaIds2 = extractEmpresaIdsFromUrl(targetUrl);
+      if (!empresaIds2.length || !empresaIds2.every(function(id) { return canAccessEmpresa(appUser, id); })) {
+        throw new Error('Filtro de empresa obrigatorio.');
+      }
     }
     return;
   }
