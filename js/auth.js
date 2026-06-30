@@ -741,6 +741,7 @@ async function dcCarregarDados(empresa_id_param) {
   if (!eid) { dcStatus('⚠ Empresa não selecionada.'); return; }
 
   try {
+    dcLoading(true, 'Buscando dados e preparando os relatorios...');
     // Busca qual origem o admin configurou para este cliente ver
     var origemR = await fetch(SUPA_URL + '/rest/v1/empresas?id=eq.' + eid + '&select=exibir_origem',
       { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } });
@@ -781,6 +782,7 @@ async function dcCarregarDados(empresa_id_param) {
       if ((DC_DATA || []).length) {
         dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
       }
+      dcLoading(false);
     }, 0);
     dcStatus('✓ ' + vendas.length.toLocaleString('pt-BR') + ' registros carregados', true);
 
@@ -809,6 +811,14 @@ function dcIsoDate(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
+function dcLoading(show, msg) {
+  var el = document.getElementById('dc-loading');
+  if (!el) return;
+  var txt = el.querySelector('[data-dc-loading-text]');
+  if (txt && msg) txt.textContent = msg;
+  el.style.display = show ? 'grid' : 'none';
+}
+
 function dcDefinirPeriodoInicial(rows) {
   var datas = (rows || []).map(dcDataValor).filter(Boolean).sort(function(a, b) { return a - b; });
   if (!datas.length) return;
@@ -833,6 +843,74 @@ function dcDefinirPeriodoInicial(rows) {
   if (selMes) selMes.value = String(alvoMes);
   if (dtIni) dtIni.value = dcIsoDate(inicio);
   if (dtFim) dtFim.value = dcIsoDate(fim);
+  dcAtualizarEstadoPeriodo();
+}
+
+function dcAtualizarEstadoPeriodo() {
+  var selMes = document.getElementById('dc-filtro-mes');
+  var dtIni = document.getElementById('dc-filtro-inicio');
+  var dtFim = document.getElementById('dc-filtro-fim');
+  var mes = selMes ? parseInt(selMes.value, 10) || 0 : 0;
+  if (dtIni) dtIni.disabled = !!mes;
+  if (dtFim) dtFim.disabled = !!mes;
+}
+
+function dcSincronizarPeriodoMes() {
+  var selAno = document.getElementById('dc-filtro-ano');
+  var selMes = document.getElementById('dc-filtro-mes');
+  var dtIni = document.getElementById('dc-filtro-inicio');
+  var dtFim = document.getElementById('dc-filtro-fim');
+  var ano = selAno ? parseInt(selAno.value, 10) || 0 : 0;
+  var mes = selMes ? parseInt(selMes.value, 10) || 0 : 0;
+  if (!dtIni || !dtFim) return;
+  if (!mes) {
+    dtIni.value = '';
+    dtFim.value = '';
+    dcAtualizarEstadoPeriodo();
+    return;
+  }
+  if (ano) {
+    dtIni.value = dcIsoDate(new Date(ano, mes - 1, 1));
+    dtFim.value = dcIsoDate(new Date(ano, mes, 0));
+  } else {
+    dtIni.value = '';
+    dtFim.value = '';
+  }
+  dcAtualizarEstadoPeriodo();
+}
+
+function dcFiltroAnoAlterado() {
+  var selMes = document.getElementById('dc-filtro-mes');
+  var dtIni = document.getElementById('dc-filtro-inicio');
+  var dtFim = document.getElementById('dc-filtro-fim');
+  if (selMes && parseInt(selMes.value, 10)) {
+    dcSincronizarPeriodoMes();
+  } else {
+    if (dtIni) dtIni.value = '';
+    if (dtFim) dtFim.value = '';
+    dcAtualizarEstadoPeriodo();
+  }
+  dcAplicarFiltro();
+}
+
+function dcFiltroMesAlterado() {
+  dcSincronizarPeriodoMes();
+  dcAplicarFiltro();
+}
+
+function dcFiltroPeriodoAlterado() {
+  var selMes = document.getElementById('dc-filtro-mes');
+  var selAno = document.getElementById('dc-filtro-ano');
+  var dtIni = document.getElementById('dc-filtro-inicio');
+  var dtFim = document.getElementById('dc-filtro-fim');
+  if (selMes) selMes.value = '0';
+  if (selAno && dtIni && dtFim && dtIni.value && dtFim.value) {
+    var anoIni = parseInt(dtIni.value.slice(0, 4), 10);
+    var anoFim = parseInt(dtFim.value.slice(0, 4), 10);
+    selAno.value = anoIni && anoIni === anoFim ? String(anoIni) : '0';
+  }
+  dcAtualizarEstadoPeriodo();
+  dcAplicarFiltro();
 }
 
 function dcAplicarFiltro() {
@@ -842,6 +920,7 @@ function dcAplicarFiltro() {
   var fimEl = document.getElementById('dc-filtro-fim');
   var inicio = inicioEl && inicioEl.value ? new Date(inicioEl.value + 'T00:00:00') : null;
   var fim = fimEl && fimEl.value ? new Date(fimEl.value + 'T23:59:59') : null;
+  dcAtualizarEstadoPeriodo();
 
   DC_DATA = DC_RAW.filter(function(v){
     var data = dcDataValor(v);
@@ -923,6 +1002,7 @@ function dcAbrirRelatorio(tipo) {
     return;
   }
 
+  dcLoading(true, 'Montando relatorio selecionado...');
   dcPrepararDadosRelatorios(rows);
 
   var dash = document.getElementById('view-dash-cliente');
@@ -953,6 +1033,7 @@ function dcAbrirRelatorio(tipo) {
   });
 
   if (typeof avShowRel === 'function') avShowRel(tipo);
+  setTimeout(function() { dcLoading(false); }, 150);
 }
 
 // ── RENDERIZA TUDO ────────────────────────────────────────────────────────────
@@ -1425,6 +1506,10 @@ function dcChartOpts(prefix) {
 
 function dcStatus(msg, ok) {
   var el = document.getElementById('dc-status');
+  var texto = String(msg || '');
+  if (texto.indexOf('Nenhum') >= 0 || texto.indexOf('Erro') >= 0 || texto.indexOf('âœ') >= 0 || texto.charAt(0) === '✗') {
+    dcLoading(false);
+  }
   if (!el) return;
   el.textContent = msg;
   el.style.color = ok ? '#22c55e' : (msg.startsWith('✗') ? '#ef4444' : '#475569');

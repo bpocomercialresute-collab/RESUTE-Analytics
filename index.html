@@ -604,6 +604,13 @@
 
   <!-- DASHBOARD CLIENTE -->
   <div id="view-dash-cliente" style="display:none;position:fixed;inset:0;z-index:9000;background:#060d1a;flex-direction:column;font-family:'Inter',system-ui,sans-serif;overflow:hidden;">
+    <div id="dc-loading" class="dc-loading" style="display:none">
+      <div class="dc-loading-card">
+        <span class="dc-loader"></span>
+        <strong>Gerando relatórios</strong>
+        <p data-dc-loading-text>Organizando dados comerciais...</p>
+      </div>
+    </div>
 
     <!-- Header fixo -->
     <header class="dc-header">
@@ -616,8 +623,8 @@
       </div>
       <div class="dc-header-right">
         <!-- Filtros -->
-        <select id="dc-filtro-ano" class="dc-filtro" onchange="dcAplicarFiltro()"></select>
-        <select id="dc-filtro-mes" class="dc-filtro" onchange="dcAplicarFiltro()">
+        <select id="dc-filtro-ano" class="dc-filtro" onchange="dcFiltroAnoAlterado()"></select>
+        <select id="dc-filtro-mes" class="dc-filtro" onchange="dcFiltroMesAlterado()">
           <option value="0">Todos os meses</option>
           <option value="1">Janeiro</option><option value="2">Fevereiro</option>
           <option value="3">Março</option><option value="4">Abril</option>
@@ -626,8 +633,8 @@
           <option value="9">Setembro</option><option value="10">Outubro</option>
           <option value="11">Novembro</option><option value="12">Dezembro</option>
         </select>
-        <input id="dc-filtro-inicio" class="dc-filtro" type="date" onchange="dcAplicarFiltro()">
-        <input id="dc-filtro-fim" class="dc-filtro" type="date" onchange="dcAplicarFiltro()">
+        <input id="dc-filtro-inicio" class="dc-filtro" type="date" onchange="dcFiltroPeriodoAlterado()">
+        <input id="dc-filtro-fim" class="dc-filtro" type="date" onchange="dcFiltroPeriodoAlterado()">
         <div id="dc-loja-selector" class="dc-loja-selector" style="display:none"></div>
         <span id="dc-status" class="dc-header-status"></span>
         <button onclick="fazerLogout()" class="dc-btn-sair" title="Sair">
