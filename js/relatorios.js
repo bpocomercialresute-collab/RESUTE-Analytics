@@ -6,6 +6,27 @@ function _hide(id){ var e=document.getElementById(id); if(e) e.style.display='no
 function _show(id){ var e=document.getElementById(id); if(e) e.style.display='block'; }
 function _setBreadcrumb(txt){ var e=document.getElementById('breadcrumb-text'); if(e) e.textContent=txt; }
 
+function _activePaneId(areaSelector) {
+  var pane = document.querySelector(areaSelector + ' .av-tab-pane.active');
+  return pane ? pane.id : '';
+}
+
+function imprimirRelatorioAtual(tipo) {
+  var areaId = tipo === 'representantes' ? 'av-rep-area' : 'av-rel-area';
+  var paneId = _activePaneId('#' + areaId);
+  if (!paneId) return;
+  document.body.setAttribute('data-print-area', areaId);
+  document.body.setAttribute('data-print-pane', paneId);
+  document.body.classList.add('print-relatorio');
+  setTimeout(function() { window.print(); }, 80);
+}
+
+window.addEventListener('afterprint', function() {
+  document.body.classList.remove('print-relatorio');
+  document.body.removeAttribute('data-print-area');
+  document.body.removeAttribute('data-print-pane');
+});
+
 function avGoHome() {
   if (typeof SESSION !== 'undefined' && SESSION && SESSION.papel === 'cliente') {
     var wrapper = document.getElementById('cui-wrapper');
@@ -44,7 +65,8 @@ function avShowRel(tipo) {
     _show('av-rep-area');
     _setBreadcrumb('Relat. Representantes');
     if (typeof BD_DATA !== 'undefined' && BD_DATA.rows && BD_DATA.rows.length > 0) {
-      if (typeof repUpdateAll === 'function') repUpdateAll();
+      var repAtiva = _activePaneId('#av-rep-area') || 'rep-tab-mix';
+      if (typeof repRenderTab === 'function') repRenderTab(repAtiva);
     }
     return;
   }
@@ -54,7 +76,7 @@ function avShowRel(tipo) {
   _setBreadcrumb('Relat. Produtos');
 
   // Gera todos os relatórios se tiver dados
-  if (typeof BD_DATA !== 'undefined' && BD_DATA.rows && BD_DATA.rows.length > 0) {
+  if (false && typeof BD_DATA !== 'undefined' && BD_DATA.rows && BD_DATA.rows.length > 0) {
     try { if (typeof bdUpdateCadastroInsights === 'function') bdUpdateCadastroInsights(); } catch(e){ console.error(e); }
     try { if (typeof bdUpdateVendaProduto    === 'function') bdUpdateVendaProduto(); }    catch(e){ console.error(e); }
     try { if (typeof bdUpdateLaudoGrupo      === 'function') bdUpdateLaudoGrupo(); }      catch(e){ console.error(e); }
@@ -83,6 +105,9 @@ function avShowRel(tipo) {
   var pane = document.getElementById(alvo);
   if (tab)  tab.classList.add('active');
   if (pane) pane.classList.add('active');
+  if (typeof BD_DATA !== 'undefined' && BD_DATA.rows && BD_DATA.rows.length > 0 && typeof relRenderTab === 'function') {
+    relRenderTab(alvo);
+  }
 }
 
 // Troca de abas genérica
@@ -99,5 +124,7 @@ document.addEventListener('click', function(e) {
   if (pane) pane.classList.add('active');
   if (tab.dataset.area === 'rep' && typeof repRenderTab === 'function') {
     repRenderTab(tab.dataset.target);
+  } else if (area && area.id === 'av-rel-area' && typeof relRenderTab === 'function') {
+    relRenderTab(tab.dataset.target);
   }
 });

@@ -318,9 +318,16 @@
         </div>
 
         <div id="av-bd-area" style="display:none">
-          <button class="voltar-btn" onclick="avGoHome()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar
-          </button>
+          <div class="rel-area-header">
+            <button class="voltar-btn" onclick="avGoHome()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar
+            </button>
+            <div class="rel-area-title">Relatórios de Representantes</div>
+            <button class="rel-print-btn" onclick="imprimirRelatorioAtual('representantes')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+              Imprimir relatório
+            </button>
+          </div>
           <div class="av-tabs-bar">
             <button class="av-tab active" data-target="av-tab-bd">BD</button>
             <button class="av-tab" data-target="av-tab-marca">MARCA</button>
@@ -485,6 +492,10 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar
             </button>
             <div class="rel-area-title">Relatórios de Produtos</div>
+            <button class="rel-print-btn" onclick="imprimirRelatorioAtual('produtos')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+              Imprimir relatório
+            </button>
           </div>
           <div class="av-tabs-bar">
             <button class="av-tab active" data-target="av-rel-cadastro-insights">VISÃO CADASTRAL</button>
