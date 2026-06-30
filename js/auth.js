@@ -764,7 +764,10 @@ async function dcCarregarDados(empresa_id_param) {
     DC_RAW = vendas;
 
     // Preenche filtro de anos
-    var anos = [...new Set(vendas.map(function(v){ return v.ano; }).filter(Boolean))].sort();
+    var anos = [...new Set(vendas.map(function(v){
+      var data = dcDataValor(v);
+      return data ? data.getFullYear() : parseInt(v.ano, 10);
+    }).filter(Boolean))].sort();
     var selAno = document.getElementById('dc-filtro-ano');
     if (selAno) {
       selAno.innerHTML = '<option value="0">Todos os anos</option>';
@@ -774,6 +777,11 @@ async function dcCarregarDados(empresa_id_param) {
     dcDefinirPeriodoInicial(vendas);
 
     dcAplicarFiltro();
+    setTimeout(function() {
+      if ((DC_DATA || []).length) {
+        dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
+      }
+    }, 0);
     dcStatus('✓ ' + vendas.length.toLocaleString('pt-BR') + ' registros carregados', true);
 
   } catch(e) {
@@ -786,7 +794,9 @@ async function dcCarregarDados(empresa_id_param) {
 function dcDataValor(v) {
   var raw = v && (v.dt_saida || v.dt_emissao);
   if (raw) {
-    var d = new Date(raw);
+    var texto = String(raw).trim();
+    var partesBR = texto.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+    var d = partesBR ? new Date(Number(partesBR[3]), Number(partesBR[2]) - 1, Number(partesBR[1])) : new Date(texto);
     if (!isNaN(d.getTime())) return d;
   }
   var ano = parseInt(v && v.ano, 10);
@@ -834,15 +844,21 @@ function dcAplicarFiltro() {
   var fim = fimEl && fimEl.value ? new Date(fimEl.value + 'T23:59:59') : null;
 
   DC_DATA = DC_RAW.filter(function(v){
-    if (ano && v.ano != ano) return false;
-    if (mes && dcMesNumero(v.mes) !== mes) return false;
     var data = dcDataValor(v);
+    var anoReal = data ? data.getFullYear() : parseInt(v.ano, 10);
+    var mesReal = data ? data.getMonth() + 1 : dcMesNumero(v.mes);
+    if (ano && anoReal !== ano) return false;
+    if (mes && mesReal !== mes) return false;
+    if ((inicio || fim) && !data) return false;
     if (inicio && data && data < inicio) return false;
     if (fim && data && data > fim) return false;
     return true;
   });
 
   dcRenderizar();
+  if ((DC_DATA || []).length) {
+    dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
+  }
 }
 
 function dcMesNumero(valor) {
@@ -875,7 +891,7 @@ function dcAtualizarPeriodoLabel(rows) {
 }
 
 function dcPrepararDadosRelatorios(rows) {
-  var fonte = (rows && rows.length) ? rows : DC_RAW;
+  var fonte = Array.isArray(rows) ? rows : DC_RAW;
   var headers = ['ID','N° PEDIDO','PRODUTO OU SERVIÇO','QTD','Dt. Emissão','Data de Saída','VALOR','Vendedor','Indústria','Cliente','ANO','MÊS','GRUPO','SEM','tipo mercado','SETOR','CIDADE','UF','TIPO VENDEDOR','Dias Sem Compra','NOTA F','ROTA','DESCONTO','EMPRESA','cnpj','grupo_produto','GRUPO PAI','subgrupo_produto','marca','familia_produto','classes'];
   var tabela = fonte.map(function(r) {
     return [
@@ -901,7 +917,7 @@ function dcPrepararDadosRelatorios(rows) {
 }
 
 function dcAbrirRelatorio(tipo) {
-  var rows = (typeof DC_DATA !== 'undefined' && DC_DATA.length) ? DC_DATA : DC_RAW;
+  var rows = Array.isArray(DC_DATA) ? DC_DATA : DC_RAW;
   if (!rows || !rows.length) {
     dcStatus('⚠ Nenhum dado disponível para abrir o relatório.');
     return;
@@ -941,12 +957,19 @@ function dcAbrirRelatorio(tipo) {
 
 // ── RENDERIZA TUDO ────────────────────────────────────────────────────────────
 function dcRenderizar() {
-  var rows = (typeof DC_DATA !== 'undefined' && DC_DATA.length) ? DC_DATA : DC_RAW;
+  var rows = Array.isArray(DC_DATA) ? DC_DATA : DC_RAW;
   dcAtualizarPeriodoLabel(rows || []);
   if (!rows || !rows.length) {
     dcStatus('⚠ Nenhum dado disponível para esse filtro.');
     var kEl = document.getElementById('dc-kpis');
     if (kEl) kEl.innerHTML = '<div class="dc-kpi-empty">Nenhum registro encontrado para o período selecionado.</div>';
+    ['dc-chart-evolucao','dc-chart-trimestre','dc-chart-ano','dc-chart-diasem','dc-chart-produtos','dc-chart-prodqtd','dc-chart-grupos','dc-chart-marca'].forEach(function(id) {
+      if (typeof dcDestroyChart === 'function') dcDestroyChart(id);
+    });
+    ['dc-tab-reps','dc-tab-positiv','dc-tab-ufs','dc-tab-cidades','dc-tab-cli','dc-tab-inat','dc-tab-novos','dc-tab-ticket'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.innerHTML = '<div class="dc-empty">Sem dados para este recorte.</div>';
+    });
     return;
   }
 
@@ -1004,8 +1027,8 @@ function dcRenderizar() {
 function _dcChartAno(rows) {
   var porAno = {};
   rows.forEach(function(r) {
-    var ano = parseInt(r.ano);
-    if (!ano && r.dt_saida) ano = new Date(r.dt_saida).getFullYear();
+    var data = dcDataValor(r);
+    var ano = data ? data.getFullYear() : parseInt(r.ano, 10);
     if (ano) porAno[ano] = (porAno[ano] || 0) + (parseFloat(r.valor) || 0);
   });
   var anos = Object.keys(porAno).sort();
@@ -1200,7 +1223,8 @@ function dcChartEvolucao(rows) {
   var por_mes = {};
   MESES.forEach(function(m,i){ por_mes[i+1] = 0; });
   rows.forEach(function(r){
-    var m = parseInt(r.mes) || 0;
+    var data = dcDataValor(r);
+    var m = data ? data.getMonth() + 1 : dcMesNumero(r.mes);
     if (m >= 1 && m <= 12) por_mes[m] = (por_mes[m]||0) + (parseFloat(r.valor)||0);
   });
   var labels = MESES;
@@ -1232,7 +1256,9 @@ function dcChartEvolucao(rows) {
 function dcChartTrimestre(rows) {
   var trim = {Q1:0,Q2:0,Q3:0,Q4:0};
   rows.forEach(function(r){
-    var m = parseInt(r.mes)||0;
+    var data = dcDataValor(r);
+    var m = data ? data.getMonth() + 1 : dcMesNumero(r.mes);
+    if (!m) return;
     var v = parseFloat(r.valor)||0;
     if (m<=3) trim.Q1+=v; else if(m<=6) trim.Q2+=v; else if(m<=9) trim.Q3+=v; else trim.Q4+=v;
   });
