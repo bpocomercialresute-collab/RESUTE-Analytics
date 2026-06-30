@@ -626,6 +626,8 @@
           <option value="9">Setembro</option><option value="10">Outubro</option>
           <option value="11">Novembro</option><option value="12">Dezembro</option>
         </select>
+        <input id="dc-filtro-inicio" class="dc-filtro" type="date" onchange="dcAplicarFiltro()">
+        <input id="dc-filtro-fim" class="dc-filtro" type="date" onchange="dcAplicarFiltro()">
         <div id="dc-loja-selector" class="dc-loja-selector" style="display:none"></div>
         <span id="dc-status" class="dc-header-status"></span>
         <button onclick="fazerLogout()" class="dc-btn-sair" title="Sair">
@@ -671,7 +673,7 @@
           </div>
           <div class="dc-card">
             <div class="dc-card-title">Por Trimestre</div>
-            <div class="dc-chart-box"><canvas id="dc-chart-trim"></canvas></div>
+            <div class="dc-chart-box"><canvas id="dc-chart-trimestre"></canvas></div>
           </div>
         </div>
         <div class="dc-grid-2">
@@ -692,7 +694,7 @@
         <div class="dc-grid-2">
           <div class="dc-card">
             <div class="dc-card-title">Top 10 Produtos por Faturamento</div>
-            <div class="dc-chart-box-tall"><canvas id="dc-chart-prod"></canvas></div>
+            <div class="dc-chart-box-tall"><canvas id="dc-chart-produtos"></canvas></div>
           </div>
           <div class="dc-card">
             <div class="dc-card-title">Top 10 Produtos por Quantidade</div>
@@ -702,7 +704,7 @@
         <div class="dc-grid-2">
           <div class="dc-card">
             <div class="dc-card-title">Faturamento por Grupo</div>
-            <div class="dc-chart-box"><canvas id="dc-chart-grupo"></canvas></div>
+            <div class="dc-chart-box"><canvas id="dc-chart-grupos"></canvas></div>
           </div>
           <div class="dc-card">
             <div class="dc-card-title">Faturamento por Marca</div>

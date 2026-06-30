@@ -769,9 +769,9 @@ async function dcCarregarDados(empresa_id_param) {
     if (selAno) {
       selAno.innerHTML = '<option value="0">Todos os anos</option>';
       anos.forEach(function(a){ selAno.innerHTML += '<option value="'+a+'">'+a+'</option>'; });
-      // Seleciona o ano mais recente
-      if (anos.length) selAno.value = anos[anos.length-1];
     }
+
+    dcDefinirPeriodoInicial(vendas);
 
     dcAplicarFiltro();
     dcStatus('✓ ' + vendas.length.toLocaleString('pt-BR') + ' registros carregados', true);
@@ -783,13 +783,62 @@ async function dcCarregarDados(empresa_id_param) {
 }
 
 // ── FILTRO DE PERÍODO ─────────────────────────────────────────────────────────
+function dcDataValor(v) {
+  var raw = v && (v.dt_saida || v.dt_emissao);
+  if (raw) {
+    var d = new Date(raw);
+    if (!isNaN(d.getTime())) return d;
+  }
+  var ano = parseInt(v && v.ano, 10);
+  var mes = dcMesNumero(v && v.mes);
+  if (ano && mes) return new Date(ano, mes - 1, 1);
+  return null;
+}
+
+function dcIsoDate(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function dcDefinirPeriodoInicial(rows) {
+  var datas = (rows || []).map(dcDataValor).filter(Boolean).sort(function(a, b) { return a - b; });
+  if (!datas.length) return;
+  var hoje = new Date();
+  var alvoAno = hoje.getFullYear();
+  var alvoMes = hoje.getMonth() + 1;
+  var existeMesAtual = datas.some(function(d) {
+    return d.getFullYear() === alvoAno && d.getMonth() + 1 === alvoMes;
+  });
+  if (!existeMesAtual) {
+    var ultima = datas[datas.length - 1];
+    alvoAno = ultima.getFullYear();
+    alvoMes = ultima.getMonth() + 1;
+  }
+  var inicio = new Date(alvoAno, alvoMes - 1, 1);
+  var fim = new Date(alvoAno, alvoMes, 0);
+  var selAno = document.getElementById('dc-filtro-ano');
+  var selMes = document.getElementById('dc-filtro-mes');
+  var dtIni = document.getElementById('dc-filtro-inicio');
+  var dtFim = document.getElementById('dc-filtro-fim');
+  if (selAno) selAno.value = String(alvoAno);
+  if (selMes) selMes.value = String(alvoMes);
+  if (dtIni) dtIni.value = dcIsoDate(inicio);
+  if (dtFim) dtFim.value = dcIsoDate(fim);
+}
+
 function dcAplicarFiltro() {
   var ano = parseInt(document.getElementById('dc-filtro-ano').value) || 0;
   var mes = parseInt(document.getElementById('dc-filtro-mes').value) || 0;
+  var inicioEl = document.getElementById('dc-filtro-inicio');
+  var fimEl = document.getElementById('dc-filtro-fim');
+  var inicio = inicioEl && inicioEl.value ? new Date(inicioEl.value + 'T00:00:00') : null;
+  var fim = fimEl && fimEl.value ? new Date(fimEl.value + 'T23:59:59') : null;
 
   DC_DATA = DC_RAW.filter(function(v){
     if (ano && v.ano != ano) return false;
     if (mes && dcMesNumero(v.mes) !== mes) return false;
+    var data = dcDataValor(v);
+    if (inicio && data && data < inicio) return false;
+    if (fim && data && data > fim) return false;
     return true;
   });
 
@@ -813,9 +862,14 @@ function dcAtualizarPeriodoLabel(rows) {
   if (!el) return;
   var ano = parseInt(document.getElementById('dc-filtro-ano').value, 10) || 0;
   var mes = parseInt(document.getElementById('dc-filtro-mes').value, 10) || 0;
+  var inicioEl = document.getElementById('dc-filtro-inicio');
+  var fimEl = document.getElementById('dc-filtro-fim');
   var partes = [];
   partes.push(ano ? 'Ano ' + ano : 'Todos os anos');
   partes.push(mes ? MESES_FULL[mes - 1] : 'Todos os meses');
+  if (inicioEl && inicioEl.value && fimEl && fimEl.value) {
+    partes.push(inicioEl.value.split('-').reverse().join('/') + ' a ' + fimEl.value.split('-').reverse().join('/'));
+  }
   partes.push((rows || []).length.toLocaleString('pt-BR') + ' registros no recorte');
   el.textContent = partes.join(' • ');
 }
@@ -1091,6 +1145,57 @@ function _dcOpts(horizontal) {
 }
 
 // ── EVOLUÇÃO MENSAL ───────────────────────────────────────────────────────────
+function _dcDestroy(id) {
+  if (typeof dcDestroyChart === 'function') dcDestroyChart(id);
+}
+
+function _dcChartEvolucao(rows) {
+  if (typeof dcChartEvolucao === 'function') dcChartEvolucao(rows);
+}
+
+function _dcChartTrim(rows) {
+  if (typeof dcChartTrimestre === 'function') dcChartTrimestre(rows);
+}
+
+function _dcChartProd(rows) {
+  if (typeof dcChartProdutos === 'function') dcChartProdutos(rows);
+}
+
+function _dcChartGrupo(rows) {
+  if (typeof dcChartGrupos === 'function') dcChartGrupos(rows);
+}
+
+function _dcTabela(id, campo, rows, fatTotal, label) {
+  var map = {};
+  rows.forEach(function(r) {
+    var key = String(r[campo] || '').trim() || 'Sem ' + String(label || 'dado').toLowerCase();
+    if (!map[key]) map[key] = { fat: 0, pedidos: 0 };
+    map[key].fat += parseFloat(r.valor) || 0;
+    map[key].pedidos += 1;
+  });
+  var lista = Object.entries(map)
+    .map(function(e) { return { nome: e[0], fat: e[1].fat, pedidos: e[1].pedidos }; })
+    .sort(function(a, b) { return b.fat - a.fat; })
+    .slice(0, 12);
+  var max = lista.length ? lista[0].fat : 1;
+  var html = '<table class="dc-tabela"><thead><tr><th>#</th><th>' + (label || 'Item') + '</th><th>Pedidos</th><th class="num">Faturamento</th><th>%</th></tr></thead><tbody>';
+  lista.forEach(function(item, idx) {
+    var pct = fatTotal ? (item.fat / fatTotal * 100) : 0;
+    var bar = max ? (item.fat / max * 100) : 0;
+    html += '<tr><td class="pos">' + (idx + 1) + '</td><td>' + item.nome + '</td><td>' + item.pedidos + '</td>'
+      + '<td class="num">R$ ' + item.fat.toLocaleString('pt-BR', { minimumFractionDigits: 0 }) + '</td>'
+      + '<td><div style="font-size:10px;color:#7f8ba3;margin-bottom:3px">' + pct.toFixed(1) + '%</div>'
+      + '<div class="dc-bar-wrap"><div class="dc-bar" style="width:' + bar.toFixed(0) + '%"></div></div></td></tr>';
+  });
+  html += '</tbody></table>';
+  var el = document.getElementById(id);
+  if (el) el.innerHTML = lista.length ? html : '<div class="dc-empty">Sem dados para este recorte.</div>';
+}
+
+function _dcTabelaInativos(rows) {
+  if (typeof dcTabelaInativos === 'function') dcTabelaInativos(rows);
+}
+
 function dcChartEvolucao(rows) {
   var por_mes = {};
   MESES.forEach(function(m,i){ por_mes[i+1] = 0; });
@@ -1869,12 +1974,12 @@ async function _adminSincronizarOuDerivarCadastros(token, dataInicio, dataFim, v
       }
     });
     var clientes = Object.values(cliMap).map(function(c, i) {
-      return { empresa_id: EMPRESA_ATIVA.empresa_id, cod_cli: 'der_' + String(i).padStart(5,'0'),
-               nome: c.nome, cidade: c.cidade, uf: c.uf, vendedor: c.vendedor, ativo: true };
+      return { empresa_id: EMPRESA_ATIVA.empresa_id, id_externo: 'der_' + String(i).padStart(5,'0'),
+               nome: c.nome, razao_social: c.nome, cidade: c.cidade, uf: c.uf, vendedor: c.vendedor };
     });
 
     if (clientes.length) {
-      await _adminReplaceOrigemTable('clientes_cad', clientes);
+      await _adminReplaceOrigemTable('clientes_api', clientes);
       summary.clientes = { ok: true, count: clientes.length, pending: false,
         endpoint: '(derivado de vendas)',
         message: clientes.length + ' clientes únicos extraídos das vendas.' };
@@ -1894,12 +1999,12 @@ async function _adminSincronizarOuDerivarCadastros(token, dataInicio, dataFim, v
       };
     });
     var produtos = Object.values(prodMap).map(function(p, i) {
-      return { empresa_id: EMPRESA_ATIVA.empresa_id, cod_prod: 'der_' + String(i).padStart(4,'0'),
-               descricao: p.descricao, grupo: p.grupo, familia: p.familia, ativo_inat: 'ATIVO' };
+      return { empresa_id: EMPRESA_ATIVA.empresa_id, id_externo: 'der_' + String(i).padStart(4,'0'),
+               codigo: 'der_' + String(i).padStart(4,'0'), nome: p.descricao, grupo: p.grupo, marca: p.familia, ativo: true };
     });
 
     if (produtos.length) {
-      await _adminReplaceOrigemTable('produtos', produtos);
+      await _adminReplaceOrigemTable('produtos_api', produtos);
       summary.produtos = { ok: true, count: produtos.length, pending: false,
         endpoint: '(derivado de vendas)',
         message: produtos.length + ' produtos únicos extraídos das vendas.' };
@@ -1915,11 +2020,12 @@ async function _adminSincronizarOuDerivarCadastros(token, dataInicio, dataFim, v
       if (!repMap[key]) repMap[key] = { nome: r.vendedor.trim() };
     });
     var reps = Object.values(repMap).map(function(r, i) {
-      return { empresa_id: EMPRESA_ATIVA.empresa_id, cod: 'der_' + String(i).padStart(3,'0'), nome: r.nome };
+      return { empresa_id: EMPRESA_ATIVA.empresa_id, id_externo: 'der_' + String(i).padStart(3,'0'),
+               codigo: 'der_' + String(i).padStart(3,'0'), nome: r.nome, ativo: true };
     });
 
     if (reps.length) {
-      await _adminReplaceOrigemTable('representantes', reps);
+      await _adminReplaceOrigemTable('representantes_api', reps);
       summary.representantes = { ok: true, count: reps.length, pending: false,
         endpoint: '(derivado de vendas)',
         message: reps.length + ' representantes únicos extraídos das vendas.' };
@@ -1936,10 +2042,14 @@ async function _adminSincronizarOuDerivarCadastros(token, dataInicio, dataFim, v
 async function _adminReplaceOrigemTable(table, rows) {
   if (!rows.length) return;
   // Apaga tudo da empresa nesta tabela
-  await fetch(SUPA_URL + '/rest/v1/' + table + '?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id, {
+  var del = await fetch(SUPA_URL + '/rest/v1/' + table + '?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id, {
     method: 'DELETE',
     headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal', 'Content-Type': 'application/json' }
   });
+  if (!del.ok) {
+    var delErr = await del.text();
+    throw new Error('Erro ao limpar ' + table + ': ' + delErr.slice(0,200));
+  }
   // Insere em lotes
   for (var i = 0; i < rows.length; i += 500) {
     var batch = rows.slice(i, i+500);
@@ -2726,6 +2836,12 @@ adminSincronizar = async function() {
 
     // Atualiza sync_log
     await _adminAtualizarUltimSync(dataFim, inseridos);
+    await fetch(SUPA_URL + '/rest/v1/empresas?id=eq.' + EMPRESA_ATIVA.empresa_id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ exibir_origem: 'api' })
+    });
+    EMPRESA_ATIVA.exibir_origem = 'api';
 
     // Tenta enriquecer a base com cadastros auxiliares da API (pode retornar 403)
     // Se API bloquear (403), deriva automaticamente dos dados de vendas inseridos
