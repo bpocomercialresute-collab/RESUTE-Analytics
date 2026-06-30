@@ -36,10 +36,77 @@ MES_NOME.forEach((m,i) => { MES_IDX[m]=i; MES_IDX[String(i+1).padStart(2,'0')]=i
 
 // ── ESTADO DO FILTRO DO LAUDO_GRUPO ──────────────────────────────────────────
 window.LG = { tipo:'', grupo:'', subgrupo:'' };
+window.REL_FILTER = window.REL_FILTER || { vendedor:'', produto:'', cliente:'', grupo:'', marca:'' };
 
 function lgSetFiltro(campo, val) {
   window.LG[campo] = val;
   bdUpdateLaudoGrupo();
+}
+
+function relEsc(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+
+function relBaseRows() {
+  return (window.BD_DATA && Array.isArray(window.BD_DATA.rows)) ? window.BD_DATA.rows : [];
+}
+
+function relRows() {
+  const f = window.REL_FILTER || {};
+  return relBaseRows().filter(r => {
+    if (f.vendedor && g(r,'vendedor') !== f.vendedor) return false;
+    if (f.produto && g(r,'produto') !== f.produto) return false;
+    if (f.cliente && g(r,'cliente') !== f.cliente) return false;
+    if (f.grupo && (g(r,'grupo') || g(r,'grupoProd')) !== f.grupo) return false;
+    if (f.marca && g(r,'marca') !== f.marca) return false;
+    return true;
+  });
+}
+
+function relUnique(campo) {
+  const vals = relBaseRows().map(r => {
+    if (campo === 'vendedor') return g(r,'vendedor');
+    if (campo === 'produto') return g(r,'produto');
+    if (campo === 'cliente') return g(r,'cliente');
+    if (campo === 'grupo') return g(r,'grupo') || g(r,'grupoProd');
+    if (campo === 'marca') return g(r,'marca');
+    return '';
+  }).filter(Boolean);
+  return [...new Set(vals)].sort((a,b)=>a.localeCompare(b));
+}
+
+function relSetFiltro(campo, valor) {
+  window.REL_FILTER[campo] = valor || '';
+  bdUpdateAllTabs();
+}
+
+function relLimparFiltros() {
+  window.REL_FILTER = { vendedor:'', produto:'', cliente:'', grupo:'', marca:'' };
+  bdUpdateAllTabs();
+}
+
+function relFiltroSelect(campo, label) {
+  const atual = (window.REL_FILTER && window.REL_FILTER[campo]) || '';
+  const opts = relUnique(campo).map(v => `<option value="${relEsc(v)}" ${v===atual?'selected':''}>${relEsc(v)}</option>`).join('');
+  return `<label class="rep-filter-field"><span>${label}</span><select onchange="relSetFiltro('${campo}', this.value)">
+    <option value="">Todos</option>${opts}
+  </select></label>`;
+}
+
+function relFiltroHtml() {
+  const filtrados = relRows().length;
+  const total = relBaseRows().length;
+  return `<div class="rep-filterbar">
+    <div class="rep-filter-grid rel-filter-grid">
+      ${relFiltroSelect('vendedor','Vendedor')}
+      ${relFiltroSelect('produto','Produto')}
+      ${relFiltroSelect('cliente','Cliente')}
+      ${relFiltroSelect('grupo','Grupo')}
+      ${relFiltroSelect('marca','Marca')}
+    </div>
+    <button class="rep-clear-filter" onclick="relLimparFiltros()">Limpar filtros</button>
+    <span class="rep-filter-count">${filtrados.toLocaleString('pt-BR')} de ${total.toLocaleString('pt-BR')} registros</span>
+  </div>`;
 }
 
 // Índices das colunas do BD (mapeados dinamicamente)
@@ -485,9 +552,12 @@ function bdUpdateProdutoServico() {
 // ── RELATÓRIOS ────────────────────────────────────────────────────────────────
 // ── BOTÃO TOGGLE QTD/VALOR (HTML reutilizável) ───────────────────────────────
 function toggleBtnHtml() {
-  return `<div class="rel-toggle">
-    <button class="rel-toggle-btn ${window.RELATORIO_MODO==='valor'?'active':''}" onclick="toggleModo('valor')">R$ VALOR</button>
-    <button class="rel-toggle-btn ${window.RELATORIO_MODO==='qtd'?'active':''}" onclick="toggleModo('qtd')">QTD</button>
+  return `<div class="rep-report-tools">
+    <div class="rel-toggle">
+      <button class="rel-toggle-btn ${window.RELATORIO_MODO==='valor'?'active':''}" onclick="toggleModo('valor')">R$ VALOR</button>
+      <button class="rel-toggle-btn ${window.RELATORIO_MODO==='qtd'?'active':''}" onclick="toggleModo('qtd')">QTD</button>
+    </div>
+    ${relFiltroHtml()}
   </div>`;
 }
 
@@ -515,7 +585,11 @@ function bdUpdateCadastroInsights() {
     return;
   }
 
-  const rows = window.BD_DATA.rows;
+  const rows = relRows();
+  if (!rows.length) {
+    pane.innerHTML = `<div class="rel-header-bar">${toggleBtnHtml()}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
+    return;
+  }
   const total = rows.length;
   const totalClientes = new Set(rows.map(r => g(r,'cliente')).filter(Boolean)).size;
   const totalProdutos = new Set(rows.map(r => g(r,'produto')).filter(Boolean)).size;
@@ -596,12 +670,17 @@ function bdUpdateVendaProduto() {
   if (!pane) return;
   if (!window.BD_DATA.rows.length) return;
 
-  const anos = [...new Set(window.BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
+  const rows = relRows();
+  if (!rows.length) {
+    pane.innerHTML = `<div class="rel-header-bar">${toggleBtnHtml()}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
+    return;
+  }
+  const anos = [...new Set(rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
   const tituloPeriodo = anos.length === 1 ? anos[0] : 'PERIODO CARREGADO';
 
   const pivot = new Map();
   let totalGeral = 0;
-  window.BD_DATA.rows.forEach(r => {
+  rows.forEach(r => {
     const p  = g(r,'produto');
     const mi = MES_IDX[g(r,'mes').toLowerCase()] ?? -1;
     const v  = metrica(r);
@@ -700,7 +779,7 @@ function bdUpdateLaudoGrupo() {
   const tipos    = [...new Set([...tiposBD,    ...prodInfo.tipos   ])].filter(Boolean).sort();
 
   // Filtra linhas conforme seleção
-  let rows = window.BD_DATA.rows;
+  let rows = relRows();
   if (window.LG.tipo    && window.LG.tipo !== 'Todos') rows = rows.filter(r=>g(r,'mercado')===window.LG.tipo);
   if (window.LG.grupo)    rows = rows.filter(r=>g(r,'grupo')===window.LG.grupo);
   if (window.LG.subgrupo) rows = rows.filter(r=>g(r,'subgrupo')===window.LG.subgrupo);
@@ -910,11 +989,16 @@ function bdUpdateLaudoMarca() {
   const pane = document.getElementById('av-rel-laudo-marca');
   if (!pane) return;
   if (!window.BD_DATA.rows.length) return;
-  const anos = [...new Set(window.BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
+  const rows = relRows();
+  if (!rows.length) {
+    pane.innerHTML = `<div class="rel-header-bar">${toggleBtnHtml()}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
+    return;
+  }
+  const anos = [...new Set(rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
   const anoAtual = anos[anos.length-1] || String(new Date().getFullYear());
   const pivot = new Map(); let totalGeral = 0;
 
-  window.BD_DATA.rows.forEach(r => {
+  rows.forEach(r => {
     if (g(r,'ano') !== anoAtual) return;
     const m  = g(r,'marca');
     const mi = MES_IDX[g(r,'mes').toLowerCase()] ?? -1;
@@ -953,8 +1037,13 @@ function bdUpdateLaudoGruposAno() {
   if (!pane) return;
   if (!window.BD_DATA.rows.length) return;
 
-  const anos   = [...new Set(window.BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
-  const grupos = [...new Set(window.BD_DATA.rows.map(r=>g(r,'grupo')).filter(Boolean))].sort();
+  const rows = relRows();
+  if (!rows.length) {
+    pane.innerHTML = `<div class="rel-header-bar">${toggleBtnHtml()}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
+    return;
+  }
+  const anos   = [...new Set(rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
+  const grupos = [...new Set(rows.map(r=>g(r,'grupo')).filter(Boolean))].sort();
 
   if (!grupos.length) {
     pane.innerHTML = '<div class="av-rel-placeholder"><p>LAUDO_GRUPOS_ANO</p><span>Cole PRODUTO SERVIÇO e processe o BD para ver grupos</span></div>';
@@ -965,7 +1054,7 @@ function bdUpdateLaudoGruposAno() {
   const pivot = {};
   grupos.forEach(gr => { pivot[gr] = {}; anos.forEach(a => { pivot[gr][a] = Array(12).fill(0); }); });
 
-  window.BD_DATA.rows.forEach(r => {
+  rows.forEach(r => {
     const gr = g(r,'grupo'), an = g(r,'ano');
     const mi = MES_IDX[g(r,'mes').toLowerCase()] ?? -1;
     const v  = metrica(r);
@@ -1043,7 +1132,12 @@ function bdUpdateLaudoGruposAno02() {
   if (!pane) return;
   if (!window.BD_DATA.rows.length) return;
 
-  const anos = [...new Set(window.BD_DATA.rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
+  const rows = relRows();
+  if (!rows.length) {
+    pane.innerHTML = `<div class="rel-header-bar">${toggleBtnHtml()}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
+    return;
+  }
+  const anos = [...new Set(rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
   if (anos.length < 2) { 
     pane.innerHTML = '<div class="av-rel-placeholder"><p>Comparativo entre 2 anos</p><span>São necessários dados de pelo menos 2 anos diferentes</span></div>';
     return;
@@ -1052,7 +1146,7 @@ function bdUpdateLaudoGruposAno02() {
   const ano2 = anos[anos.length-1];
 
   const pivot = new Map();
-  window.BD_DATA.rows.forEach(r => {
+  rows.forEach(r => {
     const gr = g(r,'grupo'), an = g(r,'ano'), v = metrica(r);
     if (!gr || (an!==ano1 && an!==ano2)) return;
     if (!pivot.has(gr)) pivot.set(gr, {[ano1]:0,[ano2]:0});

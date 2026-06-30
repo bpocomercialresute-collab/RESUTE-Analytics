@@ -4,6 +4,7 @@
 // =============================================================================
 
 let REP_MODO = 'valor'; // 'valor' ou 'qtd'
+window.REP_FILTER = window.REP_FILTER || { vendedor:'', produto:'', cliente:'', grupo:'' };
 
 function repToggleModo(m) {
   REP_MODO = m;
@@ -42,19 +43,92 @@ function repShareCell(valor, total) {
 }
 
 // ── TOGGLE BUTTON HTML ────────────────────────────────────────────────────────
+function repEsc(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+
+function repBaseRows() {
+  return (window.BD_DATA && Array.isArray(window.BD_DATA.rows)) ? window.BD_DATA.rows : [];
+}
+
+function repDataRows() {
+  const f = window.REP_FILTER || {};
+  return repBaseRows().filter(r => {
+    if (f.vendedor && String(r[IDX.vendedor]||'').trim() !== f.vendedor) return false;
+    if (f.produto && String(r[IDX.produto]||'').trim() !== f.produto) return false;
+    if (f.cliente && String(r[IDX.cliente]||'').trim() !== f.cliente) return false;
+    if (f.grupo && String(g(r,'grupo') || g(r,'grupoProd')).trim() !== f.grupo) return false;
+    return true;
+  });
+}
+
+function repUnique(campo) {
+  const vals = repBaseRows().map(r => {
+    if (campo === 'vendedor') return String(r[IDX.vendedor]||'').trim();
+    if (campo === 'produto') return String(r[IDX.produto]||'').trim();
+    if (campo === 'cliente') return String(r[IDX.cliente]||'').trim();
+    if (campo === 'grupo') return String(g(r,'grupo') || g(r,'grupoProd')).trim();
+    return '';
+  }).filter(Boolean);
+  return [...new Set(vals)].sort((a,b)=>a.localeCompare(b));
+}
+
+function repSetFiltro(campo, valor) {
+  window.REP_FILTER[campo] = valor || '';
+  repUpdateAll();
+}
+
+function repLimparFiltros() {
+  window.REP_FILTER = { vendedor:'', produto:'', cliente:'', grupo:'' };
+  repUpdateAll();
+}
+
+function repSelectFiltro(campo, label) {
+  const atual = (window.REP_FILTER && window.REP_FILTER[campo]) || '';
+  const opts = repUnique(campo).map(v => `<option value="${repEsc(v)}" ${v===atual?'selected':''}>${repEsc(v)}</option>`).join('');
+  return `<label class="rep-filter-field"><span>${label}</span><select onchange="repSetFiltro('${campo}', this.value)">
+    <option value="">Todos</option>${opts}
+  </select></label>`;
+}
+
+function repFilterHtml() {
+  const filtrados = repDataRows().length;
+  const total = repBaseRows().length;
+  return `<div class="rep-filterbar">
+    <div class="rep-filter-grid">
+      ${repSelectFiltro('vendedor','Vendedor')}
+      ${repSelectFiltro('produto','Produto')}
+      ${repSelectFiltro('cliente','Cliente')}
+      ${repSelectFiltro('grupo','Grupo')}
+    </div>
+    <button class="rep-clear-filter" onclick="repLimparFiltros()">Limpar filtros</button>
+    <span class="rep-filter-count">${filtrados.toLocaleString('pt-BR')} de ${total.toLocaleString('pt-BR')} registros</span>
+  </div>`;
+}
+
 function repToggleHtml() {
-  return `<div class="rel-toggle">
-    <button class="rel-toggle-btn ${REP_MODO==='valor'?'active':''}" onclick="repToggleModo('valor')">R$ VALOR</button>
-    <button class="rel-toggle-btn ${REP_MODO==='qtd'?'active':''}" onclick="repToggleModo('qtd')">QTD</button>
+  return `<div class="rep-report-tools">
+    <div class="rel-toggle">
+      <button class="rel-toggle-btn ${REP_MODO==='valor'?'active':''}" onclick="repToggleModo('valor')">R$ VALOR</button>
+      <button class="rel-toggle-btn ${REP_MODO==='qtd'?'active':''}" onclick="repToggleModo('qtd')">QTD</button>
+    </div>
+    ${repFilterHtml()}
   </div>`;
 }
 
 // ── INICIALIZA TODOS ──────────────────────────────────────────────────────────
 function repUpdateAll() {
   if (!BD_DATA || !BD_DATA.rows.length) {
-    ['mix','positiv','semano','sem','meta','dia','cresc'].forEach(k => {
+    ['mix','positiv','semano','sem','meta','dia','cresc','premiacao'].forEach(k => {
       const el = document.getElementById('rep-tab-'+k);
       if (el) el.innerHTML = '<div class="av-rel-placeholder"><p>Sem dados</p><span>Cole dados no BD e clique em Processar</span></div>';
+    });
+    return;
+  }
+  if (!repDataRows().length) {
+    ['mix','positiv','semano','sem','meta','dia','cresc','premiacao'].forEach(k => {
+      const el = document.getElementById('rep-tab-'+k);
+      if (el) el.innerHTML = `<div class="rel-header-bar">${repToggleHtml()}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
     });
     return;
   }
@@ -65,6 +139,7 @@ function repUpdateAll() {
   repMeta();
   repDia();
   repCrescMes();
+  repPremiacao();
 }
 
 function repRenderTab(tabId) {
@@ -77,13 +152,14 @@ function repRenderTab(tabId) {
     'rep-tab-meta':    repMeta,
     'rep-tab-dia':     repDia,
     'rep-tab-cresc':   repCrescMes,
+    'rep-tab-premiacao': repPremiacao,
   };
   if (map[tabId]) map[tabId]();
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function repGetVendedores() {
-  return [...new Set(BD_DATA.rows.map(r => String(r[IDX.vendedor]||'').trim()).filter(Boolean))].sort();
+  return [...new Set(repDataRows().map(r => String(r[IDX.vendedor]||'').trim()).filter(Boolean))].sort();
 }
 
 function repParseDate(s) {
@@ -120,7 +196,7 @@ function repMix() {
 
   // Agrupa linhas por semana ISO (ano+semana)
   const semanas = {};
-  BD_DATA.rows.forEach(r => {
+  repDataRows().forEach(r => {
     const dtStr = String(r[IDX.saida]||r[IDX.emissao]||'').trim();
     const dt = repParseDate(dtStr);
     if (!dt) return;
@@ -204,7 +280,8 @@ function repPositiv() {
   const el = document.getElementById('rep-tab-positiv');
   if (!el) return;
 
-  const anos = [...new Set(BD_DATA.rows.map(r=>String(r[IDX.ano]||'').trim()).filter(Boolean))].sort();
+  const rows = repDataRows();
+  const anos = [...new Set(rows.map(r=>String(r[IDX.ano]||'').trim()).filter(Boolean))].sort();
   const anoAtual = anos[anos.length-1] || String(new Date().getFullYear());
   const vendedores = repGetVendedores();
   const SEMS = ['SEM1','SEM2','SEM3','SEM4','SEM5'];
@@ -216,7 +293,7 @@ function repPositiv() {
     for (let m=0;m<12;m++) { pivot[v][m] = {}; SEMS.forEach(s=>pivot[v][m][s]=0); }
   });
 
-  BD_DATA.rows.forEach(r => {
+  rows.forEach(r => {
     if (String(r[IDX.ano]||'').trim() !== anoAtual) return;
     const vend = String(r[IDX.vendedor]||'').trim();
     const dtStr = String(r[IDX.saida]||r[IDX.emissao]||'').trim();
@@ -227,7 +304,7 @@ function repPositiv() {
     pivot[vend][mes][sem] += repVal(r);
   });
 
-  const mesesAtivos = [...new Set(BD_DATA.rows
+  const mesesAtivos = [...new Set(rows
     .filter(r=>String(r[IDX.ano]||'')=== anoAtual)
     .map(r=>{ const dt=repParseDate(String(r[IDX.saida]||r[IDX.emissao]||'').trim()); return dt?dt.getMonth():-1; })
     .filter(m=>m>=0))].sort((a,b)=>a-b);
@@ -313,7 +390,7 @@ function repSem() {
   const pivot = {}, pivotAnt = {};
   vendedores.forEach(v => { pivot[v] = {}; pivotAnt[v] = {}; SEMS.forEach(s=>{pivot[v][s]=0;pivotAnt[v][s]=0;}); });
 
-  BD_DATA.rows.forEach(r => {
+  repDataRows().forEach(r => {
     const vend = String(r[IDX.vendedor]||'').trim();
     const dtStr = String(r[IDX.saida]||r[IDX.emissao]||'').trim();
     const dt = repParseDate(dtStr);
@@ -394,7 +471,7 @@ function repMeta() {
 
   // Vendas do mês atual por dia
   const vendasDia = {};
-  BD_DATA.rows.forEach(r => {
+  repDataRows().forEach(r => {
     const dtStr = String(r[IDX.saida]||r[IDX.emissao]||'').trim();
     const dt = repParseDate(dtStr);
     const vend = String(r[IDX.vendedor]||'').trim();
@@ -472,7 +549,8 @@ function repCrescMes() {
   const el = document.getElementById('rep-tab-cresc');
   if (!el) return;
 
-  const anos = [...new Set(BD_DATA.rows.map(r=>String(r[IDX.ano]||'').trim()).filter(Boolean))].sort();
+  const rows = repDataRows();
+  const anos = [...new Set(rows.map(r=>String(r[IDX.ano]||'').trim()).filter(Boolean))].sort();
   const anoAtual = anos[anos.length-1] || String(new Date().getFullYear());
   const MES_IDX_LOCAL = {jan:0,fev:1,mar:2,abr:3,mai:4,jun:5,jul:6,ago:7,set:8,out:9,nov:10,dez:11};
   const vendedores = repGetVendedores();
@@ -481,7 +559,7 @@ function repCrescMes() {
   const pivot = {};
   vendedores.forEach(v => pivot[v] = Array(12).fill(0));
 
-  BD_DATA.rows.forEach(r => {
+  rows.forEach(r => {
     if (String(r[IDX.ano]||'').trim() !== anoAtual) return;
     const vend = String(r[IDX.vendedor]||'').trim();
     const mi = MES_IDX_LOCAL[String(r[IDX.mes]||'').trim().toLowerCase()] ?? -1;
@@ -569,6 +647,144 @@ function repCrescMes() {
 
   html += '</tbody></table></div>';
   el.innerHTML = html;
+}
+
+function repPremiacao() {
+  const el = document.getElementById('rep-tab-premiacao');
+  if (!el) return;
+  const rows = repDataRows();
+  if (!rows.length) {
+    el.innerHTML = `<div class="av-rel-placeholder"><p>Sem dados para premiação</p><span>Altere os filtros ou sincronize vendas para gerar rankings.</span></div>`;
+    return;
+  }
+
+  const reps = {};
+  rows.forEach(r => {
+    const vend = String(r[IDX.vendedor]||'').trim() || 'Sem representante';
+    if (!reps[vend]) reps[vend] = { nome: vend, fat:0, qtd:0, pedidos:0, clientes:new Set(), produtos:new Set(), dias:new Set() };
+    const dtStr = String(r[IDX.saida]||r[IDX.emissao]||'').trim();
+    reps[vend].fat += parseFloat(String(r[IDX.valor]||'').replace(/\./g,'').replace(',','.')) || 0;
+    reps[vend].qtd += parseFloat(r[IDX.qtd]||0) || 0;
+    reps[vend].pedidos += 1;
+    if (r[IDX.cliente]) reps[vend].clientes.add(String(r[IDX.cliente]).trim());
+    if (r[IDX.produto]) reps[vend].produtos.add(String(r[IDX.produto]).trim());
+    if (dtStr) reps[vend].dias.add(dtStr);
+  });
+
+  const arr = Object.values(reps).map(r => ({
+    nome: r.nome,
+    fat: r.fat,
+    qtd: r.qtd,
+    pedidos: r.pedidos,
+    clientes: r.clientes.size,
+    produtos: r.produtos.size,
+    dias: r.dias.size,
+    ticket: r.pedidos ? r.fat / r.pedidos : 0,
+    mediaDia: r.dias.size ? r.fat / r.dias.size : 0,
+    tipo: repGetTipo(r.nome)
+  }));
+
+  function pontuar(campo) {
+    const max = Math.max(1, ...arr.map(r => r[campo] || 0));
+    arr.forEach(r => r['p_' + campo] = ((r[campo] || 0) / max) * 100);
+  }
+  ['fat','qtd','clientes','produtos','pedidos'].forEach(pontuar);
+  arr.forEach(r => {
+    r.score = (r.p_fat * 0.35) + (r.p_qtd * 0.20) + (r.p_clientes * 0.20) + (r.p_produtos * 0.15) + (r.p_pedidos * 0.10);
+  });
+
+  const geral = [...arr].sort((a,b)=>b.score-a.score);
+  const porFat = [...arr].sort((a,b)=>b.fat-a.fat).slice(0,10);
+  const porQtd = [...arr].sort((a,b)=>b.qtd-a.qtd).slice(0,10);
+  const porCliente = [...arr].sort((a,b)=>b.clientes-a.clientes).slice(0,10);
+  const porMix = [...arr].sort((a,b)=>b.produtos-a.produtos).slice(0,10);
+  const totalFat = arr.reduce((s,r)=>s+r.fat,0);
+
+  function moeda(v) { return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 0 }); }
+  function rankingTable(titulo, lista, campo, fmt) {
+    const max = Math.max(1, ...lista.map(r=>r[campo] || 0));
+    return `<div class="premio-card"><div class="premio-card-title">${titulo}</div><table class="premio-table"><tbody>
+      ${lista.map((r,i)=>`<tr>
+        <td class="premio-pos">${i+1}</td>
+        <td><strong>${repEsc(r.nome)}</strong><span>${repEsc(r.tipo || 'Representante')}</span></td>
+        <td>${repMiniCell(r[campo] || 0, max)}</td>
+        <td>${fmt ? fmt(r[campo] || 0, r) : (r[campo] || 0).toLocaleString('pt-BR')}</td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+  }
+
+  el.innerHTML = `<div class="rel-header-bar premio-header">
+    ${repToggleHtml()}
+    <div class="rel-title">PREMIAÇÃO DOS REPRESENTANTES</div>
+  </div>
+  <div class="premio-hero">
+    <div>
+      <span class="premio-kicker">Campanha comercial</span>
+      <h3>Ranking pronto para escolher prêmios por desempenho.</h3>
+      <p>O placar geral combina faturamento, quantidade vendida, clientes atendidos, mix de produtos e número de pedidos.</p>
+    </div>
+    <div class="premio-winner">
+      <span>1º lugar geral</span>
+      <strong>${repEsc(geral[0]?.nome || '-')}</strong>
+      <small>${(geral[0]?.score || 0).toFixed(1)} pontos</small>
+    </div>
+  </div>
+  <div class="premio-kpis">
+    <div><span>Total no recorte</span><strong>${moeda(totalFat)}</strong></div>
+    <div><span>Representantes</span><strong>${arr.length}</strong></div>
+    <div><span>Pedidos</span><strong>${arr.reduce((s,r)=>s+r.pedidos,0).toLocaleString('pt-BR')}</strong></div>
+    <div><span>Clientes atendidos</span><strong>${new Set(rows.map(r=>String(r[IDX.cliente]||'').trim()).filter(Boolean)).size}</strong></div>
+  </div>
+  <div class="premio-grid">
+    <div class="premio-chart-box"><div class="premio-card-title">Top pontuação geral</div><canvas id="rep-premio-score"></canvas></div>
+    <div class="premio-chart-box"><div class="premio-card-title">Distribuição por faturamento</div><canvas id="rep-premio-fat"></canvas></div>
+  </div>
+  <div class="premio-grid">
+    ${rankingTable('Prêmio maior faturamento', porFat, 'fat', moeda)}
+    ${rankingTable('Prêmio maior quantidade', porQtd, 'qtd')}
+    ${rankingTable('Prêmio mais clientes atendidos', porCliente, 'clientes')}
+    ${rankingTable('Prêmio melhor mix de produtos', porMix, 'produtos')}
+  </div>
+  <div class="premio-card premio-full">
+    <div class="premio-card-title">Placar geral ponderado</div>
+    <div class="rep-scroll-area"><table class="rep-tbl"><thead><tr>
+      <td>#</td><td>Representante</td><td>Tipo</td><td>Faturamento</td><td>Qtd</td><td>Clientes</td><td>Produtos</td><td>Pedidos</td><td>Ticket</td><td>Pontos</td>
+    </tr></thead><tbody>
+      ${geral.map((r,i)=>`<tr>
+        <td class="premio-pos">${i+1}</td><td class="rep-lbl">${repEsc(r.nome)}</td><td>${repEsc(r.tipo)}</td>
+        <td>${moeda(r.fat)}</td><td>${r.qtd.toLocaleString('pt-BR')}</td><td>${r.clientes}</td><td>${r.produtos}</td><td>${r.pedidos}</td>
+        <td>${moeda(r.ticket)}</td><td><strong>${r.score.toFixed(1)}</strong></td>
+      </tr>`).join('')}
+    </tbody></table></div>
+  </div>`;
+
+  setTimeout(() => repRenderPremiacaoCharts(geral, porFat), 50);
+}
+
+function repRenderPremiacaoCharts(geral, porFat) {
+  if (typeof Chart === 'undefined') return;
+  ['rep-premio-score','rep-premio-fat'].forEach(id => {
+    const old = Chart.getChart(id);
+    if (old) old.destroy();
+  });
+  const scoreCtx = document.getElementById('rep-premio-score');
+  if (scoreCtx) new Chart(scoreCtx, {
+    type: 'bar',
+    data: {
+      labels: geral.slice(0,8).map(r=>r.nome.length>18?r.nome.slice(0,18)+'...':r.nome),
+      datasets: [{ data: geral.slice(0,8).map(r=>Number(r.score.toFixed(1))), backgroundColor:'#3b82f6', borderRadius:8 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#7d91af'},grid:{color:'rgba(255,255,255,.05)'}},y:{ticks:{color:'#9fb5d3'},grid:{display:false}}} }
+  });
+  const fatCtx = document.getElementById('rep-premio-fat');
+  if (fatCtx) new Chart(fatCtx, {
+    type: 'doughnut',
+    data: {
+      labels: porFat.slice(0,6).map(r=>r.nome),
+      datasets: [{ data: porFat.slice(0,6).map(r=>r.fat), backgroundColor:['#3b82f6','#22c55e','#f59e0b','#ec4899','#8b5cf6','#14b8a6'], borderWidth:0 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right', labels:{color:'#8ea3c0', boxWidth:10, font:{size:10}}}} }
+  });
 }
 
 // Helper: tipo do representante
