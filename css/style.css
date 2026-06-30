@@ -1777,6 +1777,14 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   z-index: 10;
 }
 .dc-header-left { display: flex; align-items: center; gap: 14px; }
+.dc-client-logo {
+  width: 138px;
+  max-height: 38px;
+  object-fit: contain;
+  display: block;
+  border-radius: 4px;
+}
+.dc-header-left > .dc-header-empresa { display: none; }
 .dc-header-brand { display: flex; flex-direction: column; gap: 1px; }
 .dc-header-name { font-size: 14px; font-weight: 800; color: #e2e8f0; letter-spacing: .03em; }
 .dc-header-empresa { font-size: 10px; font-weight: 700; color: #3b82f6; text-transform: uppercase; letter-spacing: .12em; }

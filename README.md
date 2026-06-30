@@ -29,8 +29,6 @@ Plataforma de analise comercial multiempresa da RESUTE, com login, painel admini
   - Fluxo de cliente com dashboard e acesso aos relatorios
 - Llamenina Mega
   - Fluxo de cliente com dashboard e acesso aos relatorios
-- 44-Tshirts
-  - Fluxo cadastrado no painel multiempresa
 
 ## Estrutura principal
 

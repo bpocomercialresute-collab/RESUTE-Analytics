@@ -130,8 +130,7 @@ function _saveSession(sessionData) {
 var LOJA_NOMES = {
   'dff89ea1-0c33-48d1-84d7-1fc7826654b8': 'Llamenina Matriz',
   'af44d320-d663-48ff-b58f-31c5011ad7ba': 'Llamenina Mega',
-  'af3b599b-65c5-4868-b8bf-a5934da84f0d': 'Varremaster',
-  'ce8623d4-1928-4d7c-ba8c-56e0fca23fcf': '44-Tshirts'
+  'af3b599b-65c5-4868-b8bf-a5934da84f0d': 'Varremaster'
 };
 
 function abrirAnaliseVendas() {
@@ -294,8 +293,7 @@ function fazerLogout() {
 var LOJA_NOMES = {
   'dff89ea1-0c33-48d1-84d7-1fc7826654b8': 'Llamenina Matriz',
   'af44d320-d663-48ff-b58f-31c5011ad7ba': 'Llamenina Mega',
-  'af3b599b-65c5-4868-b8bf-a5934da84f0d': 'Varremaster',
-  'ce8623d4-1928-4d7c-ba8c-56e0fca23fcf': '44-Tshirts'
+  'af3b599b-65c5-4868-b8bf-a5934da84f0d': 'Varremaster'
 };
   if (typeof switchView === 'function') switchView('view-home');
   ['sync-area','header-user','sidebar-user'].forEach(function(id){
@@ -1521,7 +1519,6 @@ function dcStatus(msg, ok) {
 var EMPRESA_ATIVA = null;
 var EMPRESAS_ADMIN = [
   { empresa_id: 'af3b599b-65c5-4868-b8bf-a5934da84f0d', nome: 'Varremaster',     tem_api: true  },
-  { empresa_id: 'ce8623d4-1928-4d7c-ba8c-56e0fca23fcf', nome: '44-Tshirts',      tem_api: false },
   { empresa_id: 'dff89ea1-0c33-48d1-84d7-1fc7826654b8', nome: 'Llamenina Matriz', tem_api: false },
   { empresa_id: 'af44d320-d663-48ff-b58f-31c5011ad7ba', nome: 'Llamenina Mega',   tem_api: false }
 ];
