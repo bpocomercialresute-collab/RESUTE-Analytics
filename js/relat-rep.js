@@ -17,12 +17,12 @@ function repVal(row) {
     : (parseFloat(String(row[IDX.valor]||'').replace(/\./g,'').replace(',','.')) || 0);
 }
 function repFmt(v) {
-  if (REP_MODO === 'qtd') return v > 0 ? v.toLocaleString('pt-BR',{maximumFractionDigits:0}) : '-';
-  return v > 0 ? 'R$ '+v.toLocaleString('pt-BR',{maximumFractionDigits:0}) : '-';
+  if (REP_MODO === 'qtd') return v > 0 ? fmtInt(v) : '-';
+  return v > 0 ? fmtValor(v) : '-';
 }
 function repFmtFull(v) {
-  if (REP_MODO === 'qtd') return v.toLocaleString('pt-BR',{maximumFractionDigits:0});
-  return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  if (REP_MODO === 'qtd') return fmtInt(v);
+  return fmtValor(v);
 }
 
 // ── TOGGLE BUTTON HTML ────────────────────────────────────────────────────────

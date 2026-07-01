@@ -2,6 +2,22 @@
 // CHARTS — Renderização de gráficos (Chart.js) e tabelas
 // =============================================================================
 
+function fmtNumeroSmart(v, casas = 2) {
+  const n = Number(v) || 0;
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: casas
+  }).format(n);
+}
+
+function fmtInt(v) {
+  return fmtNumeroSmart(v, 0);
+}
+
+function fmtValor(v) {
+  return 'R$ ' + fmtNumeroSmart(v, 2);
+}
+
 /** Renderiza (ou atualiza) um gráfico Chart.js */
 function renderChart(id, tipo, rotulos, valores, label, extra = {}) {
   if (graficos[id]) { try { graficos[id].destroy(); } catch(e) {} }
@@ -66,16 +82,16 @@ function renderChart(id, tipo, rotulos, valores, label, extra = {}) {
       },
       scales: isCircular ? {} : {
         x: { ticks: { color: '#7a869f', font: { size: 10.5 }, maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false } },
-        y: {
+      y: {
           ticks: {
             color: '#7a869f', font: { size: 10.5 },
             callback: v => {
               if (isMoney) {
-                if (v >= 1000000) return 'R$ ' + (v / 1000000).toFixed(1) + 'M';
-                if (v >= 1000)    return 'R$ ' + (v / 1000).toFixed(0) + 'k';
-                return 'R$ ' + v;
+                if (v >= 1000000) return 'R$ ' + fmtNumeroSmart(v / 1000000, 1) + 'M';
+                if (v >= 1000)    return 'R$ ' + fmtNumeroSmart(v / 1000, 0) + 'k';
+                return fmtValor(v);
               }
-              return v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v;
+              return v >= 1000 ? fmtNumeroSmart(v / 1000, 1) + 'k' : fmtInt(v);
             }
           },
           grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false }

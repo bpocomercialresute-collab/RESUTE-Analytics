@@ -90,7 +90,7 @@ function dcRenderizar() {
   var reps       = new Set(rows.map(function(r){ return r.vendedor; }).filter(Boolean)).size;
 
   // KPIs
-  function fmt(v){ return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function fmt(v){ return typeof fmtValor === 'function' ? fmtValor(v) : 'R$ '+Number(v || 0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:2}); }
   function set(id,val){ var el=document.getElementById(id); if(el) el.textContent=val; }
 
   set('dc-faturamento', fmt(fatTotal));

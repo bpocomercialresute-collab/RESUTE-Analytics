@@ -17,12 +17,12 @@ function metrica(row) {
     : toNum(g(row,'valor'));
 }
 function fmtMetrica(v) {
-  if (window.RELATORIO_MODO === 'qtd') return v > 0 ? v.toLocaleString('pt-BR',{maximumFractionDigits:0}) : '';
-  return v > 0 ? 'R$ '+v.toLocaleString('pt-BR',{maximumFractionDigits:0}) : '';
+  if (window.RELATORIO_MODO === 'qtd') return v > 0 ? fmtInt(v) : '';
+  return v > 0 ? fmtValor(v) : '';
 }
 function fmtMetricaFull(v) {
-  if (window.RELATORIO_MODO === 'qtd') return v.toLocaleString('pt-BR',{maximumFractionDigits:0});
-  return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  if (window.RELATORIO_MODO === 'qtd') return fmtInt(v);
+  return fmtValor(v);
 }
 
 const MES_NOME = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];

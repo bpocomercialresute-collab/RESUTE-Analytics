@@ -1081,7 +1081,7 @@ function dcRenderizar() {
   var prd = new Set(rows.map(function(r){ return r.produto; }).filter(Boolean)).size;
   var rep = new Set(rows.map(function(r){ return r.vendedor; }).filter(Boolean)).size;
   var tick = ped ? fat/ped : 0;
-  function fmt(v){ return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:0}); }
+  function fmt(v){ return typeof fmtValor === 'function' ? fmtValor(v) : 'R$ '+Number(v || 0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:2}); }
 
   var kEl = document.getElementById('dc-kpis');
   if (kEl) kEl.innerHTML = [
@@ -3024,7 +3024,7 @@ function _adminMostrarKpisSync(regs) {
   var fat = regs.reduce(function(s,r){ return s+(parseFloat(r.valor)||0); }, 0);
   var cli = new Set(regs.map(function(r){ return r.cliente; }).filter(Boolean)).size;
   var prd = new Set(regs.map(function(r){ return r.produto; }).filter(Boolean)).size;
-  function fmt(v){ return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:0}); }
+  function fmt(v){ return typeof fmtValor === 'function' ? fmtValor(v) : 'R$ '+Number(v || 0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:2}); }
   var extra = arguments[1] || {};
   var kpis = [
     { val: regs.length.toLocaleString('pt-BR'), lbl: 'Registros' },

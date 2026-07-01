@@ -24,12 +24,12 @@ function repVal(row) {
     : (parseFloat(String(row[IDX.valor]||'').replace(/\./g,'').replace(',','.')) || 0);
 }
 function repFmt(v) {
-  if (REP_MODO === 'qtd') return v > 0 ? v.toLocaleString('pt-BR',{maximumFractionDigits:0}) : '-';
-  return v > 0 ? 'R$ '+v.toLocaleString('pt-BR',{maximumFractionDigits:0}) : '-';
+  if (REP_MODO === 'qtd') return v > 0 ? fmtInt(v) : '-';
+  return v > 0 ? fmtValor(v) : '-';
 }
 function repFmtFull(v) {
-  if (REP_MODO === 'qtd') return v.toLocaleString('pt-BR',{maximumFractionDigits:0});
-  return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  if (REP_MODO === 'qtd') return fmtInt(v);
+  return fmtValor(v);
 }
 
 function repMiniCell(valor, max) {
@@ -1059,7 +1059,7 @@ function repPremiacao() {
     diaPivot[vend][idx] += repVal(r);
   });
 
-  function moeda(v) { return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 0 }); }
+  function moeda(v) { return fmtValor(v); }
   function rankingTable(titulo, lista, campo, fmt) {
     const max = Math.max(1, ...lista.map(r=>r[campo] || 0));
     return `<div class="premio-card"><div class="premio-card-title">${titulo}</div><table class="premio-table"><tbody>
