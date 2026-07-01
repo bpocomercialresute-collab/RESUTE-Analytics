@@ -74,6 +74,21 @@ function repPremiacaoModo(modo) {
   repPremiacao();
 }
 
+function repNomeNormalizado(nome) {
+  return String(nome || '').trim().toUpperCase();
+}
+
+function repPremiacaoNomesFixos() {
+  return new Set((window.REP_PREMIACAO_FIXA || []).map(repNomeNormalizado).filter(Boolean));
+}
+
+function repFiltrarRowsPremiacao(rows) {
+  const lista = Array.isArray(rows) ? rows : [];
+  if (window.REP_PREMIACAO_MODO !== 'atual') return lista;
+  const nomesFixos = repPremiacaoNomesFixos();
+  return lista.filter(r => nomesFixos.has(repNomeNormalizado(r[IDX.vendedor])));
+}
+
 function repBaseRows() {
   return (window.BD_DATA && Array.isArray(window.BD_DATA.rows)) ? window.BD_DATA.rows : [];
 }
@@ -307,11 +322,7 @@ function repPositiv() {
   const el = document.getElementById('rep-tab-positiv');
   if (!el) return;
 
-  const rowsBase = repDataRows();
-  const nomesFixos = new Set((window.REP_PREMIACAO_FIXA || []).map(n => String(n || '').trim().toUpperCase()));
-  const rows = window.REP_PREMIACAO_MODO === 'atual'
-    ? rowsBase.filter(r => nomesFixos.has(String(r[IDX.vendedor] || '').trim().toUpperCase()))
-    : rowsBase;
+  const rows = repFiltrarRowsPremiacao(repDataRows());
   const anos = [...new Set(rows.map(r=>String(r[IDX.ano]||'').trim()).filter(Boolean))].sort();
   const anoAtual = anos[anos.length-1] || String(new Date().getFullYear());
   const vendedores = repGetVendedores();
@@ -580,7 +591,7 @@ function repCrescMes() {
   const el = document.getElementById('rep-tab-cresc');
   if (!el) return;
 
-  const rows = repDataRows();
+  const rows = repFiltrarRowsPremiacao(repDataRows());
   const anos = [...new Set(rows.map(r=>String(r[IDX.ano]||'').trim()).filter(Boolean))].sort();
   const anoAtual = anos[anos.length-1] || String(new Date().getFullYear());
   const MES_IDX_LOCAL = {jan:0,fev:1,mar:2,abr:3,mai:4,jun:5,jul:6,ago:7,set:8,out:9,nov:10,dez:11};
@@ -858,7 +869,9 @@ function repPremiacao() {
     <div>
       <span class="premio-kicker">Campanha comercial</span>
       <h3>Ranking pronto para escolher prêmios por desempenho.</h3>
-      <p>O placar geral combina faturamento, quantidade vendida, clientes atendidos, mix de produtos e numero de pedidos unicos.</p>
+      <p>${window.REP_PREMIACAO_MODO === 'atual'
+        ? 'Disputa atual focada somente em Anderson de Lessa Costa, Pedro Henrique Santos Sales e Wedna Rosa de Souza.'
+        : 'O placar geral combina faturamento, quantidade vendida, clientes atendidos, mix de produtos e numero de pedidos unicos.'}</p>
     </div>
     <div class="premio-winner">
       <span>1º lugar geral</span>
