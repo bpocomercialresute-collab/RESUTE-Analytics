@@ -75,18 +75,30 @@ function repPremiacaoModo(modo) {
 }
 
 function repNomeNormalizado(nome) {
-  return String(nome || '').trim().toUpperCase();
+  return String(nome || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase();
 }
 
 function repPremiacaoNomesFixos() {
   return new Set((window.REP_PREMIACAO_FIXA || []).map(repNomeNormalizado).filter(Boolean));
 }
 
+function repPremiacaoEhNomeFixo(nome) {
+  const atual = repNomeNormalizado(nome);
+  if (!atual) return false;
+  return Array.from(repPremiacaoNomesFixos()).some(fixo =>
+    atual === fixo || atual.includes(fixo) || fixo.includes(atual)
+  );
+}
+
 function repFiltrarRowsPremiacao(rows) {
   const lista = Array.isArray(rows) ? rows : [];
   if (window.REP_PREMIACAO_MODO !== 'atual') return lista;
-  const nomesFixos = repPremiacaoNomesFixos();
-  return lista.filter(r => nomesFixos.has(repNomeNormalizado(r[IDX.vendedor])));
+  return lista.filter(r => repPremiacaoEhNomeFixo(r[IDX.vendedor]));
 }
 
 function repBaseRows() {
@@ -694,7 +706,7 @@ function repCrescMes() {
 function repPremiacao() {
   const el = document.getElementById('rep-tab-premiacao');
   if (!el) return;
-  const rows = repDataRows();
+  const rows = repFiltrarRowsPremiacao(repDataRows());
   if (!rows.length) {
     el.innerHTML = `<div class="av-rel-placeholder"><p>Sem dados para premiação</p><span>Altere os filtros ou sincronize vendas para gerar rankings.</span></div>`;
     return;
@@ -867,7 +879,7 @@ function repPremiacao() {
   </div>
   <div class="premio-hero">
     <div>
-      <span class="premio-kicker">Campanha comercial</span>
+      <span class="premio-kicker">${window.REP_PREMIACAO_MODO === 'atual' ? 'Campanha comercial · disputa atual' : 'Campanha comercial · ranking geral'}</span>
       <h3>Ranking pronto para escolher prêmios por desempenho.</h3>
       <p>${window.REP_PREMIACAO_MODO === 'atual'
         ? 'Disputa atual focada somente em Anderson de Lessa Costa, Pedro Henrique Santos Sales e Wedna Rosa de Souza.'
