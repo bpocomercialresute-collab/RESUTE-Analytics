@@ -805,6 +805,28 @@ function dcDataValor(v) {
   return null;
 }
 
+function dcPedidoChave(v) {
+  if (!v) return '';
+  var num = String(v.num_pedido || '').trim();
+  if (num) return 'pedido:' + num;
+  var ext = String(v.id_externo || '').trim();
+  if (ext) return 'externo:' + ext;
+  var data = String(v.dt_saida || v.dt_emissao || '').trim();
+  var cli = String(v.cliente || '').trim();
+  var prod = String(v.produto || '').trim();
+  var vend = String(v.vendedor || '').trim();
+  return ['fallback', cli, vend, data, prod, String(v.qtd || ''), String(v.valor || '')].join('|');
+}
+
+function dcContarPedidosUnicos(rows) {
+  var set = new Set();
+  (rows || []).forEach(function(r) {
+    var chave = dcPedidoChave(r);
+    if (chave) set.add(chave);
+  });
+  return set.size;
+}
+
 function dcIsoDate(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
@@ -1054,7 +1076,7 @@ function dcRenderizar() {
 
   // ── KPIs principais ──
   var fat = rows.reduce(function(s,r){ return s+(parseFloat(r.valor)||0); }, 0);
-  var ped = rows.length;
+  var ped = dcContarPedidosUnicos(rows);
   var cli = new Set(rows.map(function(r){ return r.cliente; }).filter(Boolean)).size;
   var prd = new Set(rows.map(function(r){ return r.produto; }).filter(Boolean)).size;
   var rep = new Set(rows.map(function(r){ return r.vendedor; }).filter(Boolean)).size;
@@ -1173,13 +1195,13 @@ function _dcTabelaPositivacao(rows) {
   var mp = {};
   rows.forEach(function(r) {
     var v = r.vendedor || '—';
-    if (!mp[v]) mp[v] = { clientes: new Set(), pedidos: 0 };
+    if (!mp[v]) mp[v] = { clientes: new Set(), pedidos: new Set() };
     mp[v].clientes.add(r.cliente || 'x');
-    mp[v].pedidos++;
+    mp[v].pedidos.add(dcPedidoChave(r));
   });
-  var arr = Object.entries(mp).map(function(e){ return { nome:e[0], cli:e[1].clientes.size, ped:e[1].pedidos }; }).sort(function(a,b){return b.cli-a.cli;}).slice(0,12);
+  var arr = Object.entries(mp).map(function(e){ return { nome:e[0], cli:e[1].clientes.size, ped:e[1].pedidos.size }; }).sort(function(a,b){return b.cli-a.cli;}).slice(0,12);
   var max = arr.length ? arr[0].cli : 1;
-  var h = '<table class="dc-tabela"><thead><tr><th>#</th><th>Representante</th><th>Clientes</th><th>Pedidos</th><th>Cobertura</th></tr></thead><tbody>';
+  var h = '<table class="dc-tabela"><thead><tr><th>#</th><th>Representante</th><th>Clientes unicos</th><th>Pedidos unicos</th><th>Cobertura</th></tr></thead><tbody>';
   arr.forEach(function(e,i){
     var bar = (e.cli/max*100).toFixed(0);
     h+='<tr><td class="pos">'+(i+1)+'</td><td>'+e.nome+'</td><td class="num">'+e.cli+'</td><td>'+e.ped+'</td>'
@@ -1215,11 +1237,11 @@ function _dcTabelaTicketCliente(rows) {
   var mp = {};
   rows.forEach(function(r) {
     var c = r.cliente || '—';
-    if (!mp[c]) mp[c] = { fat:0, ped:0 };
+    if (!mp[c]) mp[c] = { fat:0, pedidos:new Set() };
     mp[c].fat += (parseFloat(r.valor) || 0);
-    mp[c].ped++;
+    mp[c].pedidos.add(dcPedidoChave(r));
   });
-  var arr = Object.entries(mp).map(function(e){ return { nome:e[0], fat:e[1].fat, ped:e[1].ped, tick:e[1].fat/e[1].ped }; })
+  var arr = Object.entries(mp).map(function(e){ return { nome:e[0], fat:e[1].fat, ped:e[1].pedidos.size, tick:e[1].pedidos.size ? e[1].fat/e[1].pedidos.size : 0 }; })
     .filter(function(e){ return e.ped >= 2; }).sort(function(a,b){return b.tick-a.tick;}).slice(0,10);
   var el = document.getElementById('dc-tab-ticket');
   if (!el) return;
@@ -1271,12 +1293,12 @@ function _dcTabela(id, campo, rows, fatTotal, label) {
   var map = {};
   rows.forEach(function(r) {
     var key = String(r[campo] || '').trim() || 'Sem ' + String(label || 'dado').toLowerCase();
-    if (!map[key]) map[key] = { fat: 0, pedidos: 0 };
+    if (!map[key]) map[key] = { fat: 0, pedidos: new Set() };
     map[key].fat += parseFloat(r.valor) || 0;
-    map[key].pedidos += 1;
+    map[key].pedidos.add(dcPedidoChave(r));
   });
   var lista = Object.entries(map)
-    .map(function(e) { return { nome: e[0], fat: e[1].fat, pedidos: e[1].pedidos }; })
+    .map(function(e) { return { nome: e[0], fat: e[1].fat, pedidos: e[1].pedidos.size }; })
     .sort(function(a, b) { return b.fat - a.fat; })
     .slice(0, 12);
   var max = lista.length ? lista[0].fat : 1;

@@ -8,11 +8,7 @@ window.BD_DATA = { headers: [], rows: [], count: 0 };
 window.RELATORIO_MODO = 'valor';
 function toggleModo(qual) {
   window.RELATORIO_MODO = qual;
-  bdUpdateVendaProduto();
-  bdUpdateLaudoGrupo();
-  bdUpdateLaudoMarca();
-  bdUpdateLaudoGruposAno();
-  bdUpdateLaudoGruposAno02();
+  relRenderAtual();
 }
 // Retorna o valor da métrica conforme o modo
 function metrica(row) {
@@ -37,10 +33,24 @@ MES_NOME.forEach((m,i) => { MES_IDX[m]=i; MES_IDX[String(i+1).padStart(2,'0')]=i
 // ── ESTADO DO FILTRO DO LAUDO_GRUPO ──────────────────────────────────────────
 window.LG = { tipo:'', grupo:'', subgrupo:'' };
 window.REL_FILTER = window.REL_FILTER || { vendedor:'', produto:'', cliente:'', grupo:'', marca:'' };
+window.REL_VENDA_PRODUTO_MODO = window.REL_VENDA_PRODUTO_MODO || 'detalhado';
 
 function lgSetFiltro(campo, val) {
   window.LG[campo] = val;
   bdUpdateLaudoGrupo();
+}
+
+function relAbaAtiva() {
+  var pane = document.querySelector('#av-rel-area .av-tab-pane.active');
+  return pane ? pane.id : 'av-rel-cadastro-insights';
+}
+
+function relRenderAtual() {
+  if (typeof relRenderTab === 'function') {
+    relRenderTab(relAbaAtiva());
+    return;
+  }
+  bdUpdateAllTabs();
 }
 
 function relEsc(v) {
@@ -77,12 +87,12 @@ function relUnique(campo) {
 
 function relSetFiltro(campo, valor) {
   window.REL_FILTER[campo] = valor || '';
-  bdUpdateAllTabs();
+  relRenderAtual();
 }
 
 function relLimparFiltros() {
   window.REL_FILTER = { vendedor:'', produto:'', cliente:'', grupo:'', marca:'' };
-  bdUpdateAllTabs();
+  relRenderAtual();
 }
 
 function relFiltroSelect(campo, label) {
@@ -335,6 +345,20 @@ function bdUpdateAllTabs() {
   cadastros.forEach(fn => { try { fn(); } catch(e) { console.warn(fn.name, e); } });
 }
 
+function relRenderTab(tabId) {
+  var map = {
+    'av-rel-cadastro-insights': bdUpdateCadastroInsights,
+    'av-rel-venda-produto': bdUpdateVendaProduto,
+    'av-rel-laudo-grupo': bdUpdateLaudoGrupo,
+    'av-rel-laudo-ano': bdUpdateLaudoGruposAno,
+    'av-rel-laudo-ano02': bdUpdateLaudoGruposAno02,
+    'av-rel-laudo-marca': bdUpdateLaudoMarca
+  };
+  if (map[tabId]) {
+    try { map[tabId](); } catch (e) { console.warn(tabId, e); }
+  }
+}
+
 const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
 // ── MARCA ─────────────────────────────────────────────────────────────────────
@@ -577,6 +601,30 @@ function relShareCell(valor, total) {
   </div>`;
 }
 
+function relToggleVendaProduto(modo) {
+  window.REL_VENDA_PRODUTO_MODO = modo === 'agrupado' ? 'agrupado' : 'detalhado';
+  bdUpdateVendaProduto();
+}
+
+function relProdutoAgrupadoNome(nome) {
+  var base = String(nome || '').trim();
+  if (!base) return 'SEM PRODUTO';
+  base = base
+    .replace(/\b(C\/CABO|S\/CABO)\b/gi, '')
+    .replace(/\b(COM CABO|SEM CABO)\b/gi, '')
+    .replace(/\s+-\s+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  return (base || String(nome || '').trim()).toUpperCase();
+}
+
+function relVendaProdutoTabs() {
+  return `<div class="rel-inline-tabs">
+    <button class="rel-inline-tab ${window.REL_VENDA_PRODUTO_MODO==='detalhado'?'active':''}" onclick="relToggleVendaProduto('detalhado')">Produtos detalhados</button>
+    <button class="rel-inline-tab ${window.REL_VENDA_PRODUTO_MODO==='agrupado'?'active':''}" onclick="relToggleVendaProduto('agrupado')">Produtos agrupados</button>
+  </div>`;
+}
+
 function bdUpdateCadastroInsights() {
   const pane = document.getElementById('av-rel-cadastro-insights');
   if (!pane) return;
@@ -675,18 +723,20 @@ function bdUpdateVendaProduto() {
     pane.innerHTML = `<div class="rel-header-bar">${toggleBtnHtml()}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
     return;
   }
+  const modoAgrupado = window.REL_VENDA_PRODUTO_MODO === 'agrupado';
   const anos = [...new Set(rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
   const tituloPeriodo = anos.length === 1 ? anos[0] : 'PERIODO CARREGADO';
 
   const pivot = new Map();
   let totalGeral = 0;
   rows.forEach(r => {
-    const p  = g(r,'produto');
+    const produtoOriginal = g(r,'produto');
+    const p  = modoAgrupado ? relProdutoAgrupadoNome(produtoOriginal) : produtoOriginal;
     const mi = MES_IDX[g(r,'mes').toLowerCase()] ?? -1;
     const v  = metrica(r);
     const gr = g(r,'grupo'), ma = g(r,'marca');
     if (!p || mi < 0) return;
-    if (!pivot.has(p)) pivot.set(p, {meses:Array(12).fill(0), total:0, grupo:gr, marca:ma});
+    if (!pivot.has(p)) pivot.set(p, {meses:Array(12).fill(0), total:0, grupo:gr, marca:ma, label:p});
     pivot.get(p).meses[mi] += v;
     pivot.get(p).total += v;
     totalGeral += v;
@@ -709,10 +759,11 @@ function bdUpdateVendaProduto() {
       ${toggleBtnHtml()}
       <div class="rel-title">VENDA POR PRODUTO - ${tituloPeriodo}</div>
     </div>
+    ${relVendaProdutoTabs()}
     <div class="rel-kpi-strip">
-      <div class="rel-kpi-card"><span>Produtos</span><strong>${totalProdutos.toLocaleString('pt-BR')}</strong></div>
+      <div class="rel-kpi-card"><span>${modoAgrupado ? 'Produtos agrupados' : 'Produtos'}</span><strong>${totalProdutos.toLocaleString('pt-BR')}</strong></div>
       <div class="rel-kpi-card"><span>Total</span><strong>${fmtMetricaFull(totalGeral)}</strong></div>
-      <div class="rel-kpi-card"><span>Media por produto</span><strong>${fmtMetricaFull(ticketMedioProduto)}</strong></div>
+      <div class="rel-kpi-card"><span>${modoAgrupado ? 'Media por familia base' : 'Media por produto'}</span><strong>${fmtMetricaFull(ticketMedioProduto)}</strong></div>
       <div class="rel-kpi-card"><span>Maior mes</span><strong>${fmtMetricaFull(Math.max(...totMes))}</strong></div>
     </div>
     <div class="av-table-wrap" style="border-top:none"><table class="av-table">
@@ -746,7 +797,7 @@ function bdUpdateVendaProduto() {
     const media  = ativos.length ? ativos.reduce((s,v)=>s+v,0)/ativos.length : 0;
     const pct    = totalGeral > 0 ? ((d.total/totalGeral)*100).toFixed(1) : '0.0';
     html += `<tr>
-      <td><span class="rel-prod-name">${p}</span><span class="rel-prod-meta">${d.marca || 'Sem marca'}</span></td><td>${d.grupo || 'Sem grupo'}</td>
+      <td><span class="rel-prod-name">${d.label || p}</span><span class="rel-prod-meta">${modoAgrupado ? 'Itens com cabo / sem cabo somados' : (d.marca || 'Sem marca')}</span></td><td>${d.grupo || 'Sem grupo'}</td>
       ${d.meses.map(v=>`<td>${relMiniBarCell(v, maxCell, fmtMetrica(v))}</td>`).join('')}
       <td>${relMiniBarCell(media, maxCell, fmtMetrica(media))}</td>
       <td><strong>${fmtMetricaFull(d.total)}</strong></td>

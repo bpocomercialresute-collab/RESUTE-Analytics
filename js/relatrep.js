@@ -5,6 +5,12 @@
 
 let REP_MODO = 'valor'; // 'valor' ou 'qtd'
 window.REP_FILTER = window.REP_FILTER || { vendedor:'', produto:'', cliente:'', grupo:'' };
+window.REP_PREMIACAO_MODO = window.REP_PREMIACAO_MODO || 'geral';
+window.REP_PREMIACAO_FIXA = window.REP_PREMIACAO_FIXA || [
+  'ANDERSON DE LESSA COSTA',
+  'PEDRO HENRIQUE SANTOS SALES',
+  'WEDNA ROSA DE SOUZA'
+];
 
 function repToggleModo(m) {
   REP_MODO = m;
@@ -45,6 +51,27 @@ function repShareCell(valor, total) {
 // ── TOGGLE BUTTON HTML ────────────────────────────────────────────────────────
 function repEsc(v) {
   return String(v == null ? '' : v).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+
+function repPedidoChave(row) {
+  var pedido = String(row[IDX.pedido] || '').trim();
+  if (pedido) return 'pedido:' + pedido;
+  var id = String(row[IDX.id] || '').trim();
+  if (id) return 'id:' + id;
+  return [
+    'fallback',
+    String(row[IDX.cliente] || '').trim(),
+    String(row[IDX.vendedor] || '').trim(),
+    String(row[IDX.saida] || row[IDX.emissao] || '').trim(),
+    String(row[IDX.produto] || '').trim(),
+    String(row[IDX.qtd] || '').trim(),
+    String(row[IDX.valor] || '').trim()
+  ].join('|');
+}
+
+function repPremiacaoModo(modo) {
+  window.REP_PREMIACAO_MODO = modo === 'atual' ? 'atual' : 'geral';
+  repPremiacao();
 }
 
 function repBaseRows() {
@@ -280,7 +307,11 @@ function repPositiv() {
   const el = document.getElementById('rep-tab-positiv');
   if (!el) return;
 
-  const rows = repDataRows();
+  const rowsBase = repDataRows();
+  const nomesFixos = new Set((window.REP_PREMIACAO_FIXA || []).map(n => String(n || '').trim().toUpperCase()));
+  const rows = window.REP_PREMIACAO_MODO === 'atual'
+    ? rowsBase.filter(r => nomesFixos.has(String(r[IDX.vendedor] || '').trim().toUpperCase()))
+    : rowsBase;
   const anos = [...new Set(rows.map(r=>String(r[IDX.ano]||'').trim()).filter(Boolean))].sort();
   const anoAtual = anos[anos.length-1] || String(new Date().getFullYear());
   const vendedores = repGetVendedores();
@@ -661,11 +692,11 @@ function repPremiacao() {
   const reps = {};
   rows.forEach(r => {
     const vend = String(r[IDX.vendedor]||'').trim() || 'Sem representante';
-    if (!reps[vend]) reps[vend] = { nome: vend, fat:0, qtd:0, pedidos:0, clientes:new Set(), produtos:new Set(), dias:new Set() };
+    if (!reps[vend]) reps[vend] = { nome: vend, fat:0, qtd:0, pedidos:new Set(), clientes:new Set(), produtos:new Set(), dias:new Set() };
     const dtStr = String(r[IDX.saida]||r[IDX.emissao]||'').trim();
     reps[vend].fat += parseFloat(String(r[IDX.valor]||'').replace(/\./g,'').replace(',','.')) || 0;
     reps[vend].qtd += parseFloat(r[IDX.qtd]||0) || 0;
-    reps[vend].pedidos += 1;
+    reps[vend].pedidos.add(repPedidoChave(r));
     if (r[IDX.cliente]) reps[vend].clientes.add(String(r[IDX.cliente]).trim());
     if (r[IDX.produto]) reps[vend].produtos.add(String(r[IDX.produto]).trim());
     if (dtStr) reps[vend].dias.add(dtStr);
@@ -675,11 +706,11 @@ function repPremiacao() {
     nome: r.nome,
     fat: r.fat,
     qtd: r.qtd,
-    pedidos: r.pedidos,
+    pedidos: r.pedidos.size,
     clientes: r.clientes.size,
     produtos: r.produtos.size,
     dias: r.dias.size,
-    ticket: r.pedidos ? r.fat / r.pedidos : 0,
+    ticket: r.pedidos.size ? r.fat / r.pedidos.size : 0,
     mediaDia: r.dias.size ? r.fat / r.dias.size : 0,
     tipo: repGetTipo(r.nome)
   }));
@@ -728,10 +759,10 @@ function repPremiacao() {
     const mapa = {};
     baseRows.forEach(r => {
       const vend = String(r[IDX.vendedor]||'').trim() || 'Sem representante';
-      if (!mapa[vend]) mapa[vend] = { nome:vend, fat:0, qtd:0, pedidos:0, clientes:new Set(), produtos:new Set() };
+      if (!mapa[vend]) mapa[vend] = { nome:vend, fat:0, qtd:0, pedidos:new Set(), clientes:new Set(), produtos:new Set() };
       mapa[vend].fat += parseFloat(String(r[IDX.valor]||'').replace(/\./g,'').replace(',','.')) || 0;
       mapa[vend].qtd += parseFloat(r[IDX.qtd]||0) || 0;
-      mapa[vend].pedidos += 1;
+      mapa[vend].pedidos.add(repPedidoChave(r));
       if (r[IDX.cliente]) mapa[vend].clientes.add(String(r[IDX.cliente]).trim());
       if (r[IDX.produto]) mapa[vend].produtos.add(String(r[IDX.produto]).trim());
     });
@@ -739,10 +770,10 @@ function repPremiacao() {
       nome:r.nome,
       fat:r.fat,
       qtd:r.qtd,
-      pedidos:r.pedidos,
+      pedidos:r.pedidos.size,
       clientes:r.clientes.size,
       produtos:r.produtos.size,
-      ticket:r.pedidos ? r.fat / r.pedidos : 0,
+      ticket:r.pedidos.size ? r.fat / r.pedidos.size : 0,
       tipo:repGetTipo(r.nome)
     }));
   }
@@ -819,11 +850,15 @@ function repPremiacao() {
     ${repToggleHtml()}
     <div class="rel-title">PREMIAÇÃO DOS REPRESENTANTES</div>
   </div>
+  <div class="rel-inline-tabs premio-inline-tabs">
+    <button class="rel-inline-tab ${window.REP_PREMIACAO_MODO==='geral'?'active':''}" onclick="repPremiacaoModo('geral')">Premiacao geral</button>
+    <button class="rel-inline-tab ${window.REP_PREMIACAO_MODO==='atual'?'active':''}" onclick="repPremiacaoModo('atual')">Premiacao atual</button>
+  </div>
   <div class="premio-hero">
     <div>
       <span class="premio-kicker">Campanha comercial</span>
       <h3>Ranking pronto para escolher prêmios por desempenho.</h3>
-      <p>O placar geral combina faturamento, quantidade vendida, clientes atendidos, mix de produtos e número de pedidos.</p>
+      <p>O placar geral combina faturamento, quantidade vendida, clientes atendidos, mix de produtos e numero de pedidos unicos.</p>
     </div>
     <div class="premio-winner">
       <span>1º lugar geral</span>
