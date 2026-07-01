@@ -101,6 +101,251 @@ function repFiltrarRowsPremiacao(rows) {
   return lista.filter(r => repPremiacaoEhNomeFixo(r[IDX.vendedor]));
 }
 
+function repStorage() {
+  try {
+    return window.localStorage || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function repRoletaEstadoPadrao() {
+  return {
+    itens: [],
+    angulo: 0,
+    ganhador: '',
+    ultimoPremio: ''
+  };
+}
+
+function repRoletaLerEstado() {
+  const storage = repStorage();
+  let estado = repRoletaEstadoPadrao();
+  if (storage) {
+    try {
+      const raw = storage.getItem('resute_rep_roleta');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') estado = Object.assign(estado, parsed);
+      }
+    } catch (e) {}
+  }
+  estado.itens = Array.isArray(estado.itens)
+    ? estado.itens.map(v => String(v || '').trim()).filter(Boolean)
+    : [];
+  estado.angulo = Number.isFinite(Number(estado.angulo)) ? Number(estado.angulo) : 0;
+  estado.ganhador = String(estado.ganhador || '').trim();
+  estado.ultimoPremio = String(estado.ultimoPremio || '').trim();
+  return estado;
+}
+
+function repRoletaSalvarEstado(estado) {
+  const storage = repStorage();
+  if (!storage) return;
+  try {
+    storage.setItem('resute_rep_roleta', JSON.stringify({
+      itens: estado.itens || [],
+      angulo: Number(estado.angulo || 0),
+      ganhador: String(estado.ganhador || '').trim(),
+      ultimoPremio: String(estado.ultimoPremio || '').trim()
+    }));
+  } catch (e) {}
+}
+
+function repRoletaProdutosBase(rows) {
+  const lista = [];
+  const vistos = new Set();
+  (Array.isArray(rows) ? rows : repDataRows()).forEach(r => {
+    const prod = String(r[IDX.produto] || '').trim();
+    if (!prod) return;
+    const chave = repNomeNormalizado(prod);
+    if (vistos.has(chave)) return;
+    vistos.add(chave);
+    lista.push(prod);
+  });
+  return lista;
+}
+
+function repRoletaGarantirSeed() {
+  const estado = repRoletaLerEstado();
+  if (estado.itens.length) return estado;
+  estado.itens = repRoletaProdutosBase(repDataRows()).slice(0, 8);
+  repRoletaSalvarEstado(estado);
+  return estado;
+}
+
+function repRoletaItensAtuais() {
+  return repRoletaGarantirSeed().itens;
+}
+
+function repRoletaFormatarItem(v) {
+  return String(v || '').trim();
+}
+
+function repRoletaConicGradient(itens) {
+  const paleta = ['#3b82f6', '#22c55e', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#ef4444', '#0ea5e9'];
+  const n = Math.max(1, itens.length);
+  const ang = 360 / n;
+  return itens.map((_, i) => {
+    const c = paleta[i % paleta.length];
+    const a1 = i * ang;
+    const a2 = (i + 1) * ang;
+    return `${c} ${a1}deg ${a2}deg`;
+  }).join(', ');
+}
+
+function repRoletaHtml() {
+  const estado = repRoletaGarantirSeed();
+  const itens = estado.itens;
+  const ang = itens.length ? 360 / itens.length : 0;
+  const ativo = estado.ultimoPremio || itens[0] || '';
+  const labels = itens.map((item, i) => {
+    const rot = (i * ang) + (ang / 2);
+    return `<span class="roleta-label" style="transform: rotate(${rot}deg) translateY(-128px) rotate(${-rot}deg);">${repEsc(item)}</span>`;
+  }).join('');
+  const chips = itens.map((item, idx) => `<div class="roleta-chip">
+    <span>${repEsc(item)}</span>
+    <button type="button" onclick="repRoletaRemoverItem(${idx})" aria-label="Remover">×</button>
+  </div>`).join('');
+
+  return `<div class="premio-roleta-wrap">
+    <div class="premio-roleta-card">
+      <div class="premio-card-title">Roleta animada de prêmios</div>
+      <p class="premio-roleta-sub">Adicione os produtos que vão girar, sorteie o prêmio e depois salve o representante ganhador ao lado.</p>
+      <div class="premio-roleta-stage">
+        <div class="premio-roleta-pointer"></div>
+        <div class="premio-roleta-wheel" id="rep-roleta-wheel" style="transform: rotate(${Number(estado.angulo || 0)}deg); ${itens.length ? `background: conic-gradient(${repRoletaConicGradient(itens)});` : 'background: radial-gradient(circle at center, #1d4ed8, #0f1729);'}">
+          ${labels || '<span class="roleta-empty">Adicione produtos para liberar a roleta.</span>'}
+          <div class="premio-roleta-center">
+            <span>Último prêmio</span>
+            <strong id="rep-roleta-ultimo">${repEsc(ativo || 'Sem sorteio')}</strong>
+          </div>
+        </div>
+      </div>
+      <div class="premio-roleta-actions">
+        <button type="button" class="premio-roleta-btn primary" onclick="repRoletaSortear()">Girar roleta</button>
+        <button type="button" class="premio-roleta-btn" onclick="repRoletaImportarProdutos()">Importar produtos do recorte</button>
+        <button type="button" class="premio-roleta-btn" onclick="repRoletaLimparItens()">Limpar produtos</button>
+      </div>
+      <div class="premio-roleta-status">
+        <span>Itens na roleta: <strong id="rep-roleta-count">${itens.length}</strong></span>
+        <span>Ganhador salvo: <strong id="rep-roleta-ganhador-text">${repEsc(estado.ganhador || 'não definido')}</strong></span>
+      </div>
+    </div>
+    <div class="premio-roleta-side">
+      <div class="premio-card-title">Representante ganhador</div>
+      <label class="premio-roleta-field">
+        <span>Nome do representante</span>
+        <input id="rep-roleta-ganhador-input" type="text" value="${repEsc(estado.ganhador || '')}" placeholder="Digite o nome do ganhador">
+      </label>
+      <button type="button" class="premio-roleta-save" onclick="repRoletaSalvarGanhador()">Salvar representante</button>
+      <div class="premio-card-title premio-roleta-title-gap">Produtos da roleta</div>
+      <div class="premio-roleta-add">
+        <input id="rep-roleta-produto-input" type="text" placeholder="Adicionar produto ou prêmio">
+        <button type="button" onclick="repRoletaAdicionarItem()">Adicionar</button>
+      </div>
+      <div class="premio-roleta-list" id="rep-roleta-list">
+        ${chips || '<div class="premio-roleta-empty-list">Sem produtos cadastrados. Use o recorte atual ou adicione manualmente.</div>'}
+      </div>
+    </div>
+  </div>`;
+}
+
+function repRoletaAtualizarResumo() {
+  const estado = repRoletaLerEstado();
+  const count = document.getElementById('rep-roleta-count');
+  if (count) count.textContent = String(estado.itens.length);
+  const ganhador = document.getElementById('rep-roleta-ganhador-text');
+  if (ganhador) ganhador.textContent = estado.ganhador || 'não definido';
+  const ultimo = document.getElementById('rep-roleta-ultimo');
+  if (ultimo && estado.ultimoPremio) ultimo.textContent = estado.ultimoPremio;
+}
+
+function repRoletaRecarregarArea() {
+  repPremiacao();
+}
+
+function repRoletaImportarProdutos() {
+  const estado = repRoletaLerEstado();
+  estado.itens = repRoletaProdutosBase(repDataRows()).slice(0, 16);
+  if (!estado.itens.length) estado.itens = [];
+  if (!estado.angulo) estado.angulo = 0;
+  repRoletaSalvarEstado(estado);
+  repRoletaRecarregarArea();
+}
+
+function repRoletaAdicionarItem() {
+  const input = document.getElementById('rep-roleta-produto-input');
+  if (!input) return;
+  const valor = String(input.value || '').trim();
+  if (!valor) return;
+  const estado = repRoletaLerEstado();
+  const chave = repNomeNormalizado(valor);
+  if (!estado.itens.some(item => repNomeNormalizado(item) === chave)) {
+    estado.itens.push(valor);
+  }
+  repRoletaSalvarEstado(estado);
+  input.value = '';
+  repRoletaRecarregarArea();
+}
+
+function repRoletaRemoverItem(idx) {
+  const estado = repRoletaLerEstado();
+  estado.itens.splice(idx, 1);
+  if (estado.ultimoPremio && !estado.itens.length) estado.ultimoPremio = '';
+  repRoletaSalvarEstado(estado);
+  repRoletaRecarregarArea();
+}
+
+function repRoletaLimparItens() {
+  const estado = repRoletaLerEstado();
+  estado.itens = [];
+  estado.ultimoPremio = '';
+  repRoletaSalvarEstado(estado);
+  repRoletaRecarregarArea();
+}
+
+function repRoletaSalvarGanhador() {
+  const input = document.getElementById('rep-roleta-ganhador-input');
+  if (!input) return;
+  const estado = repRoletaLerEstado();
+  estado.ganhador = String(input.value || '').trim();
+  repRoletaSalvarEstado(estado);
+  repRoletaAtualizarResumo();
+}
+
+function repRoletaSortear() {
+  const estado = repRoletaLerEstado();
+  const itens = estado.itens;
+  if (!itens.length) {
+    alert('Adicione ao menos um produto para girar a roleta.');
+    return;
+  }
+  const wheel = document.getElementById('rep-roleta-wheel');
+  if (!wheel) return;
+  if (wheel.dataset.spinning === '1') return;
+  const resultado = document.getElementById('rep-roleta-ultimo');
+  const count = itens.length;
+  const chosen = Math.floor(Math.random() * count);
+  const segmento = 360 / count;
+  const atual = Number(estado.angulo || 0) % 360;
+  const giros = 5 + Math.floor(Math.random() * 4);
+  const ajuste = 360 - (chosen * segmento + (segmento / 2));
+  const novoAngulo = atual + (giros * 360) + ajuste;
+  wheel.style.transition = 'transform 5.2s cubic-bezier(.15,.85,.16,1)';
+  wheel.style.transform = `rotate(${novoAngulo}deg)`;
+  wheel.dataset.spinning = '1';
+  setTimeout(() => {
+    estado.angulo = novoAngulo % 360;
+    estado.ultimoPremio = itens[chosen];
+    repRoletaSalvarEstado(estado);
+    if (resultado) resultado.textContent = itens[chosen];
+    repRoletaAtualizarResumo();
+    wheel.dataset.spinning = '0';
+    setTimeout(() => { wheel.style.transition = ''; }, 80);
+  }, 5300);
+}
+
 function repBaseRows() {
   return (window.BD_DATA && Array.isArray(window.BD_DATA.rows)) ? window.BD_DATA.rows : [];
 }
@@ -707,7 +952,7 @@ function repPremiacao() {
   const el = document.getElementById('rep-tab-premiacao');
   if (!el) return;
   const rows = repFiltrarRowsPremiacao(repDataRows());
-  if (!rows.length) {
+  if (false && !rows.length) {
     el.innerHTML = `<div class="av-rel-placeholder"><p>Sem dados para premiação</p><span>Altere os filtros ou sincronize vendas para gerar rankings.</span></div>`;
     return;
   }
@@ -877,6 +1122,7 @@ function repPremiacao() {
     <button class="rel-inline-tab ${window.REP_PREMIACAO_MODO==='geral'?'active':''}" onclick="repPremiacaoModo('geral')">Premiacao geral</button>
     <button class="rel-inline-tab ${window.REP_PREMIACAO_MODO==='atual'?'active':''}" onclick="repPremiacaoModo('atual')">Premiacao atual</button>
   </div>
+  ${window.REP_PREMIACAO_MODO === 'atual' ? repRoletaHtml() : ''}
   <div class="premio-hero">
     <div>
       <span class="premio-kicker">${window.REP_PREMIACAO_MODO === 'atual' ? 'Campanha comercial · disputa atual' : 'Campanha comercial · ranking geral'}</span>
