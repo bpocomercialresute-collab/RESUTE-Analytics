@@ -369,17 +369,6 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env
     return res.status(403).json({ erro: 'Rota externa nao permitida.' });
   }
 
-  if (isVisualCadastroPath(targetUrl.pathname)) {
-    const codigoEmpresa = getVisualCodigoEmpresa(incomingHeaders, req.body, appUser) || env.visualCompanyCode;
-    const authCheck = await ensureVisualSaefAuthorization(env, visualToken, codigoEmpresa);
-    if (!authCheck.ok) {
-      return res.status(authCheck.status || 403).json({
-        erro: authCheck.message || 'API Visual Saef nao liberou o uso para esta empresa.',
-        detalhe: authCheck.payload || authCheck.text || null
-      });
-    }
-  }
-
   let upstream;
   if (targetUrl.pathname === '/login') {
     upstream = await fetch(
