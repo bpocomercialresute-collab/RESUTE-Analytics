@@ -1873,6 +1873,19 @@ async function _adminReplaceApiTableCandidates(candidates, rows) {
   throw ultimoErro || new Error('Nenhuma tabela de cadastro pôde ser gravada.');
 }
 
+async function _adminLimparCadastrosApiSync() {
+  var allTables = [];
+  Object.keys(CADASTRO_TABLES).forEach(function(key) {
+    (CADASTRO_TABLES[key] || []).forEach(function(table) {
+      if (allTables.indexOf(table) < 0) allTables.push(table);
+    });
+  });
+
+  for (var i = 0; i < allTables.length; i += 1) {
+    await _adminReplaceApiTable(allTables[i], []);
+  }
+}
+
 function _adminPadRows(rows, totalCols, minRows) {
   var filled = rows.slice();
   while (filled.length < minRows) {
@@ -2903,6 +2916,7 @@ adminSincronizar = async function() {
 
     // Enriquecer a base com cadastros auxiliares vindos da API dedicada
     _adminSetStatus('⏳ Enriquecendo cadastros dedicados da API...');
+    await _adminLimparCadastrosApiSync();
     var cadastrosResumo = await _adminSincronizarCadastrosApi(token, dataInicio, dataFim);
 
     // Mostra KPIs e módulos do sync
@@ -2919,7 +2933,6 @@ adminSincronizar = async function() {
     // Gera relatórios automaticamente
     _adminSetStatus('⏳ Gerando relatórios...');
     await _adminCarregar(EMPRESA_ATIVA.empresa_id);
-    await _adminCarregarCadastrosApiSalvos();
 
     try { bdMapColumns(); } catch(e) { console.error(e); }
     try { bdAutoFill(); }   catch(e) { console.error(e); }
