@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   if (!empresa_id) return res.status(400).json({ erro: 'empresa_id obrigatório' });
 
   const SUPA_URL      = process.env.SUPABASE_URL;
-  const SERVICE_KEY   = process.env.SUPABASE_SERVICE_KEY;
+  const SERVICE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   const EDGE_SYNC_URL = `${SUPA_URL}/functions/v1/sync-visual-saef`;
 
   try {

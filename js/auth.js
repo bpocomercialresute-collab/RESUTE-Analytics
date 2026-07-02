@@ -1777,16 +1777,20 @@ async function _vsFindEndpointData(token, candidates, params) {
 
   for (var i = 0; i < candidates.length; i += 1) {
     var endpoint = candidates[i];
-    var first = await _vsFetchCandidate(token, endpoint, params);
-    attempts.push({ endpoint: endpoint, status: first.status });
+
+    // Alguns endpoints de cadastro da Visual Saef funcionam melhor sem o
+    // filtro de período. Testamos primeiro a rota pura e, se não vier
+    // conteúdo, repetimos com as datas.
+    var first = await _vsFetchCandidate(token, endpoint, withoutDates);
+    attempts.push({ endpoint: endpoint + ' (sem período)', status: first.status });
     if (first.ok) {
       var list = _vsExtractList(first.payload);
       if (Array.isArray(list) && list.length) return { endpoint: endpoint, items: list, attempts: attempts };
       if (Array.isArray(first.payload) && !list.length) return { endpoint: endpoint, items: first.payload, attempts: attempts };
     }
 
-    var second = await _vsFetchCandidate(token, endpoint, withoutDates);
-    attempts.push({ endpoint: endpoint + ' (sem período)', status: second.status });
+    var second = await _vsFetchCandidate(token, endpoint, params);
+    attempts.push({ endpoint: endpoint, status: second.status });
     if (second.ok) {
       var list2 = _vsExtractList(second.payload);
       if (Array.isArray(list2) && list2.length) return { endpoint: endpoint, items: list2, attempts: attempts };
@@ -1796,7 +1800,6 @@ async function _vsFindEndpointData(token, candidates, params) {
 
   return { endpoint: '', items: [], attempts: attempts };
 }
-
 function _vsResumoTentativas(attempts) {
   if (!Array.isArray(attempts) || !attempts.length) return '';
   return attempts.map(function(item) {
