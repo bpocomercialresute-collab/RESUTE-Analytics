@@ -15,7 +15,7 @@ var EMPRESA_IDS = {
 async function adminInicializar() {
   try {
     // Busca empresas
-    var eR = await fetch(SUPA_URL + '/rest/v1/empresas?select=id,nome,slug&ativo=eq.true&order=nome.asc', {
+    var eR = await fetch(SUPA_URL + '/rest/v1/empresas?select=*&ativo=eq.true&order=nome.asc', {
       headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
     });
     var empresas = await eR.json();
@@ -28,13 +28,13 @@ async function adminInicializar() {
 
     EMPRESAS_LISTA = (empresas || []).map(function(e) {
       var api = (apis || []).find(function(a){ return a.empresa_id === e.id && a.api_url; });
-      return {
-        empresa_id: e.id,
+      return Object.assign({}, e, {
+        empresa_id: e.id || e.empresa_id,
         nome:       e.nome,
         slug:       e.slug,
         tem_api:    !!api,
         sistema:    api ? api.sistema : null
-      };
+      });
     });
 
     // Renderiza abas

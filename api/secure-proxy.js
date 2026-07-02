@@ -13,6 +13,9 @@ const ALLOWED_SUPABASE_PATHS = [
 
 const ALLOWED_VISUAL_PATHS = [
   '/login',
+  '/logonsaef/logincore',
+  '/logonsaef/login4',
+  '/logonsaef/AuthorizationForUse',
   '/relacaovendaitem',
   '/clientes',
   '/cliente',
@@ -29,6 +32,15 @@ const ALLOWED_VISUAL_PATHS = [
   '/vendedor',
   '/relacaorepresentante'
 ];
+
+const VISUAL_CADASTRO_PATHS = new Set([
+  '/cadastrocliente',
+  '/cadastroclienteparceiro',
+  '/cadastroproduto',
+  '/cadastrovendedor'
+]);
+
+const VISUAL_AUTH_CACHE = new Map();
 
 function getSessionEmpresaIds(appUser) {
   if (Array.isArray(appUser.empresa_ids)) return appUser.empresa_ids;
@@ -74,6 +86,33 @@ function normalizeHeaders(inputHeaders) {
     out[String(key).toLowerCase()] = String(value);
   });
   return out;
+}
+
+function getVisualCodigoEmpresa(incomingHeaders, body, appUser) {
+  const candidates = [
+    incomingHeaders && incomingHeaders['x-visual-codigo-empresa'],
+    incomingHeaders && incomingHeaders['x-visual-company-code'],
+    body && body.visual_codigo_empresa,
+    body && body.empresa_codigo,
+    body && body.codigo_empresa,
+    body && body.codigoCliente,
+    appUser && appUser.visual_codigo_empresa,
+    appUser && appUser.empresa_codigo,
+    appUser && appUser.codigo_empresa,
+    appUser && appUser.codigo_cliente_id,
+    appUser && appUser.codigo_cliente
+  ];
+
+  for (const value of candidates) {
+    if (value !== undefined && value !== null && String(value).trim()) {
+      return String(value).trim();
+    }
+  }
+  return '';
+}
+
+function isVisualCadastroPath(pathname) {
+  return VISUAL_CADASTRO_PATHS.has(pathname);
 }
 
 async function getAppUser(sessionToken, supaUrl, anonKey, serviceKey) {
@@ -253,6 +292,63 @@ async function proxySupabase(req, res, targetUrl, method, incomingHeaders, body,
   return res.send(text);
 }
 
+async function ensureVisualSaefAuthorization(env, sessionToken, codigoEmpresa) {
+  if (!codigoEmpresa) {
+    return {
+      ok: false,
+      status: 400,
+      message: 'Codigo da empresa Visual nao configurado.'
+    };
+  }
+
+  const cacheKey = `${sessionToken || ''}:${codigoEmpresa}`;
+  const cached = VISUAL_AUTH_CACHE.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+
+  const upstream = await fetch(
+    `${env.visualUrl}/logonsaef/AuthorizationForUse?CodigoEmpresa=${encodeURIComponent(codigoEmpresa)}`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': sessionToken ? `Bearer ${sessionToken}` : '',
+        'Accept': 'text/plain'
+      }
+    }
+  );
+
+  const text = await upstream.text();
+  let payload = null;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch (e) {
+    payload = null;
+  }
+
+  const usable = upstream.ok && (!payload || Number(payload.usoDoSistema) !== 0);
+  const value = {
+    ok: usable,
+    status: usable ? upstream.status : 403,
+    payload,
+    text,
+    message: usable
+      ? ''
+      : (payload && payload.dataBloqueio
+        ? `Empresa bloqueada pela API Visual Saef em ${payload.dataBloqueio}.`
+        : 'API Visual Saef nao liberou o uso para esta empresa.')
+  };
+
+  if (usable) {
+    VISUAL_AUTH_CACHE.set(cacheKey, {
+      expiresAt: Date.now() + 1000 * 60 * 10,
+      value
+    });
+  }
+
+  return value;
+}
+
 async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env) {
   const sessionToken = req.headers['x-session-token']
     || String(incomingHeaders['authorization'] || '').replace(/^Bearer\s+/i, '');
@@ -268,6 +364,17 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env
     return res.status(403).json({ erro: 'Rota externa nao permitida.' });
   }
 
+  if (isVisualCadastroPath(targetUrl.pathname)) {
+    const codigoEmpresa = getVisualCodigoEmpresa(incomingHeaders, req.body, appUser) || env.visualCompanyCode;
+    const authCheck = await ensureVisualSaefAuthorization(env, sessionToken, codigoEmpresa);
+    if (!authCheck.ok) {
+      return res.status(authCheck.status || 403).json({
+        erro: authCheck.message || 'API Visual Saef nao liberou o uso para esta empresa.',
+        detalhe: authCheck.payload || authCheck.text || null
+      });
+    }
+  }
+
   let upstream;
   if (targetUrl.pathname === '/login') {
     upstream = await fetch(
@@ -279,7 +386,8 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env
       method,
       headers: {
         'Authorization': incomingHeaders['authorization'] || '',
-        'Accept': incomingHeaders['accept'] || 'application/json'
+        'Accept': incomingHeaders['accept'] || 'application/json',
+        ...(incomingHeaders['x-visual-codigo-empresa'] ? { 'x-visual-codigo-empresa': incomingHeaders['x-visual-codigo-empresa'] } : {})
       }
     });
   }
@@ -293,7 +401,7 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-session-token');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-session-token, x-visual-codigo-empresa');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Metodo nao permitido' });
@@ -304,7 +412,8 @@ export default async function handler(req, res) {
     serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     visualUrl: process.env.VISUAL_SAEF_API_URL || 'https://api-plastrio.visualsaef.com',
     visualClientId: process.env.VISUAL_SAEF_CLIENT_ID,
-    visualClientSecret: process.env.VISUAL_SAEF_CLIENT_SECRET
+    visualClientSecret: process.env.VISUAL_SAEF_CLIENT_SECRET,
+    visualCompanyCode: process.env.VISUAL_SAEF_CODIGO_EMPRESA || ''
   };
 
   if (!env.supaUrl || !env.anonKey || !env.serviceKey) {

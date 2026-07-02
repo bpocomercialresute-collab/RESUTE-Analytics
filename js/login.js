@@ -42,7 +42,18 @@ export default async function handler(req, res) {
       papel:        u.papel,
       empresa_id:   u.empresa_id || null,
       empresa_nome: u.empresas?.nome || 'RESUTE',
-      empresa_slug: u.empresas?.slug || null
+      empresa_slug: u.empresas?.slug || null,
+      empresa_codigo: u.empresas?.codigo_empresa
+        || u.empresas?.codigo_cliente
+        || u.empresas?.codigo_cliente_id
+        || u.empresas?.visual_codigo_empresa
+        || u.empresas?.visual_codigo_cliente
+        || u.codigo_empresa
+        || u.codigo_cliente
+        || u.codigo_cliente_id
+        || u.visual_codigo_empresa
+        || u.visual_codigo_cliente
+        || null
     });
   } catch (e) {
     return res.status(500).json({ erro: 'Erro interno: ' + e.message });

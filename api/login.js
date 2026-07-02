@@ -46,7 +46,7 @@ export default async function handler(req, res) {
 
     const emailNormalizado = String(email).toLowerCase();
     const userResp = await fetch(
-      `${supaUrl}/rest/v1/usuarios?email=ilike.${encodeURIComponent(emailNormalizado)}&select=*`,
+      `${supaUrl}/rest/v1/usuarios?email=ilike.${encodeURIComponent(emailNormalizado)}&select=*,empresas(*)`,
       {
         headers: {
           'apikey': serviceKey,
@@ -74,6 +74,7 @@ export default async function handler(req, res) {
       });
     }
 
+    var empresaRelacion = Array.isArray(user.empresas) ? (user.empresas[0] || {}) : (user.empresas || {});
     var empresaIds = null;
     if (user.empresa_ids) {
       try { empresaIds = JSON.parse(user.empresa_ids); } catch (e) { empresaIds = null; }
@@ -87,7 +88,19 @@ export default async function handler(req, res) {
       papel: user.papel || 'cliente',
       empresa_id: user.empresa_id || null,
       empresa_ids: empresaIds || (user.empresa_id ? [user.empresa_id] : null),
-      empresa_nome: user.empresa_nome || 'RESUTE'
+      empresa_nome: empresaRelacion.nome || user.empresa_nome || 'RESUTE',
+      empresa_slug: empresaRelacion.slug || null,
+      empresa_codigo: empresaRelacion.codigo_empresa
+        || empresaRelacion.codigo_cliente
+        || empresaRelacion.codigo_cliente_id
+        || empresaRelacion.visual_codigo_empresa
+        || empresaRelacion.visual_codigo_cliente
+        || user.codigo_empresa
+        || user.codigo_cliente
+        || user.codigo_cliente_id
+        || user.visual_codigo_empresa
+        || user.visual_codigo_cliente
+        || null
     });
   } catch (e) {
     return res.status(500).json({ erro: 'Erro interno: ' + e.message });

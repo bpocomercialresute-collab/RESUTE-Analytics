@@ -111,6 +111,7 @@ Quando houver alteracao no codigo:
 - `VISUAL_SAEF_API_URL`
 - `VISUAL_SAEF_CLIENT_ID`
 - `VISUAL_SAEF_CLIENT_SECRET`
+- `VISUAL_SAEF_CODIGO_EMPRESA` (quando a empresa Visual Saef exigir liberação por código)
 
 ## Observacoes atuais
 

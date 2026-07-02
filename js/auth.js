@@ -19,6 +19,26 @@ function _getSessionToken() {
   return '';
 }
 
+function _getVisualCodigoEmpresa() {
+  var sources = [EMPRESA_ATIVA, SESSION];
+  for (var i = 0; i < sources.length; i += 1) {
+    var src = sources[i] || {};
+    var code = src.visual_codigo_empresa
+      || src.empresa_codigo
+      || src.codigo_empresa
+      || src.codigo_cliente_id
+      || src.codigo_cliente
+      || src.codigoEmpresa
+      || src.codigoClienteID
+      || src.codigoCliente
+      || src.visual_codigo_cliente;
+    if (code !== undefined && code !== null && String(code).trim()) {
+      return String(code).trim();
+    }
+  }
+  return '';
+}
+
 function _normalizeFetchHeaders(headers) {
   if (!headers) return {};
   if (headers instanceof Headers) {
@@ -32,6 +52,8 @@ function _normalizeFetchHeaders(headers) {
 async function _fetchVisualSaefProxy(path, token, extraHeaders) {
   var headers = { Accept: 'application/json' };
   if (token) headers.Authorization = 'Bearer ' + token;
+  var codigoEmpresa = _getVisualCodigoEmpresa();
+  if (codigoEmpresa) headers['x-visual-codigo-empresa'] = codigoEmpresa;
 
   var normalized = _normalizeFetchHeaders(extraHeaders || {});
   Object.keys(normalized).forEach(function(key) {
@@ -58,6 +80,8 @@ async function _fetchVisualSaefProxy(path, token, extraHeaders) {
 async function _fetchVisualSaefDirect(path, token, extraHeaders) {
   var headers = { Accept: 'application/json' };
   if (token) headers.Authorization = 'Bearer ' + token;
+  var codigoEmpresa = _getVisualCodigoEmpresa();
+  if (codigoEmpresa) headers['x-visual-codigo-empresa'] = codigoEmpresa;
 
   var normalized = _normalizeFetchHeaders(extraHeaders || {});
   Object.keys(normalized).forEach(function(key) {
@@ -313,7 +337,9 @@ async function fazerLogin() {
       papel:       d.papel || 'cliente',
       empresa_id:  d.empresa_id || null,
       empresa_ids: empresaIds || (d.empresa_id ? [d.empresa_id] : null),
-      empresa_nome:d.empresa_nome || 'RESUTE'
+      empresa_nome:d.empresa_nome || 'RESUTE',
+      empresa_slug:d.empresa_slug || null,
+      empresa_codigo:d.empresa_codigo || null
     };
     _saveSession(SESSION);
     fecharLogin();
@@ -423,7 +449,7 @@ function _aplicarPermissoes() {
 async function _carregarEmpresasComAPI() {
   _setStatus('⏳ Carregando empresas...', '');
   try {
-    var eR = await fetch(SUPA_URL + '/rest/v1/empresas?select=id,nome,slug&ativo=eq.true', {
+    var eR = await fetch(SUPA_URL + '/rest/v1/empresas?select=*&ativo=eq.true', {
       headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
     });
     var empresas = await eR.json();
@@ -436,7 +462,12 @@ async function _carregarEmpresasComAPI() {
     EMPRESAS = (empresas || []).map(function(emp) {
       var api = (apiConfigs || []).find(function(a){ return a.empresa_id === emp.id; });
       if (!api) return null;
-      return { empresa_id: emp.id, nome: emp.nome, slug: emp.slug, sistema: api.sistema || 'api' };
+      return Object.assign({}, emp, {
+        empresa_id: emp.id || emp.empresa_id,
+        nome: emp.nome,
+        slug: emp.slug,
+        sistema: api.sistema || 'api'
+      });
     }).filter(Boolean);
 
     // Cliente: filtra só a empresa dele
@@ -1778,21 +1809,29 @@ async function _vsFetchCandidate(token, endpoint, params) {
   // A Visual Saef responde corretamente no Swagger com Accept: text/plain
   // e o corpo ainda vem em JSON serializado. Mantemos esse formato aqui
   // para replicar exatamente a chamada validada manualmente.
-  var directResp = null;
-  var directText = '';
+  var codigoEmpresa = _getVisualCodigoEmpresa();
+  var useProxyFirst = !!codigoEmpresa;
+  var firstResp = null;
+  var firstText = '';
+  var firstPayload = null;
+  var firstRunner = useProxyFirst ? _fetchVisualSaefProxy : _fetchVisualSaefDirect;
+  var secondRunner = useProxyFirst ? _fetchVisualSaefDirect : _fetchVisualSaefProxy;
+
   try {
-    directResp = await _fetchVisualSaefDirect(path, token, { Accept: 'text/plain' });
-    directText = await directResp.text();
-    var directPayload = null;
-    try { directPayload = directText ? JSON.parse(directText) : []; } catch (e) { directPayload = directText; }
-    if (directResp.ok) {
-      return { ok: directResp.ok, status: directResp.status, endpoint: endpoint, payload: directPayload, text: directText };
+    firstResp = await firstRunner(path, token, { Accept: 'text/plain' });
+    firstText = await firstResp.text();
+    try { firstPayload = firstText ? JSON.parse(firstText) : []; } catch (e) { firstPayload = firstText; }
+    if (firstResp.ok) {
+      return { ok: firstResp.ok, status: firstResp.status, endpoint: endpoint, payload: firstPayload, text: firstText };
+    }
+    if (useProxyFirst && (firstResp.status === 400 || firstResp.status === 403)) {
+      return { ok: false, status: firstResp.status, endpoint: endpoint, payload: firstPayload, text: firstText };
     }
   } catch (e) {
-    directResp = null;
+    firstResp = null;
   }
 
-  var resp = await _fetchVisualSaefProxy(path, token, { Accept: 'text/plain' });
+  var resp = await secondRunner(path, token, { Accept: 'text/plain' });
   var text = await resp.text();
   var payload = null;
   try { payload = text ? JSON.parse(text) : []; } catch (e) { payload = text; }
@@ -2227,6 +2266,7 @@ async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
     DataInicio: String(dataInicio.getDate()).padStart(2, '0') + String(dataInicio.getMonth() + 1).padStart(2, '0') + String(dataInicio.getFullYear()),
     DataTermino: String(dataFim.getDate()).padStart(2, '0') + String(dataFim.getMonth() + 1).padStart(2, '0') + String(dataFim.getFullYear())
   };
+  var codigoEmpresaVisual = _getVisualCodigoEmpresa();
   var jobs = [
     { key: 'clientes', tables: CADASTRO_TABLES.clientes, candidates: VS_ENDPOINTS.clientes, mapper: _adminMapClientesApi },
     { key: 'produtos', tables: CADASTRO_TABLES.produtos, candidates: VS_ENDPOINTS.produtos, mapper: _adminMapProdutosApi },
@@ -2242,16 +2282,19 @@ async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
         var endpointPrincipal = job.candidates[0] || found.endpoint || '';
         var bloqueado403 = _vsAllAttemptsStatus(found.attempts, 403);
         var ausente404 = _vsAllAttemptsStatus(found.attempts, 404);
+        var mensagemErro = !codigoEmpresaVisual
+          ? 'Codigo da empresa Visual Saef nao configurado. Cadastros bloqueados.'
+          : (bloqueado403
+            ? ('API bloqueou o endpoint ' + endpointPrincipal + ' (HTTP 403).')
+            : (ausente404
+              ? ('Endpoint ' + endpointPrincipal + ' nao encontrado na API (HTTP 404).')
+              : (_vsResumoTentativas(found.attempts) || 'Nenhum endpoint confirmou dados neste ambiente.')));
         summary[job.key] = {
           ok: false,
           pending: !(bloqueado403 || ausente404),
           count: 0,
           endpoint: endpointPrincipal,
-          message: bloqueado403
-            ? ('API bloqueou o endpoint ' + endpointPrincipal + ' (HTTP 403).')
-            : (ausente404
-              ? ('Endpoint ' + endpointPrincipal + ' não encontrado na API (HTTP 404).')
-              : (_vsResumoTentativas(found.attempts) || 'Nenhum endpoint confirmou dados neste ambiente.'))
+          message: mensagemErro
         };
         continue;
       }
