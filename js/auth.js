@@ -55,6 +55,23 @@ async function _fetchVisualSaefProxy(path, token, extraHeaders) {
   });
 }
 
+async function _fetchVisualSaefDirect(path, token, extraHeaders) {
+  var headers = { Accept: 'application/json' };
+  if (token) headers.Authorization = 'Bearer ' + token;
+
+  var normalized = _normalizeFetchHeaders(extraHeaders || {});
+  Object.keys(normalized).forEach(function(key) {
+    if (normalized[key] !== undefined && normalized[key] !== null) {
+      headers[key] = normalized[key];
+    }
+  });
+
+  return NATIVE_FETCH(VISUAL_SAEF_API_URL + path, {
+    method: 'GET',
+    headers: headers
+  });
+}
+
 window.fetch = function(input, init) {
   var url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
   var opts = init || {};
@@ -1761,6 +1778,20 @@ async function _vsFetchCandidate(token, endpoint, params) {
   // A Visual Saef responde corretamente no Swagger com Accept: text/plain
   // e o corpo ainda vem em JSON serializado. Mantemos esse formato aqui
   // para replicar exatamente a chamada validada manualmente.
+  var directResp = null;
+  var directText = '';
+  try {
+    directResp = await _fetchVisualSaefDirect(path, token, { Accept: 'text/plain' });
+    directText = await directResp.text();
+    var directPayload = null;
+    try { directPayload = directText ? JSON.parse(directText) : []; } catch (e) { directPayload = directText; }
+    if (directResp.ok) {
+      return { ok: directResp.ok, status: directResp.status, endpoint: endpoint, payload: directPayload, text: directText };
+    }
+  } catch (e) {
+    directResp = null;
+  }
+
   var resp = await _fetchVisualSaefProxy(path, token, { Accept: 'text/plain' });
   var text = await resp.text();
   var payload = null;
