@@ -2089,8 +2089,13 @@ function _adminMapClientesApi(items) {
 function _adminMapProdutosApi(items) {
   var seen = {};
   return items.map(function(item, idx) {
-    var codigo = String(_vsPick(item, ['codigo', 'codproduto', 'id', 'idproduto']) || '').trim();
-    var nome = String(_vsPick(item, ['nome', 'descricao', 'produto', 'descricaoproduto']) || '').trim();
+    var codigoPermanente = String(_vsPick(item, ['codigoPermanente', 'codigopermanente', 'codigo_permanente']) || '').trim();
+    var codigoItem = String(_vsPick(item, ['codigoItem', 'codigoitem', 'codigo_item', 'codigo', 'codproduto', 'id', 'idproduto']) || '').trim();
+    var descricaoItem = String(_vsPick(item, ['descricaoItem', 'descricaoitem', 'descricaoproduto', 'descricao', 'produto', 'nome']) || '').trim();
+    var unidade = String(_vsPick(item, ['unidade', 'un', 'unidademedida']) || '').trim();
+    var cst = String(_vsPick(item, ['cst']) || '').trim();
+    var codigo = codigoItem || codigoPermanente;
+    var nome = descricaoItem || codigoItem || codigoPermanente || ('PRODUTO ' + (idx + 1));
     var id = codigo || nome || ('prd_' + (idx + 1));
     var base = id;
     var seq = 1;
@@ -2101,10 +2106,20 @@ function _adminMapProdutosApi(items) {
       id_externo: id,
       codigo: codigo || id,
       nome: nome,
-      grupo: String(_vsPick(item, ['grupo', 'grupoproduto', 'categoria']) || '').trim(),
-      marca: String(_vsPick(item, ['marca', 'fabricante', 'industria']) || '').trim(),
-      preco: _vsToNumber(_vsPick(item, ['preco', 'precovenda', 'valor', 'valorunitario'])),
-      unidade: String(_vsPick(item, ['unidade', 'un', 'unidademedida']) || '').trim(),
+      codigo_permanente: codigoPermanente || codigo || id,
+      codigo_item: codigoItem || codigo || id,
+      descricao_item: descricaoItem || nome,
+      grupo: String(_vsPick(item, ['grupo', 'grupoproduto', 'categoria']) || 'SEM GRUPO').trim() || 'SEM GRUPO',
+      marca: String(_vsPick(item, ['marca', 'fabricante', 'industria']) || 'SEM MARCA').trim() || 'SEM MARCA',
+      preco: _vsToNumber(_vsPick(item, ['preco', 'precovenda', 'valor', 'valorunitario', 'valorVenda'])),
+      unidade: unidade || 'UN',
+      cst: cst || '000',
+      aliq_icms: _vsToNumber(_vsPick(item, ['aliqICMS', 'aliqicms', 'icms'])),
+      aliq_ipi: _vsToNumber(_vsPick(item, ['aliqIPI', 'aliqipi', 'ipi'])),
+      aliq_icms_st: _vsToNumber(_vsPick(item, ['aliqICMS_ST', 'aliqicms_st', 'aliqicmsst'])),
+      percent_mva: _vsToNumber(_vsPick(item, ['percentMVA', 'percentmva', 'mva'])),
+      valor_venda: _vsToNumber(_vsPick(item, ['valorVenda', 'valorvenda', 'preco', 'precovenda', 'valor', 'valorunitario'])),
+      desconto_maximo: _vsToNumber(_vsPick(item, ['descontoMaximo', 'descontomaximo', 'desconto'])),
       ativo: _vsToBool(_vsPick(item, ['ativo', 'status', 'situacao']))
     };
   });
