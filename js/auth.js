@@ -1635,14 +1635,56 @@ function dcStatus(msg, ok) {
 // =============================================================================
 
 var EMPRESA_ATIVA = null;
-var EMPRESAS_ADMIN = [
+var EMPRESAS_ADMIN_BASE = [
   { empresa_id: 'af3b599b-65c5-4868-b8bf-a5934da84f0d', nome: 'Varremaster',     tem_api: true  },
   { empresa_id: 'dff89ea1-0c33-48d1-84d7-1fc7826654b8', nome: 'Llamenina Matriz', tem_api: false },
   { empresa_id: 'af44d320-d663-48ff-b58f-31c5011ad7ba', nome: 'Llamenina Mega',   tem_api: false }
 ];
+var EMPRESAS_ADMIN = EMPRESAS_ADMIN_BASE.slice();
 
-function adminInicializar() {
+async function _adminCarregarEmpresasMeta() {
+  try {
+    var empresasResp = await fetch(SUPA_URL + '/rest/v1/empresas?select=*&ativo=eq.true', {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
+    });
+    var empresas = await empresasResp.json();
+
+    var apiResp = await fetch(SUPA_URL + '/rest/v1/api_config?select=empresa_id,sistema,api_url,ativo', {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
+    });
+    var apiConfigs = await apiResp.json();
+
+    EMPRESAS_ADMIN = EMPRESAS_ADMIN_BASE.map(function(base) {
+      var empresaDb = (empresas || []).find(function(emp) {
+        return (emp.id || emp.empresa_id) === base.empresa_id;
+      }) || {};
+      var apiCfg = (apiConfigs || []).find(function(cfg) {
+        return cfg.empresa_id === base.empresa_id && cfg.ativo !== false;
+      }) || null;
+      return Object.assign({}, base, empresaDb, {
+        empresa_id: empresaDb.id || empresaDb.empresa_id || base.empresa_id,
+        nome: empresaDb.nome || base.nome,
+        slug: empresaDb.slug || base.slug || null,
+        tem_api: !!apiCfg || !!base.tem_api,
+        sistema: apiCfg && apiCfg.sistema ? apiCfg.sistema : (empresaDb.sistema || base.sistema || null),
+        empresa_codigo: empresaDb.codigo_empresa
+          || empresaDb.codigo_cliente
+          || empresaDb.codigo_cliente_id
+          || empresaDb.visual_codigo_empresa
+          || empresaDb.visual_codigo_cliente
+          || base.empresa_codigo
+          || null
+      });
+    });
+  } catch (e) {
+    EMPRESAS_ADMIN = EMPRESAS_ADMIN_BASE.slice();
+    console.warn('[ADMIN] Falha ao carregar metadados das empresas:', e);
+  }
+}
+
+async function adminInicializar() {
   var sa = document.getElementById('sync-area'); if (sa) sa.style.display = 'none';
+  await _adminCarregarEmpresasMeta();
   _adminRenderAbas();
   adminSelecionarEmpresa(EMPRESAS_ADMIN[0].empresa_id);
 }

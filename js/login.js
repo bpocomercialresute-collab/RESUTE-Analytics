@@ -28,7 +28,7 @@ export default async function handler(req, res) {
 
     // Busca dados do usuário
     const userResp = await fetch(
-      `${SUPA_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&select=*,empresas(id,nome,slug)`,
+      `${SUPA_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&select=*,empresas(*)`,
       { headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${authData.access_token}` } }
     );
     const users = await userResp.json();
