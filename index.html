@@ -190,7 +190,16 @@
         <div id="breadcrumb-text" class="cui-breadcrumb">Análise de Vendas</div>
       </div>
       <div class="cui-header-right">
-        <div id="sync-area" style="display:none"></div>
+        <div id="sync-area" style="display:none" class="cui-sync-area">
+          <span id="sync-status" class="cui-sync-status"></span>
+          <select id="sync-empresa-select" class="sync-empresa-select" style="display:none">
+            <option value="">Selecionar empresa...</option>
+          </select>
+          <button id="btn-sync" class="cui-btn-sync" onclick="sincronizarAPI()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+            Sincronizar
+          </button>
+        </div>
         <div id="header-user" style="display:none" class="cui-header-user">
           <div class="cui-header-user-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
           <div class="cui-header-user-info"><div id="user-nome" class="cui-header-user-nome"></div><div id="user-empresa" class="cui-header-user-empresa"></div></div>
@@ -198,6 +207,14 @@
       </div>
     </header>
     <main class="cui-main">
+      <div id="loader" style="display:none">
+        <div class="loader-box">
+          <div class="loader-progress"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20"/></svg></div>
+          <h3>Processando</h3>
+          <p id="loaderMsg">Analisando base de dados...</p>
+        </div>
+      </div>
+
       <div id="view-home" class="page-view" style="display:none">
         <div class="content">
           <section class="hero">
