@@ -28,11 +28,12 @@ async function adminInicializar() {
 
     EMPRESAS_LISTA = (empresas || []).map(function(e) {
       var api = (apis || []).find(function(a){ return a.empresa_id === e.id && a.api_url; });
+      var origem = String(e.exibir_origem || 'manual').toLowerCase();
       return Object.assign({}, e, {
         empresa_id: e.id || e.empresa_id,
         nome:       e.nome,
         slug:       e.slug,
-        tem_api:    !!api,
+        tem_api:    !!api && origem === 'api',
         sistema:    api ? api.sistema : null
       });
     });

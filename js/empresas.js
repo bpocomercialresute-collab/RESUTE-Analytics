@@ -14,13 +14,13 @@ export default async function handler(req, res) {
   try {
     // Busca empresas com API configurada
     const r = await fetch(
-      `${SUPA_URL}/rest/v1/api_config?select=empresa_id,sistema,empresas(nome,slug)&ativo=eq.true`,
+      `${SUPA_URL}/rest/v1/api_config?select=empresa_id,sistema,empresas(nome,slug,exibir_origem)&ativo=eq.true`,
       { headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${token}` } }
     );
     const data = await r.json();
 
     const empresas = (data || [])
-      .filter(d => d.empresas)
+      .filter(d => d.empresas && String(d.empresas.exibir_origem || '').toLowerCase() === 'api')
       .map(d => ({
         empresa_id: d.empresa_id,
         nome:       d.empresas.nome,

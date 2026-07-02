@@ -462,7 +462,9 @@ async function _carregarEmpresasComAPI() {
 
     EMPRESAS = (empresas || []).map(function(emp) {
       var api = (apiConfigs || []).find(function(a){ return a.empresa_id === emp.id; });
-      if (!api) return null;
+      var origem = String(emp.exibir_origem || 'manual').toLowerCase();
+      var temApi = !!api && origem === 'api';
+      if (!temApi) return null;
       return Object.assign({}, emp, {
         empresa_id: emp.id || emp.empresa_id,
         nome: emp.nome,
@@ -1661,11 +1663,12 @@ async function _adminCarregarEmpresasMeta() {
       var apiCfg = (apiConfigs || []).find(function(cfg) {
         return cfg.empresa_id === base.empresa_id && cfg.ativo !== false;
       }) || null;
+      var origem = String(empresaDb.exibir_origem || base.exibir_origem || 'manual').toLowerCase();
       return Object.assign({}, base, empresaDb, {
         empresa_id: empresaDb.id || empresaDb.empresa_id || base.empresa_id,
         nome: empresaDb.nome || base.nome,
         slug: empresaDb.slug || base.slug || null,
-        tem_api: !!apiCfg || !!base.tem_api,
+        tem_api: (!!apiCfg && origem === 'api') || !!base.tem_api,
         sistema: apiCfg && apiCfg.sistema ? apiCfg.sistema : (empresaDb.sistema || base.sistema || null),
         empresa_codigo: empresaDb.codigo_empresa
           || empresaDb.codigo_cliente
