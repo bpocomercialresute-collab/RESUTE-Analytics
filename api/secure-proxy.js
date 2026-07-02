@@ -328,7 +328,9 @@ async function ensureVisualSaefAuthorization(env, visualToken, codigoEmpresa) {
     payload = null;
   }
 
-  const usable = upstream.ok && (!payload || Number(payload.usoDoSistema) !== 0);
+  const blockedByFlag = payload && Number(payload.usoDoSistema) === 1;
+  const blockedByDate = payload && payload.dataBloqueio;
+  const usable = upstream.ok && !blockedByFlag && !blockedByDate;
   const value = {
     ok: usable,
     status: usable ? upstream.status : 403,

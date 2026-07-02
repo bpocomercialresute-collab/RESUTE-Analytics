@@ -1825,9 +1825,6 @@ async function _vsFetchCandidate(token, endpoint, params) {
     if (firstResp.ok) {
       return { ok: firstResp.ok, status: firstResp.status, endpoint: endpoint, payload: firstPayload, text: firstText };
     }
-    if (useProxyFirst && (firstResp.status === 400 || firstResp.status === 403)) {
-      return { ok: false, status: firstResp.status, endpoint: endpoint, payload: firstPayload, text: firstText };
-    }
   } catch (e) {
     firstResp = null;
   }
