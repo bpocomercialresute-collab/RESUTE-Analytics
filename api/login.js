@@ -54,8 +54,16 @@ export default async function handler(req, res) {
     );
 
     const users = await userResp.json();
+    const roleWeight = { super_admin: 3, admin: 2, gestor: 1, cliente: 0 };
     const user = Array.isArray(users) && users.length
-      ? users[0]
+      ? users.slice().sort((a, b) => {
+          const aRole = roleWeight[String(a?.papel || '').toLowerCase()] ?? -1;
+          const bRole = roleWeight[String(b?.papel || '').toLowerCase()] ?? -1;
+          if (bRole !== aRole) return bRole - aRole;
+          const aEmpresa = a?.empresa_id ? 1 : 0;
+          const bEmpresa = b?.empresa_id ? 1 : 0;
+          return bEmpresa - aEmpresa;
+        })[0]
       : { nome: email, papel: 'cliente', empresa_id: null, empresa_ids: null };
 
     var empresaIds = null;
