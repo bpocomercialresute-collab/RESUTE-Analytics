@@ -1834,6 +1834,14 @@ async function _adminReplaceApiTable(table, rows) {
   return { count: inserted, ok: true };
 }
 
+function _adminIsMissingTableError(message) {
+  var text = String(message || '').toLowerCase();
+  return text.indexOf('pgrst205') >= 0
+    || text.indexOf('could not find the table') >= 0
+    || text.indexOf('schema cache') >= 0
+    || text.indexOf('perhaps you meant the table') >= 0;
+}
+
 async function _adminFetchCadastroTable(candidates) {
   var ultimoErro = null;
   var primeiraDisponivel = null;
@@ -1882,7 +1890,12 @@ async function _adminLimparCadastrosApiSync() {
   });
 
   for (var i = 0; i < allTables.length; i += 1) {
-    await _adminReplaceApiTable(allTables[i], []);
+    try {
+      await _adminReplaceApiTable(allTables[i], []);
+    } catch (e) {
+      if (_adminIsMissingTableError(e && e.message)) continue;
+      throw e;
+    }
   }
 }
 
