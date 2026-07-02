@@ -25,6 +25,7 @@ function _getVisualCodigoEmpresa() {
     var src = sources[i] || {};
     var code = src.visual_codigo_empresa
       || src.empresa_codigo
+      || src.empresa_id
       || src.codigo_empresa
       || src.codigo_cliente_id
       || src.codigo_cliente

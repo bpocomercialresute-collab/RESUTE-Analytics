@@ -94,10 +94,12 @@ function getVisualCodigoEmpresa(incomingHeaders, body, appUser) {
     incomingHeaders && incomingHeaders['x-visual-company-code'],
     body && body.visual_codigo_empresa,
     body && body.empresa_codigo,
+    body && body.empresa_id,
     body && body.codigo_empresa,
     body && body.codigoCliente,
     appUser && appUser.visual_codigo_empresa,
     appUser && appUser.empresa_codigo,
+    appUser && appUser.empresa_id,
     appUser && appUser.codigo_empresa,
     appUser && appUser.codigo_cliente_id,
     appUser && appUser.codigo_cliente
