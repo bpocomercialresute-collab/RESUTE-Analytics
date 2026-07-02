@@ -23,8 +23,9 @@ export default async function handler(req, res) {
 
   const supaUrl = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!supaUrl || !anonKey) {
+  if (!supaUrl || !anonKey || !serviceKey) {
     return res.status(500).json({ erro: 'Variaveis do Supabase nao configuradas na Vercel.' });
   }
 
@@ -48,8 +49,8 @@ export default async function handler(req, res) {
       `${supaUrl}/rest/v1/usuarios?email=ilike.${encodeURIComponent(emailNormalizado)}&select=*`,
       {
         headers: {
-          'apikey': anonKey,
-          'Authorization': `Bearer ${authData.access_token}`
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`
         }
       }
     );

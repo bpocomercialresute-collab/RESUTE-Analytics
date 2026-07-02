@@ -80,7 +80,7 @@ function normalizeHeaders(inputHeaders) {
   return out;
 }
 
-async function getAppUser(sessionToken, supaUrl, anonKey) {
+async function getAppUser(sessionToken, supaUrl, anonKey, serviceKey) {
   const authResp = await fetch(`${supaUrl}/auth/v1/user`, {
     headers: {
       'apikey': anonKey,
@@ -98,8 +98,8 @@ async function getAppUser(sessionToken, supaUrl, anonKey) {
     `${supaUrl}/rest/v1/usuarios?email=ilike.${encodeURIComponent(email)}&select=*`,
     {
       headers: {
-        'apikey': anonKey,
-        'Authorization': `Bearer ${sessionToken}`
+        'apikey': serviceKey || anonKey,
+        'Authorization': `Bearer ${serviceKey || sessionToken}`
       }
     }
   );
@@ -224,7 +224,7 @@ async function proxySupabase(req, res, targetUrl, method, incomingHeaders, body,
 
   const sessionToken = req.headers['x-session-token']
     || String(incomingHeaders['authorization'] || '').replace(/^Bearer\s+/i, '');
-  const appUser = await getAppUser(sessionToken, env.supaUrl, env.anonKey);
+  const appUser = await getAppUser(sessionToken, env.supaUrl, env.anonKey, env.serviceKey);
   if (!appUser) {
     return res.status(401).json({ erro: 'Sessao invalida.' });
   }
@@ -264,7 +264,7 @@ async function proxySupabase(req, res, targetUrl, method, incomingHeaders, body,
 async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env) {
   const sessionToken = req.headers['x-session-token']
     || String(incomingHeaders['authorization'] || '').replace(/^Bearer\s+/i, '');
-  const appUser = await getAppUser(sessionToken, env.supaUrl, env.anonKey);
+  const appUser = await getAppUser(sessionToken, env.supaUrl, env.anonKey, env.serviceKey);
   if (!appUser) {
     return res.status(401).json({ erro: 'Sessao invalida.' });
   }
