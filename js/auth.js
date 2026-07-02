@@ -1758,7 +1758,10 @@ function _vsToBool(value) {
 async function _vsFetchCandidate(token, endpoint, params) {
   var qs = new URLSearchParams(params || {}).toString();
   var path = endpoint + (qs ? '?' + qs : '');
-  var resp = await _fetchVisualSaefProxy(path, token, { Accept: 'application/json' });
+  // A Visual Saef responde corretamente no Swagger com Accept: text/plain
+  // e o corpo ainda vem em JSON serializado. Mantemos esse formato aqui
+  // para replicar exatamente a chamada validada manualmente.
+  var resp = await _fetchVisualSaefProxy(path, token, { Accept: 'text/plain' });
   var text = await resp.text();
   var payload = null;
   try { payload = text ? JSON.parse(text) : []; } catch (e) { payload = text; }
