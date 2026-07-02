@@ -1674,26 +1674,9 @@ function _adminObterPeriodoSync() {
 
 var VS_ENDPOINTS = {
   // Endpoints dedicados de cadastro na Visual Saef
-  clientes: [
-    '/cadastrocliente',
-    '/cadastroclienteparceiro',
-    '/relacaocliente',
-    '/clientes',
-    '/cliente'
-  ],
-  produtos: [
-    '/cadastroproduto',
-    '/relacaoproduto',
-    '/produtos',
-    '/produto'
-  ],
-  representantes: [
-    '/cadastrovendedor',
-    '/relacaorepresentante',
-    '/representantes',
-    '/vendedores',
-    '/vendedor'
-  ]
+  clientes: ['/cadastrocliente'],
+  produtos: ['/cadastroproduto'],
+  representantes: ['/cadastrovendedor']
 };
 
 var CADASTRO_TABLES = {
@@ -1793,6 +1776,13 @@ function _vsResumoTentativas(attempts) {
   return attempts.map(function(item) {
     return item.endpoint + ': HTTP ' + item.status;
   }).join(' | ');
+}
+
+function _vsAllAttemptsStatus(attempts, status) {
+  if (!Array.isArray(attempts) || !attempts.length) return false;
+  return attempts.every(function(item) {
+    return Number(item.status) === Number(status);
+  });
 }
 
 async function _adminReplaceApiTable(table, rows) {
@@ -2068,7 +2058,9 @@ function _adminRenderApiModules(summary) {
     var count = Number(item.count || 0).toLocaleString('pt-BR');
     var isDerived = item.ok && item.endpoint && item.endpoint.indexOf('derivado') >= 0;
     var badgeClass = item.ok ? (isDerived ? 'derived' : 'ok') : '';
-    var badge = item.ok ? (isDerived ? 'Derivado ✓' : '✓ Sincronizado') : (item.count > 0 ? '⚠ Parcial' : '— Aguardando');
+    var badge = item.ok
+      ? (isDerived ? 'Derivado ✓' : '✓ Sincronizado')
+      : (!item.pending ? '✗ Indisponível' : (item.count > 0 ? '⚠ Parcial' : '— Aguardando'));
     var meta = item.message || mod.fallback;
     var endpoint = item.endpoint ? ('Endpoint: ' + item.endpoint) : 'Endpoint: aguardando confirmação';
     return ''
@@ -2178,12 +2170,19 @@ async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
     try {
       var found = await _vsFindEndpointData(token, job.candidates, params);
       if (!found.items.length) {
+        var endpointPrincipal = job.candidates[0] || found.endpoint || '';
+        var bloqueado403 = _vsAllAttemptsStatus(found.attempts, 403);
+        var ausente404 = _vsAllAttemptsStatus(found.attempts, 404);
         summary[job.key] = {
           ok: false,
-          pending: true,
+          pending: !(bloqueado403 || ausente404),
           count: 0,
-          endpoint: found.endpoint || '',
-          message: _vsResumoTentativas(found.attempts) || 'Nenhum endpoint confirmou dados neste ambiente. Estrutura pronta para ligar assim que a API responder.'
+          endpoint: endpointPrincipal,
+          message: bloqueado403
+            ? ('API bloqueou o endpoint ' + endpointPrincipal + ' (HTTP 403).')
+            : (ausente404
+              ? ('Endpoint ' + endpointPrincipal + ' não encontrado na API (HTTP 404).')
+              : (_vsResumoTentativas(found.attempts) || 'Nenhum endpoint confirmou dados neste ambiente.'))
         };
         continue;
       }
