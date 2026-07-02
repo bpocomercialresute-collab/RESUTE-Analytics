@@ -1864,16 +1864,18 @@ async function _vsFindEndpointData(token, candidates, params) {
       if (Array.isArray(first.payload) && !list.length) return { endpoint: endpoint, items: first.payload, attempts: attempts };
     }
 
-    var second = await _vsFetchCandidate(token, endpoint, params);
-    attempts.push({
-      endpoint: endpoint,
-      status: second.status,
-      body: second.ok ? '' : String(second.text || '').slice(0, 140)
-    });
-    if (second.ok) {
-      var list2 = _vsExtractList(second.payload);
-      if (Array.isArray(list2) && list2.length) return { endpoint: endpoint, items: list2, attempts: attempts };
-      if (Array.isArray(second.payload) && !list2.length) return { endpoint: endpoint, items: second.payload, attempts: attempts };
+    if (params && Object.keys(params).length) {
+      var second = await _vsFetchCandidate(token, endpoint, params);
+      attempts.push({
+        endpoint: endpoint,
+        status: second.status,
+        body: second.ok ? '' : String(second.text || '').slice(0, 140)
+      });
+      if (second.ok) {
+        var list2 = _vsExtractList(second.payload);
+        if (Array.isArray(list2) && list2.length) return { endpoint: endpoint, items: list2, attempts: attempts };
+        if (Array.isArray(second.payload) && !list2.length) return { endpoint: endpoint, items: second.payload, attempts: attempts };
+      }
     }
   }
 
@@ -2263,10 +2265,6 @@ async function _adminReplaceOrigemTable(table, rows) {
 }
 
 async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
-  var params = {
-    DataInicio: String(dataInicio.getDate()).padStart(2, '0') + String(dataInicio.getMonth() + 1).padStart(2, '0') + String(dataInicio.getFullYear()),
-    DataTermino: String(dataFim.getDate()).padStart(2, '0') + String(dataFim.getMonth() + 1).padStart(2, '0') + String(dataFim.getFullYear())
-  };
   var codigoEmpresaVisual = _getVisualCodigoEmpresa();
   var jobs = [
     { key: 'clientes', tables: CADASTRO_TABLES.clientes, candidates: VS_ENDPOINTS.clientes, mapper: _adminMapClientesApi },
@@ -2278,7 +2276,7 @@ async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
   for (var i = 0; i < jobs.length; i += 1) {
     var job = jobs[i];
     try {
-      var found = await _vsFindEndpointData(token, job.candidates, params);
+      var found = await _vsFindEndpointData(token, job.candidates, null);
       if (!found.items.length) {
         var endpointPrincipal = job.candidates[0] || found.endpoint || '';
         var bloqueado403 = _vsAllAttemptsStatus(found.attempts, 403);

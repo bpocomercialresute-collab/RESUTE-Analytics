@@ -294,7 +294,7 @@ async function proxySupabase(req, res, targetUrl, method, incomingHeaders, body,
   return res.send(text);
 }
 
-async function ensureVisualSaefAuthorization(env, sessionToken, codigoEmpresa) {
+async function ensureVisualSaefAuthorization(env, visualToken, codigoEmpresa) {
   if (!codigoEmpresa) {
     return {
       ok: false,
@@ -303,7 +303,7 @@ async function ensureVisualSaefAuthorization(env, sessionToken, codigoEmpresa) {
     };
   }
 
-  const cacheKey = `${sessionToken || ''}:${codigoEmpresa}`;
+  const cacheKey = `${visualToken || ''}:${codigoEmpresa}`;
   const cached = VISUAL_AUTH_CACHE.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.value;
@@ -314,7 +314,7 @@ async function ensureVisualSaefAuthorization(env, sessionToken, codigoEmpresa) {
     {
       method: 'GET',
       headers: {
-        'Authorization': sessionToken ? `Bearer ${sessionToken}` : '',
+        'Authorization': visualToken || '',
         'Accept': 'text/plain'
       }
     }
@@ -354,6 +354,7 @@ async function ensureVisualSaefAuthorization(env, sessionToken, codigoEmpresa) {
 async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env) {
   const sessionToken = req.headers['x-session-token']
     || String(incomingHeaders['authorization'] || '').replace(/^Bearer\s+/i, '');
+  const visualToken = incomingHeaders['authorization'] || '';
   const appUser = await getAppUser(sessionToken, env.supaUrl, env.anonKey, env.serviceKey);
   if (!appUser) {
     return res.status(401).json({ erro: 'Sessao invalida.' });
@@ -368,7 +369,7 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env
 
   if (isVisualCadastroPath(targetUrl.pathname)) {
     const codigoEmpresa = getVisualCodigoEmpresa(incomingHeaders, req.body, appUser) || env.visualCompanyCode;
-    const authCheck = await ensureVisualSaefAuthorization(env, sessionToken, codigoEmpresa);
+    const authCheck = await ensureVisualSaefAuthorization(env, visualToken, codigoEmpresa);
     if (!authCheck.ok) {
       return res.status(authCheck.status || 403).json({
         erro: authCheck.message || 'API Visual Saef nao liberou o uso para esta empresa.',
