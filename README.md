@@ -125,3 +125,8 @@ Quando houver alteracao no codigo:
 - Evoluir a integracao de API para trazer mais dados cadastrais
 - Melhorar filtros e dashboards por empresa
 - Refinar ainda mais a experiencia dos clientes nos relatorios
+
+### Variaveis adicionais para cadastros Visual Saef
+
+- `VISUAL_SAEF_CADASTRO_CLIENT_ID`
+- `VISUAL_SAEF_CADASTRO_CLIENT_SECRET`

@@ -40,6 +40,7 @@ const VISUAL_CADASTRO_PATHS = new Set([
   '/cadastrovendedor'
 ]);
 
+const VISUAL_LOGIN_TOKEN_CACHE = new Map();
 const VISUAL_AUTH_CACHE = new Map();
 
 function getSessionEmpresaIds(appUser) {
@@ -115,6 +116,74 @@ function getVisualCodigoEmpresa(incomingHeaders, body, appUser) {
 
 function isVisualCadastroPath(pathname) {
   return VISUAL_CADASTRO_PATHS.has(pathname);
+}
+
+function readJwtExpiry(token) {
+  if (typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length < 2) return null;
+  try {
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    const payload = JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+    if (!payload || !payload.exp) return null;
+    return Number(payload.exp) * 1000;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function getVisualLoginToken(env, clientId, clientSecret) {
+  if (!clientId || !clientSecret) {
+    return {
+      ok: false,
+      status: 500,
+      message: 'Credenciais da API Visual Saef nao configuradas para o login de cadastro.'
+    };
+  }
+
+  const cacheKey = `${clientId}:${clientSecret}`;
+  const cached = VISUAL_LOGIN_TOKEN_CACHE.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+
+  const upstream = await fetch(
+    `${env.visualUrl}/login?client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}`,
+    {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    }
+  );
+
+  const text = await upstream.text();
+  let payload = null;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch (e) {
+    payload = null;
+  }
+
+  const token = payload && typeof payload.token === 'string'
+    ? payload.token
+    : (typeof text === 'string' ? text.trim() : '');
+  if (!upstream.ok || !token) {
+    return {
+      ok: false,
+      status: upstream.status || 500,
+      text,
+      payload,
+      message: 'Nao foi possivel autenticar na API Visual Saef para o fluxo de cadastros.'
+    };
+  }
+
+  const expiresAt = Math.max(
+    Date.now() + 1000 * 60 * 20,
+    (readJwtExpiry(token) || (Date.now() + 1000 * 60 * 30)) - 1000 * 30
+  );
+  const value = { ok: true, token, payload, text, status: upstream.status };
+  VISUAL_LOGIN_TOKEN_CACHE.set(cacheKey, { expiresAt, value });
+  return value;
 }
 
 async function getAppUser(sessionToken, supaUrl, anonKey, serviceKey) {
@@ -356,7 +425,6 @@ async function ensureVisualSaefAuthorization(env, visualToken, codigoEmpresa) {
 async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env) {
   const sessionToken = req.headers['x-session-token']
     || String(incomingHeaders['authorization'] || '').replace(/^Bearer\s+/i, '');
-  const visualToken = incomingHeaders['authorization'] || '';
   const appUser = await getAppUser(sessionToken, env.supaUrl, env.anonKey, env.serviceKey);
   if (!appUser) {
     return res.status(401).json({ erro: 'Sessao invalida.' });
@@ -375,6 +443,28 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env
       `${env.visualUrl}/login?client_id=${encodeURIComponent(env.visualClientId)}&client_secret=${encodeURIComponent(env.visualClientSecret)}`,
       { method: 'GET', headers: { 'Accept': 'application/json' } }
     );
+  } else if (isVisualCadastroPath(targetUrl.pathname)) {
+    const cadastroAuth = await getVisualLoginToken(
+      env,
+      env.visualCadastroClientId || env.visualClientId,
+      env.visualCadastroClientSecret || env.visualClientSecret
+    );
+
+    if (!cadastroAuth.ok || !cadastroAuth.token) {
+      return res.status(cadastroAuth.status || 500).json({
+        erro: cadastroAuth.message || 'Falha ao autenticar na API Visual Saef para os cadastros.',
+        detalhe: cadastroAuth.text || null
+      });
+    }
+
+    upstream = await fetch(`${env.visualUrl}${targetUrl.pathname}${targetUrl.search}`, {
+      method,
+      headers: {
+        'Authorization': `Bearer ${cadastroAuth.token}`,
+        'Accept': incomingHeaders['accept'] || 'application/json',
+        ...(incomingHeaders['x-visual-codigo-empresa'] ? { 'x-visual-codigo-empresa': incomingHeaders['x-visual-codigo-empresa'] } : {})
+      }
+    });
   } else {
     upstream = await fetch(`${env.visualUrl}${targetUrl.pathname}${targetUrl.search}`, {
       method,
@@ -407,6 +497,8 @@ export default async function handler(req, res) {
     visualUrl: process.env.VISUAL_SAEF_API_URL || 'https://api-plastrio.visualsaef.com',
     visualClientId: process.env.VISUAL_SAEF_CLIENT_ID,
     visualClientSecret: process.env.VISUAL_SAEF_CLIENT_SECRET,
+    visualCadastroClientId: process.env.VISUAL_SAEF_CADASTRO_CLIENT_ID || process.env.VISUAL_SAEF_CLIENT_ID,
+    visualCadastroClientSecret: process.env.VISUAL_SAEF_CADASTRO_CLIENT_SECRET || process.env.VISUAL_SAEF_CLIENT_SECRET,
     visualCompanyCode: process.env.VISUAL_SAEF_CODIGO_EMPRESA || ''
   };
 
