@@ -1703,9 +1703,9 @@ var VS_ENDPOINTS = {
 };
 
 var CADASTRO_TABLES = {
-  clientes: ['clientes_cad', 'clientes_api', 'clientes'],
-  produtos: ['produtos', 'produtos_api'],
-  representantes: ['representantes', 'representantes_api']
+  clientes: ['clientes_cad'],
+  produtos: ['produtos'],
+  representantes: ['representantes']
 };
 
 function _vsNormalizeMap(item) {
@@ -1782,7 +1782,11 @@ async function _vsFindEndpointData(token, candidates, params) {
     // filtro de período. Testamos primeiro a rota pura e, se não vier
     // conteúdo, repetimos com as datas.
     var first = await _vsFetchCandidate(token, endpoint, withoutDates);
-    attempts.push({ endpoint: endpoint + ' (sem período)', status: first.status });
+    attempts.push({
+      endpoint: endpoint + ' (sem período)',
+      status: first.status,
+      body: first.ok ? '' : String(first.text || '').slice(0, 140)
+    });
     if (first.ok) {
       var list = _vsExtractList(first.payload);
       if (Array.isArray(list) && list.length) return { endpoint: endpoint, items: list, attempts: attempts };
@@ -1790,7 +1794,11 @@ async function _vsFindEndpointData(token, candidates, params) {
     }
 
     var second = await _vsFetchCandidate(token, endpoint, params);
-    attempts.push({ endpoint: endpoint, status: second.status });
+    attempts.push({
+      endpoint: endpoint,
+      status: second.status,
+      body: second.ok ? '' : String(second.text || '').slice(0, 140)
+    });
     if (second.ok) {
       var list2 = _vsExtractList(second.payload);
       if (Array.isArray(list2) && list2.length) return { endpoint: endpoint, items: list2, attempts: attempts };
@@ -1803,7 +1811,8 @@ async function _vsFindEndpointData(token, candidates, params) {
 function _vsResumoTentativas(attempts) {
   if (!Array.isArray(attempts) || !attempts.length) return '';
   return attempts.map(function(item) {
-    return item.endpoint + ': HTTP ' + item.status;
+    var detail = item.body ? (' - ' + item.body.replace(/\s+/g, ' ').trim()) : '';
+    return item.endpoint + ': HTTP ' + item.status + detail;
   }).join(' | ');
 }
 
