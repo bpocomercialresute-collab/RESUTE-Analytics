@@ -116,7 +116,7 @@ Quando houver alteracao no codigo:
 
 - As chaves sensiveis ficam no backend da Vercel
 - O frontend usa proxy seguro para evitar expor segredos no navegador
-- A API externa integrada hoje puxa vendas
+- A API externa integrada hoje puxa vendas e cadastros dedicados de clientes, produtos e representantes
 - Empresas sem API continuam podendo operar por fluxo manual
 
 ## Proximo foco do projeto

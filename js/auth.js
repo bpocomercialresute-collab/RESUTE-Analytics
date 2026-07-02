@@ -6,8 +6,6 @@ const SUPA_URL = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
 const SUPA_KEY = '__SERVER_ONLY__';
 const SVC_KEY  = '__SERVER_ONLY__';
 const VISUAL_SAEF_API_URL = 'https://api-plastrio.visualsaef.com';
-const VISUAL_SAEF_CLIENT_ID = '7eb42956-e55c-4424-9148-ed6cb1f781ed';
-const VISUAL_SAEF_CLIENT_SECRET = 'b0HJSjMTNCTDFeptGvWeIDbpn6aFRxZ252VEiN9S';
 
 const NATIVE_FETCH = window.fetch.bind(window);
 
@@ -29,6 +27,32 @@ function _normalizeFetchHeaders(headers) {
     return out;
   }
   return headers;
+}
+
+async function _fetchVisualSaefProxy(path, token, extraHeaders) {
+  var headers = { Accept: 'application/json' };
+  if (token) headers.Authorization = 'Bearer ' + token;
+
+  var normalized = _normalizeFetchHeaders(extraHeaders || {});
+  Object.keys(normalized).forEach(function(key) {
+    if (normalized[key] !== undefined && normalized[key] !== null) {
+      headers[key] = normalized[key];
+    }
+  });
+
+  return NATIVE_FETCH('/api/secure-proxy', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-session-token': _getSessionToken()
+    },
+    body: JSON.stringify({
+      url: VISUAL_SAEF_API_URL + path,
+      method: 'GET',
+      headers: headers,
+      body: null
+    })
+  });
 }
 
 window.fetch = function(input, init) {
@@ -1649,18 +1673,33 @@ function _adminObterPeriodoSync() {
 }
 
 var VS_ENDPOINTS = {
-  // Endpoints reais do Swagger da Visual Saef (confirmados)
-  // /cadastrocliente, /cadastroproduto, /cadastrovendedor retornam 403 no momento
-  // Sistema usa fallback: deriva dos dados de vendas
-  clientes: ['/cadastrocliente', '/cadastroclienteparceiro'],
-  produtos: ['/cadastroproduto'],
-  representantes: ['/cadastrovendedor']
+  // Endpoints dedicados de cadastro na Visual Saef
+  clientes: [
+    '/cadastrocliente',
+    '/cadastroclienteparceiro',
+    '/relacaocliente',
+    '/clientes',
+    '/cliente'
+  ],
+  produtos: [
+    '/cadastroproduto',
+    '/relacaoproduto',
+    '/produtos',
+    '/produto'
+  ],
+  representantes: [
+    '/cadastrovendedor',
+    '/relacaorepresentante',
+    '/representantes',
+    '/vendedores',
+    '/vendedor'
+  ]
 };
 
 var CADASTRO_TABLES = {
-  clientes: ['clientes_cad'],
-  produtos: ['produtos'],
-  representantes: ['representantes']
+  clientes: ['clientes_cad', 'clientes_api', 'clientes'],
+  produtos: ['produtos', 'produtos_api'],
+  representantes: ['representantes', 'representantes_api']
 };
 
 function _vsNormalizeMap(item) {
@@ -1712,10 +1751,8 @@ function _vsToBool(value) {
 
 async function _vsFetchCandidate(token, endpoint, params) {
   var qs = new URLSearchParams(params || {}).toString();
-  var url = VS_API + endpoint + (qs ? '?' + qs : '');
-  var resp = await fetch(url, {
-    headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' }
-  });
+  var path = endpoint + (qs ? '?' + qs : '');
+  var resp = await _fetchVisualSaefProxy(path, token, { Accept: 'application/json' });
   var text = await resp.text();
   var payload = null;
   try { payload = text ? JSON.parse(text) : []; } catch (e) { payload = text; }
@@ -2072,103 +2109,6 @@ async function _adminCarregarCadastrosApiSalvos() {
   _adminRenderApiModules(summary);
 }
 
-// =============================================================================
-// CADASTROS: Tenta API → se 403, deriva das vendas (fallback automático)
-// =============================================================================
-async function _adminSincronizarOuDerivarCadastros(token, dataInicio, dataFim, vendasRegs) {
-  var summary = {};
-
-  // ── Tenta API ──
-  try {
-    var apiResumo = await _adminSincronizarCadastrosApi(token, dataInicio, dataFim);
-    // Se algum veio com dados reais, usa
-    var algumOk = Object.values(apiResumo).some(function(v){ return v.ok && v.count > 0; });
-    if (algumOk) return apiResumo;
-    summary = apiResumo; // mantém para exibir pendente
-  } catch(e) {
-    console.warn('[CADASTROS] API falhou:', e.message);
-  }
-
-  // ── Fallback: deriva das vendas já inseridas ──
-  _adminSetStatus('⏳ API sem acesso (403) — derivando cadastros das vendas...');
-
-  try {
-    // ── Clientes únicos ──
-    // Deriva clientes — deduplica por nome+cidade, usa dado mais completo
-    var cliMap = {};
-    vendasRegs.forEach(function(r) {
-      if (!r.cliente || !r.cliente.trim()) return;
-      var key = (r.cliente.trim() + '|' + (r.cidade||'')).toUpperCase();
-      if (!cliMap[key]) {
-        cliMap[key] = { nome: r.cliente.trim(), cidade: r.cidade||'', uf: r.uf||'', vendedor: r.vendedor||'' };
-      }
-    });
-    var clientes = Object.values(cliMap).map(function(c, i) {
-      return { empresa_id: EMPRESA_ATIVA.empresa_id, id_externo: 'der_' + String(i).padStart(5,'0'),
-               nome: c.nome, razao_social: c.nome, cidade: c.cidade, uf: c.uf, vendedor: c.vendedor };
-    });
-
-    if (clientes.length) {
-      await _adminReplaceOrigemTable('clientes_api', clientes);
-      summary.clientes = { ok: true, count: clientes.length, pending: false,
-        endpoint: '(derivado de vendas)',
-        message: clientes.length + ' clientes únicos extraídos das vendas.' };
-      console.log('[CADASTROS] Clientes derivados:', clientes.length);
-    }
-
-    // ── Produtos únicos ──
-    // Deriva produtos dos dados de vendas (usa descricaoItem mapeado como produto)
-    var prodMap = {};
-    vendasRegs.forEach(function(r) {
-      if (!r.produto || !r.produto.trim()) return;
-      var key = r.produto.trim().toUpperCase();
-      if (!prodMap[key]) prodMap[key] = {
-        descricao: r.produto.trim(),
-        grupo: r.grupo || '',
-        familia: r.marca || r.industria || ''
-      };
-    });
-    var produtos = Object.values(prodMap).map(function(p, i) {
-      return { empresa_id: EMPRESA_ATIVA.empresa_id, id_externo: 'der_' + String(i).padStart(4,'0'),
-               codigo: 'der_' + String(i).padStart(4,'0'), nome: p.descricao, grupo: p.grupo, marca: p.familia, ativo: true };
-    });
-
-    if (produtos.length) {
-      await _adminReplaceOrigemTable('produtos_api', produtos);
-      summary.produtos = { ok: true, count: produtos.length, pending: false,
-        endpoint: '(derivado de vendas)',
-        message: produtos.length + ' produtos únicos extraídos das vendas.' };
-      console.log('[CADASTROS] Produtos derivados:', produtos.length);
-    }
-
-    // ── Representantes únicos ──
-    // Deriva representantes — deduplica por nome, usa UPPER para comparação
-    var repMap = {};
-    vendasRegs.forEach(function(r) {
-      if (!r.vendedor || !r.vendedor.trim()) return;
-      var key = r.vendedor.trim().toUpperCase();
-      if (!repMap[key]) repMap[key] = { nome: r.vendedor.trim() };
-    });
-    var reps = Object.values(repMap).map(function(r, i) {
-      return { empresa_id: EMPRESA_ATIVA.empresa_id, id_externo: 'der_' + String(i).padStart(3,'0'),
-               codigo: 'der_' + String(i).padStart(3,'0'), nome: r.nome, ativo: true };
-    });
-
-    if (reps.length) {
-      await _adminReplaceOrigemTable('representantes_api', reps);
-      summary.representantes = { ok: true, count: reps.length, pending: false,
-        endpoint: '(derivado de vendas)',
-        message: reps.length + ' representantes únicos extraídos das vendas.' };
-      console.log('[CADASTROS] Representantes derivados:', reps.length);
-    }
-
-  } catch(e) {
-    console.error('[CADASTROS] Fallback falhou:', e);
-  }
-
-  return summary;
-}
-
 async function _adminReplaceOrigemTable(table, rows) {
   if (!rows.length) return;
   // Apaga tudo da empresa nesta tabela
@@ -2247,11 +2187,7 @@ async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
   return summary;
 }
 
-// ── SYNC VISUAL SAEF — chamada direta do browser (sem Edge Function) ──────────
-var VS_API  = VISUAL_SAEF_API_URL;
-var VS_CID  = VISUAL_SAEF_CLIENT_ID;
-var VS_CSEC = VISUAL_SAEF_CLIENT_SECRET;
-
+// ── SYNC VISUAL SAEF — via proxy seguro ───────────────────────────────────────
 async function adminSincronizar() {
   if (!EMPRESA_ATIVA || !EMPRESA_ATIVA.tem_api) return;
   var btn = document.getElementById('admin-btn-sync');
@@ -2278,8 +2214,8 @@ async function adminSincronizar() {
     var DI = fmt(dataInicio), DF = fmt(dataFim);
     _adminSetStatus('⏳ Conectando API Varremaster — período: ' + DI + ' a ' + DF);
 
-    // 1. Login na Visual Saef
-    var lR = await fetch(VS_API + '/login?client_id=' + VS_CID + '&client_secret=' + VS_CSEC);
+    // 1. Login na Visual Saef via proxy seguro
+    var lR = await _fetchVisualSaefProxy('/login', null, { Accept: 'application/json' });
     if (!lR.ok) throw new Error('Login API falhou: HTTP ' + lR.status);
     var lD = await lR.json();
     var token = lD.token || lD.Token || lD.access_token || lD.accessToken;
@@ -2287,10 +2223,7 @@ async function adminSincronizar() {
     _adminSetStatus('⏳ Login OK — buscando dados...');
 
     // 2. Busca vendas
-    var dR = await fetch(
-      VS_API + '/relacaovendaitem?DataInicio=' + DI + '&DataTermino=' + DF,
-      { headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } }
-    );
+    var dR = await _fetchVisualSaefProxy('/relacaovendaitem?DataInicio=' + DI + '&DataTermino=' + DF, token, { Accept: 'application/json' });
     if (!dR.ok) throw new Error('Busca dados falhou: HTTP ' + dR.status);
     var raw = await dR.json();
     var lista = Array.isArray(raw) ? raw
@@ -2831,12 +2764,8 @@ adminSincronizar = async function() {
     var DI = fmt(dataInicio), DF = fmt(dataFim);
     _adminSetStatus('⏳ Conectando à API — período: ' + DI + ' → ' + DF);
 
-    // Login Visual Saef
-    var VS_API  = VISUAL_SAEF_API_URL;
-    var VS_CID  = VISUAL_SAEF_CLIENT_ID;
-    var VS_CSEC = VISUAL_SAEF_CLIENT_SECRET;
-
-    var lR = await fetch(VS_API + '/login?client_id=' + VS_CID + '&client_secret=' + VS_CSEC);
+    // Login Visual Saef via proxy seguro
+    var lR = await _fetchVisualSaefProxy('/login', null, { Accept: 'application/json' });
     if (!lR.ok) throw new Error('Login API falhou: HTTP ' + lR.status);
     var lD = await lR.json();
     var token = lD.token || lD.Token || lD.access_token || lD.accessToken;
@@ -2844,8 +2773,7 @@ adminSincronizar = async function() {
     _adminSetStatus('⏳ Login OK — buscando dados...');
 
     // Busca dados
-    var dR = await fetch(VS_API + '/relacaovendaitem?DataInicio=' + DI + '&DataTermino=' + DF,
-      { headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } });
+    var dR = await _fetchVisualSaefProxy('/relacaovendaitem?DataInicio=' + DI + '&DataTermino=' + DF, token, { Accept: 'application/json' });
     if (!dR.ok) throw new Error('Busca falhou: HTTP ' + dR.status);
     var raw = await dR.json();
     var lista = Array.isArray(raw) ? raw : (raw.data || raw.itens || raw.items || raw.result || raw.dados || []);
@@ -2973,10 +2901,9 @@ adminSincronizar = async function() {
     });
     EMPRESA_ATIVA.exibir_origem = 'api';
 
-    // Tenta enriquecer a base com cadastros auxiliares da API (pode retornar 403)
-    // Se API bloquear (403), deriva automaticamente dos dados de vendas inseridos
-    _adminSetStatus('⏳ Enriquecendo cadastros a partir dos dados de vendas...');
-    var cadastrosResumo = await _adminSincronizarOuDerivarCadastros(token, dataInicio, dataFim, regs);
+    // Enriquecer a base com cadastros auxiliares vindos da API dedicada
+    _adminSetStatus('⏳ Enriquecendo cadastros dedicados da API...');
+    var cadastrosResumo = await _adminSincronizarCadastrosApi(token, dataInicio, dataFim);
 
     // Mostra KPIs e módulos do sync
     _adminMostrarKpisSync(regs, cadastrosResumo);
@@ -2992,8 +2919,7 @@ adminSincronizar = async function() {
     // Gera relatórios automaticamente
     _adminSetStatus('⏳ Gerando relatórios...');
     await _adminCarregar(EMPRESA_ATIVA.empresa_id);
-
-    _adminSetStatus('✓ ' + inseridos.toLocaleString('pt-BR') + ' registros sincronizados — relatórios gerados!', true);
+    await _adminCarregarCadastrosApiSalvos();
 
     try { bdMapColumns(); } catch(e) { console.error(e); }
     try { bdAutoFill(); }   catch(e) { console.error(e); }
@@ -3006,8 +2932,8 @@ adminSincronizar = async function() {
     var relAviso = document.getElementById('adm-api-relatorios');
     if (relAviso) relAviso.style.display = 'block';
 
-    await _adminCarregarCadastrosApiSalvos();
     await _adminAtualizarContagens();
+    _adminSetStatus('✓ ' + inseridos.toLocaleString('pt-BR') + ' registros sincronizados — relatórios gerados!', true);
 
   } catch(e) {
     _adminSetStatus('✗ ' + e.message);
