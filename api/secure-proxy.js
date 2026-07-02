@@ -4,12 +4,8 @@ const ALLOWED_SUPABASE_PATHS = [
   '/rest/v1/empresas',
   '/rest/v1/api_config',
   '/rest/v1/sync_log',
-  '/rest/v1/clientes_api',
   '/rest/v1/clientes_cad',
-  '/rest/v1/clientes',
-  '/rest/v1/produtos_api',
   '/rest/v1/produtos',
-  '/rest/v1/representantes_api',
   '/rest/v1/representantes',
   '/rest/v1/grupos',
   '/functions/v1/sync-visual-saef'
@@ -18,20 +14,9 @@ const ALLOWED_SUPABASE_PATHS = [
 const ALLOWED_VISUAL_PATHS = [
   '/login',
   '/relacaovendaitem',
-  '/clientes',
-  '/cliente',
-  '/relacaocliente',
   '/cadastrocliente',
-  '/cadastroclienteparceiro',
-  '/produtos',
-  '/produto',
-  '/relacaoproduto',
   '/cadastroproduto',
-  '/cadastrovendedor',
-  '/representantes',
-  '/vendedores',
-  '/vendedor',
-  '/relacaorepresentante'
+  '/cadastrovendedor'
 ];
 
 function getSessionEmpresaIds(appUser) {
@@ -176,12 +161,8 @@ function assertAuthorized(appUser, targetUrl, method, body) {
   }
 
   if (
-    targetUrl.pathname === '/rest/v1/clientes_api' ||
     targetUrl.pathname === '/rest/v1/clientes_cad' ||
-    targetUrl.pathname === '/rest/v1/clientes' ||
-    targetUrl.pathname === '/rest/v1/produtos_api' ||
     targetUrl.pathname === '/rest/v1/produtos' ||
-    targetUrl.pathname === '/rest/v1/representantes_api' ||
     targetUrl.pathname === '/rest/v1/representantes'
   ) {
     // Clientes podem ler cadastros da sua empresa
