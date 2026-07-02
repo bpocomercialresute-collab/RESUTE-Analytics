@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Metodo nao permitido' });
 
   const payload = parseBody(req.body);
-  const email = payload.email;
+  const email = typeof payload.email === 'string' ? payload.email.trim() : payload.email;
   const senha = payload.senha || payload.password;
   if (!email || !senha) {
     return res.status(400).json({ erro: 'Email e senha sao obrigatorios.' });
@@ -43,8 +43,9 @@ export default async function handler(req, res) {
       return res.status(401).json({ erro: authData.error_description || 'Email ou senha incorretos.' });
     }
 
+    const emailNormalizado = String(email).toLowerCase();
     const userResp = await fetch(
-      `${supaUrl}/rest/v1/usuarios?email=eq.${encodeURIComponent(String(email).toLowerCase())}&select=*`,
+      `${supaUrl}/rest/v1/usuarios?email=ilike.${encodeURIComponent(emailNormalizado)}&select=*`,
       {
         headers: {
           'apikey': anonKey,
@@ -64,7 +65,13 @@ export default async function handler(req, res) {
           const bEmpresa = b?.empresa_id ? 1 : 0;
           return bEmpresa - aEmpresa;
         })[0]
-      : { nome: email, papel: 'cliente', empresa_id: null, empresa_ids: null };
+      : null;
+
+    if (!user) {
+      return res.status(403).json({
+        erro: 'Usuário autenticado, mas sem cadastro válido na tabela usuarios. Verifique email e papel do acesso no painel.'
+      });
+    }
 
     var empresaIds = null;
     if (user.empresa_ids) {
@@ -75,11 +82,11 @@ export default async function handler(req, res) {
       token: authData.access_token,
       access_token: authData.access_token,
       nome: user.nome || email,
-      email,
+      email: emailNormalizado,
       papel: user.papel || 'cliente',
       empresa_id: user.empresa_id || null,
       empresa_ids: empresaIds || (user.empresa_id ? [user.empresa_id] : null),
-      empresa_nome: 'RESUTE'
+      empresa_nome: user.empresa_nome || 'RESUTE'
     });
   } catch (e) {
     return res.status(500).json({ erro: 'Erro interno: ' + e.message });

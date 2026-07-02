@@ -296,7 +296,7 @@ async function fazerLogin() {
       papel:       d.papel || 'cliente',
       empresa_id:  d.empresa_id || null,
       empresa_ids: empresaIds || (d.empresa_id ? [d.empresa_id] : null),
-      empresa_nome:'RESUTE'
+      empresa_nome:d.empresa_nome || 'RESUTE'
     };
     _saveSession(SESSION);
     fecharLogin();
@@ -685,6 +685,19 @@ function _abrirDashCliente() {
   // Multi-loja: monta seletor se houver mais de uma empresa
   var ids = SESSION.empresa_ids;
   var sel = document.getElementById('dc-loja-selector');
+  var logo = document.querySelector('.dc-client-logo');
+  var eidAtual = (ids && ids[0]) || SESSION.empresa_id;
+  if (logo) {
+    if (eidAtual === 'af3b599b-65c5-4868-b8bf-a5934da84f0d') {
+      logo.src = 'assets/varremaster-logo.png';
+      logo.alt = 'Varremaster';
+      logo.style.display = '';
+    } else {
+      logo.removeAttribute('src');
+      logo.alt = 'Empresa';
+      logo.style.display = 'none';
+    }
+  }
 
   if (ids && ids.length > 1) {
     // Renderiza botões de loja

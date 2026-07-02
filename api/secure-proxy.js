@@ -90,11 +90,12 @@ async function getAppUser(sessionToken, supaUrl, anonKey) {
 
   if (!authResp.ok) return null;
   const authUser = await authResp.json();
-  const email = String(authUser.email || '').toLowerCase();
+  const email = String(authUser.email || '').trim().toLowerCase();
   if (!email) return null;
 
+  const roleWeight = { super_admin: 3, admin: 2, gestor: 1, cliente: 0 };
   const userResp = await fetch(
-    `${supaUrl}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&select=*`,
+    `${supaUrl}/rest/v1/usuarios?email=ilike.${encodeURIComponent(email)}&select=*`,
     {
       headers: {
         'apikey': anonKey,
@@ -105,7 +106,16 @@ async function getAppUser(sessionToken, supaUrl, anonKey) {
 
   if (!userResp.ok) return null;
   const users = await userResp.json();
-  const appUser = Array.isArray(users) && users.length ? users[0] : null;
+  const appUser = Array.isArray(users) && users.length
+    ? users.slice().sort((a, b) => {
+        const aRole = roleWeight[String(a?.papel || '').toLowerCase()] ?? -1;
+        const bRole = roleWeight[String(b?.papel || '').toLowerCase()] ?? -1;
+        if (bRole !== aRole) return bRole - aRole;
+        const aEmpresa = a?.empresa_id ? 1 : 0;
+        const bEmpresa = b?.empresa_id ? 1 : 0;
+        return bEmpresa - aEmpresa;
+      })[0]
+    : null;
   if (!appUser) return null;
 
   appUser.email = email;
