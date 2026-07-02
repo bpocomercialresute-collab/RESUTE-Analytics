@@ -230,8 +230,11 @@ function _mostrarLogin() {
   if (sb) sb.style.display = 'none';
   var wr = document.getElementById('cui-wrapper');
   if (wr) wr.style.display = 'none';
+  var ov = document.getElementById('sidebar-overlay');
+  if (ov) ov.classList.remove('active');
   var vc = document.getElementById('view-dash-cliente');
   if (vc) vc.style.display = 'none';
+  document.body.classList.remove('client-report-mode');
   setTimeout(function(){
     var email = document.getElementById('login-email');
     if (email) email.focus();
@@ -331,6 +334,11 @@ var LOJA_NOMES = {
 
 function _abrirApp() {
   _touchSession();
+  var vc = document.getElementById('view-dash-cliente');
+  if (vc) vc.style.display = 'none';
+  var ov = document.getElementById('sidebar-overlay');
+  if (ov) ov.classList.remove('active');
+  document.body.classList.remove('client-report-mode');
 
   // Sempre esconde a login page primeiro
   var lp = document.getElementById('view-login-page');
@@ -663,10 +671,12 @@ function _abrirDashCliente() {
   // Esconde login page e layout admin
   var lp = document.getElementById('view-login-page');
   if (lp) lp.style.display = 'none';
-  ['cui-sidebar','cui-wrapper'].forEach(function(id){
+  ['sidebar','cui-wrapper'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
+  var ov = document.getElementById('sidebar-overlay');
+  if (ov) ov.classList.remove('active');
 
   // Mostra dashboard
   var vc = document.getElementById('view-dash-cliente');

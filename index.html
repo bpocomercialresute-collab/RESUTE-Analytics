@@ -539,7 +539,8 @@
           <div id="rep-tab-cresc"   class="av-tab-pane"><div class="av-rel-placeholder"><p>REP_CRESC_MES</p></div></div>
           <div id="rep-tab-premiacao" class="av-tab-pane"><div class="av-rel-placeholder"><p>PREMIAÇÃO</p><span>Ranking de representantes para campanhas e prêmios</span></div></div>
         </div>
-
+      </div>
+    </div>
     </main>
   </div>
 
@@ -610,10 +611,6 @@
       if (bc) bc.textContent = txt;
     }
   </script>
-</body>
-</html>
-    </main>
-  </div>
 
   <!-- DASHBOARD CLIENTE -->
   <div id="view-dash-cliente" style="display:none;position:fixed;inset:0;z-index:9000;background:#060d1a;flex-direction:column;font-family:'Inter',system-ui,sans-serif;overflow:hidden;">
@@ -808,9 +805,5 @@
   <script src="js/bd.js?v=2"></script>
   <script src="js/relatorios.js?v=2"></script>
   <script src="js/relatrep.js?v=2"></script>
-  <script>
-    function toggleSidebar(){var sb=document.getElementById('sidebar');var ov=document.getElementById('sidebar-overlay');if(sb)sb.classList.toggle('open');if(ov)ov.classList.toggle('active');}
-    document.addEventListener('keydown',function(e){if(e.key==='Enter'){var lp=document.getElementById('view-login-page');if(lp&&lp.style.display!=='none')fazerLogin();}});
-  </script>
 </body>
 </html>
