@@ -1680,9 +1680,9 @@ var VS_ENDPOINTS = {
 };
 
 var CADASTRO_TABLES = {
-  clientes: ['clientes_cad'],
-  produtos: ['produtos'],
-  representantes: ['representantes']
+  clientes: ['clientes_cad', 'clientes_api', 'clientes'],
+  produtos: ['produtos', 'produtos_api'],
+  representantes: ['representantes', 'representantes_api']
 };
 
 function _vsNormalizeMap(item) {
