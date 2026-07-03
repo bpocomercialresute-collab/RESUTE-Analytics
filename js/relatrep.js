@@ -11,6 +11,14 @@ window.REP_PREMIACAO_FIXA = window.REP_PREMIACAO_FIXA || [
   'PEDRO HENRIQUE SANTOS SALES',
   'WEDNA ROSA DE SOUZA'
 ];
+window.REP_PREMIACAO_CAMPANHA = window.REP_PREMIACAO_CAMPANHA || 'semanal';
+window.REP_PREMIACAO_FILTRO = window.REP_PREMIACAO_FILTRO || {
+  semana: '',
+  mes: '',
+  trimestre: '',
+  semestre: '',
+  ano: ''
+};
 
 function repToggleModo(m) {
   REP_MODO = m;
@@ -95,6 +103,365 @@ function repPremiacaoEhNomeFixo(nome) {
   );
 }
 
+const REP_PREMIACAO_CAMPANHAS = [
+  {
+    id: 'semanal',
+    badge: '1º prêmio',
+    titulo: 'Prêmio Semanal',
+    subtitulo: 'Sorteio entre representantes',
+    criterio: 'Maior mix semanal acima da média',
+    itens: ['Vale R$ 50,00', 'Vale R$ 25,00', 'Kit 5 itens', 'Presente surpresa'],
+    filtro: 'semana'
+  },
+  {
+    id: 'mensal',
+    badge: '2º prêmio',
+    titulo: 'Prêmio Mensal',
+    subtitulo: 'Reativação de clientes',
+    criterio: 'Inativos (+6 meses)',
+    itens: ['Recompensa: R$ 80,00 por cliente reativado', 'Pagamento no mês seguinte'],
+    filtro: 'mes'
+  },
+  {
+    id: 'trimestral',
+    badge: '3º prêmio',
+    titulo: 'Prêmio Trimestral',
+    subtitulo: 'Quantidade de itens',
+    criterio: 'Maior crescimento quantitativo acima da média própria',
+    itens: ['Exemplo: de 1.480 para 2.048 = +38,378%', 'Brinde variado (cada trimestre terá um exibido)'],
+    filtro: 'trimestre'
+  },
+  {
+    id: 'semestral',
+    badge: '4º prêmio',
+    titulo: 'Prêmio Semestral',
+    subtitulo: 'Consistência',
+    criterio: 'Consistência de vendas positivas (últimos 6 meses)',
+    itens: ['Rodízio para casal'],
+    filtro: 'semestre'
+  },
+  {
+    id: 'anual',
+    badge: '5º prêmio',
+    titulo: 'Prêmio Anual',
+    subtitulo: 'Maior média mensal de quantidade',
+    criterio: 'Crescimento mínimo de 30% sobre 2025',
+    itens: ['Viagem para Caldas Novas + hotel casal c/ café + vale combustível'],
+    filtro: 'ano'
+  },
+  {
+    id: 'ranking-mensal-a',
+    badge: '6º prêmio',
+    titulo: 'Prêmio Ranking Mensal',
+    subtitulo: 'Faixa de valor',
+    criterio: 'R$ de pedidos faturados e entregues',
+    itens: ['5 a 10 mil: R$ 25,00', '11 a 15 mil: R$ 50,00', '20 a 30 mil: R$ 100,00', '31 a 50 mil: R$ 150,00'],
+    filtro: 'mes'
+  },
+  {
+    id: 'ranking-mensal-b',
+    badge: '6º prêmio',
+    titulo: 'Prêmio Ranking Mensal',
+    subtitulo: 'Faixa de valor',
+    criterio: 'R$ de pedidos faturados e entregues',
+    itens: ['51 a 75 mil: R$ 100,00 + kit Churrasco', '76 a 100 mil: R$ 150,00 + Prêmio Secreto', '101 a 125 mil: R$ 200,00 + Restaurante Casal', '126 a 150 mil: R$ 250,00 + Passeio Turístico'],
+    filtro: 'mes'
+  }
+];
+
+function repPremiacaoCampanhaAtual() {
+  return REP_PREMIACAO_CAMPANHAS.find(c => c.id === window.REP_PREMIACAO_CAMPANHA) || REP_PREMIACAO_CAMPANHAS[0];
+}
+
+function repPremiacaoSetCampanha(id) {
+  const existe = REP_PREMIACAO_CAMPANHAS.some(c => c.id === id);
+  window.REP_PREMIACAO_CAMPANHA = existe ? id : 'semanal';
+  repPremiacao();
+}
+
+function repPremiacaoSetFiltro(campo, valor) {
+  if (!window.REP_PREMIACAO_FILTRO) window.REP_PREMIACAO_FILTRO = {};
+  window.REP_PREMIACAO_FILTRO[campo] = String(valor || '');
+  repPremiacao();
+}
+
+function repPremiacaoLimparFiltros() {
+  window.REP_PREMIACAO_FILTRO = {
+    semana: '',
+    mes: '',
+    trimestre: '',
+    semestre: '',
+    ano: ''
+  };
+  repPremiacao();
+}
+
+function repPremiacaoCalcularIntervaloSemana(dt) {
+  const base = new Date(dt);
+  base.setHours(0, 0, 0, 0);
+  const offset = (base.getDay() + 6) % 7;
+  const inicio = new Date(base);
+  inicio.setDate(base.getDate() - offset);
+  const fim = new Date(inicio);
+  fim.setDate(inicio.getDate() + 6);
+  return { inicio, fim, chave: inicio.toISOString().slice(0, 10) };
+}
+
+function repPremiacaoDataRowsBase() {
+  return repPremiacaoRowsBase();
+}
+
+function repPremiacaoDisponiveis(rows) {
+  const lista = Array.isArray(rows) ? rows : [];
+  const semanas = [];
+  const meses = [];
+  const trimestres = [];
+  const semestres = [];
+  const anos = [];
+  const vistos = { semana: new Set(), mes: new Set(), trim: new Set(), sem: new Set(), ano: new Set() };
+
+  lista.forEach(r => {
+    const dt = repParseDate(String(r[IDX.saida] || r[IDX.emissao] || '').trim());
+    if (!dt) return;
+    const sem = repPremiacaoCalcularIntervaloSemana(dt);
+    const mesKey = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+    const trimKey = `${dt.getFullYear()}-T${Math.floor(dt.getMonth() / 3) + 1}`;
+    const semKey = `${dt.getFullYear()}-S${dt.getMonth() < 6 ? '1' : '2'}`;
+    const anoKey = String(dt.getFullYear());
+
+    if (!vistos.semana.has(sem.chave)) {
+      vistos.semana.add(sem.chave);
+      semanas.push({
+        key: sem.chave,
+        label: `${sem.inicio.toLocaleDateString('pt-BR')} a ${sem.fim.toLocaleDateString('pt-BR')}`
+      });
+    }
+    if (!vistos.mes.has(mesKey)) {
+      vistos.mes.add(mesKey);
+      meses.push({
+        key: mesKey,
+        label: `${MES_LABEL_PT[dt.getMonth()]} / ${dt.getFullYear()}`
+      });
+    }
+    if (!vistos.trim.has(trimKey)) {
+      vistos.trim.add(trimKey);
+      trimestres.push({
+        key: trimKey,
+        label: `${trimKey.split('-T')[1]}º trim / ${dt.getFullYear()}`
+      });
+    }
+    if (!vistos.sem.has(semKey)) {
+      vistos.sem.add(semKey);
+      semestres.push({
+        key: semKey,
+        label: `${semKey.endsWith('1') ? '1º' : '2º'} semestre / ${dt.getFullYear()}`
+      });
+    }
+    if (!vistos.ano.has(anoKey)) {
+      vistos.ano.add(anoKey);
+      anos.push({
+        key: anoKey,
+        label: anoKey
+      });
+    }
+  });
+
+  semanas.sort((a, b) => a.key < b.key ? 1 : -1);
+  meses.sort((a, b) => a.key < b.key ? 1 : -1);
+  trimestres.sort((a, b) => a.key < b.key ? 1 : -1);
+  semestres.sort((a, b) => a.key < b.key ? 1 : -1);
+  anos.sort((a, b) => a.key < b.key ? 1 : -1);
+  return { semanas, meses, trimestres, semestres, anos };
+}
+
+function repPremiacaoAplicarFiltroPeriodo(rows) {
+  const filtro = window.REP_PREMIACAO_FILTRO || {};
+  const campanha = repPremiacaoCampanhaAtual();
+  const tipoFiltro = campanha.filtro || 'mes';
+  const lista = Array.isArray(rows) ? rows : [];
+  if (!lista.length) return [];
+
+  const datas = lista.map(r => ({
+    row: r,
+    dt: repParseDate(String(r[IDX.saida] || r[IDX.emissao] || '').trim())
+  })).filter(x => x.dt).sort((a, b) => a.dt - b.dt);
+
+  const ultima = datas[datas.length - 1].dt;
+  if (tipoFiltro === 'semana') {
+    const alvo = filtro.semana || repPremiacaoCalcularIntervaloSemana(ultima).chave;
+    return datas.filter(x => repPremiacaoCalcularIntervaloSemana(x.dt).chave === alvo).map(x => x.row);
+  }
+  if (tipoFiltro === 'mes') {
+    const alvo = filtro.mes || `${ultima.getFullYear()}-${String(ultima.getMonth() + 1).padStart(2, '0')}`;
+    return datas.filter(x => `${x.dt.getFullYear()}-${String(x.dt.getMonth() + 1).padStart(2, '0')}` === alvo).map(x => x.row);
+  }
+  if (tipoFiltro === 'trimestre') {
+    const alvo = filtro.trimestre || `${ultima.getFullYear()}-T${Math.floor(ultima.getMonth() / 3) + 1}`;
+    return datas.filter(x => `${x.dt.getFullYear()}-T${Math.floor(x.dt.getMonth() / 3) + 1}` === alvo).map(x => x.row);
+  }
+  if (tipoFiltro === 'semestre') {
+    const alvo = filtro.semestre || `${ultima.getFullYear()}-S${ultima.getMonth() < 6 ? '1' : '2'}`;
+    return datas.filter(x => `${x.dt.getFullYear()}-S${x.dt.getMonth() < 6 ? '1' : '2'}` === alvo).map(x => x.row);
+  }
+  if (tipoFiltro === 'ano') {
+    const alvo = filtro.ano || String(ultima.getFullYear());
+    return datas.filter(x => String(x.dt.getFullYear()) === alvo).map(x => x.row);
+  }
+  return lista;
+}
+
+function repPremiacaoRows() {
+  return repPremiacaoAplicarFiltroPeriodo(repFiltrarRowsPremiacao(repDataRows()));
+}
+
+function repPremiacaoRowsBase() {
+  return repFiltrarRowsPremiacao(repDataRows());
+}
+
+function repPremiacaoPeriodoCampo(campanha) {
+  const id = String(campanha || repPremiacaoCampanhaAtual().id || '');
+  const atual = REP_PREMIACAO_CAMPANHAS.find(c => c.id === id) || REP_PREMIACAO_CAMPANHAS[0];
+  return atual ? atual.filtro : 'mes';
+}
+
+function repPremiacaoPeriodoAtual(rows) {
+  const lista = Array.isArray(rows) ? rows : repPremiacaoRowsBase();
+  const datas = lista
+    .map(r => repParseDate(String(r[IDX.saida] || r[IDX.emissao] || '').trim()))
+    .filter(Boolean)
+    .sort((a, b) => a - b);
+  return datas[datas.length - 1] || new Date();
+}
+
+function repPremiacaoPeriodoSelecionado(rows) {
+  const campanha = repPremiacaoCampanhaAtual();
+  const filtro = window.REP_PREMIACAO_FILTRO || {};
+  const ref = repPremiacaoPeriodoAtual(rows);
+  const campo = repPremiacaoPeriodoCampo(campanha.id);
+
+  if (campo === 'semana') {
+    const alvo = filtro.semana || repPremiacaoCalcularIntervaloSemana(ref).chave;
+    const periodo = repPremiacaoDisponiveis(rows).semanas.find(x => x.key === alvo);
+    return periodo ? periodo.label : 'Semana selecionada';
+  }
+  if (campo === 'mes') {
+    const alvo = filtro.mes || `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, '0')}`;
+    const periodo = repPremiacaoDisponiveis(rows).meses.find(x => x.key === alvo);
+    return periodo ? periodo.label : 'Mês selecionado';
+  }
+  if (campo === 'trimestre') {
+    const alvo = filtro.trimestre || `${ref.getFullYear()}-T${Math.floor(ref.getMonth() / 3) + 1}`;
+    const periodo = repPremiacaoDisponiveis(rows).trimestres.find(x => x.key === alvo);
+    return periodo ? periodo.label : 'Trimestre selecionado';
+  }
+  if (campo === 'semestre') {
+    const alvo = filtro.semestre || `${ref.getFullYear()}-S${ref.getMonth() < 6 ? '1' : '2'}`;
+    const periodo = repPremiacaoDisponiveis(rows).semestres.find(x => x.key === alvo);
+    return periodo ? periodo.label : 'Semestre selecionado';
+  }
+  const alvo = filtro.ano || String(ref.getFullYear());
+  const periodo = repPremiacaoDisponiveis(rows).anos.find(x => x.key === alvo);
+  return periodo ? periodo.label : 'Ano selecionado';
+}
+
+function repPremiacaoCampoOptions(lista, selecionado) {
+  const opts = (Array.isArray(lista) ? lista : []).map(v => `<option value="${repEsc(v.key)}" ${v.key === selecionado ? 'selected' : ''}>${repEsc(v.label)}</option>`).join('');
+  return `<option value="">Todos</option>${opts}`;
+}
+
+function repPremiacaoFiltroHtml(rows) {
+  const campanha = repPremiacaoCampanhaAtual();
+  const campo = repPremiacaoPeriodoCampo(campanha.id);
+  const disponiveis = repPremiacaoDisponiveis(repPremiacaoRowsBase());
+  const filtro = window.REP_PREMIACAO_FILTRO || {};
+  const selecionado =
+    campo === 'semana' ? (filtro.semana || '') :
+    campo === 'mes' ? (filtro.mes || '') :
+    campo === 'trimestre' ? (filtro.trimestre || '') :
+    campo === 'semestre' ? (filtro.semestre || '') :
+    (filtro.ano || '');
+  const lista =
+    campo === 'semana' ? disponiveis.semanas :
+    campo === 'mes' ? disponiveis.meses :
+    campo === 'trimestre' ? disponiveis.trimestres :
+    campo === 'semestre' ? disponiveis.semestres :
+    disponiveis.anos;
+  const label =
+    campo === 'semana' ? 'Semana' :
+    campo === 'mes' ? 'Mês' :
+    campo === 'trimestre' ? 'Trimestre' :
+    campo === 'semestre' ? 'Semestre' : 'Ano';
+
+  return `<div class="premio-periodo-filtros">
+    <label class="premio-periodo-field">
+      <span>${label}</span>
+      <select class="premio-periodo-select" onchange="repPremiacaoSetFiltro('${campo}', this.value)">
+        ${repPremiacaoCampoOptions(lista, selecionado)}
+      </select>
+    </label>
+    <button type="button" class="premio-periodo-reset" onclick="repPremiacaoLimparFiltros()">Limpar período</button>
+  </div>`;
+}
+
+function repPremiacaoCampanhasHtml(rows) {
+  const ativos = repPremiacaoCampanhaAtual();
+  return `<div class="premio-campanha-grid">
+    ${REP_PREMIACAO_CAMPANHAS.map(campanha => `
+      <article class="premio-campanha-card ${campanha.id === ativos.id ? 'active' : ''}">
+        <div class="premio-campanha-head">
+          <div>
+            <span class="premio-campanha-badge">${repEsc(campanha.badge)}</span>
+            <h3 class="premio-campanha-title">${repEsc(campanha.titulo)}</h3>
+            <p class="premio-campanha-sub">${repEsc(campanha.subtitulo)}</p>
+          </div>
+          <button type="button" class="premio-campanha-btn" onclick="repPremiacaoSetCampanha('${campanha.id}')">
+            ${campanha.id === ativos.id ? 'Selecionada' : 'Selecionar'}
+          </button>
+        </div>
+        <div class="premio-campanha-criterio">
+          <strong>Critério</strong>
+          <span>${repEsc(campanha.criterio)}</span>
+        </div>
+        <ul class="premio-campanha-list">
+          ${campanha.itens.map(item => `<li>${repEsc(item)}</li>`).join('')}
+        </ul>
+      </article>
+    `).join('')}
+  </div>`;
+}
+
+function repPremiacaoResumoHtml(rows) {
+  const lista = Array.isArray(rows) ? rows : [];
+  const reps = {};
+  lista.forEach(r => {
+    const vend = String(r[IDX.vendedor] || '').trim() || 'Sem representante';
+    if (!reps[vend]) reps[vend] = { fat: 0, qtd: 0, pedidos: new Set(), clientes: new Set(), produtos: new Set() };
+    reps[vend].fat += parseFloat(String(r[IDX.valor] || '').replace(/\./g, '').replace(',', '.')) || 0;
+    reps[vend].qtd += parseFloat(r[IDX.qtd] || 0) || 0;
+    reps[vend].pedidos.add(repPedidoChave(r));
+    if (r[IDX.cliente]) reps[vend].clientes.add(String(r[IDX.cliente]).trim());
+    if (r[IDX.produto]) reps[vend].produtos.add(String(r[IDX.produto]).trim());
+  });
+  const arr = Object.values(reps);
+  const totalFat = arr.reduce((s, r) => s + r.fat, 0);
+  const totalQtd = arr.reduce((s, r) => s + r.qtd, 0);
+  const totalPedidos = arr.reduce((s, r) => s + r.pedidos.size, 0);
+  const totalClientes = new Set(lista.map(r => String(r[IDX.cliente] || '').trim()).filter(Boolean)).size;
+  return `<div class="premio-campanha-hero">
+    <div>
+      <span class="premio-kicker">Premiação organizada</span>
+      <h3>${repEsc(repPremiacaoCampanhaAtual().titulo)}</h3>
+      <p>Período ativo: <strong>${repEsc(repPremiacaoPeriodoSelecionado(lista))}</strong>. O recorte abaixo já está limitado ao período e à disputa escolhida.</p>
+    </div>
+    <div class="premio-campanha-resumo">
+      <div><span>Faturamento</span><strong>${fmtValor(totalFat)}</strong></div>
+      <div><span>Quantidade</span><strong>${fmtInt(totalQtd)}</strong></div>
+      <div><span>Pedidos</span><strong>${fmtInt(totalPedidos)}</strong></div>
+      <div><span>Clientes</span><strong>${fmtInt(totalClientes)}</strong></div>
+    </div>
+  </div>`;
+}
+
 function repFiltrarRowsPremiacao(rows) {
   const lista = Array.isArray(rows) ? rows : [];
   if (window.REP_PREMIACAO_MODO !== 'atual') return lista;
@@ -169,7 +536,7 @@ function repRoletaProdutosBase(rows) {
 function repRoletaGarantirSeed() {
   const estado = repRoletaLerEstado();
   if (estado.itens.length) return estado;
-  estado.itens = repRoletaProdutosBase(repDataRows()).slice(0, 8);
+  estado.itens = repRoletaProdutosBase(repPremiacaoRows()).slice(0, 8);
   repRoletaSalvarEstado(estado);
   return estado;
 }
@@ -267,7 +634,7 @@ function repRoletaRecarregarArea() {
 
 function repRoletaImportarProdutos() {
   const estado = repRoletaLerEstado();
-  estado.itens = repRoletaProdutosBase(repDataRows()).slice(0, 16);
+  estado.itens = repRoletaProdutosBase(repPremiacaoRows()).slice(0, 16);
   if (!estado.itens.length) estado.itens = [];
   if (!estado.angulo) estado.angulo = 0;
   repRoletaSalvarEstado(estado);
@@ -951,7 +1318,35 @@ function repCrescMes() {
 function repPremiacao() {
   const el = document.getElementById('rep-tab-premiacao');
   if (!el) return;
-  const rows = repFiltrarRowsPremiacao(repDataRows());
+  const baseRows = repPremiacaoRowsBase();
+  const rows = repPremiacaoAplicarFiltroPeriodo(baseRows);
+  if (!rows.length) {
+    el.innerHTML = `<div class="av-rel-placeholder"><p>Sem dados para premiação</p><span>Sincronize as vendas ou ajuste o período/campanha selecionado.</span></div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="rel-header-bar premio-header">
+    ${repToggleHtml()}
+    <div class="rel-title">PREMIAÇÃO DOS REPRESENTANTES</div>
+  </div>
+  <div class="rel-inline-tabs premio-inline-tabs">
+    <button class="rel-inline-tab ${window.REP_PREMIACAO_MODO === 'geral' ? 'active' : ''}" onclick="repPremiacaoModo('geral')">Premiação geral</button>
+    <button class="rel-inline-tab ${window.REP_PREMIACAO_MODO === 'atual' ? 'active' : ''}" onclick="repPremiacaoModo('atual')">Premiação atual</button>
+  </div>
+  ${repPremiacaoCampanhasHtml(baseRows)}
+  ${repPremiacaoFiltroHtml(baseRows)}
+  ${repPremiacaoResumoHtml(rows)}
+  ${window.REP_PREMIACAO_MODO === 'atual' ? repRoletaHtml() : ''}
+  <div class="premio-campanha-foot">
+    <div class="premio-campanha-alert">
+      <strong>Modo ativo:</strong> ${repEsc(repPremiacaoCampanhaAtual().titulo)} · <strong>Período:</strong> ${repEsc(repPremiacaoPeriodoSelecionado(baseRows))}
+    </div>
+    ${window.REP_PREMIACAO_MODO === 'atual'
+      ? `<div class="premio-campanha-alert muted">A disputa atual usa somente Anderson de Lessa Costa, Pedro Henrique Santos Sales e Wedna Rosa de Souza.</div>`
+      : `<div class="premio-campanha-alert muted">Troque para <strong>Premiação atual</strong> para ver a disputa dos 3 representantes fixos.</div>`}
+  </div>`;
+  return;
+  const rowsLegacy = repFiltrarRowsPremiacao(repDataRows());
   if (false && !rows.length) {
     el.innerHTML = `<div class="av-rel-placeholder"><p>Sem dados para premiação</p><span>Altere os filtros ou sincronize vendas para gerar rankings.</span></div>`;
     return;
