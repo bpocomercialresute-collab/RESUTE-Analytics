@@ -19,6 +19,7 @@ window.REP_PREMIACAO_FILTRO = window.REP_PREMIACAO_FILTRO || {
   semestre: '',
   ano: ''
 };
+window.REP_PREMIACAO_CRESCIMENTO = window.REP_PREMIACAO_CRESCIMENTO || false;
 
 function repToggleModo(m) {
   REP_MODO = m;
@@ -79,6 +80,11 @@ function repPedidoChave(row) {
 
 function repPremiacaoModo(modo) {
   window.REP_PREMIACAO_MODO = modo === 'atual' ? 'atual' : 'geral';
+  repPremiacao();
+}
+
+function repPremiacaoToggleCrescimento() {
+  window.REP_PREMIACAO_CRESCIMENTO = !window.REP_PREMIACAO_CRESCIMENTO;
   repPremiacao();
 }
 
@@ -2081,4 +2087,402 @@ function repGetTipo(nome) {
   const data = window.GRID_DATA_STORE?.representantes || [];
   const row = data.find(r => String(r[2]||'').trim() === nome);
   return row ? String(row[3]||'').trim() : 'REPRESENTANTE';
+}
+
+function repPremiacaoNomeFixoBase(nome) {
+  const atual = repNomeNormalizado(nome);
+  const lista = Array.isArray(window.REP_PREMIACAO_FIXA) ? window.REP_PREMIACAO_FIXA : [];
+  for (let i = 0; i < lista.length; i++) {
+    const item = String(lista[i] || '').trim();
+    const normalizado = repNomeNormalizado(item);
+    if (!normalizado) continue;
+    if (atual === normalizado || atual.includes(normalizado) || normalizado.includes(atual)) return item;
+  }
+  return String(nome || '').trim() || 'Sem representante';
+}
+
+function repPremiacaoAnoReferencia(rows) {
+  const lista = Array.isArray(rows) && rows.length ? rows : repPremiacaoRowsBase();
+  const campo = repPremiacaoPeriodoCampo(repPremiacaoCampanhaAtual().id);
+  const filtro = window.REP_PREMIACAO_FILTRO || {};
+  const fallback = repPremiacaoPeriodoAtual(lista);
+
+  if (campo === 'semana') {
+    const chave = String(filtro.semana || repPremiacaoChavePadrao('semana', fallback) || '');
+    const ano = Number(chave.slice(0, 4));
+    if (Number.isFinite(ano)) return ano;
+  }
+  if (campo === 'mes') {
+    const chave = String(filtro.mes || repPremiacaoChavePadrao('mes', fallback) || '');
+    const ano = Number(chave.slice(0, 4));
+    if (Number.isFinite(ano)) return ano;
+  }
+  if (campo === 'trimestre') {
+    const chave = String(filtro.trimestre || repPremiacaoChavePadrao('trimestre', fallback) || '');
+    const ano = Number(chave.slice(0, 4));
+    if (Number.isFinite(ano)) return ano;
+  }
+  if (campo === 'semestre') {
+    const chave = String(filtro.semestre || repPremiacaoChavePadrao('semestre', fallback) || '');
+    const ano = Number(chave.slice(0, 4));
+    if (Number.isFinite(ano)) return ano;
+  }
+  const ano = Number(filtro.ano || repPremiacaoChavePadrao('ano', fallback) || fallback.getFullYear());
+  return Number.isFinite(ano) ? ano : fallback.getFullYear();
+}
+
+function repPremiacaoVariacaoInfo(atual, anterior) {
+  const atualNum = Number(atual) || 0;
+  const anteriorNum = Number(anterior) || 0;
+  if (anteriorNum <= 0 && atualNum <= 0) return { valor: null, label: 'Sem base anterior', classe: 'neutral', seta: '—' };
+  if (anteriorNum <= 0) return { valor: 100, label: 'Início de crescimento', classe: 'up', seta: '▲' };
+  const valor = ((atualNum - anteriorNum) / anteriorNum) * 100;
+  return {
+    valor,
+    label: `${valor >= 0 ? 'Subiu' : 'Caiu'} ${Math.abs(valor).toFixed(1)}%`,
+    classe: valor >= 0 ? 'up' : 'down',
+    seta: valor >= 0 ? '▲' : '▼'
+  };
+}
+
+function repPremiacaoVariacaoHtml(info) {
+  const classe = info?.classe || 'neutral';
+  if (info?.valor == null) return `<span class="premio-growth-var ${classe}">—</span>`;
+  return `<span class="premio-growth-var ${classe}">${info.seta} ${Math.abs(info.valor).toFixed(1)}%</span>`;
+}
+
+function repPremiacaoCrescimentoDados(rows) {
+  const lista = Array.isArray(rows) ? rows : [];
+  if (!lista.length) return null;
+  const ano = repPremiacaoAnoReferencia(lista);
+  const repsBase = (Array.isArray(window.REP_PREMIACAO_FIXA) ? window.REP_PREMIACAO_FIXA : []).map(nome => ({
+    nome,
+    key: repNomeNormalizado(nome),
+    meses: Array.from({ length: 12 }, (_, mes) => ({
+      mes,
+      label: `${MES_LABEL_PT[mes]} / ${ano}`,
+      short: MES_LABEL_PT[mes].slice(0, 3),
+      fat: 0,
+      qtd: 0,
+      pedidos: new Set(),
+      clientes: new Set()
+    }))
+  }));
+  const mapa = {};
+  repsBase.forEach(rep => { mapa[rep.key] = rep; });
+
+  lista.forEach(r => {
+    const dt = repParseDate(String(r[IDX.saida] || r[IDX.emissao] || '').trim());
+    if (!dt || dt.getFullYear() !== ano) return;
+    const nomeBase = repPremiacaoNomeFixoBase(r[IDX.vendedor]);
+    const chave = repNomeNormalizado(nomeBase);
+    const alvo = mapa[chave];
+    if (!alvo) return;
+    const item = alvo.meses[dt.getMonth()];
+    item.fat += (typeof parseSmartNumber === 'function' ? parseSmartNumber(r[IDX.valor]) : (Number(r[IDX.valor]) || 0));
+    item.qtd += parseFloat(r[IDX.qtd] || 0) || 0;
+    item.pedidos.add(repPedidoChave(r));
+    if (r[IDX.cliente]) item.clientes.add(String(r[IDX.cliente]).trim());
+  });
+
+  const representantes = repsBase.map(rep => {
+    const meses = rep.meses.map((mes, idx) => {
+      const anterior = idx > 0 ? rep.meses[idx - 1] : null;
+      return {
+        mes: mes.mes,
+        label: mes.label,
+        short: mes.short,
+        fat: mes.fat,
+        qtd: mes.qtd,
+        pedidos: mes.pedidos.size,
+        clientes: mes.clientes.size,
+        variacaoFat: repPremiacaoVariacaoInfo(mes.fat, anterior ? anterior.fat : 0),
+        variacaoQtd: repPremiacaoVariacaoInfo(mes.qtd, anterior ? anterior.qtd : 0)
+      };
+    });
+    const ultimoAtivo = meses.reduce((acc, item, idx) => (item.fat > 0 || item.qtd > 0 || item.pedidos > 0 ? idx : acc), -1);
+    const idxResumo = ultimoAtivo >= 0 ? ultimoAtivo : new Date().getMonth();
+    return {
+      nome: rep.nome,
+      key: rep.key,
+      meses,
+      totalFat: meses.reduce((s, item) => s + item.fat, 0),
+      totalQtd: meses.reduce((s, item) => s + item.qtd, 0),
+      totalPedidos: meses.reduce((s, item) => s + item.pedidos, 0),
+      totalClientes: meses.reduce((s, item) => s + item.clientes, 0),
+      resumoMes: meses[idxResumo]
+    };
+  });
+
+  const meses = Array.from({ length: 12 }, (_, mes) => {
+    const fat = representantes.reduce((s, rep) => s + rep.meses[mes].fat, 0);
+    const qtd = representantes.reduce((s, rep) => s + rep.meses[mes].qtd, 0);
+    const pedidos = representantes.reduce((s, rep) => s + rep.meses[mes].pedidos, 0);
+    const clientes = representantes.reduce((s, rep) => s + rep.meses[mes].clientes, 0);
+    const anteriorFat = mes > 0 ? representantes.reduce((s, rep) => s + rep.meses[mes - 1].fat, 0) : 0;
+    return {
+      mes,
+      label: `${MES_LABEL_PT[mes]} / ${ano}`,
+      short: MES_LABEL_PT[mes].slice(0, 3),
+      fat,
+      qtd,
+      pedidos,
+      clientes,
+      variacaoFat: repPremiacaoVariacaoInfo(fat, anteriorFat)
+    };
+  });
+
+  const ultimoMesAtivo = meses.reduce((acc, item, idx) => (item.fat > 0 || item.qtd > 0 || item.pedidos > 0 ? idx : acc), -1);
+  const mesDestaque = meses[ultimoMesAtivo >= 0 ? ultimoMesAtivo : new Date().getMonth()];
+
+  return { ano, representantes, meses, mesDestaque };
+}
+
+function repPremiacaoCrescimentoTabelaHtml(dados) {
+  return `<div class="premio-card premio-full premio-growth-table-wrap">
+    <div class="premio-card-title">Crescimento mensal detalhado</div>
+    <div class="rep-scroll-area">
+      <table class="rep-tbl premio-growth-table">
+        <thead>
+          <tr>
+            <th>Mês</th>
+            ${dados.representantes.map(rep => `<th>${repEsc(rep.nome)}</th><th>Variação</th>`).join('')}
+            <th>Total do mês</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${dados.meses.map((mes, idx) => `<tr>
+            <td class="rep-lbl">${repEsc(mes.label)}</td>
+            ${dados.representantes.map(rep => {
+              const item = rep.meses[idx];
+              return `<td>
+                  <strong>${fmtValor(item.fat)}</strong>
+                  <span>${fmtInt(item.qtd)} itens · ${fmtInt(item.pedidos)} pedidos</span>
+                </td>
+                <td>${repPremiacaoVariacaoHtml(item.variacaoFat)}</td>`;
+            }).join('')}
+            <td>
+              <strong>${fmtValor(mes.fat)}</strong>
+              <span>${fmtInt(mes.qtd)} itens · ${fmtInt(mes.pedidos)} pedidos</span>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function repPremiacaoCrescimentoHtml(dados) {
+  if (!dados) return '';
+  return `<section class="premio-growth-panel">
+    <div class="premio-growth-head">
+      <div>
+        <span class="premio-kicker">Crescimento mensal dos 3 representantes</span>
+        <h3>Comparativo mês a mês · ${repEsc(String(dados.ano))}</h3>
+        <p>Valores mensais, evolução percentual e ritmo comercial dos representantes fixos da disputa atual.</p>
+      </div>
+      <div class="premio-growth-head-side">
+        <span>Mês em destaque</span>
+        <strong>${repEsc(dados.mesDestaque?.label || String(dados.ano))}</strong>
+      </div>
+    </div>
+    <div class="premio-growth-cards">
+      ${dados.representantes.map(rep => `<article class="premio-growth-card">
+        <span class="premio-growth-card-kicker">${repEsc(rep.nome)}</span>
+        <strong>${fmtValor(rep.resumoMes?.fat || 0)}</strong>
+        <p>${repEsc(rep.resumoMes?.label || `Ano ${dados.ano}`)}</p>
+        <div class="premio-growth-card-meta">
+          <div><span>Quantidade</span><b>${fmtInt(rep.resumoMes?.qtd || 0)}</b></div>
+          <div><span>Pedidos</span><b>${fmtInt(rep.resumoMes?.pedidos || 0)}</b></div>
+          <div><span>Variação</span><b>${repPremiacaoVariacaoHtml(rep.resumoMes?.variacaoFat || {})}</b></div>
+        </div>
+      </article>`).join('')}
+    </div>
+    <div class="premio-grid premio-growth-charts">
+      <div class="premio-chart-box">
+        <div class="premio-card-title">Faturamento mensal dos 3 representantes</div>
+        <canvas id="rep-premio-growth-fat"></canvas>
+      </div>
+      <div class="premio-chart-box">
+        <div class="premio-card-title">Variação percentual mês a mês</div>
+        <canvas id="rep-premio-growth-var"></canvas>
+      </div>
+    </div>
+    ${repPremiacaoCrescimentoTabelaHtml(dados)}
+  </section>`;
+}
+
+function repPremiacaoRenderCrescimentoCharts(dados) {
+  if (typeof Chart === 'undefined' || !dados) return;
+  ['rep-premio-growth-fat', 'rep-premio-growth-var'].forEach(id => {
+    const old = Chart.getChart(id);
+    if (old) old.destroy();
+  });
+
+  const labels = dados.meses.map(m => m.short);
+  const cores = ['#3b82f6', '#22c55e', '#f59e0b'];
+
+  const fatCtx = document.getElementById('rep-premio-growth-fat');
+  if (fatCtx) new Chart(fatCtx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: dados.representantes.map((rep, idx) => ({
+        label: rep.nome,
+        data: rep.meses.map(item => Number(item.fat.toFixed(2))),
+        borderColor: cores[idx % cores.length],
+        backgroundColor: `${cores[idx % cores.length]}33`,
+        borderWidth: 3,
+        tension: .32,
+        fill: false,
+        pointRadius: 3,
+        pointHoverRadius: 5
+      }))
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#cbd5e1', boxWidth: 10 } },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) { return `${ctx.dataset.label}: ${fmtValor(ctx.parsed.y || 0)}`; }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#8ea3c0' }, grid: { color: 'rgba(255,255,255,.05)' } },
+        y: {
+          ticks: {
+            color: '#8ea3c0',
+            callback: function(v) { return fmtValor(v); }
+          },
+          grid: { color: 'rgba(255,255,255,.05)' }
+        }
+      }
+    }
+  });
+
+  const varCtx = document.getElementById('rep-premio-growth-var');
+  if (varCtx) new Chart(varCtx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: dados.representantes.map((rep, idx) => ({
+        label: rep.nome,
+        data: rep.meses.map(item => item.variacaoFat?.valor == null ? 0 : Number(item.variacaoFat.valor.toFixed(1))),
+        backgroundColor: `${cores[idx % cores.length]}cc`,
+        borderRadius: 6
+      }))
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#cbd5e1', boxWidth: 10 } },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) { return `${ctx.dataset.label}: ${Number(ctx.parsed.y || 0).toFixed(1)}%`; }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#8ea3c0' }, grid: { display: false } },
+        y: {
+          ticks: {
+            color: '#8ea3c0',
+            callback: function(v) { return `${v}%`; }
+          },
+          grid: { color: 'rgba(255,255,255,.05)' }
+        }
+      }
+    }
+  });
+}
+
+function repPremiacaoFiltroHtml(rows) {
+  const campanha = repPremiacaoCampanhaAtual();
+  const campo = repPremiacaoPeriodoCampo(campanha.id);
+  const baseRows = Array.isArray(rows) && rows.length ? rows : repPremiacaoRowsBase();
+  const disponiveis = repPremiacaoDisponiveis(baseRows);
+  const filtro = window.REP_PREMIACAO_FILTRO || {};
+  const selecionado =
+    campo === 'semana' ? (filtro.semana || '') :
+    campo === 'mes' ? (filtro.mes || '') :
+    campo === 'trimestre' ? (filtro.trimestre || '') :
+    campo === 'semestre' ? (filtro.semestre || '') :
+    (filtro.ano || '');
+  const lista =
+    campo === 'semana' ? disponiveis.semanas :
+    campo === 'mes' ? disponiveis.meses :
+    campo === 'trimestre' ? disponiveis.trimestres :
+    campo === 'semestre' ? disponiveis.semestres :
+    disponiveis.anos;
+  const label =
+    campo === 'semana' ? 'Semana' :
+    campo === 'mes' ? 'Mês' :
+    campo === 'trimestre' ? 'Trimestre' :
+    campo === 'semestre' ? 'Semestre' : 'Ano';
+  const labelPadrao =
+    campo === 'semana' ? 'Última semana disponível' :
+    campo === 'mes' ? 'Último mês disponível' :
+    campo === 'trimestre' ? 'Último trimestre disponível' :
+    campo === 'semestre' ? 'Último semestre disponível' : 'Último ano disponível';
+
+  return `<div class="premio-periodo-filtros">
+    <label class="premio-periodo-field">
+      <span>${label} do relatório</span>
+      <select class="premio-periodo-select" onchange="repPremiacaoSetFiltro('${campo}', this.value)">
+        ${repPremiacaoCampoOptions(lista, selecionado, labelPadrao)}
+      </select>
+    </label>
+    <div class="premio-periodo-actions">
+      <button type="button" class="premio-periodo-reset" onclick="repPremiacaoLimparFiltros()">Limpar período</button>
+      ${window.REP_PREMIACAO_MODO === 'atual'
+        ? `<button type="button" class="premio-periodo-growth ${window.REP_PREMIACAO_CRESCIMENTO ? 'active' : ''}" onclick="repPremiacaoToggleCrescimento()">
+          ${window.REP_PREMIACAO_CRESCIMENTO ? 'Ocultar crescimento mensal' : 'Ver crescimento mensal'}
+        </button>`
+        : ''}
+    </div>
+  </div>`;
+}
+
+function repPremiacao() {
+  const el = document.getElementById('rep-tab-premiacao');
+  if (!el) return;
+  const baseRows = repPremiacaoRowsBase();
+  const rows = repPremiacaoAplicarFiltroPeriodo(baseRows);
+  if (!rows.length) {
+    el.innerHTML = `<div class="av-rel-placeholder"><p>Sem dados para premiação</p><span>Sincronize as vendas ou ajuste o período/campanha selecionado.</span></div>`;
+    return;
+  }
+
+  const crescimentoDados = window.REP_PREMIACAO_MODO === 'atual' && window.REP_PREMIACAO_CRESCIMENTO
+    ? repPremiacaoCrescimentoDados(baseRows)
+    : null;
+
+  el.innerHTML = `<div class="rel-header-bar premio-header">
+    ${repToggleHtml()}
+    <div class="rel-title">PREMIAÇÃO DOS REPRESENTANTES</div>
+  </div>
+  <div class="rel-inline-tabs premio-inline-tabs">
+    <button class="rel-inline-tab ${window.REP_PREMIACAO_MODO === 'geral' ? 'active' : ''}" onclick="repPremiacaoModo('geral')">Premiação geral</button>
+    <button class="rel-inline-tab ${window.REP_PREMIACAO_MODO === 'atual' ? 'active' : ''}" onclick="repPremiacaoModo('atual')">Premiação atual</button>
+  </div>
+  ${repPremiacaoCampanhasHtml(baseRows)}
+  ${repPremiacaoFiltroHtml(baseRows)}
+  ${crescimentoDados ? repPremiacaoCrescimentoHtml(crescimentoDados) : ''}
+  ${repPremiacaoResumoHtml(rows)}
+  ${repPremiacaoRelatorioHtml(rows, baseRows)}
+  ${window.REP_PREMIACAO_MODO === 'atual' ? repRoletaHtml() : ''}
+  <div class="premio-campanha-foot">
+    <div class="premio-campanha-alert">
+      <strong>Modo ativo:</strong> ${repEsc(repPremiacaoCampanhaAtual().titulo)} · <strong>Período:</strong> ${repEsc(repPremiacaoPeriodoSelecionado(baseRows))}
+    </div>
+    ${window.REP_PREMIACAO_MODO === 'atual'
+      ? `<div class="premio-campanha-alert muted">A disputa atual usa somente Anderson de Lessa Costa, Pedro Henrique Santos Sales e Wedna Rosa de Souza.</div>`
+      : `<div class="premio-campanha-alert muted">Troque para <strong>Premiação atual</strong> para ver a disputa dos 3 representantes fixos.</div>`}
+  </div>`;
+
+  if (crescimentoDados) setTimeout(() => repPremiacaoRenderCrescimentoCharts(crescimentoDados), 50);
 }
