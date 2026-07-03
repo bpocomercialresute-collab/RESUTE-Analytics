@@ -165,7 +165,7 @@ function g(row, key) {
 }
 
 function toNum(s) {
-  return parseFloat(String(s||'').replace(/\./g,'').replace(',','.')) || 0;
+  return typeof parseSmartNumber === 'function' ? parseSmartNumber(s) : (Number(s) || 0);
 }
 
 // ── AUTO-PREENCHE COLUNAS VERMELHAS DO BD ────────────────────────────────────

@@ -29,7 +29,7 @@ function repVal(row) {
   if (!window.IDX) return 0;
   return REP_MODO === 'qtd'
     ? (parseFloat(row[IDX.qtd]||0) || 0)
-    : (parseFloat(String(row[IDX.valor]||'').replace(/\./g,'').replace(',','.')) || 0);
+    : (typeof parseSmartNumber === 'function' ? parseSmartNumber(row[IDX.valor]) : (Number(row[IDX.valor]) || 0));
 }
 function repFmt(v) {
   if (REP_MODO === 'qtd') return v > 0 ? fmtInt(v) : '-';
@@ -487,7 +487,7 @@ function repPremiacaoResumoHtml(rows) {
   lista.forEach(r => {
     const vend = String(r[IDX.vendedor] || '').trim() || 'Sem representante';
     if (!reps[vend]) reps[vend] = { fat: 0, qtd: 0, pedidos: new Set(), clientes: new Set(), produtos: new Set() };
-    reps[vend].fat += parseFloat(String(r[IDX.valor] || '').replace(/\./g, '').replace(',', '.')) || 0;
+    reps[vend].fat += (typeof parseSmartNumber === 'function' ? parseSmartNumber(r[IDX.valor]) : (Number(r[IDX.valor]) || 0));
     reps[vend].qtd += parseFloat(r[IDX.qtd] || 0) || 0;
     reps[vend].pedidos.add(repPedidoChave(r));
     if (r[IDX.cliente]) reps[vend].clientes.add(String(r[IDX.cliente]).trim());
@@ -522,7 +522,7 @@ function repPremiacaoAgruparRepresentantes(rows) {
   (Array.isArray(rows) ? rows : []).forEach(r => {
     const nome = String(r[IDX.vendedor] || '').trim() || 'Sem representante';
     if (!mapa[nome]) mapa[nome] = { nome, fat: 0, qtd: 0, pedidos: new Set(), clientes: new Set(), produtos: new Set() };
-    mapa[nome].fat += parseFloat(String(r[IDX.valor] || '').replace(/\./g, '').replace(',', '.')) || 0;
+    mapa[nome].fat += (typeof parseSmartNumber === 'function' ? parseSmartNumber(r[IDX.valor]) : (Number(r[IDX.valor]) || 0));
     mapa[nome].qtd += parseFloat(r[IDX.qtd] || 0) || 0;
     mapa[nome].pedidos.add(repPedidoChave(r));
     if (r[IDX.cliente]) mapa[nome].clientes.add(String(r[IDX.cliente]).trim());
@@ -666,7 +666,7 @@ function repPremiacaoRelatorioHtml(rows, baseRows) {
       if (!dt) return;
       const chaveMes = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
       if (!meses[nome]) meses[nome] = {};
-      meses[nome][chaveMes] = (meses[nome][chaveMes] || 0) + (parseFloat(String(r[IDX.valor] || '').replace(/\./g, '').replace(',', '.')) || 0);
+      meses[nome][chaveMes] = (meses[nome][chaveMes] || 0) + ((typeof parseSmartNumber === 'function' ? parseSmartNumber(r[IDX.valor]) : (Number(r[IDX.valor]) || 0)));
     });
     const linhas = Object.entries(meses).map(([nome, mapaMes]) => {
       const positivos = Object.values(mapaMes).filter(v => v > 0).length;
@@ -738,7 +738,7 @@ function repPremiacaoCompetidores(rows) {
     const vend = String(r[IDX.vendedor] || '').trim() || 'Sem representante';
     if (!mapa[vend]) mapa[vend] = { nome: vend, fat: 0, qtd: 0, pedidos: new Set(), clientes: new Set(), produtos: new Set(), dias: new Set() };
     const dtStr = String(r[IDX.saida] || r[IDX.emissao] || '').trim();
-    mapa[vend].fat += parseFloat(String(r[IDX.valor] || '').replace(/\./g, '').replace(',', '.')) || 0;
+    mapa[vend].fat += (typeof parseSmartNumber === 'function' ? parseSmartNumber(r[IDX.valor]) : (Number(r[IDX.valor]) || 0));
     mapa[vend].qtd += parseFloat(r[IDX.qtd] || 0) || 0;
     mapa[vend].pedidos.add(repPedidoChave(r));
     if (r[IDX.cliente]) mapa[vend].clientes.add(String(r[IDX.cliente]).trim());
@@ -1712,7 +1712,7 @@ function repPremiacao() {
     const vend = String(r[IDX.vendedor]||'').trim() || 'Sem representante';
     if (!reps[vend]) reps[vend] = { nome: vend, fat:0, qtd:0, pedidos:new Set(), clientes:new Set(), produtos:new Set(), dias:new Set() };
     const dtStr = String(r[IDX.saida]||r[IDX.emissao]||'').trim();
-    reps[vend].fat += parseFloat(String(r[IDX.valor]||'').replace(/\./g,'').replace(',','.')) || 0;
+    reps[vend].fat += (typeof parseSmartNumber === 'function' ? parseSmartNumber(r[IDX.valor]) : (Number(r[IDX.valor]) || 0));
     reps[vend].qtd += parseFloat(r[IDX.qtd]||0) || 0;
     reps[vend].pedidos.add(repPedidoChave(r));
     if (r[IDX.cliente]) reps[vend].clientes.add(String(r[IDX.cliente]).trim());
@@ -1778,7 +1778,7 @@ function repPremiacao() {
     baseRows.forEach(r => {
       const vend = String(r[IDX.vendedor]||'').trim() || 'Sem representante';
       if (!mapa[vend]) mapa[vend] = { nome:vend, fat:0, qtd:0, pedidos:new Set(), clientes:new Set(), produtos:new Set() };
-      mapa[vend].fat += parseFloat(String(r[IDX.valor]||'').replace(/\./g,'').replace(',','.')) || 0;
+      mapa[vend].fat += (typeof parseSmartNumber === 'function' ? parseSmartNumber(r[IDX.valor]) : (Number(r[IDX.valor]) || 0));
       mapa[vend].qtd += parseFloat(r[IDX.qtd]||0) || 0;
       mapa[vend].pedidos.add(repPedidoChave(r));
       if (r[IDX.cliente]) mapa[vend].clientes.add(String(r[IDX.cliente]).trim());

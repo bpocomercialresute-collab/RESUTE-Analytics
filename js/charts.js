@@ -15,7 +15,12 @@ function fmtInt(v) {
 }
 
 function fmtValor(v) {
-  return 'R$ ' + fmtNumeroSmart(v, 2);
+  const n = typeof parseSmartNumber === 'function' ? parseSmartNumber(v) : (Number(v) || 0);
+  const frac = Math.round(Math.abs(n * 100)) % 100;
+  return 'R$ ' + new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: frac === 0 ? 0 : 2,
+    maximumFractionDigits: 2
+  }).format(n);
 }
 
 /** Renderiza (ou atualiza) um gráfico Chart.js */

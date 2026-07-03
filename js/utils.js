@@ -5,13 +5,54 @@
 /** Atalho para document.getElementById */
 const $ = id => document.getElementById(id);
 
-/** Formata número como moeda brasileira sem forçar ,00 quando não houver centavos */
-const fmtValor = v => new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2
-}).format(Number(v) || 0);
+function parseSmartNumber(value) {
+  if (value === null || value === undefined || value === '') return 0;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+
+  let raw = String(value).trim();
+  if (!raw) return 0;
+
+  raw = raw
+    .replace(/R\$/gi, '')
+    .replace(/\s+/g, '')
+    .replace(/[^\d,.-]/g, '');
+
+  const hasComma = raw.indexOf(',') >= 0;
+  const hasDot = raw.indexOf('.') >= 0;
+
+  if (hasComma && hasDot) {
+    const lastComma = raw.lastIndexOf(',');
+    const lastDot = raw.lastIndexOf('.');
+    raw = lastComma > lastDot
+      ? raw.replace(/\./g, '').replace(',', '.')
+      : raw.replace(/,/g, '');
+  } else if (hasComma) {
+    const parts = raw.split(',');
+    const tail = parts[parts.length - 1] || '';
+    raw = (parts.length > 2 || tail.length === 3)
+      ? raw.replace(/,/g, '')
+      : raw.replace(',', '.');
+  } else if (hasDot) {
+    const parts = raw.split('.');
+    const tail = parts[parts.length - 1] || '';
+    raw = (parts.length > 2 || tail.length === 3)
+      ? raw.replace(/\./g, '')
+      : raw;
+  }
+
+  const num = Number(raw);
+  return Number.isFinite(num) ? num : 0;
+}
+
+/** Formata número como moeda brasileira, mostrando centavos só quando existirem */
+const fmtValor = v => {
+  const n = parseSmartNumber(v);
+  const frac = Math.round(Math.abs(n * 100)) % 100;
+  return 'R$ ' + new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: frac === 0 ? 0 : 2,
+    maximumFractionDigits: 2
+  }).format(n);
+};
 
 /** Formata número inteiro com separador de milhar */
 const fmtInt = v => new Intl.NumberFormat('pt-BR').format(v || 0);
