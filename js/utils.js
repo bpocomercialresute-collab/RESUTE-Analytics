@@ -5,8 +5,13 @@
 /** Atalho para document.getElementById */
 const $ = id => document.getElementById(id);
 
-/** Formata número como moeda brasileira */
-const fmtValor = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+/** Formata número como moeda brasileira sem forçar ,00 quando não houver centavos */
+const fmtValor = v => new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2
+}).format(Number(v) || 0);
 
 /** Formata número inteiro com separador de milhar */
 const fmtInt = v => new Intl.NumberFormat('pt-BR').format(v || 0);

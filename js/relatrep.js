@@ -217,6 +217,14 @@ function repPremiacaoLimparFiltros() {
   repPremiacao();
 }
 
+function repPremiacaoChavePadrao(tipoFiltro, ref) {
+  if (tipoFiltro === 'semana') return repPremiacaoCalcularIntervaloSemana(ref).chave;
+  if (tipoFiltro === 'mes') return `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, '0')}`;
+  if (tipoFiltro === 'trimestre') return `${ref.getFullYear()}-T${Math.floor(ref.getMonth() / 3) + 1}`;
+  if (tipoFiltro === 'semestre') return `${ref.getFullYear()}-S${ref.getMonth() < 6 ? '1' : '2'}`;
+  return String(ref.getFullYear());
+}
+
 function repPremiacaoCalcularIntervaloSemana(dt) {
   const base = new Date(dt);
   base.setHours(0, 0, 0, 0);
@@ -309,23 +317,38 @@ function repPremiacaoAplicarFiltroPeriodo(rows) {
 
   const ultima = datas[datas.length - 1].dt;
   if (tipoFiltro === 'semana') {
-    const alvo = filtro.semana || repPremiacaoCalcularIntervaloSemana(ultima).chave;
+    const disponiveis = repPremiacaoDisponiveis(lista).semanas.map(x => x.key);
+    const padrao = repPremiacaoChavePadrao('semana', ultima);
+    const alvo = disponiveis.includes(filtro.semana) ? filtro.semana : padrao;
+    if (window.REP_PREMIACAO_FILTRO && window.REP_PREMIACAO_FILTRO.semana !== alvo) window.REP_PREMIACAO_FILTRO.semana = alvo;
     return datas.filter(x => repPremiacaoCalcularIntervaloSemana(x.dt).chave === alvo).map(x => x.row);
   }
   if (tipoFiltro === 'mes') {
-    const alvo = filtro.mes || `${ultima.getFullYear()}-${String(ultima.getMonth() + 1).padStart(2, '0')}`;
+    const disponiveis = repPremiacaoDisponiveis(lista).meses.map(x => x.key);
+    const padrao = repPremiacaoChavePadrao('mes', ultima);
+    const alvo = disponiveis.includes(filtro.mes) ? filtro.mes : padrao;
+    if (window.REP_PREMIACAO_FILTRO && window.REP_PREMIACAO_FILTRO.mes !== alvo) window.REP_PREMIACAO_FILTRO.mes = alvo;
     return datas.filter(x => `${x.dt.getFullYear()}-${String(x.dt.getMonth() + 1).padStart(2, '0')}` === alvo).map(x => x.row);
   }
   if (tipoFiltro === 'trimestre') {
-    const alvo = filtro.trimestre || `${ultima.getFullYear()}-T${Math.floor(ultima.getMonth() / 3) + 1}`;
+    const disponiveis = repPremiacaoDisponiveis(lista).trimestres.map(x => x.key);
+    const padrao = repPremiacaoChavePadrao('trimestre', ultima);
+    const alvo = disponiveis.includes(filtro.trimestre) ? filtro.trimestre : padrao;
+    if (window.REP_PREMIACAO_FILTRO && window.REP_PREMIACAO_FILTRO.trimestre !== alvo) window.REP_PREMIACAO_FILTRO.trimestre = alvo;
     return datas.filter(x => `${x.dt.getFullYear()}-T${Math.floor(x.dt.getMonth() / 3) + 1}` === alvo).map(x => x.row);
   }
   if (tipoFiltro === 'semestre') {
-    const alvo = filtro.semestre || `${ultima.getFullYear()}-S${ultima.getMonth() < 6 ? '1' : '2'}`;
+    const disponiveis = repPremiacaoDisponiveis(lista).semestres.map(x => x.key);
+    const padrao = repPremiacaoChavePadrao('semestre', ultima);
+    const alvo = disponiveis.includes(filtro.semestre) ? filtro.semestre : padrao;
+    if (window.REP_PREMIACAO_FILTRO && window.REP_PREMIACAO_FILTRO.semestre !== alvo) window.REP_PREMIACAO_FILTRO.semestre = alvo;
     return datas.filter(x => `${x.dt.getFullYear()}-S${x.dt.getMonth() < 6 ? '1' : '2'}` === alvo).map(x => x.row);
   }
   if (tipoFiltro === 'ano') {
-    const alvo = filtro.ano || String(ultima.getFullYear());
+    const disponiveis = repPremiacaoDisponiveis(lista).anos.map(x => x.key);
+    const padrao = repPremiacaoChavePadrao('ano', ultima);
+    const alvo = disponiveis.includes(filtro.ano) ? filtro.ano : padrao;
+    if (window.REP_PREMIACAO_FILTRO && window.REP_PREMIACAO_FILTRO.ano !== alvo) window.REP_PREMIACAO_FILTRO.ano = alvo;
     return datas.filter(x => String(x.dt.getFullYear()) === alvo).map(x => x.row);
   }
   return lista;
@@ -385,15 +408,16 @@ function repPremiacaoPeriodoSelecionado(rows) {
   return periodo ? periodo.label : 'Ano selecionado';
 }
 
-function repPremiacaoCampoOptions(lista, selecionado) {
+function repPremiacaoCampoOptions(lista, selecionado, labelPadrao) {
   const opts = (Array.isArray(lista) ? lista : []).map(v => `<option value="${repEsc(v.key)}" ${v.key === selecionado ? 'selected' : ''}>${repEsc(v.label)}</option>`).join('');
-  return `<option value="">Todos</option>${opts}`;
+  return `<option value="">${repEsc(labelPadrao || 'Último disponível')}</option>${opts}`;
 }
 
 function repPremiacaoFiltroHtml(rows) {
   const campanha = repPremiacaoCampanhaAtual();
   const campo = repPremiacaoPeriodoCampo(campanha.id);
-  const disponiveis = repPremiacaoDisponiveis(repPremiacaoRowsBase());
+  const baseRows = Array.isArray(rows) && rows.length ? rows : repPremiacaoRowsBase();
+  const disponiveis = repPremiacaoDisponiveis(baseRows);
   const filtro = window.REP_PREMIACAO_FILTRO || {};
   const selecionado =
     campo === 'semana' ? (filtro.semana || '') :
@@ -413,11 +437,17 @@ function repPremiacaoFiltroHtml(rows) {
     campo === 'trimestre' ? 'Trimestre' :
     campo === 'semestre' ? 'Semestre' : 'Ano';
 
+  const labelPadrao =
+    campo === 'semana' ? 'Última semana disponível' :
+    campo === 'mes' ? 'Último mês disponível' :
+    campo === 'trimestre' ? 'Último trimestre disponível' :
+    campo === 'semestre' ? 'Último semestre disponível' : 'Último ano disponível';
+
   return `<div class="premio-periodo-filtros">
     <label class="premio-periodo-field">
-      <span>${label}</span>
+      <span>${label} do relatório</span>
       <select class="premio-periodo-select" onchange="repPremiacaoSetFiltro('${campo}', this.value)">
-        ${repPremiacaoCampoOptions(lista, selecionado)}
+        ${repPremiacaoCampoOptions(lista, selecionado, labelPadrao)}
       </select>
     </label>
     <button type="button" class="premio-periodo-reset" onclick="repPremiacaoLimparFiltros()">Limpar período</button>
