@@ -462,6 +462,90 @@ function repPremiacaoResumoHtml(rows) {
   </div>`;
 }
 
+function repPremiacaoCompetidores(rows) {
+  const mapa = {};
+  (Array.isArray(rows) ? rows : []).forEach(r => {
+    const vend = String(r[IDX.vendedor] || '').trim() || 'Sem representante';
+    if (!mapa[vend]) mapa[vend] = { nome: vend, fat: 0, qtd: 0, pedidos: new Set(), clientes: new Set(), produtos: new Set(), dias: new Set() };
+    const dtStr = String(r[IDX.saida] || r[IDX.emissao] || '').trim();
+    mapa[vend].fat += parseFloat(String(r[IDX.valor] || '').replace(/\./g, '').replace(',', '.')) || 0;
+    mapa[vend].qtd += parseFloat(r[IDX.qtd] || 0) || 0;
+    mapa[vend].pedidos.add(repPedidoChave(r));
+    if (r[IDX.cliente]) mapa[vend].clientes.add(String(r[IDX.cliente]).trim());
+    if (r[IDX.produto]) mapa[vend].produtos.add(String(r[IDX.produto]).trim());
+    if (dtStr) mapa[vend].dias.add(dtStr);
+  });
+  const arr = Object.values(mapa).map(r => ({
+    nome: r.nome,
+    fat: r.fat,
+    qtd: r.qtd,
+    pedidos: r.pedidos.size,
+    clientes: r.clientes.size,
+    produtos: r.produtos.size,
+    dias: r.dias.size,
+    ticket: r.pedidos.size ? r.fat / r.pedidos.size : 0,
+    mediaDia: r.dias.size ? r.fat / r.dias.size : 0,
+    tipo: repGetTipo(r.nome)
+  }));
+  function pontuar(campo) {
+    const max = Math.max(1, ...arr.map(r => r[campo] || 0));
+    arr.forEach(r => r['p_' + campo] = ((r[campo] || 0) / max) * 100);
+  }
+  ['fat', 'qtd', 'clientes', 'produtos', 'pedidos'].forEach(pontuar);
+  arr.forEach(r => {
+    r.score = (r.p_fat * 0.35) + (r.p_qtd * 0.20) + (r.p_clientes * 0.20) + (r.p_produtos * 0.15) + (r.p_pedidos * 0.10);
+  });
+  return arr.sort((a, b) => b.score - a.score);
+}
+
+function repPremiacaoTabelaTop(titulo, lista, campo, fmt) {
+  const itens = Array.isArray(lista) ? lista.slice(0, 6) : [];
+  const max = Math.max(1, ...itens.map(r => r[campo] || 0));
+  const vazio = !itens.length ? '<tr><td colspan="4">Sem dados para este recorte.</td></tr>' : '';
+  return `<div class="premio-card">
+    <div class="premio-card-title">${repEsc(titulo)}</div>
+    <table class="premio-table"><tbody>
+      ${itens.map((r, i) => `<tr>
+        <td class="premio-pos">${i + 1}</td>
+        <td><strong>${repEsc(r.nome)}</strong><span>${repEsc(r.tipo || 'Representante')}</span></td>
+        <td>${campo === 'score'
+          ? `<div class="rep-mini-cell"><span>${Number(r[campo] || 0).toFixed(1)}</span><i><b style="width:${Math.max(3, Math.min(100, ((r[campo] || 0) / max) * 100))}%"></b></i></div>`
+          : repMiniCell(r[campo] || 0, max)}</td>
+        <td>${fmt ? fmt(r[campo] || 0, r) : repFmtFull(r[campo] || 0)}</td>
+      </tr>`).join('')}
+      ${vazio}
+    </tbody></table>
+  </div>`;
+}
+
+function repPremiacaoGanhosHtml(rows) {
+  const arr = repPremiacaoCompetidores(rows);
+  if (!arr.length) return '<div class="premio-card premio-full"><div class="premio-card-title">Relatórios de vencedores</div><p>Sem dados para calcular vencedores.</p></div>';
+  const geral = arr[0];
+  const porFat = [...arr].sort((a, b) => b.fat - a.fat);
+  const porQtd = [...arr].sort((a, b) => b.qtd - a.qtd);
+  const porClientes = [...arr].sort((a, b) => b.clientes - a.clientes);
+  const porMix = [...arr].sort((a, b) => b.produtos - a.produtos);
+  const porPedidos = [...arr].sort((a, b) => b.pedidos - a.pedidos);
+  return `<div class="premio-card premio-full">
+    <div class="premio-card-title">Relatórios de vencedores</div>
+    <div class="premio-kpis">
+      <div><span>1º geral</span><strong>${repEsc(geral?.nome || '-')}</strong></div>
+      <div><span>Score</span><strong>${(geral?.score || 0).toFixed(1)}</strong></div>
+      <div><span>Maior faturamento</span><strong>${repEsc(porFat[0]?.nome || '-')}</strong></div>
+      <div><span>Maior quantidade</span><strong>${repEsc(porQtd[0]?.nome || '-')}</strong></div>
+    </div>
+    <div class="premio-grid">
+      ${repPremiacaoTabelaTop('Pontuação geral', arr, 'score', (v) => v.toFixed(1))}
+      ${repPremiacaoTabelaTop('Maior faturamento', porFat, 'fat', fmtValor)}
+      ${repPremiacaoTabelaTop('Maior quantidade', porQtd, 'qtd', fmtInt)}
+      ${repPremiacaoTabelaTop('Mais clientes', porClientes, 'clientes', fmtInt)}
+      ${repPremiacaoTabelaTop('Melhor mix', porMix, 'produtos', fmtInt)}
+      ${repPremiacaoTabelaTop('Mais pedidos', porPedidos, 'pedidos', fmtInt)}
+    </div>
+  </div>`;
+}
+
 function repFiltrarRowsPremiacao(rows) {
   const lista = Array.isArray(rows) ? rows : [];
   if (window.REP_PREMIACAO_MODO !== 'atual') return lista;
@@ -1336,6 +1420,7 @@ function repPremiacao() {
   ${repPremiacaoCampanhasHtml(baseRows)}
   ${repPremiacaoFiltroHtml(baseRows)}
   ${repPremiacaoResumoHtml(rows)}
+  ${repPremiacaoGanhosHtml(rows)}
   ${window.REP_PREMIACAO_MODO === 'atual' ? repRoletaHtml() : ''}
   <div class="premio-campanha-foot">
     <div class="premio-campanha-alert">
