@@ -1316,6 +1316,9 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   gap: 10px;
   margin-top: 14px;
 }
+.premio-roleta-actions-side {
+  margin-top: 0;
+}
 .premio-roleta-btn,
 .premio-roleta-save,
 .premio-roleta-add button {
@@ -1441,6 +1444,68 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   font-size: 13px;
   line-height: 1.5;
   background: rgba(15,23,42,.5);
+}
+.premio-roleta-history {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 220px;
+  overflow: auto;
+  padding-right: 4px;
+}
+.roleta-history-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(96,165,250,.14);
+  background: rgba(15,23,42,.72);
+}
+.roleta-history-main {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.roleta-history-main strong {
+  color: #f8fafc;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.roleta-history-main span {
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.roleta-history-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  white-space: nowrap;
+}
+.roleta-history-meta time {
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.roleta-history-meta button {
+  border: 1px solid rgba(248,113,113,.18);
+  background: rgba(127,29,29,.22);
+  color: #fecaca;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.roleta-history-meta button:hover {
+  background: rgba(220,38,38,.24);
+  color: #fff;
 }
 
 .cad-kpis {

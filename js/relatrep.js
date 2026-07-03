@@ -835,7 +835,8 @@ function repRoletaEstadoPadrao() {
     itens: [],
     angulo: 0,
     ganhador: '',
-    ultimoPremio: ''
+    ultimoPremio: '',
+    historico: []
   };
 }
 
@@ -857,6 +858,17 @@ function repRoletaLerEstado() {
   estado.angulo = Number.isFinite(Number(estado.angulo)) ? Number(estado.angulo) : 0;
   estado.ganhador = String(estado.ganhador || '').trim();
   estado.ultimoPremio = String(estado.ultimoPremio || '').trim();
+  estado.historico = Array.isArray(estado.historico)
+    ? estado.historico.map(function(item) {
+        return {
+          ganhador: String(item?.ganhador || '').trim(),
+          premio: String(item?.premio || '').trim(),
+          data: String(item?.data || '').trim()
+        };
+      }).filter(function(item) {
+        return item.ganhador || item.premio || item.data;
+      })
+    : [];
   return estado;
 }
 
@@ -868,9 +880,49 @@ function repRoletaSalvarEstado(estado) {
       itens: estado.itens || [],
       angulo: Number(estado.angulo || 0),
       ganhador: String(estado.ganhador || '').trim(),
-      ultimoPremio: String(estado.ultimoPremio || '').trim()
+      ultimoPremio: String(estado.ultimoPremio || '').trim(),
+      historico: Array.isArray(estado.historico) ? estado.historico : []
     }));
   } catch (e) {}
+}
+
+function repRoletaDataHoje() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function repRoletaRepresentantesSugestoes() {
+  const base = Array.isArray(window.REP_PREMIACAO_FIXA) ? window.REP_PREMIACAO_FIXA.slice() : [];
+  const rows = repPremiacaoRowsBase();
+  rows.forEach(function(r) {
+    const nome = String(r[IDX.vendedor] || '').trim();
+    if (nome && !base.some(function(item) { return repNomeNormalizado(item) === repNomeNormalizado(nome); })) {
+      base.push(nome);
+    }
+  });
+  return base.sort(function(a, b) { return a.localeCompare(b); });
+}
+
+function repRoletaHistoricoHtml(estado) {
+  const lista = Array.isArray(estado.historico) ? estado.historico : [];
+  if (!lista.length) {
+    return '<div class="premio-roleta-empty-list">Nenhum ganhador registrado ainda. Preencha nome, prêmio e data para montar o histórico.</div>';
+  }
+  return lista.map(function(item, idx) {
+    return `<article class="roleta-history-item">
+      <div class="roleta-history-main">
+        <strong>${repEsc(item.ganhador || 'Sem nome')}</strong>
+        <span>${repEsc(item.premio || 'Sem prêmio')}</span>
+      </div>
+      <div class="roleta-history-meta">
+        <time>${repEsc(item.data || '-')}</time>
+        <button type="button" onclick="repRoletaRemoverHistorico(${idx})" aria-label="Remover histórico">Remover</button>
+      </div>
+    </article>`;
+  }).join('');
 }
 
 function repRoletaProdutosBase(rows) {
@@ -920,6 +972,10 @@ function repRoletaHtml() {
   const itens = estado.itens;
   const ang = itens.length ? 360 / itens.length : 0;
   const ativo = estado.ultimoPremio || itens[0] || '';
+  const reps = repRoletaRepresentantesSugestoes();
+  const repsOptions = reps.map(function(nome) {
+    return `<option value="${repEsc(nome)}"></option>`;
+  }).join('');
   const labels = itens.map((item, i) => {
     const rot = (i * ang) + (ang / 2);
     return `<span class="roleta-label" style="transform: rotate(${rot}deg) translateY(-128px) rotate(${-rot}deg);">${repEsc(item)}</span>`;
@@ -937,7 +993,7 @@ function repRoletaHtml() {
         <div class="premio-roleta-pointer"></div>
         <div class="premio-roleta-wheel" id="rep-roleta-wheel" style="transform: rotate(${Number(estado.angulo || 0)}deg); ${itens.length ? `background: conic-gradient(${repRoletaConicGradient(itens)});` : 'background: radial-gradient(circle at center, #1d4ed8, #0f1729);'}">
           ${labels || '<span class="roleta-empty">Adicione produtos para liberar a roleta.</span>'}
-          <div class="premio-roleta-center">
+          <div class="premio-roleta-center" id="rep-roleta-center" style="transform: translate(-50%, -50%) rotate(${-Number(estado.angulo || 0)}deg);">
             <span>Último prêmio</span>
             <strong id="rep-roleta-ultimo">${repEsc(ativo || 'Sem sorteio')}</strong>
           </div>
@@ -954,12 +1010,29 @@ function repRoletaHtml() {
       </div>
     </div>
     <div class="premio-roleta-side">
-      <div class="premio-card-title">Representante ganhador</div>
+      <div class="premio-card-title">Representante e histórico</div>
+      <datalist id="rep-roleta-reps">${repsOptions}</datalist>
       <label class="premio-roleta-field">
         <span>Nome do representante</span>
-        <input id="rep-roleta-ganhador-input" type="text" value="${repEsc(estado.ganhador || '')}" placeholder="Digite o nome do ganhador">
+        <input id="rep-roleta-ganhador-input" type="text" value="${repEsc(estado.ganhador || '')}" placeholder="Digite o nome do ganhador" list="rep-roleta-reps">
       </label>
-      <button type="button" class="premio-roleta-save" onclick="repRoletaSalvarGanhador()">Salvar representante</button>
+      <label class="premio-roleta-field">
+        <span>Prêmio registrado</span>
+        <input id="rep-roleta-premio-input" type="text" value="${repEsc(estado.ultimoPremio || '')}" placeholder="Digite ou use o prêmio sorteado">
+      </label>
+      <label class="premio-roleta-field">
+        <span>Data do prêmio</span>
+        <input id="rep-roleta-data-input" type="date" value="${repEsc(repRoletaDataHoje())}">
+      </label>
+      <div class="premio-roleta-actions premio-roleta-actions-side">
+        <button type="button" class="premio-roleta-save" onclick="repRoletaSalvarGanhador()">Salvar representante</button>
+        <button type="button" class="premio-roleta-btn" onclick="repRoletaPreencherAtual()">Usar último sorteio</button>
+        <button type="button" class="premio-roleta-btn primary" onclick="repRoletaAdicionarHistorico()">Adicionar ao histórico</button>
+      </div>
+      <div class="premio-card-title premio-roleta-title-gap">Histórico de ganhadores</div>
+      <div class="premio-roleta-history" id="rep-roleta-history">
+        ${repRoletaHistoricoHtml(estado)}
+      </div>
       <div class="premio-card-title premio-roleta-title-gap">Produtos da roleta</div>
       <div class="premio-roleta-add">
         <input id="rep-roleta-produto-input" type="text" placeholder="Adicionar produto ou prêmio">
@@ -980,6 +1053,10 @@ function repRoletaAtualizarResumo() {
   if (ganhador) ganhador.textContent = estado.ganhador || 'não definido';
   const ultimo = document.getElementById('rep-roleta-ultimo');
   if (ultimo && estado.ultimoPremio) ultimo.textContent = estado.ultimoPremio;
+  const premioInput = document.getElementById('rep-roleta-premio-input');
+  if (premioInput && !String(premioInput.value || '').trim() && estado.ultimoPremio) {
+    premioInput.value = estado.ultimoPremio;
+  }
 }
 
 function repRoletaRecarregarArea() {
@@ -1035,6 +1112,44 @@ function repRoletaSalvarGanhador() {
   repRoletaAtualizarResumo();
 }
 
+function repRoletaPreencherAtual() {
+  const estado = repRoletaLerEstado();
+  const premioInput = document.getElementById('rep-roleta-premio-input');
+  const dataInput = document.getElementById('rep-roleta-data-input');
+  if (premioInput) premioInput.value = estado.ultimoPremio || '';
+  if (dataInput) dataInput.value = dataInput.value || repRoletaDataHoje();
+}
+
+function repRoletaAdicionarHistorico() {
+  const ganhadorInput = document.getElementById('rep-roleta-ganhador-input');
+  const premioInput = document.getElementById('rep-roleta-premio-input');
+  const dataInput = document.getElementById('rep-roleta-data-input');
+  if (!ganhadorInput || !premioInput || !dataInput) return;
+  const ganhador = String(ganhadorInput.value || '').trim();
+  const premio = String(premioInput.value || '').trim();
+  const data = String(dataInput.value || '').trim();
+  if (!ganhador || !premio || !data) {
+    alert('Preencha nome, prêmio e data para adicionar ao histórico.');
+    return;
+  }
+  const estado = repRoletaLerEstado();
+  estado.ganhador = ganhador;
+  estado.ultimoPremio = premio;
+  estado.historico = Array.isArray(estado.historico) ? estado.historico : [];
+  estado.historico.unshift({ ganhador, premio, data });
+  estado.historico = estado.historico.slice(0, 30);
+  repRoletaSalvarEstado(estado);
+  repRoletaRecarregarArea();
+}
+
+function repRoletaRemoverHistorico(idx) {
+  const estado = repRoletaLerEstado();
+  estado.historico = Array.isArray(estado.historico) ? estado.historico : [];
+  estado.historico.splice(idx, 1);
+  repRoletaSalvarEstado(estado);
+  repRoletaRecarregarArea();
+}
+
 function repRoletaSortear() {
   const estado = repRoletaLerEstado();
   const itens = estado.itens;
@@ -1049,21 +1164,32 @@ function repRoletaSortear() {
   const count = itens.length;
   const chosen = Math.floor(Math.random() * count);
   const segmento = 360 / count;
-  const atual = Number(estado.angulo || 0) % 360;
-  const giros = 5 + Math.floor(Math.random() * 4);
-  const ajuste = 360 - (chosen * segmento + (segmento / 2));
-  const novoAngulo = atual + (giros * 360) + ajuste;
+  const atual = Number(estado.angulo || 0);
+  const giros = 12 + Math.floor(Math.random() * 5);
+  const anguloAlvo = 360 - (chosen * segmento + (segmento / 2));
+  const atualNormalizado = ((atual % 360) + 360) % 360;
+  const delta = ((anguloAlvo - atualNormalizado) + 360) % 360;
+  const novoAngulo = atual + (giros * 360) + delta;
+  const centro = document.getElementById('rep-roleta-center');
   wheel.style.transition = 'transform 5.2s cubic-bezier(.15,.85,.16,1)';
   wheel.style.transform = `rotate(${novoAngulo}deg)`;
+  if (centro) {
+    centro.style.transition = 'transform 5.2s cubic-bezier(.15,.85,.16,1)';
+    centro.style.transform = `translate(-50%, -50%) rotate(${-novoAngulo}deg)`;
+  }
   wheel.dataset.spinning = '1';
   setTimeout(() => {
-    estado.angulo = novoAngulo % 360;
+    estado.angulo = novoAngulo;
     estado.ultimoPremio = itens[chosen];
     repRoletaSalvarEstado(estado);
     if (resultado) resultado.textContent = itens[chosen];
     repRoletaAtualizarResumo();
+    repRoletaPreencherAtual();
     wheel.dataset.spinning = '0';
-    setTimeout(() => { wheel.style.transition = ''; }, 80);
+    setTimeout(() => {
+      wheel.style.transition = '';
+      if (centro) centro.style.transition = '';
+    }, 80);
   }, 5300);
 }
 
