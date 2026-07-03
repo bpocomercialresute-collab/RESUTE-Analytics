@@ -169,12 +169,33 @@ const REP_PREMIACAO_CAMPANHAS = [
   }
 ];
 
+function repPremiacaoCampanhasLista() {
+  const rankingA = REP_PREMIACAO_CAMPANHAS.find(c => c.id === 'ranking-mensal-a');
+  const rankingB = REP_PREMIACAO_CAMPANHAS.find(c => c.id === 'ranking-mensal-b');
+  const base = REP_PREMIACAO_CAMPANHAS.filter(c => c.id !== 'ranking-mensal-a' && c.id !== 'ranking-mensal-b');
+  if (rankingA) {
+    base.push({
+      id: 'ranking-mensal',
+      badge: rankingA.badge,
+      titulo: rankingA.titulo,
+      subtitulo: rankingA.subtitulo,
+      criterio: rankingA.criterio,
+      itens: [...(rankingA.itens || []), ...(rankingB?.itens || [])],
+      filtro: rankingA.filtro
+    });
+  }
+  return base;
+}
+
 function repPremiacaoCampanhaAtual() {
-  return REP_PREMIACAO_CAMPANHAS.find(c => c.id === window.REP_PREMIACAO_CAMPANHA) || REP_PREMIACAO_CAMPANHAS[0];
+  const atual = String(window.REP_PREMIACAO_CAMPANHA || '').trim();
+  const normalizado = (atual === 'ranking-mensal-a' || atual === 'ranking-mensal-b') ? 'ranking-mensal' : atual;
+  if (normalizado !== atual) window.REP_PREMIACAO_CAMPANHA = normalizado;
+  return repPremiacaoCampanhasLista().find(c => c.id === normalizado) || repPremiacaoCampanhasLista()[0];
 }
 
 function repPremiacaoSetCampanha(id) {
-  const existe = REP_PREMIACAO_CAMPANHAS.some(c => c.id === id);
+  const existe = repPremiacaoCampanhasLista().some(c => c.id === id);
   window.REP_PREMIACAO_CAMPANHA = existe ? id : 'semanal';
   repPremiacao();
 }
@@ -320,7 +341,7 @@ function repPremiacaoRowsBase() {
 
 function repPremiacaoPeriodoCampo(campanha) {
   const id = String(campanha || repPremiacaoCampanhaAtual().id || '');
-  const atual = REP_PREMIACAO_CAMPANHAS.find(c => c.id === id) || REP_PREMIACAO_CAMPANHAS[0];
+  const atual = repPremiacaoCampanhasLista().find(c => c.id === id) || repPremiacaoCampanhasLista()[0];
   return atual ? atual.filtro : 'mes';
 }
 
@@ -406,7 +427,7 @@ function repPremiacaoFiltroHtml(rows) {
 function repPremiacaoCampanhasHtml(rows) {
   const ativos = repPremiacaoCampanhaAtual();
   return `<div class="premio-campanha-grid">
-    ${REP_PREMIACAO_CAMPANHAS.map(campanha => `
+    ${repPremiacaoCampanhasLista().map(campanha => `
       <article class="premio-campanha-card ${campanha.id === ativos.id ? 'active' : ''}">
         <div class="premio-campanha-head">
           <div>
@@ -460,6 +481,225 @@ function repPremiacaoResumoHtml(rows) {
       <div><span>Clientes</span><strong>${fmtInt(totalClientes)}</strong></div>
     </div>
   </div>`;
+}
+
+function repPremiacaoRowDate(row) {
+  return repParseDate(String(row[IDX.saida] || row[IDX.emissao] || '').trim());
+}
+
+function repPremiacaoAgruparRepresentantes(rows) {
+  const mapa = {};
+  (Array.isArray(rows) ? rows : []).forEach(r => {
+    const nome = String(r[IDX.vendedor] || '').trim() || 'Sem representante';
+    if (!mapa[nome]) mapa[nome] = { nome, fat: 0, qtd: 0, pedidos: new Set(), clientes: new Set(), produtos: new Set() };
+    mapa[nome].fat += parseFloat(String(r[IDX.valor] || '').replace(/\./g, '').replace(',', '.')) || 0;
+    mapa[nome].qtd += parseFloat(r[IDX.qtd] || 0) || 0;
+    mapa[nome].pedidos.add(repPedidoChave(r));
+    if (r[IDX.cliente]) mapa[nome].clientes.add(String(r[IDX.cliente]).trim());
+    if (r[IDX.produto]) mapa[nome].produtos.add(String(r[IDX.produto]).trim());
+  });
+  return Object.values(mapa).map(item => ({
+    nome: item.nome,
+    tipo: repGetTipo(item.nome),
+    fat: item.fat,
+    qtd: item.qtd,
+    pedidos: item.pedidos.size,
+    clientes: item.clientes.size,
+    produtos: item.produtos.size
+  }));
+}
+
+function repPremiacaoPeriodoLimites(rows) {
+  const campanha = repPremiacaoCampanhaAtual();
+  const ref = repPremiacaoPeriodoAtual(rows);
+  let inicio = new Date(ref);
+  let fim = new Date(ref);
+  if (campanha.filtro === 'semana') {
+    const sem = repPremiacaoCalcularIntervaloSemana(ref);
+    inicio = sem.inicio;
+    fim = sem.fim;
+  } else if (campanha.filtro === 'mes') {
+    inicio = new Date(ref.getFullYear(), ref.getMonth(), 1);
+    fim = new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
+  } else if (campanha.filtro === 'trimestre') {
+    const mesInicio = Math.floor(ref.getMonth() / 3) * 3;
+    inicio = new Date(ref.getFullYear(), mesInicio, 1);
+    fim = new Date(ref.getFullYear(), mesInicio + 3, 0);
+  } else if (campanha.filtro === 'semestre') {
+    const mesInicio = ref.getMonth() < 6 ? 0 : 6;
+    inicio = new Date(ref.getFullYear(), mesInicio, 1);
+    fim = new Date(ref.getFullYear(), mesInicio + 6, 0);
+  } else {
+    inicio = new Date(ref.getFullYear(), 0, 1);
+    fim = new Date(ref.getFullYear(), 11, 31);
+  }
+  inicio.setHours(0, 0, 0, 0);
+  fim.setHours(23, 59, 59, 999);
+  return { inicio, fim };
+}
+
+function repPremiacaoTabelaRelatorio(titulo, colunas, linhas) {
+  return `<div class="premio-card premio-full">
+    <div class="premio-card-title">${repEsc(titulo)}</div>
+    <div class="rep-scroll-area">
+      <table class="rep-tbl">
+        <thead><tr>${colunas.map(c => `<td>${repEsc(c)}</td>`).join('')}</tr></thead>
+        <tbody>${linhas || '<tr><td colspan="' + colunas.length + '">Sem dados para este prêmio no recorte atual.</td></tr>'}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function repPremiacaoRelatorioHtml(rows, baseRows) {
+  const campanha = repPremiacaoCampanhaAtual();
+  const atuais = repPremiacaoAgruparRepresentantes(rows);
+  const limites = repPremiacaoPeriodoLimites(rows);
+
+  if (campanha.id === 'semanal') {
+    const mediaMix = atuais.length ? atuais.reduce((s, r) => s + r.produtos, 0) / atuais.length : 0;
+    const linhas = atuais.sort((a, b) => b.produtos - a.produtos || b.fat - a.fat).map((r, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td class="rep-lbl">${repEsc(r.nome)}</td>
+        <td>${fmtInt(r.produtos)}</td>
+        <td>${fmtValor(r.fat)}</td>
+        <td>${r.produtos >= mediaMix ? 'Acima da média' : 'Abaixo da média'}</td>
+      </tr>`).join('');
+    return repPremiacaoTabelaRelatorio('Relatório do prêmio semanal · maior mix acima da média', ['#', 'Representante', 'Mix semanal', 'Faturamento', 'Situação'], linhas);
+  }
+
+  if (campanha.id === 'mensal') {
+    const bonusPorCliente = 80;
+    const porRep = {};
+    rows.forEach(r => {
+      const cliente = String(r[IDX.cliente] || '').trim();
+      const vendedor = String(r[IDX.vendedor] || '').trim() || 'Sem representante';
+      if (!cliente) return;
+      const anteriores = (Array.isArray(baseRows) ? baseRows : []).filter(base => {
+        const mesmoCliente = String(base[IDX.cliente] || '').trim() === cliente;
+        const dt = repPremiacaoRowDate(base);
+        return mesmoCliente && dt && dt < limites.inicio;
+      }).map(repPremiacaoRowDate).filter(Boolean).sort((a, b) => b - a);
+      if (!anteriores.length) return;
+      const diffDias = Math.floor((limites.inicio - anteriores[0]) / 86400000);
+      if (diffDias < 180) return;
+      if (!porRep[vendedor]) porRep[vendedor] = { nome: vendedor, clientes: new Set() };
+      porRep[vendedor].clientes.add(cliente);
+    });
+    const linhas = Object.values(porRep).map(item => ({
+      nome: item.nome,
+      reativados: item.clientes.size,
+      bonus: item.clientes.size * bonusPorCliente,
+      clientes: Array.from(item.clientes).slice(0, 4).join(', ')
+    })).sort((a, b) => b.reativados - a.reativados || b.bonus - a.bonus).map((r, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td class="rep-lbl">${repEsc(r.nome)}</td>
+        <td>${fmtInt(r.reativados)}</td>
+        <td>${fmtValor(r.bonus)}</td>
+        <td>${repEsc(r.clientes || '-')}</td>
+      </tr>`).join('');
+    return repPremiacaoTabelaRelatorio('Relatório do prêmio mensal · reativação de clientes', ['#', 'Representante', 'Clientes reativados', 'Bônus projetado', 'Exemplos'], linhas);
+  }
+
+  if (campanha.id === 'trimestral') {
+    const inicioAtual = limites.inicio;
+    const fimAtual = limites.fim;
+    const inicioAnterior = new Date(inicioAtual.getFullYear(), inicioAtual.getMonth() - 3, 1);
+    const fimAnterior = new Date(inicioAtual.getFullYear(), inicioAtual.getMonth(), 0);
+    const atualMap = repPremiacaoAgruparRepresentantes(rows);
+    const anteriorMap = repPremiacaoAgruparRepresentantes((Array.isArray(baseRows) ? baseRows : []).filter(r => {
+      const dt = repPremiacaoRowDate(r);
+      return dt && dt >= inicioAnterior && dt <= fimAnterior;
+    }));
+    const anteriorIdx = Object.fromEntries(anteriorMap.map(r => [r.nome, r]));
+    const linhas = atualMap.map(r => {
+      const ant = anteriorIdx[r.nome]?.qtd || 0;
+      const cresc = ant > 0 ? ((r.qtd - ant) / ant) * 100 : (r.qtd > 0 ? 100 : 0);
+      return { nome: r.nome, atual: r.qtd, anterior: ant, cresc };
+    }).sort((a, b) => b.cresc - a.cresc || b.atual - a.atual).map((r, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td class="rep-lbl">${repEsc(r.nome)}</td>
+        <td>${fmtInt(r.anterior)}</td>
+        <td>${fmtInt(r.atual)}</td>
+        <td>${r.cresc.toFixed(1)}%</td>
+      </tr>`).join('');
+    return repPremiacaoTabelaRelatorio('Relatório do prêmio trimestral · crescimento quantitativo', ['#', 'Representante', 'Trimestre anterior', 'Trimestre atual', 'Crescimento'], linhas);
+  }
+
+  if (campanha.id === 'semestral') {
+    const meses = {};
+    rows.forEach(r => {
+      const nome = String(r[IDX.vendedor] || '').trim() || 'Sem representante';
+      const dt = repPremiacaoRowDate(r);
+      if (!dt) return;
+      const chaveMes = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+      if (!meses[nome]) meses[nome] = {};
+      meses[nome][chaveMes] = (meses[nome][chaveMes] || 0) + (parseFloat(String(r[IDX.valor] || '').replace(/\./g, '').replace(',', '.')) || 0);
+    });
+    const linhas = Object.entries(meses).map(([nome, mapaMes]) => {
+      const positivos = Object.values(mapaMes).filter(v => v > 0).length;
+      const total = Object.values(mapaMes).reduce((s, v) => s + v, 0);
+      return { nome, positivos, total };
+    }).sort((a, b) => b.positivos - a.positivos || b.total - a.total).map((r, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td class="rep-lbl">${repEsc(r.nome)}</td>
+        <td>${fmtInt(r.positivos)} / 6</td>
+        <td>${fmtValor(r.total)}</td>
+        <td>${r.positivos === 6 ? 'Consistência máxima' : 'Em acompanhamento'}</td>
+      </tr>`).join('');
+    return repPremiacaoTabelaRelatorio('Relatório do prêmio semestral · consistência', ['#', 'Representante', 'Meses positivos', 'Faturamento semestral', 'Status'], linhas);
+  }
+
+  if (campanha.id === 'anual') {
+    const anoAtual = limites.inicio.getFullYear();
+    const atualMap = repPremiacaoAgruparRepresentantes(rows);
+    const anteriorMap = repPremiacaoAgruparRepresentantes((Array.isArray(baseRows) ? baseRows : []).filter(r => {
+      const dt = repPremiacaoRowDate(r);
+      return dt && dt.getFullYear() === (anoAtual - 1);
+    }));
+    const anteriorIdx = Object.fromEntries(anteriorMap.map(r => [r.nome, r]));
+    const linhas = atualMap.map(r => {
+      const antFat = anteriorIdx[r.nome]?.fat || 0;
+      const cresc = antFat > 0 ? ((r.fat - antFat) / antFat) * 100 : 0;
+      const mediaMensalQtd = r.qtd / 12;
+      return { nome: r.nome, fat: r.fat, mediaMensalQtd, cresc, elegivel: cresc >= 30 };
+    }).sort((a, b) => b.fat - a.fat || b.mediaMensalQtd - a.mediaMensalQtd).map((r, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td class="rep-lbl">${repEsc(r.nome)}</td>
+        <td>${fmtValor(r.fat)}</td>
+        <td>${fmtInt(r.mediaMensalQtd)}</td>
+        <td>${r.cresc.toFixed(1)}%</td>
+        <td>${r.elegivel ? 'Elegível' : 'Abaixo da meta'}</td>
+      </tr>`).join('');
+    return repPremiacaoTabelaRelatorio('Relatório do prêmio anual · volume e crescimento', ['#', 'Representante', 'Faturamento anual', 'Média mensal de qtd', 'Crescimento vs ano anterior', 'Elegibilidade'], linhas);
+  }
+
+  const faixas = [
+    { min: 5000, max: 10000, premio: 'R$ 25,00' },
+    { min: 11000, max: 15000, premio: 'R$ 50,00' },
+    { min: 20000, max: 30000, premio: 'R$ 100,00' },
+    { min: 31000, max: 50000, premio: 'R$ 150,00' },
+    { min: 51000, max: 75000, premio: 'R$ 100,00 + kit Churrasco' },
+    { min: 76000, max: 100000, premio: 'R$ 150,00 + Prêmio Secreto' },
+    { min: 101000, max: 125000, premio: 'R$ 200,00 + Restaurante Casal' },
+    { min: 126000, max: 150000, premio: 'R$ 250,00 + Passeio Turístico' }
+  ];
+  const linhas = atuais.sort((a, b) => b.fat - a.fat).map((r, i) => {
+    const faixa = faixas.find(f => r.fat >= f.min && r.fat <= f.max);
+    return `
+      <tr>
+        <td>${i + 1}</td>
+        <td class="rep-lbl">${repEsc(r.nome)}</td>
+        <td>${fmtValor(r.fat)}</td>
+        <td>${faixa ? `${fmtValor(faixa.min)} a ${fmtValor(faixa.max)}` : 'Fora das faixas'}</td>
+        <td>${repEsc(faixa?.premio || 'Sem prêmio nesta faixa')}</td>
+      </tr>`;
+  }).join('');
+  return repPremiacaoTabelaRelatorio('Relatório do prêmio ranking mensal · faixa de valor', ['#', 'Representante', 'Faturamento mensal', 'Faixa', 'Premiação'], linhas);
 }
 
 function repPremiacaoCompetidores(rows) {
@@ -1420,7 +1660,7 @@ function repPremiacao() {
   ${repPremiacaoCampanhasHtml(baseRows)}
   ${repPremiacaoFiltroHtml(baseRows)}
   ${repPremiacaoResumoHtml(rows)}
-  ${repPremiacaoGanhosHtml(rows)}
+  ${repPremiacaoRelatorioHtml(rows, baseRows)}
   ${window.REP_PREMIACAO_MODO === 'atual' ? repRoletaHtml() : ''}
   <div class="premio-campanha-foot">
     <div class="premio-campanha-alert">
