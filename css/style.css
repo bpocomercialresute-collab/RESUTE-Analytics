@@ -5413,6 +5413,51 @@ textarea:focus {
   align-items: flex-end !important;
 }
 
+.rep-mensal-reps-field {
+  min-width: 320px !important;
+  flex: 1 1 360px !important;
+}
+
+.rep-mensal-actions {
+  display: flex !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  margin: 8px 0 10px !important;
+}
+
+.rep-mensal-checklist {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+  gap: 8px 12px !important;
+  max-height: 220px !important;
+  overflow: auto !important;
+  padding: 10px 12px !important;
+  border: 1px solid #D6EAE3 !important;
+  border-radius: 14px !important;
+  background: #FFFFFF !important;
+}
+
+.rep-mensal-check {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  color: #0A2F2F !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+.rep-mensal-check input {
+  width: 15px !important;
+  height: 15px !important;
+  accent-color: #14746F !important;
+}
+
+.rep-mensal-check-empty {
+  color: #6A8A84 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
 .rep-mensal-wrap {
   border-radius: 18px !important;
 }

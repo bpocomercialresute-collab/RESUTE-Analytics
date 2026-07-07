@@ -20,7 +20,7 @@ window.REP_PREMIACAO_FILTRO = window.REP_PREMIACAO_FILTRO || {
   ano: ''
 };
 window.REP_PREMIACAO_CRESCIMENTO = window.REP_PREMIACAO_CRESCIMENTO || false;
-window.REP_MENSAL_FILTER = window.REP_MENSAL_FILTER || { ano: '', vendedor: '' };
+window.REP_MENSAL_FILTER = window.REP_MENSAL_FILTER || { ano: '', vendedores: [], ocultarVazios: true };
 
 function repToggleModo(m) {
   REP_MODO = m;
@@ -1298,10 +1298,47 @@ function repMensalDisponiveis() {
   };
 }
 
+function repMensalFiltroAtual() {
+  window.REP_MENSAL_FILTER = window.REP_MENSAL_FILTER || { ano: '', vendedores: [], ocultarVazios: true };
+  const filtro = window.REP_MENSAL_FILTER;
+  if (!Array.isArray(filtro.vendedores)) {
+    filtro.vendedores = filtro.vendedor ? [String(filtro.vendedor)] : [];
+  }
+  if (typeof filtro.ocultarVazios !== 'boolean') filtro.ocultarVazios = true;
+  return filtro;
+}
+
 function repMensalSetFiltro(campo, valor) {
-  window.REP_MENSAL_FILTER = window.REP_MENSAL_FILTER || { ano: '', vendedor: '' };
-  window.REP_MENSAL_FILTER[campo] = valor || '';
-  if (campo === 'ano') window.REP_MENSAL_FILTER.vendedor = '';
+  const filtro = repMensalFiltroAtual();
+  if (campo === 'ocultarVazios') {
+    filtro.ocultarVazios = Boolean(valor);
+  } else {
+    filtro[campo] = valor || '';
+  }
+  if (campo === 'ano') filtro.vendedores = [];
+  repMensalRep();
+}
+
+function repMensalToggleVendedor(valor, checked) {
+  if (!valor) return;
+  const filtro = repMensalFiltroAtual();
+  const atual = new Set((filtro.vendedores || []).map(String));
+  if (checked) atual.add(String(valor));
+  else atual.delete(String(valor));
+  filtro.vendedores = Array.from(atual);
+  repMensalRep();
+}
+
+function repMensalSelecionarTodosVendedores() {
+  const info = repMensalDisponiveis();
+  const filtro = repMensalFiltroAtual();
+  filtro.vendedores = [...info.vendedores];
+  repMensalRep();
+}
+
+function repMensalLimparVendedores() {
+  const filtro = repMensalFiltroAtual();
+  filtro.vendedores = [];
   repMensalRep();
 }
 
@@ -1338,22 +1375,24 @@ function repMensalRep() {
 
   const mesesFull = ['JANEIRO','FEVEREIRO','MARCO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
   const info = repMensalDisponiveis();
-  const filtro = window.REP_MENSAL_FILTER || {};
+  const filtro = repMensalFiltroAtual();
   const anoAtivo = info.anoAtivo;
-  const vendedorAtivo = filtro.vendedor || '';
+  const vendedoresAtivos = new Set((filtro.vendedores || []).map(String));
+  const ocultarVazios = filtro.ocultarVazios !== false;
   const rows = repBaseRows().filter(row => {
     const dt = repParseDate(String(row[IDX.saida] || row[IDX.emissao] || '').trim());
     if (!dt || dt.getFullYear() !== anoAtivo) return false;
     const vendedor = String(row[IDX.vendedor] || '').trim();
-    if (vendedorAtivo && vendedor !== vendedorAtivo) return false;
+    if (vendedoresAtivos.size && !vendedoresAtivos.has(vendedor)) return false;
     return true;
   });
 
   const anoOptions = info.anos.map(ano => `<option value="${ano}" ${String(ano) === String(anoAtivo) ? 'selected' : ''}>${ano}</option>`).join('');
-  const vendedorOptions = info.vendedores.map(v => `<option value="${repEsc(v)}" ${v === vendedorAtivo ? 'selected' : ''}>${repEsc(v)}</option>`).join('');
+  const vendedorChecks = info.vendedores.map(v => `<label class="rep-mensal-check"><input type="checkbox" ${vendedoresAtivos.has(v) ? 'checked' : ''} onchange="repMensalToggleVendedor(${JSON.stringify(v)}, this.checked)"><span>${repEsc(v)}</span></label>`).join('');
+  const filtrosHtml = `<div class="rep-mensal-filter-row"><label class="rep-filter-field"><span>Ano</span><select onchange="repMensalSetFiltro('ano', this.value)">${anoOptions}</select></label><label class="rep-filter-field rep-mensal-toggle"><span>Meses</span><button type="button" class="rel-toggle-btn ${ocultarVazios ? 'active' : ''}" onclick="repMensalSetFiltro('ocultarVazios', ${!ocultarVazios})">${ocultarVazios ? 'Ocultando vazios' : 'Mostrar todos'}</button></label><div class="rep-filter-field rep-mensal-reps-field"><span>Representantes</span><div class="rep-mensal-actions"><button type="button" class="rel-toggle-btn" onclick="repMensalSelecionarTodosVendedores()">Todos</button><button type="button" class="rel-toggle-btn" onclick="repMensalLimparVendedores()">Limpar</button></div><div class="rep-mensal-checklist">${vendedorChecks || '<span class="rep-mensal-check-empty">Sem representantes</span>'}</div></div></div>`;
 
   if (!rows.length) {
-    el.innerHTML = `<div class="rel-header-bar rep-mensal-bar"><div class="rel-title">VENDAS MENSAIS POR REPRESENTANTE EM ${anoAtivo}</div><div class="rep-mensal-filter-row"><label class="rep-filter-field"><span>Ano</span><select onchange="repMensalSetFiltro('ano', this.value)">${anoOptions}</select></label><label class="rep-filter-field"><span>Representante</span><select onchange="repMensalSetFiltro('vendedor', this.value)"><option value="">Todos</option>${vendedorOptions}</select></label></div></div><div class="av-rel-placeholder"><p>Sem dados para este recorte</p><span>Escolha outro ano ou representante.</span></div>`;
+    el.innerHTML = `<div class="rel-header-bar rep-mensal-bar"><div class="rel-title">VENDAS MENSAIS POR REPRESENTANTE EM ${anoAtivo}</div>${filtrosHtml}</div><div class="av-rel-placeholder"><p>Sem dados para este recorte</p><span>Escolha outro ano ou ajuste os representantes marcados.</span></div>`;
     return;
   }
 
@@ -1371,7 +1410,9 @@ function repMensalRep() {
 
   const lista = Object.values(reps).sort((a, b) => b.total - a.total);
   const totalGeral = totalMes.reduce((s, v) => s + v, 0);
-  const mediaMensal = totalGeral / 12;
+  const mesesIdx = (ocultarVazios ? totalMes.map((v, i) => v > 0 ? i : -1).filter(i => i >= 0) : totalMes.map((_, i) => i));
+  const mesesVisiveis = mesesIdx.length ? mesesIdx : totalMes.map((_, i) => i);
+  const mediaMensal = totalGeral / Math.max(1, mesesVisiveis.length);
   const shareMes = totalMes.map(v => totalGeral ? (v / totalGeral) * 100 : 0);
   const evolMes = totalMes.map((v, i) => {
     if (!i) return null;
@@ -1380,8 +1421,28 @@ function repMensalRep() {
     return ((v - anterior) / anterior) * 100;
   });
 
-  let html = `<div class="rel-header-bar rep-mensal-bar"><div class="rel-title">VENDAS MENSAIS POR REPRESENTANTE EM ${anoAtivo}</div><div class="rep-mensal-filter-row"><label class="rep-filter-field"><span>Ano</span><select onchange="repMensalSetFiltro('ano', this.value)">${anoOptions}</select></label><label class="rep-filter-field"><span>Representante</span><select onchange="repMensalSetFiltro('vendedor', this.value)"><option value="">Todos</option>${vendedorOptions}</select></label></div></div>`;
-  html += `<div class="rep-scroll-area rep-mensal-wrap"><table class="rep-tbl rep-mensal-table"><thead><tr><td rowspan="2" class="rep-mensal-col-rep">REPRESENTANTE</td><td colspan="12">TOTAIS MENSAIS</td><td rowspan="2" class="rep-mensal-col-med">MED</td><td rowspan="2" class="rep-mensal-col-total">TOTAL</td><td rowspan="2" class="rep-mensal-col-share">%</td><td rowspan="2" class="rep-mensal-col-graf">Graf.</td></tr><tr>${mesesFull.map(m => `<td>${m}</td>`).join('')}</tr></thead><tbody>`;
+  {
+    const mesesVisiveis = mesesIdx.length ? mesesIdx : totalMes.map((_, i) => i);
+    let html = `<div class="rel-header-bar rep-mensal-bar"><div class="rel-title">VENDAS MENSAIS POR REPRESENTANTE EM ${anoAtivo}</div>${filtrosHtml}</div>`;
+    html += `<div class="rep-scroll-area rep-mensal-wrap"><table class="rep-tbl rep-mensal-table"><thead><tr><td rowspan="2" class="rep-mensal-col-rep">REPRESENTANTE</td><td colspan="${mesesVisiveis.length}">TOTAIS MENSAIS</td><td rowspan="2" class="rep-mensal-col-med">MED</td><td rowspan="2" class="rep-mensal-col-total">TOTAL</td><td rowspan="2" class="rep-mensal-col-share">%</td><td rowspan="2" class="rep-mensal-col-graf">Graf.</td></tr><tr>${mesesVisiveis.map(i => `<td>${mesesFull[i]}</td>`).join('')}</tr></thead><tbody>`;
+
+    lista.forEach(item => {
+      const mesesAtivos = item.meses.filter(v => v > 0).length || 1;
+      const med = item.total / mesesAtivos;
+      const share = totalGeral ? (item.total / totalGeral) * 100 : 0;
+      html += `<tr><td class="rep-mensal-rep-name">${repEsc(item.nome)}</td>${mesesVisiveis.map(i => `<td class="rep-mensal-num">${repMensalFmtNumero(item.meses[i])}</td>`).join('')}<td class="rep-mensal-med">${repMensalFmtNumero(med)}</td><td class="rep-mensal-total">${repMensalFmtNumero(item.total)}</td><td class="rep-mensal-share">${repMensalFmtPercent(share)}</td><td class="rep-mensal-graf">${repMensalSpark(mesesVisiveis.map(i => item.meses[i]))}</td></tr>`;
+    });
+
+    html += `<tr class="rep-row-total rep-mensal-total-row"><td>TOTAL</td>${mesesVisiveis.map(i => `<td>${repMensalFmtNumero(totalMes[i])}</td>`).join('')}<td>${repMensalFmtNumero(mediaMensal)}</td><td>${repMensalFmtNumero(totalGeral)}</td><td>100%</td><td>${repMensalSpark(mesesVisiveis.map(i => totalMes[i]))}</td></tr>`;
+    html += `<tr class="rep-mensal-foot-row"><td>% DO TOTAL</td>${mesesVisiveis.map(i => `<td>${repMensalFmtPercent(shareMes[i])}</td>`).join('')}<td>-</td><td>100%</td><td>-</td><td>-</td></tr>`;
+    html += `<tr class="rep-mensal-foot-row"><td>% EVOLUCAO MES</td>${mesesVisiveis.map(i => { if (!i || evolMes[i] == null) return '<td>-</td>'; const valor = evolMes[i]; const cls = valor >= 0 ? 'up' : 'down'; const seta = valor >= 0 ? '▲' : '▼'; return `<td class="rep-mensal-evol ${cls}">${seta} ${repMensalFmtPercent(Math.abs(valor))}</td>`; }).join('')}<td>-</td><td>-</td><td>-</td><td>-</td></tr>`;
+    html += `</tbody></table></div>`;
+    el.innerHTML = html;
+    return;
+  }
+
+  let html = `<div class="rel-header-bar rep-mensal-bar"><div class="rel-title">VENDAS MENSAIS POR REPRESENTANTE EM ${anoAtivo}</div>${filtrosHtml}</div>`;
+  html += `<div class="rep-scroll-area rep-mensal-wrap"><table class="rep-tbl rep-mensal-table"><thead><tr><td rowspan="2" class="rep-mensal-col-rep">REPRESENTANTE</td><td colspan="${mesesVisiveis.length}">TOTAIS MENSAIS</td><td rowspan="2" class="rep-mensal-col-med">MED</td><td rowspan="2" class="rep-mensal-col-total">TOTAL</td><td rowspan="2" class="rep-mensal-col-share">%</td><td rowspan="2" class="rep-mensal-col-graf">Graf.</td></tr><tr>${mesesVisiveis.map(i => `<td>${mesesFull[i]}</td>`).join('')}</tr></thead><tbody>`;
 
   lista.forEach(item => {
     const mesesAtivos = item.meses.filter(v => v > 0).length || 1;
