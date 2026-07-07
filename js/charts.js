@@ -36,12 +36,12 @@ function renderChart(id, tipo, rotulos, valores, label, extra = {}) {
 
   if (tipo === 'line') {
     extra.backgroundColor = ctx.createLinearGradient(0, 0, 0, 300);
-    extra.backgroundColor.addColorStop(0, 'rgba(200, 16, 46, 0.35)');
-    extra.backgroundColor.addColorStop(1, 'rgba(200, 16, 46, 0)');
-    extra.borderColor       = extra.borderColor || '#c8102e';
+    extra.backgroundColor.addColorStop(0, 'rgba(20,116,111,0.24)');
+    extra.backgroundColor.addColorStop(1, 'rgba(20,116,111,0)');
+    extra.borderColor       = extra.borderColor || '#14746F';
     extra.fill              = extra.fill !== false;
     extra.tension           = 0.35;
-    extra.pointBackgroundColor = '#0a1430';
+    extra.pointBackgroundColor = '#F0FAF8';
     extra.pointBorderColor  = extra.borderColor;
     extra.pointBorderWidth  = 2;
     extra.pointRadius       = 3;
@@ -62,7 +62,7 @@ function renderChart(id, tipo, rotulos, valores, label, extra = {}) {
         legend: {
           display: isCircular, position: 'right',
           labels: {
-            color: '#b4bed4', padding: 12, font: { size: 11 }, usePointStyle: true, pointStyle: 'circle',
+            color: '#5A7A74', padding: 12, font: { size: 11 }, usePointStyle: true, pointStyle: 'circle',
             generateLabels: chart => {
               const d = chart.data;
               if (!d.labels || !d.datasets.length) return [];
@@ -76,8 +76,8 @@ function renderChart(id, tipo, rotulos, valores, label, extra = {}) {
           }
         },
         tooltip: {
-          backgroundColor: 'rgba(10,18,40,0.95)', titleColor: '#f5f7fb', bodyColor: '#b4bed4',
-          borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 10,
+          backgroundColor: '#0A2F2F', titleColor: '#FFFFFF', bodyColor: '#D5EDE8',
+          borderColor: '#14746F', borderWidth: 1, padding: 10,
           titleFont: { size: 12, weight: '600' }, bodyFont: { size: 12 }, cornerRadius: 6,
           callbacks: {
             title: items => items.map(i => labelsFull[i.dataIndex] || i.label).join(', '),
@@ -86,10 +86,10 @@ function renderChart(id, tipo, rotulos, valores, label, extra = {}) {
         }
       },
       scales: isCircular ? {} : {
-        x: { ticks: { color: '#7a869f', font: { size: 10.5 }, maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false } },
+        x: { ticks: { color: '#5A7A74', font: { size: 10.5 }, maxRotation: 45 }, grid: { color: '#D5EDE8', drawBorder: false } },
       y: {
           ticks: {
-            color: '#7a869f', font: { size: 10.5 },
+            color: '#5A7A74', font: { size: 10.5 },
             callback: v => {
               if (isMoney) {
                 if (v >= 1000000) return 'R$ ' + fmtNumeroSmart(v / 1000000, 1) + 'M';
@@ -99,7 +99,7 @@ function renderChart(id, tipo, rotulos, valores, label, extra = {}) {
               return v >= 1000 ? fmtNumeroSmart(v / 1000, 1) + 'k' : fmtInt(v);
             }
           },
-          grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false }
+          grid: { color: '#D5EDE8', drawBorder: false }
         }
       }
     }
@@ -121,17 +121,17 @@ function renderParetoChart(id, data) {
     data: {
       labels: labelsDisplay,
       datasets: [
-        { type: 'bar',  label: 'Faturamento', data: data.map(d => d.fat), backgroundColor: '#c8102e', borderRadius: 3, order: 2, yAxisID: 'y' },
-        { type: 'line', label: 'Acumulado %', data: data.map(d => d.acum), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.15)', tension: 0.3, pointBackgroundColor: '#0a1430', pointBorderColor: '#10b981', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6, order: 1, yAxisID: 'y1', fill: false }
+        { type: 'bar',  label: 'Faturamento', data: data.map(d => d.fat), backgroundColor: '#14746F', borderRadius: 3, order: 2, yAxisID: 'y' },
+        { type: 'line', label: 'Acumulado %', data: data.map(d => d.acum), borderColor: '#059669', backgroundColor: 'rgba(5,150,105,0.15)', tension: 0.3, pointBackgroundColor: '#F0FAF8', pointBorderColor: '#059669', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6, order: 1, yAxisID: 'y1', fill: false }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false, animation: { duration: 700 },
       plugins: {
-        legend: { display: true, position: 'top', labels: { color: '#b4bed4', padding: 10, font: { size: 11 }, usePointStyle: true, pointStyle: 'circle' } },
+        legend: { display: true, position: 'top', labels: { color: '#5A7A74', padding: 10, font: { size: 11 }, usePointStyle: true, pointStyle: 'circle' } },
         tooltip: {
-          backgroundColor: 'rgba(10,18,40,0.95)', titleColor: '#f5f7fb', bodyColor: '#b4bed4',
-          borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 10,
+          backgroundColor: '#0A2F2F', titleColor: '#FFFFFF', bodyColor: '#D5EDE8',
+          borderColor: '#14746F', borderWidth: 1, padding: 10,
           callbacks: {
             title: items => items.map(i => labelsFull[i.dataIndex] || i.label).join(', '),
             label:  item  => item.dataset.type === 'line' ? ` Acumulado: ${item.parsed.y.toFixed(1)}%` : ` Faturamento: ${fmtValor(item.parsed.y)}`
@@ -139,9 +139,9 @@ function renderParetoChart(id, data) {
         }
       },
       scales: {
-        x:  { ticks: { color: '#7a869f', font: { size: 10 }, maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.03)' } },
-        y:  { position: 'left',  ticks: { color: '#7a869f', font: { size: 10.5 }, callback: v => v >= 1000 ? 'R$ ' + (v/1000).toFixed(0) + 'k' : 'R$ ' + v }, grid: { color: 'rgba(255,255,255,0.03)' } },
-        y1: { position: 'right', min: 0, max: 100, ticks: { color: '#10b981', font: { size: 10.5 }, callback: v => v + '%' }, grid: { drawOnChartArea: false } }
+        x:  { ticks: { color: '#5A7A74', font: { size: 10 }, maxRotation: 45 }, grid: { color: '#D5EDE8' } },
+        y:  { position: 'left',  ticks: { color: '#5A7A74', font: { size: 10.5 }, callback: v => v >= 1000 ? 'R$ ' + (v/1000).toFixed(0) + 'k' : 'R$ ' + v }, grid: { color: '#D5EDE8' } },
+        y1: { position: 'right', min: 0, max: 100, ticks: { color: '#059669', font: { size: 10.5 }, callback: v => v + '%' }, grid: { drawOnChartArea: false } }
       }
     }
   });
@@ -174,8 +174,8 @@ function renderResumoCharts() {
     const trend = agruparData();
     if (trend.length) {
       renderChart('chartEvolucao', 'line', trend.map(x => x.nome), trend.map(x => x.fat), 'Faturamento');
-      renderChart('chartQtdPeriodo', 'bar', trend.map(x => x.nome), trend.map(x => x.qtd), 'Quantidade', { backgroundColor: '#3b82f6', borderRadius: 3 });
-      renderChart('chartTicketPeriodo', 'line', trend.map(x => x.nome), trend.map(x => x.qtd > 0 ? x.fat / x.qtd : 0), 'Ticket médio', { borderColor: '#10b981', fill: false });
+      renderChart('chartQtdPeriodo', 'bar', trend.map(x => x.nome), trend.map(x => x.qtd), 'Quantidade', { backgroundColor: '#14746F', borderRadius: 3 });
+      renderChart('chartTicketPeriodo', 'line', trend.map(x => x.nome), trend.map(x => x.qtd > 0 ? x.fat / x.qtd : 0), 'Ticket médio', { borderColor: '#059669', fill: false });
     }
   }
 
@@ -187,7 +187,7 @@ function renderResumoCharts() {
     const outros = agrupar('produto').slice(5).reduce((s, x) => s + x.fat, 0);
     renderChart('chartTopDonut', 'doughnut',
       [...top5.map(x => x.nome), 'Outros'], [...top5.map(x => x.fat), outros], 'Faturamento',
-      { backgroundColor: [...colorPalette.slice(0, 5), 'rgba(120,130,160,0.4)'], borderWidth: 0, cutout: '55%' });
+      { backgroundColor: [...colorPalette.slice(0, 5), 'rgba(90,122,116,0.35)'], borderWidth: 0, cutout: '55%' });
   }
 }
 
@@ -238,8 +238,8 @@ function renderRanking(id, customHeader) {
     const dLabels   = outrosFat > 0 ? [...top7.map(x => x.nome), 'Outros'] : top7.map(x => x.nome);
     const dData     = outrosFat > 0 ? [...top7.map(x => x.fat), outrosFat]  : top7.map(x => x.fat);
     const dColors   = isColor
-      ? dLabels.map(n => n === 'Outros' ? 'rgba(120,130,160,0.4)' : getChartColor(n))
-      : [...colorPalette.slice(0, dLabels.length - (outrosFat > 0 ? 1 : 0)), 'rgba(120,130,160,0.4)'];
+      ? dLabels.map(n => n === 'Outros' ? 'rgba(90,122,116,0.35)' : getChartColor(n))
+      : [...colorPalette.slice(0, dLabels.length - (outrosFat > 0 ? 1 : 0)), 'rgba(90,122,116,0.35)'];
     renderChart(`chart-${id}-donut`, 'doughnut', dLabels, dData, 'Faturamento', { backgroundColor: dColors, borderWidth: 0, cutout: '55%' });
   }
 
@@ -256,7 +256,7 @@ function renderRanking(id, customHeader) {
       const topPolar    = ranking.slice(0, 7);
       const polarColors = isColor ? topPolar.map(x => getChartColor(x.nome)) : topPolar.map((_, i) => colorPalette[i % colorPalette.length]);
       renderChart(`chart-${id}-polar`, 'polarArea', topPolar.map(x => x.nome), topPolar.map(x => x.fat), 'Faturamento',
-        { backgroundColor: polarColors.map(c => (c.startsWith('rgba') || c.startsWith('hsl')) ? c : c + 'cc'), borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' });
+        { backgroundColor: polarColors.map(c => (c.startsWith('rgba') || c.startsWith('hsl')) ? c : c + 'cc'), borderWidth: 1, borderColor: '#D5EDE8' });
     }
   }
 
@@ -311,7 +311,7 @@ function renderAudit() {
   renderChart('chartAudit', 'doughnut',
     ['SKU exato','Nome exato','Busca textual','Sem match'],
     [dSku, dNome, dBusca, dSem], 'Origem',
-    { backgroundColor: ['#10b981','#06b6d4','#f59e0b','#c8102e'], borderWidth: 0, cutout: '65%' });
+    { backgroundColor: ['#059669','#2DD4BF','#D97706','#DC2626'], borderWidth: 0, cutout: '65%' });
 
   renderTable('tblAudit', [
     { label: 'Pedido', key: 'pedido' }, { label: 'SKU', key: 'skuOriginal' },

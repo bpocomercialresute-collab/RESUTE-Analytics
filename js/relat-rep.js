@@ -155,7 +155,7 @@ function repMix() {
       const antAtivos = semAnt && semAnt[vend] ? semAnt[vend].filter(v=>v>0).length : 0;
       const medAnt = antAtivos ? antTot/antAtivos : 0;
       const result = medAnt > 0 ? ((media/medAnt)-1)*100 : 0;
-      const cor = result >= 0 ? '#10b981' : '#ef4444';
+      const cor = result >= 0 ? '#059669' : '#DC2626';
       html += `<tr>
         <td colspan="2" class="rep-lbl">${vend}</td>
         ${dias7.map(v=>`<td>${repFmt(v)}</td>`).join('')}
@@ -334,7 +334,7 @@ function repSem() {
     const media = ativos > 0 ? tot/ativos : 0;
     const ant = totAntVend[vend];
     const varp = ant > 0 ? ((tot-ant)/ant*100) : 0;
-    const cor = varp >= 0 ? '#10b981' : '#ef4444';
+    const cor = varp >= 0 ? '#059669' : '#DC2626';
     html += `<tr>
       <td class="rep-lbl">${vend}</td>
       ${SEMS.map(s=>`<td>${repFmt(pivot[vend][s])}</td>`).join('')}
@@ -516,8 +516,8 @@ function repCrescMes() {
       <td>${repFmt(media)}</td>
       <td style="font-weight:700">${repFmtFull(tot)}</td>
       <td>${pct}%</td>
-      <td style="color:#ef4444">${nQueda}</td>
-      <td style="color:#10b981">${nCresc}</td>
+      <td style="color:#DC2626">${nQueda}</td>
+      <td style="color:#059669">${nCresc}</td>
     </tr>`;
   });
 
@@ -541,7 +541,7 @@ function repCrescMes() {
       if(i===0) return '<td>—</td>';
       const ant=totMes[i-1];
       const ev=ant>0?((v-ant)/ant*100):0;
-      const cor=ev>=0?'#10b981':'#ef4444';
+      const cor=ev>=0?'#059669':'#DC2626';
       return `<td style="color:${cor}">${ev>=0?'▲':'▼'} ${Math.abs(ev).toFixed(1)}%</td>`;
     }).join('')}
     <td colspan="4"></td>

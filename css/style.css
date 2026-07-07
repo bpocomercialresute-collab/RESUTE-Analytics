@@ -4747,3 +4747,536 @@ textarea:focus {
   border-color: #0A2F2F !important;
   color: #2DD4BF !important;
 }
+
+/* ============================================================
+   TEAL REPORTS CLEANUP
+   Relat Produtos, Relat Representantes e laudos gerados
+   ============================================================ */
+#av-rel-area,
+#av-rep-area,
+#av-rel-area .av-tab-pane,
+#av-rep-area .av-tab-pane,
+#av-rel-cadastro-insights,
+#av-rel-venda-produto,
+#av-rel-laudo-grupo,
+#av-rel-laudo-ano,
+#av-rel-laudo-ano02,
+#av-rel-laudo-marca,
+#rep-tab-mix,
+#rep-tab-positiv,
+#rep-tab-semano,
+#rep-tab-sem,
+#rep-tab-meta,
+#rep-tab-dia,
+#rep-tab-cresc,
+#rep-tab-premiacao {
+  background: #F0FAF8 !important;
+  color: #0A2F2F !important;
+}
+
+.rel-area-header {
+  background: #F0FAF8 !important;
+  border-color: #D5EDE8 !important;
+  color: #0A2F2F !important;
+}
+
+.rel-area-title,
+.rel-title,
+.laudo-title,
+.laudo-titulo-rel,
+.laudo-section-title,
+.rel-prod-name,
+.rep-lbl,
+.rep-total-cell {
+  color: #0A2F2F !important;
+}
+
+#av-rel-area .av-tabs-bar,
+#av-rep-area .av-tabs-bar,
+.rel-header-bar,
+.rep-filterbar,
+.rel-filter-grid,
+.rel-inline-tabs,
+.rel-kpi-strip,
+.premio-periodo-filtros,
+.premio-periodo-actions {
+  background: #FFFFFF !important;
+  border: 1px solid #D5EDE8 !important;
+  box-shadow: 0 1px 3px rgba(10,47,47,0.06) !important;
+  color: #0A2F2F !important;
+}
+
+#av-rel-area .av-tab,
+#av-rep-area .av-tab,
+.rel-toggle-btn,
+.rel-inline-tab {
+  background: transparent !important;
+  border: 1px solid #D5EDE8 !important;
+  color: #0D4F4F !important;
+  box-shadow: none !important;
+}
+
+#av-rel-area .av-tab.active,
+#av-rep-area .av-tab.active,
+#av-rel-area .av-tab:hover,
+#av-rep-area .av-tab:hover,
+.rel-toggle-btn.active,
+.rel-inline-tab.active {
+  background: #14746F !important;
+  border-color: #14746F !important;
+  color: #FFFFFF !important;
+}
+
+.rep-filter-field span,
+.rep-filter-count,
+.laudo-sub,
+.laudo-filtro-item label,
+.rel-prod-meta,
+.premio-periodo-field span {
+  color: #5A7A74 !important;
+}
+
+.rep-filter-field select,
+.laudo-select,
+.laudo-filtro-item select {
+  background: #F0FAF8 !important;
+  border: 1px solid #D5EDE8 !important;
+  color: #0A2F2F !important;
+  box-shadow: none !important;
+}
+
+.rep-filter-field select:focus,
+.laudo-select:focus,
+.laudo-filtro-item select:focus {
+  border-color: #14746F !important;
+  box-shadow: 0 0 0 3px rgba(20,116,111,0.15) !important;
+  outline: none !important;
+}
+
+.rep-clear-filter,
+.rel-print-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  min-height: 36px !important;
+  padding: 0 14px !important;
+  border-radius: 8px !important;
+  font: inherit !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  background: transparent !important;
+  border: 1px solid #DC2626 !important;
+  color: #DC2626 !important;
+  box-shadow: none !important;
+}
+
+.rel-print-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  flex: 0 0 16px !important;
+  stroke: currentColor !important;
+}
+
+.rel-print-btn {
+  border-color: #14746F !important;
+  color: #14746F !important;
+}
+
+.rel-print-btn:hover {
+  background: #14746F !important;
+  border-color: #14746F !important;
+  color: #FFFFFF !important;
+}
+
+.rep-clear-filter:hover,
+.rel-print-btn:hover {
+  background: #DC2626 !important;
+  border-color: #DC2626 !important;
+  color: #FFFFFF !important;
+}
+
+.rel-print-btn:hover {
+  background: #14746F !important;
+  border-color: #14746F !important;
+  color: #FFFFFF !important;
+}
+
+.rel-kpi-card,
+.laudo-chart-box,
+.laudo-chart-wrap,
+.laudo-doc,
+.av-table-wrap,
+.rep-scroll-area,
+.premio-kpis div,
+.premio-winner,
+.premio-campanha-hero,
+.premio-campanha-resumo div,
+.premio-campanha-alert,
+.premio-growth-panel,
+.premio-growth-head,
+.premio-growth-head-side {
+  background: #FFFFFF !important;
+  border: 1px solid #D5EDE8 !important;
+  color: #0A2F2F !important;
+  box-shadow: 0 1px 3px rgba(10,47,47,0.06) !important;
+}
+
+.rel-kpi-card span,
+.premio-kpis span,
+.premio-winner span,
+.premio-winner small,
+.premio-campanha-alert,
+.premio-campanha-sub,
+.premio-growth-head p,
+.premio-growth-card p,
+.premio-growth-card-meta span,
+.premio-growth-head-side span {
+  color: #5A7A74 !important;
+}
+
+.rel-kpi-card strong,
+.premio-kpis strong,
+.premio-winner strong,
+.premio-campanha-title,
+.premio-campanha-resumo strong,
+.premio-growth-head h3 {
+  color: #0A2F2F !important;
+}
+
+.av-table,
+.rep-tbl,
+.laudo-tbl {
+  background: #FFFFFF !important;
+  border-color: #D5EDE8 !important;
+  color: #0A2F2F !important;
+}
+
+.av-table th,
+.rep-tbl thead td,
+.laudo-tbl th {
+  background: #0D4F4F !important;
+  color: #FFFFFF !important;
+  border-color: #0D4F4F !important;
+}
+
+.av-table td,
+.rep-tbl td,
+.laudo-tbl td {
+  background: #FFFFFF !important;
+  color: #0A2F2F !important;
+  border-color: #D5EDE8 !important;
+}
+
+.av-table tbody tr:nth-child(even) td,
+.rep-tbl tbody tr:nth-child(even) td,
+.laudo-tbl tbody tr:nth-child(even) td {
+  background: #F0FAF8 !important;
+}
+
+.av-table tbody tr:hover td,
+.rep-tbl tbody tr:hover td,
+.laudo-tbl tbody tr:hover td {
+  background: #D5EDE8 !important;
+}
+
+.rel-subtotal-row td,
+.rep-row-total td,
+.laudo-tot td {
+  background: #D5EDE8 !important;
+  color: #0A2F2F !important;
+  font-weight: 900 !important;
+}
+
+.rel-evol-row td,
+.laudo-med td,
+.laudo-cresc td {
+  background: #F0FAF8 !important;
+  color: #0D4F4F !important;
+}
+
+.rel-mini-value,
+.rep-mini-cell span,
+.rel-share-cell strong,
+.rep-share-cell strong,
+.premio-table strong,
+.premio-growth-table td strong {
+  color: #0A2F2F !important;
+}
+
+.rel-mini-track,
+.rep-mini-cell i,
+.rep-share-cell i {
+  background: #D5EDE8 !important;
+}
+
+.rel-mini-track span,
+.rep-mini-cell i b,
+.rep-share-cell i b,
+.rel-share-cell .rel-mini-track span {
+  background: #14746F !important;
+}
+
+.rel-trend,
+.rep-trend {
+  background: #D5EDE8 !important;
+  color: #0D4F4F !important;
+}
+
+.rel-trend.up,
+.rep-trend.up,
+.rel-seta-up,
+.premio-growth-var.up {
+  color: #059669 !important;
+}
+
+.rel-trend.down,
+.rep-trend.down,
+.rel-seta-dn,
+.premio-growth-var.down {
+  color: #DC2626 !important;
+}
+
+.rel-sem-dados,
+.av-rel-placeholder {
+  background: #FFFFFF !important;
+  border: 1px dashed #D5EDE8 !important;
+  color: #5A7A74 !important;
+}
+
+.rel-sem-dados p,
+.av-rel-placeholder p {
+  color: #0A2F2F !important;
+}
+
+.rel-sem-dados b,
+.av-rel-placeholder b {
+  color: #14746F !important;
+}
+
+#loader,
+.dc-loading,
+.login-modal-overlay {
+  background: rgba(10,47,47,0.62) !important;
+}
+
+.loader-box,
+.dc-loading-card {
+  background: #FFFFFF !important;
+  border: 1px solid #D5EDE8 !important;
+  color: #0A2F2F !important;
+  box-shadow: 0 12px 30px rgba(10,47,47,0.14) !important;
+}
+
+.loader-box h3,
+.dc-loading-card strong {
+  color: #0A2F2F !important;
+}
+
+.loader-box p,
+.dc-loading-card p {
+  color: #5A7A74 !important;
+}
+
+.loader-progress svg,
+.dc-loader {
+  color: #14746F !important;
+  stroke: #14746F !important;
+}
+
+.loader-progress circle {
+  stroke: #14746F !important;
+}
+
+/* Relatorios em tela cheia tambem usam containers proprios. */
+#view-rel-prod,
+#view-rel-rep,
+#av-bd-area,
+#view-dash-cliente {
+  background: #F0FAF8 !important;
+  color: #0A2F2F !important;
+}
+
+#view-rel-prod .topbar,
+#view-rel-rep .topbar,
+#view-dash-cliente .dc-header {
+  background: #FFFFFF !important;
+  border-color: #D5EDE8 !important;
+  color: #0A2F2F !important;
+  box-shadow: 0 1px 3px rgba(10,47,47,0.06) !important;
+}
+
+#view-rel-prod .content,
+#view-rel-rep .content,
+#av-bd-area,
+#view-dash-cliente .dc-main {
+  background: #F0FAF8 !important;
+  color: #0A2F2F !important;
+}
+
+#view-rel-prod .voltar-btn,
+#view-rel-rep .voltar-btn,
+#view-dash-cliente .dc-btn-sair {
+  background: #FFFFFF !important;
+  border: 1px solid #D5EDE8 !important;
+  color: #0D4F4F !important;
+  box-shadow: none !important;
+}
+
+#view-rel-prod .voltar-btn:hover,
+#view-rel-rep .voltar-btn:hover,
+#view-dash-cliente .dc-btn-sair:hover {
+  background: #14746F !important;
+  border-color: #14746F !important;
+  color: #FFFFFF !important;
+}
+
+#view-rel-prod .user-chip,
+#view-rel-rep .user-chip,
+#view-dash-cliente .dc-user {
+  color: #0A2F2F !important;
+}
+
+#view-rel-prod .avatar,
+#view-rel-rep .avatar,
+#view-dash-cliente .dc-avatar {
+  background: #D5EDE8 !important;
+  color: #14746F !important;
+}
+
+#av-bd-area .av-tabs-bar,
+#av-bd-area .jss-wrap,
+#av-bd-area .jss-info-bar,
+#av-bd-area .jss-toolbar,
+.cli-kpis-bar,
+.cli-kpi,
+.lg-toolbar,
+.lg-scroll,
+.lg-wrap {
+  background: #FFFFFF !important;
+  border-color: #D5EDE8 !important;
+  color: #0A2F2F !important;
+  box-shadow: 0 1px 3px rgba(10,47,47,0.06) !important;
+}
+
+#av-bd-area .av-tab,
+.jss-btn,
+.lg-pb,
+.cli-tab-btn,
+.admin-sub-tab,
+.adm-toggle-btn,
+.toggle-btn {
+  background: transparent !important;
+  border-color: #D5EDE8 !important;
+  color: #0D4F4F !important;
+}
+
+#av-bd-area .av-tab.active,
+#av-bd-area .av-tab:hover,
+.cli-tab-btn.active,
+.admin-sub-tab.active,
+.adm-toggle-btn.active,
+.toggle-btn.active {
+  background: #14746F !important;
+  border-color: #14746F !important;
+  color: #FFFFFF !important;
+}
+
+.jss-info-left,
+.jss-status-badge,
+.cli-kpi-label,
+.lg-rn,
+.lg-table th,
+.lg-table td,
+.dc-header-status {
+  color: #5A7A74 !important;
+}
+
+.jss-cell-ref,
+.cli-kpi-val,
+.lg-table td,
+.lg-table input,
+.dc-card-val,
+.dc-kpi-value {
+  color: #0A2F2F !important;
+}
+
+.lg-table th,
+.dc-tabela th {
+  background: #0D4F4F !important;
+  color: #FFFFFF !important;
+  border-color: #0D4F4F !important;
+}
+
+.lg-table td,
+.dc-tabela td {
+  background: #FFFFFF !important;
+  border-color: #D5EDE8 !important;
+}
+
+.lg-table tbody tr:nth-child(even) td,
+.dc-tabela tbody tr:nth-child(even) td {
+  background: #F0FAF8 !important;
+}
+
+.lg-sel,
+.lg-sel-row,
+.lg-sel-col {
+  background: rgba(20,116,111,0.12) !important;
+  outline-color: #14746F !important;
+}
+
+.jss-btn-success {
+  background: #E7F7F2 !important;
+  border-color: #059669 !important;
+  color: #059669 !important;
+}
+
+.jss-btn-success:hover {
+  background: #059669 !important;
+  color: #FFFFFF !important;
+}
+
+.jss-btn-danger {
+  border-color: #DC2626 !important;
+  color: #DC2626 !important;
+}
+
+.jss-btn-danger:hover {
+  background: #DC2626 !important;
+  color: #FFFFFF !important;
+}
+
+#view-dash-cliente ::-webkit-scrollbar-thumb,
+.lg-scroll::-webkit-scrollbar-thumb,
+.av-table-wrap::-webkit-scrollbar-thumb,
+.rep-scroll-area::-webkit-scrollbar-thumb {
+  background: #14746F !important;
+}
+
+.dc-card-var.up,
+.admin-sync-status.ok,
+.admin-painel-status.ok,
+.adm-status.ok,
+.tag-api,
+.cli-sync-status.sync-ok {
+  color: #059669 !important;
+}
+
+.dc-card-var.down,
+.admin-sync-status.erro,
+.admin-painel-status.erro,
+.adm-status.erro,
+.cli-sync-status.sync-erro {
+  color: #DC2626 !important;
+}
+
+.dc-bar,
+.dc-bar-fill,
+.cli-btn-sync,
+.adm-btn-api,
+.btn-primary {
+  background: #14746F !important;
+  border-color: #14746F !important;
+  color: #FFFFFF !important;
+}

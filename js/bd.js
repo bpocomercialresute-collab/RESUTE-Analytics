@@ -842,7 +842,7 @@ function bdUpdateLaudoGrupo() {
   }
 
   const titulo = window.LG.grupo || 'TODOS OS GRUPOS';
-  const CORES  = ['#4a90d9','#f59e0b','#10b981','#e05252','#a78bfa','#06b6d4'];
+  const CORES  = ['#14746F','#2DD4BF','#059669','#D97706','#7C3AED','#0D4F4F'];
   const anosColors = Object.fromEntries(anos.map((a,i)=>[a, CORES[i%CORES.length]]));
 
   // Pivot mês × ano
@@ -935,7 +935,7 @@ function bdUpdateLaudoGrupo() {
             const at=pivotMesAno[a].reduce((s,v)=>s+v,0);
             const an=pivotMesAno[anos[i-1]].reduce((s,v)=>s+v,0);
             const cr=an>0?((at-an)/an)*100:0;
-            const cor=cr>=0?'#10b981':'#ef4444';
+            const cor=cr>=0?'#059669':'#DC2626';
             return `<td style="color:${cor};font-weight:700">${cr>=0?'▲':'▼'} ${Math.abs(cr).toFixed(1)}%</td>`;
           }).join('')}</tr>
         </tbody>
@@ -999,10 +999,10 @@ function lgRenderCharts(anos, pivotMesAno, anosColors) {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color:'#c8d8f0', font:{size:11} } } },
+        plugins: { legend: { labels: { color:'#0A2F2F', font:{size:11} } } },
         scales: {
-          x: { ticks:{color:'#7a9cc8'}, grid:{color:'rgba(255,255,255,0.05)'} },
-          y: { ticks:{color:'#7a9cc8'}, grid:{color:'rgba(255,255,255,0.05)'} }
+          x: { ticks:{color:'#5A7A74'}, grid:{color:'#D5EDE8'} },
+          y: { ticks:{color:'#5A7A74'}, grid:{color:'#D5EDE8'} }
         }
       }
     });
@@ -1025,10 +1025,10 @@ function lgRenderCharts(anos, pivotMesAno, anosColors) {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color:'#c8d8f0', font:{size:11} } } },
+        plugins: { legend: { labels: { color:'#0A2F2F', font:{size:11} } } },
         scales: {
-          x: { ticks:{color:'#7a9cc8'}, grid:{color:'rgba(255,255,255,0.05)'} },
-          y: { ticks:{color:'#7a9cc8'}, grid:{color:'rgba(255,255,255,0.05)'} }
+          x: { ticks:{color:'#5A7A74'}, grid:{color:'#D5EDE8'} },
+          y: { ticks:{color:'#5A7A74'}, grid:{color:'#D5EDE8'} }
         }
       }
     });
@@ -1118,7 +1118,7 @@ function bdUpdateLaudoGruposAno() {
   anos.forEach(a => { totAno[a] = grupos.reduce((s,gr) => s + pivot[gr][a].reduce((s2,v)=>s2+v,0), 0); });
   const totGeral = Object.values(totAno).reduce((s,v)=>s+v,0);
 
-  const CORES = ['#4a90d9','#f59e0b','#10b981','#e05252','#a78bfa','#06b6d4'];
+  const CORES = ['#14746F','#2DD4BF','#059669','#D97706','#7C3AED','#0D4F4F'];
 
   let html = `<div class="rel-header-bar">
     ${toggleBtnHtml()}
@@ -1129,7 +1129,7 @@ function bdUpdateLaudoGruposAno() {
     <thead>
       <tr class="av-th-top">
         <th rowspan="2" style="vertical-align:middle">GRUPO</th>
-        ${anos.map((a,i) => `<th colspan="13" style="background:#060e24;color:${CORES[i%CORES.length]};text-align:center;border-bottom:2px solid ${CORES[i%CORES.length]}">${a}</th>`).join('')}
+        ${anos.map((a,i) => `<th colspan="13" style="background:#F0FAF8;color:${CORES[i%CORES.length]};text-align:center;border-bottom:2px solid ${CORES[i%CORES.length]}">${a}</th>`).join('')}
       </tr>
       <tr>
         ${anos.map(() => [...MESES_LABEL,'TOT'].map(m=>`<th>${m}</th>`).join('')).join('')}
@@ -1141,7 +1141,7 @@ function bdUpdateLaudoGruposAno() {
     const totGr = anos.reduce((s,a) => s + pivot[gr][a].reduce((s2,v)=>s2+v,0), 0);
     if (totGr === 0) return;
     html += `<tr>
-      <td style="font-weight:600;color:#c8d8f0;min-width:140px">${gr}</td>
+      <td style="font-weight:600;color:#0A2F2F;min-width:140px">${gr}</td>
       ${anos.map(a => {
         const meses = pivot[gr][a];
         const tot   = meses.reduce((s,v)=>s+v,0);
@@ -1217,7 +1217,7 @@ function bdUpdateLaudoGruposAno02() {
     const v2 = pivot.get(gr)[ano2]||0;
     const dif = v2 - v1;
     const varp = v1>0 ? (dif/v1)*100 : 0;
-    const cor = dif>=0?'#10b981':'#ef4444';
+    const cor = dif>=0?'#059669':'#DC2626';
     const arrow = dif>=0?'▲':'▼';
     html += `<tr>
       <td>${gr}</td>

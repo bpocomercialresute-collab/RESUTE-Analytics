@@ -61,9 +61,9 @@ const skuAbbrMap = {
 
 /** Paleta padrão para gráficos sem cor especificada */
 const colorPalette = [
-  '#c8102e','#0a1430','#1a2a5c','#e43550','#3b82f6','#10b981',
-  '#f59e0b','#06b6d4','#8b5cf6','#f97316','#ec4899','#14b8a6',
-  '#84cc16','#eab308','#0ea5e9'
+  '#14746F','#2DD4BF','#059669','#0D4F4F','#D97706','#7C3AED',
+  '#DC2626','#5A7A74','#0A2F2F','#D5EDE8','#0F4F4F','#0F766E',
+  '#14B8A6','#0D9488','#115E59'
 ];
 
 // ── Expressões regulares pré-compiladas ───────────────────────────────────────

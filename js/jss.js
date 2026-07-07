@@ -223,7 +223,7 @@ LiteGrid.prototype._select = function(ri, ci, td) {
       this._inp.style.cssText =
         'display:block;position:absolute;top:'+top+'px;left:'+left+'px;'
         +'width:'+(tr2.width)+'px;height:'+(tr2.height)+'px;'
-        +'background:#0a2060;border:2px solid #3b82f6;color:#fff;'
+        +'background:#FFFFFF;border:2px solid #14746F;color:#0A2F2F;'
         +'font:12px inherit;padding:0 6px;z-index:50;outline:none;box-sizing:border-box;';
     }
     var src = this.filtered || this.allData;

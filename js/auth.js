@@ -1231,7 +1231,7 @@ function _dcChartAno(rows) {
   var ctx = document.getElementById('dc-chart-ano'); if (!ctx) return;
   DC_CHARTS['ano'] = new Chart(ctx, {
     type: 'bar',
-    data: { labels: anos, datasets: [{ data: anos.map(function(a){return porAno[a];}), backgroundColor: '#3b82f6', borderRadius: 6 }] },
+    data: { labels: anos, datasets: [{ data: anos.map(function(a){return porAno[a];}), backgroundColor: '#14746F', borderRadius: 6 }] },
     options: _dcOpts(false)
   });
 }
@@ -1248,7 +1248,7 @@ function _dcChartDiaSemana(rows) {
   var ctx = document.getElementById('dc-chart-diasem'); if (!ctx) return;
   DC_CHARTS['diasem'] = new Chart(ctx, {
     type: 'bar',
-    data: { labels: dias, datasets: [{ data: mp, backgroundColor: '#8b5cf6', borderRadius: 6 }] },
+    data: { labels: dias, datasets: [{ data: mp, backgroundColor: '#7C3AED', borderRadius: 6 }] },
     options: _dcOpts(false)
   });
 }
@@ -1262,7 +1262,7 @@ function _dcChartProdQtd(rows) {
   DC_CHARTS['prodqtd'] = new Chart(ctx, {
     type: 'bar',
     data: { labels: s.map(function(e){return e[0].length>22?e[0].slice(0,22)+'…':e[0];}),
-            datasets: [{ data: s.map(function(e){return e[1];}), backgroundColor: '#22c55e', borderRadius: 4 }] },
+            datasets: [{ data: s.map(function(e){return e[1];}), backgroundColor: '#059669', borderRadius: 4 }] },
     options: Object.assign(_dcOpts(false), { indexAxis: 'y' })
   });
 }
@@ -1277,9 +1277,9 @@ function _dcChartMarca(rows) {
     type: 'doughnut',
     data: { labels: s.map(function(e){return e[0];}),
             datasets: [{ data: s.map(function(e){return e[1];}),
-              backgroundColor: ['#3b82f6','#22c55e','#f59e0b','#ec4899','#8b5cf6','#14b8a6','#fb923c','#64748b'], borderWidth: 0 }] },
+              backgroundColor: ['#14746F','#2DD4BF','#059669','#0D4F4F','#D97706','#7C3AED','#DC2626','#5A7A74'], borderWidth: 0 }] },
     options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'right', labels: { color: '#64748b', font: { size: 10 }, boxWidth: 10 } },
+      plugins: { legend: { position: 'right', labels: { color: '#5A7A74', font: { size: 10 }, boxWidth: 10 } },
                  tooltip: { callbacks: { label: function(c){ return ' R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0}); } } } } }
   });
 }
@@ -1319,10 +1319,10 @@ function _dcTabelaNovosClientes(rows) {
     .sort(function(a,b){return b.dt-a.dt;}).slice(0,10);
   var el = document.getElementById('dc-tab-novos');
   if (!el) return;
-  if (!arr.length) { el.innerHTML = '<div style="color:#475569;font-size:13px;padding:20px;text-align:center">Nenhum cliente novo no período.</div>'; return; }
+  if (!arr.length) { el.innerHTML = '<div style="color:#5A7A74;font-size:13px;padding:20px;text-align:center">Nenhum cliente novo no período.</div>'; return; }
   var h = '<table class="dc-tabela"><thead><tr><th>Cliente</th><th style="text-align:right">Primeira compra</th></tr></thead><tbody>';
   arr.forEach(function(e){
-    h+='<tr><td>'+e.nome+'</td><td style="text-align:right;color:#22c55e;font-weight:700">'+e.dt.toLocaleDateString('pt-BR')+'</td></tr>';
+    h+='<tr><td>'+e.nome+'</td><td style="text-align:right;color:#059669;font-weight:700">'+e.dt.toLocaleDateString('pt-BR')+'</td></tr>';
   });
   el.innerHTML = h+'</tbody></table>';
 }
@@ -1339,7 +1339,7 @@ function _dcTabelaTicketCliente(rows) {
     .filter(function(e){ return e.ped >= 2; }).sort(function(a,b){return b.tick-a.tick;}).slice(0,10);
   var el = document.getElementById('dc-tab-ticket');
   if (!el) return;
-  if (!arr.length) { el.innerHTML = '<div style="color:#475569;font-size:13px;padding:20px;text-align:center">Sem dados suficientes.</div>'; return; }
+  if (!arr.length) { el.innerHTML = '<div style="color:#5A7A74;font-size:13px;padding:20px;text-align:center">Sem dados suficientes.</div>'; return; }
   var h = '<table class="dc-tabela"><thead><tr><th>#</th><th>Cliente</th><th>Pedidos</th><th class="num">Ticket</th></tr></thead><tbody>';
   arr.forEach(function(e,i){
     h+='<tr><td class="pos">'+(i+1)+'</td><td>'+e.nome+'</td><td>'+e.ped+'</td><td class="num">R$ '+e.tick.toLocaleString('pt-BR',{minimumFractionDigits:0})+'</td></tr>';
@@ -1354,10 +1354,10 @@ function _dcOpts(horizontal) {
     plugins: { legend: { display: false },
       tooltip: { callbacks: { label: function(c){ return ' R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0}); } } } },
     scales: {
-      x: { ticks: { color: '#475569', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
-      y: { ticks: { color: '#475569', font: { size: 10 },
+      x: { ticks: { color: '#5A7A74', font: { size: 10 } }, grid: { color: '#D5EDE8' } },
+      y: { ticks: { color: '#5A7A74', font: { size: 10 },
             callback: function(v){ return typeof v==='number' ? 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:0}) : v; } },
-           grid: { color: 'rgba(255,255,255,0.04)' } }
+           grid: { color: '#D5EDE8' } }
     }
   };
 }
@@ -1435,11 +1435,11 @@ function dcChartEvolucao(rows) {
       datasets: [{
         label: 'Faturamento',
         data: data,
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59,130,246,0.1)',
+        borderColor: '#14746F',
+        backgroundColor: 'rgba(20,116,111,0.12)',
         fill: true,
         tension: 0.4,
-        pointBackgroundColor: '#3b82f6',
+        pointBackgroundColor: '#14746F',
         pointRadius: 4
       }]
     },
@@ -1464,9 +1464,9 @@ function dcChartTrimestre(rows) {
     type: 'doughnut',
     data: {
       labels: ['Q1 Jan-Mar','Q2 Abr-Jun','Q3 Jul-Set','Q4 Out-Dez'],
-      datasets: [{ data: Object.values(trim), backgroundColor: ['#3b82f6','#22c55e','#f59e0b','#ec4899'], borderWidth: 0 }]
+      datasets: [{ data: Object.values(trim), backgroundColor: ['#14746F','#2DD4BF','#059669','#0D4F4F'], borderWidth: 0 }]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom',labels:{color:'#64748b',font:{size:10}}}, tooltip:{callbacks:{label:function(c){ return ' R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0}); }}} } }
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom',labels:{color:'#5A7A74',font:{size:10}}}, tooltip:{callbacks:{label:function(c){ return ' R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0}); }}} } }
   });
 }
 
@@ -1483,7 +1483,7 @@ function dcChartProdutos(rows) {
   if (!ctx) return;
   DC_CHARTS['produtos'] = new Chart(ctx, {
     type: 'bar',
-    data: { labels:labels, datasets:[{label:'Faturamento',data:data,backgroundColor:'rgba(59,130,246,0.7)',borderRadius:4}] },
+    data: { labels:labels, datasets:[{label:'Faturamento',data:data,backgroundColor:'rgba(20,116,111,0.82)',borderRadius:4}] },
     options: Object.assign(dcChartOpts('R$ '),{indexAxis:'y'})
   });
 }
@@ -1493,7 +1493,7 @@ function dcChartGrupos(rows) {
   var map = {};
   rows.forEach(function(r){ var k=r.grupo||r.grupo_produto||'Sem grupo'; if(k&&k.trim()) map[k]=(map[k]||0)+(parseFloat(r.valor)||0); });
   var sorted = Object.entries(map).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
-  var cores = ['#3b82f6','#22c55e','#f59e0b','#ec4899','#8b5cf6','#14b8a6','#fb923c','#64748b'];
+  var cores = ['#14746F','#2DD4BF','#059669','#0D4F4F','#D97706','#7C3AED','#DC2626','#5A7A74'];
 
   dcDestroyChart('dc-chart-grupos');
   var ctx = document.getElementById('dc-chart-grupos');
@@ -1501,7 +1501,7 @@ function dcChartGrupos(rows) {
   DC_CHARTS['grupos'] = new Chart(ctx, {
     type: 'pie',
     data: { labels:sorted.map(function(e){return e[0];}), datasets:[{data:sorted.map(function(e){return e[1];}),backgroundColor:cores,borderWidth:0}] },
-    options: { responsive:true,maintainAspectRatio:false, plugins:{ legend:{position:'right',labels:{color:'#64748b',font:{size:10},boxWidth:10}}, tooltip:{callbacks:{label:function(c){return ' R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0})+' ('+((c.raw/(DC_DATA.reduce(function(s,r){return s+(parseFloat(r.valor)||0);},0))||0)*100).toFixed(1)+'%)';}}} } }
+    options: { responsive:true,maintainAspectRatio:false, plugins:{ legend:{position:'right',labels:{color:'#5A7A74',font:{size:10},boxWidth:10}}, tooltip:{callbacks:{label:function(c){return ' R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0})+' ('+((c.raw/(DC_DATA.reduce(function(s,r){return s+(parseFloat(r.valor)||0);},0))||0)*100).toFixed(1)+'%)';}}} } }
   });
 }
 
@@ -1518,7 +1518,7 @@ function dcTabelaReps(rows, fatTotal) {
     var bar = (e[1].fat/max*100).toFixed(0);
     html += '<tr><td class="pos">'+(i+1)+'</td><td>'+e[0]+'</td><td>'+e[1].ped+'</td>'
           + '<td class="num">R$ '+e[1].fat.toLocaleString('pt-BR',{minimumFractionDigits:0})+'</td>'
-          + '<td style="min-width:80px"><div style="font-size:10px;color:#475569;margin-bottom:2px">'+pct+'%</div>'
+          + '<td style="min-width:80px"><div style="font-size:10px;color:#5A7A74;margin-bottom:2px">'+pct+'%</div>'
           + '<div class="dc-bar-wrap"><div class="dc-bar" style="width:'+bar+'%"></div></div></td></tr>';
   });
   html += '</tbody></table>';
@@ -1539,8 +1539,8 @@ function dcTabelaUFs(rows, fatTotal) {
     var bar = (e[1]/max*100).toFixed(0);
     html += '<tr><td class="pos">'+(i+1)+'</td><td>'+e[0]+'</td>'
           + '<td class="num">R$ '+e[1].toLocaleString('pt-BR',{minimumFractionDigits:0})+'</td>'
-          + '<td style="min-width:80px"><div style="font-size:10px;color:#475569;margin-bottom:2px">'+pct+'%</div>'
-          + '<div class="dc-bar-wrap"><div class="dc-bar" style="width:'+bar+'%;background:linear-gradient(90deg,#22c55e,#4ade80)"></div></div></td></tr>';
+          + '<td style="min-width:80px"><div style="font-size:10px;color:#5A7A74;margin-bottom:2px">'+pct+'%</div>'
+          + '<div class="dc-bar-wrap"><div class="dc-bar" style="width:'+bar+'%;background:#059669"></div></div></td></tr>';
   });
   html += '</tbody></table>';
   var el = document.getElementById('dc-tabela-ufs');
@@ -1582,16 +1582,16 @@ function dcTabelaInativos(rows) {
 
   if (!inativos.length) {
     var el = document.getElementById('dc-tabela-inativos');
-    if (el) el.innerHTML = '<div style="color:#475569;font-size:13px;padding:20px;text-align:center">Nenhum cliente inativo no período ✓</div>';
+    if (el) el.innerHTML = '<div style="color:#5A7A74;font-size:13px;padding:20px;text-align:center">Nenhum cliente inativo no período ✓</div>';
     return;
   }
 
   var html = '<table class="dc-tabela"><thead><tr><th>Cliente</th><th style="text-align:right">Dias sem compra</th><th>Última compra</th></tr></thead><tbody>';
   inativos.forEach(function(e){
-    var cor = e.dias > 90 ? '#ef4444' : e.dias > 60 ? '#f59e0b' : '#94a3b8';
+    var cor = e.dias > 90 ? '#DC2626' : e.dias > 60 ? '#D97706' : '#5A7A74';
     html += '<tr><td>'+e.nome+'</td>'
           + '<td style="text-align:right;font-weight:800;color:'+cor+'">'+e.dias+' dias</td>'
-          + '<td style="color:#475569">'+e.ultima+'</td></tr>';
+          + '<td style="color:#5A7A74">'+e.ultima+'</td></tr>';
   });
   html += '</tbody></table>';
   var el = document.getElementById('dc-tabela-inativos');
@@ -1612,8 +1612,8 @@ function dcChartOpts(prefix) {
       tooltip: { callbacks: { label: function(c){ return ' '+(prefix||'')+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0}); } } }
     },
     scales: {
-      x: { ticks: { color: '#475569', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
-      y: { ticks: { color: '#475569', font: { size: 10 }, callback: function(v){ return 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:0}); } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      x: { ticks: { color: '#5A7A74', font: { size: 10 } }, grid: { color: '#D5EDE8' } },
+      y: { ticks: { color: '#5A7A74', font: { size: 10 }, callback: function(v){ return 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:0}); } }, grid: { color: '#D5EDE8' } }
     }
   };
 }
@@ -1626,7 +1626,7 @@ function dcStatus(msg, ok) {
   }
   if (!el) return;
   el.textContent = msg;
-  el.style.color = ok ? '#22c55e' : (msg.startsWith('✗') ? '#ef4444' : '#475569');
+  el.style.color = ok ? '#059669' : (msg.startsWith('✗') ? '#DC2626' : '#5A7A74');
 }
 // =============================================================================
 // ADMIN MULTI-EMPRESA — Abas · Sincronizar · Processar · Salvar · Limpar

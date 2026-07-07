@@ -962,7 +962,7 @@ function repRoletaFormatarItem(v) {
 }
 
 function repRoletaConicGradient(itens) {
-  const paleta = ['#3b82f6', '#22c55e', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#ef4444', '#0ea5e9'];
+  const paleta = ['#14746F', '#2DD4BF', '#059669', '#0D4F4F', '#D97706', '#7C3AED', '#DC2626', '#0A2F2F'];
   const n = Math.max(1, itens.length);
   const ang = 360 / n;
   return itens.map((_, i) => {
@@ -997,7 +997,7 @@ function repRoletaHtml() {
       <p class="premio-roleta-sub">Adicione os produtos que vão girar, sorteie o prêmio e depois salve o representante ganhador ao lado.</p>
       <div class="premio-roleta-stage">
         <div class="premio-roleta-pointer"></div>
-        <div class="premio-roleta-wheel" id="rep-roleta-wheel" style="transform: rotate(${Number(estado.angulo || 0)}deg); ${itens.length ? `background: conic-gradient(${repRoletaConicGradient(itens)});` : 'background: radial-gradient(circle at center, #1d4ed8, #0f1729);'}">
+        <div class="premio-roleta-wheel" id="rep-roleta-wheel" style="transform: rotate(${Number(estado.angulo || 0)}deg); ${itens.length ? `background: conic-gradient(${repRoletaConicGradient(itens)});` : 'background: radial-gradient(circle at center, #14746F, #0A2F2F);'}">
           ${labels || '<span class="roleta-empty">Adicione produtos para liberar a roleta.</span>'}
           <div class="premio-roleta-center" id="rep-roleta-center" style="transform: translate(-50%, -50%) rotate(${-Number(estado.angulo || 0)}deg);">
             <span>Último prêmio</span>
@@ -1400,7 +1400,7 @@ function repMix() {
       const antAtivos = semAnt && semAnt[vend] ? semAnt[vend].filter(v=>v>0).length : 0;
       const medAnt = antAtivos ? antTot/antAtivos : 0;
       const result = medAnt > 0 ? ((media/medAnt)-1)*100 : 0;
-      const cor = result >= 0 ? '#10b981' : '#ef4444';
+      const cor = result >= 0 ? '#059669' : '#DC2626';
       html += `<tr>
         <td colspan="2" class="rep-lbl">${vend}</td>
         ${dias7.map(v=>`<td>${repMiniCell(v, maxDia)}</td>`).join('')}
@@ -1581,7 +1581,7 @@ function repSem() {
     const media = ativos > 0 ? tot/ativos : 0;
     const ant = totAntVend[vend];
     const varp = ant > 0 ? ((tot-ant)/ant*100) : 0;
-    const cor = varp >= 0 ? '#10b981' : '#ef4444';
+    const cor = varp >= 0 ? '#059669' : '#DC2626';
     html += `<tr>
       <td class="rep-lbl">${vend}</td>
       ${SEMS.map(s=>`<td>${repMiniCell(pivot[vend][s], maxSem)}</td>`).join('')}
@@ -1766,8 +1766,8 @@ function repCrescMes() {
       <td>${repMiniCell(media, maxCresc)}</td>
       <td class="rep-total-cell">${repFmtFull(tot)}</td>
       <td>${repShareCell(tot, totalGeral)}</td>
-      <td style="color:#ef4444">${nQueda}</td>
-      <td style="color:#10b981">${nCresc}</td>
+      <td style="color:#DC2626">${nQueda}</td>
+      <td style="color:#059669">${nCresc}</td>
     </tr>`;
   });
 
@@ -1791,7 +1791,7 @@ function repCrescMes() {
       if(i===0) return '<td>—</td>';
       const ant=totMes[i-1];
       const ev=ant>0?((v-ant)/ant*100):0;
-      const cor=ev>=0?'#10b981':'#ef4444';
+      const cor=ev>=0?'#059669':'#DC2626';
       return `<td style="color:${cor}">${ev>=0?'▲':'▼'} ${Math.abs(ev).toFixed(1)}%</td>`;
     }).join('')}
     <td colspan="4"></td>
@@ -2067,18 +2067,18 @@ function repRenderPremiacaoCharts(geral, porFat) {
     type: 'bar',
     data: {
       labels: geral.slice(0,8).map(r=>r.nome.length>18?r.nome.slice(0,18)+'...':r.nome),
-      datasets: [{ data: geral.slice(0,8).map(r=>Number(r.score.toFixed(1))), backgroundColor:'#3b82f6', borderRadius:8 }]
+      datasets: [{ data: geral.slice(0,8).map(r=>Number(r.score.toFixed(1))), backgroundColor:'#14746F', borderRadius:8 }]
     },
-    options: { responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#7d91af'},grid:{color:'rgba(255,255,255,.05)'}},y:{ticks:{color:'#9fb5d3'},grid:{display:false}}} }
+    options: { responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#5A7A74'},grid:{color:'#D5EDE8'}},y:{ticks:{color:'#5A7A74'},grid:{display:false}}} }
   });
   const fatCtx = document.getElementById('rep-premio-fat');
   if (fatCtx) new Chart(fatCtx, {
     type: 'doughnut',
     data: {
       labels: porFat.slice(0,6).map(r=>r.nome),
-      datasets: [{ data: porFat.slice(0,6).map(r=>r.fat), backgroundColor:['#3b82f6','#22c55e','#f59e0b','#ec4899','#8b5cf6','#14b8a6'], borderWidth:0 }]
+      datasets: [{ data: porFat.slice(0,6).map(r=>r.fat), backgroundColor:['#14746F','#2DD4BF','#059669','#0D4F4F','#D97706','#7C3AED'], borderWidth:0 }]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right', labels:{color:'#8ea3c0', boxWidth:10, font:{size:10}}}} }
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right', labels:{color:'#5A7A74', boxWidth:10, font:{size:10}}}} }
   });
 }
 
@@ -2320,7 +2320,7 @@ function repPremiacaoRenderCrescimentoCharts(dados) {
   });
 
   const labels = dados.meses.map(m => m.short);
-  const cores = ['#3b82f6', '#22c55e', '#f59e0b'];
+  const cores = ['#14746F', '#2DD4BF', '#059669'];
 
   const fatCtx = document.getElementById('rep-premio-growth-fat');
   if (fatCtx) new Chart(fatCtx, {
