@@ -192,10 +192,8 @@ function _saveSession(sessionData) {
   _touchSession();
 }
 
-// ── MULTI-LOJA (Llamenina Matriz / Mega) ──────────────────────────────────────
+// ── LOJA ATIVA (Varremaster) ───────────────────────────────────────────────────
 var LOJA_NOMES = {
-  'dff89ea1-0c33-48d1-84d7-1fc7826654b8': 'Llamenina Matriz',
-  'af44d320-d663-48ff-b58f-31c5011ad7ba': 'Llamenina Mega',
   'af3b599b-65c5-4868-b8bf-a5934da84f0d': 'Varremaster'
 };
 
@@ -360,10 +358,8 @@ function fazerLogout() {
   SESSION = null; EMPRESAS = [];
   _clearStoredSession();
 
-// ── MULTI-LOJA (Llamenina Matriz / Mega) ──────────────────────────────────────
+// ── LOJA ATIVA (Varremaster) ───────────────────────────────────────────────────
 var LOJA_NOMES = {
-  'dff89ea1-0c33-48d1-84d7-1fc7826654b8': 'Llamenina Matriz',
-  'af44d320-d663-48ff-b58f-31c5011ad7ba': 'Llamenina Mega',
   'af3b599b-65c5-4868-b8bf-a5934da84f0d': 'Varremaster'
 };
   if (typeof switchView === 'function') switchView('view-home');
@@ -1638,9 +1634,7 @@ function dcStatus(msg, ok) {
 
 var EMPRESA_ATIVA = null;
 var EMPRESAS_ADMIN_BASE = [
-  { empresa_id: 'af3b599b-65c5-4868-b8bf-a5934da84f0d', nome: 'Varremaster',     tem_api: true  },
-  { empresa_id: 'dff89ea1-0c33-48d1-84d7-1fc7826654b8', nome: 'Llamenina Matriz', tem_api: false },
-  { empresa_id: 'af44d320-d663-48ff-b58f-31c5011ad7ba', nome: 'Llamenina Mega',   tem_api: false }
+  { empresa_id: 'af3b599b-65c5-4868-b8bf-a5934da84f0d', nome: 'Varremaster', tem_api: true }
 ];
 var EMPRESAS_ADMIN = EMPRESAS_ADMIN_BASE.slice();
 

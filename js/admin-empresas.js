@@ -6,9 +6,7 @@ var EMPRESA_ATIVA = null; // { empresa_id, nome, slug, tem_api }
 var EMPRESAS_LISTA = [];  // lista de todas as empresas
 
 var EMPRESA_IDS = {
-  varremaster: 'af3b599b-65c5-4868-b8bf-a5934da84f0d',
-  '44tshirts':  null, // busca do banco
-  llamenina:   'dff89ea1-0c33-48d1-84d7-1fc7826654b8'
+  varremaster: 'af3b599b-65c5-4868-b8bf-a5934da84f0d'
 };
 
 // ── INICIALIZA PAINEL ADMIN ────────────────────────────────────────────────────
@@ -50,8 +48,7 @@ async function adminInicializar() {
     console.error('Erro ao carregar empresas:', e);
     // Fallback com empresas hardcoded
     EMPRESAS_LISTA = [
-      { empresa_id: 'af3b599b-65c5-4868-b8bf-a5934da84f0d', nome: 'Varremaster', slug: 'varremaster', tem_api: true, sistema: 'visual_saef' },
-      { empresa_id: 'dff89ea1-0c33-48d1-84d7-1fc7826654b8', nome: 'Llamenina',   slug: 'llamenina',   tem_api: false, sistema: null },
+      { empresa_id: 'af3b599b-65c5-4868-b8bf-a5934da84f0d', nome: 'Varremaster', slug: 'varremaster', tem_api: true, sistema: 'visual_saef' }
     ];
     _adminRenderizarAbas();
     adminSelecionarEmpresa(EMPRESAS_LISTA[0].empresa_id);

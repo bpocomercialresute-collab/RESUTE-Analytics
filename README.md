@@ -25,10 +25,6 @@ Plataforma de analise comercial multiempresa da RESUTE, com login, painel admini
 - Varremaster
   - Fluxo com API ativa
   - Sincronizacao por periodo definido no painel admin
-- Llamenina Matriz
-  - Fluxo de cliente com dashboard e acesso aos relatorios
-- Llamenina Mega
-  - Fluxo de cliente com dashboard e acesso aos relatorios
 
 ## Estrutura principal
 
