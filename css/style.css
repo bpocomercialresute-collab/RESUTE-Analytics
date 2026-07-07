@@ -5280,3 +5280,131 @@ textarea:focus {
   border-color: #14746F !important;
   color: #FFFFFF !important;
 }
+
+/* Ajustes finais: logo completa e exportacao de relatorios */
+.lp-nav {
+  min-height: 88px !important;
+  padding: 12px 40px !important;
+  background: #0A2F2F !important;
+  border-bottom: 1px solid rgba(213,237,232,0.22) !important;
+  overflow: visible !important;
+}
+
+.lp-nav-brand {
+  min-height: 64px !important;
+  overflow: visible !important;
+}
+
+.lp-nav-logo {
+  width: 156px !important;
+  max-width: 156px !important;
+  max-height: 64px !important;
+  object-fit: contain !important;
+  object-position: left center !important;
+  display: block !important;
+  filter: none !important;
+}
+
+.lp-nav-more {
+  background: rgba(255,255,255,0.08) !important;
+  border-color: rgba(213,237,232,0.32) !important;
+  color: #FFFFFF !important;
+}
+
+.rel-area-header {
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+.rel-export-actions,
+.rel-export-actions-rep {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  margin-left: auto !important;
+  flex-wrap: wrap !important;
+}
+
+#av-rep-area > .rel-export-actions-rep {
+  margin: -36px 0 14px auto !important;
+  width: fit-content !important;
+}
+
+.rel-print-btn,
+.rel-export-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  min-height: 38px !important;
+  padding: 0 14px !important;
+  border-radius: 10px !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  letter-spacing: .01em !important;
+  background: #FFFFFF !important;
+  border: 1px solid #D5EDE8 !important;
+  color: #0A2F2F !important;
+  box-shadow: 0 1px 3px rgba(10,47,47,0.06) !important;
+}
+
+.rel-print-btn svg,
+.rel-export-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  flex: 0 0 16px !important;
+}
+
+.rel-export-pdf {
+  border-color: #14746F !important;
+  color: #14746F !important;
+}
+
+.rel-export-excel {
+  border-color: #059669 !important;
+  color: #059669 !important;
+}
+
+.rel-export-pdf:hover {
+  background: #14746F !important;
+  border-color: #14746F !important;
+  color: #FFFFFF !important;
+}
+
+.rel-export-excel:hover {
+  background: #059669 !important;
+  border-color: #059669 !important;
+  color: #FFFFFF !important;
+}
+
+#av-rep-area .av-tabs-bar {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+#av-rep-area [data-target="rep-tab-premiacao"] {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+@media (max-width: 720px) {
+  .lp-nav {
+    min-height: 76px !important;
+    padding: 10px 18px !important;
+  }
+
+  .lp-nav-logo {
+    width: 132px !important;
+    max-height: 54px !important;
+  }
+
+  #av-rep-area > .rel-export-actions-rep {
+    margin: 10px 0 12px 0 !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+  }
+}

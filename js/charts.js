@@ -2,7 +2,7 @@
 // CHARTS — Renderização de gráficos (Chart.js) e tabelas
 // =============================================================================
 
-function fmtNumeroSmart(v, casas = 2) {
+function chartFmtNumeroSmart(v, casas = 2) {
   const n = Number(v) || 0;
   return new Intl.NumberFormat('pt-BR', {
     minimumFractionDigits: 0,
@@ -10,11 +10,11 @@ function fmtNumeroSmart(v, casas = 2) {
   }).format(n);
 }
 
-function fmtInt(v) {
-  return fmtNumeroSmart(v, 0);
+function chartFmtInt(v) {
+  return chartFmtNumeroSmart(v, 0);
 }
 
-function fmtValor(v) {
+function chartFmtValor(v) {
   const n = typeof parseSmartNumber === 'function' ? parseSmartNumber(v) : (Number(v) || 0);
   const frac = Math.round(Math.abs(n * 100)) % 100;
   return 'R$ ' + new Intl.NumberFormat('pt-BR', {
@@ -50,7 +50,7 @@ function renderChart(id, tipo, rotulos, valores, label, extra = {}) {
 
   const isCircular = ['pie','doughnut','polarArea','radar'].includes(tipo);
   const isMoney    = (label || '').toLowerCase().match(/faturamento|valor|receita/);
-  const fmtValue   = v => isMoney ? fmtValor(v) : fmtInt(v);
+  const fmtValue   = v => isMoney ? chartFmtValor(v) : chartFmtInt(v);
 
   graficos[id] = new Chart(ctx, {
     type: tipo,
@@ -92,11 +92,11 @@ function renderChart(id, tipo, rotulos, valores, label, extra = {}) {
             color: '#5A7A74', font: { size: 10.5 },
             callback: v => {
               if (isMoney) {
-                if (v >= 1000000) return 'R$ ' + fmtNumeroSmart(v / 1000000, 1) + 'M';
-                if (v >= 1000)    return 'R$ ' + fmtNumeroSmart(v / 1000, 0) + 'k';
-                return fmtValor(v);
+                if (v >= 1000000) return 'R$ ' + chartFmtNumeroSmart(v / 1000000, 1) + 'M';
+                if (v >= 1000)    return 'R$ ' + chartFmtNumeroSmart(v / 1000, 0) + 'k';
+                return chartFmtValor(v);
               }
-              return v >= 1000 ? fmtNumeroSmart(v / 1000, 1) + 'k' : fmtInt(v);
+              return v >= 1000 ? chartFmtNumeroSmart(v / 1000, 1) + 'k' : chartFmtInt(v);
             }
           },
           grid: { color: '#D5EDE8', drawBorder: false }
@@ -134,7 +134,7 @@ function renderParetoChart(id, data) {
           borderColor: '#14746F', borderWidth: 1, padding: 10,
           callbacks: {
             title: items => items.map(i => labelsFull[i.dataIndex] || i.label).join(', '),
-            label:  item  => item.dataset.type === 'line' ? ` Acumulado: ${item.parsed.y.toFixed(1)}%` : ` Faturamento: ${fmtValor(item.parsed.y)}`
+            label:  item  => item.dataset.type === 'line' ? ` Acumulado: ${item.parsed.y.toFixed(1)}%` : ` Faturamento: ${chartFmtValor(item.parsed.y)}`
           }
         }
       },
@@ -204,22 +204,22 @@ function renderRanking(id, customHeader) {
   const top3Fat  = ranking.slice(0, 3).reduce((s, r) => s + r.fat, 0);
 
   // KPIs
-  if ($(`kpi-${id}-total`))    $(`kpi-${id}-total`).textContent   = fmtInt(ranking.length);
+  if ($(`kpi-${id}-total`))    $(`kpi-${id}-total`).textContent   = chartFmtInt(ranking.length);
   if ($(`kpi-${id}-lider`) && ranking.length > 0) {
     const n = String(ranking[0].nome);
     $(`kpi-${id}-lider`).textContent = n.length > 22 ? n.substring(0, 20) + '…' : n;
     $(`kpi-${id}-lider`).title = n;
   }
-  if ($(`kpi-${id}-liderval`) && ranking.length > 0) $(`kpi-${id}-liderval`).textContent = fmtValor(ranking[0].fat);
+  if ($(`kpi-${id}-liderval`) && ranking.length > 0) $(`kpi-${id}-liderval`).textContent = chartFmtValor(ranking[0].fat);
   if ($(`kpi-${id}-conc`))   $(`kpi-${id}-conc`).textContent   = totalFat > 0 ? (top3Fat / totalFat * 100).toFixed(1) + '%' : '0%';
-  if ($(`kpi-${id}-ticket`)) $(`kpi-${id}-ticket`).textContent = fmtValor(totalQtd > 0 ? totalFat / totalQtd : 0);
+  if ($(`kpi-${id}-ticket`)) $(`kpi-${id}-ticket`).textContent = chartFmtValor(totalQtd > 0 ? totalFat / totalQtd : 0);
 
   // Tabela
   renderTable('tbl-' + id, [
     { label: 'Pos.',        key: 'pos' },
     { label: 'Item',        key: 'nome' },
-    { label: 'Quantidade',  key: 'qtd', fmt: fmtInt },
-    { label: 'Faturamento', key: 'fat', fmt: fmtValor },
+    { label: 'Quantidade',  key: 'qtd', fmt: chartFmtInt },
+    { label: 'Faturamento', key: 'fat', fmt: chartFmtValor },
     { label: '% do total',  key: 'fat', fmt: v => totalFat > 0 ? (v / totalFat * 100).toFixed(1) + '%' : '0%' }
   ], withPos);
 
@@ -286,8 +286,8 @@ function renderBaseAnalitica(lim) {
   if (dims.includes('ESTAMPA')) cols.push({ label: 'Estampa', key: 'estampa' });
   cols.push({ label: 'Cor',      key: 'cor',        tag: v => v === 'N/D' ? 'bad' : colorNameMap[v] ? 'good' : 'neutral' });
   cols.push({ label: 'Tamanho',  key: 'tamanho' });
-  cols.push({ label: 'Qtd',      key: 'quantidade', fmt: fmtInt });
-  cols.push({ label: 'Valor',    key: 'valorTotal',  fmt: fmtValor });
+  cols.push({ label: 'Qtd',      key: 'quantidade', fmt: chartFmtInt });
+  cols.push({ label: 'Valor',    key: 'valorTotal',  fmt: chartFmtValor });
   if (dims.includes('STATUS')) cols.push({ label: 'Status', key: 'status' });
   customCols.forEach(h => cols.push({ label: h, key: `custom::${h}` }));
   if (state.produtos.raw.length) cols.push({ label: 'Origem', key: 'match', tag: v => v === 'SKU EXATO' || v === 'NOME' ? 'good' : v === 'SEM MATCH' ? 'bad' : 'warn' });
@@ -303,10 +303,10 @@ function renderAudit() {
     else if (r.match === 'BUSCA TEXTUAL') dBusca++;
     else if (r.match === 'SEM MATCH') dSem++;
   });
-  $('auditSku').textContent   = fmtInt(dSku);
-  $('auditNome').textContent  = fmtInt(dNome);
-  $('auditBusca').textContent = fmtInt(dBusca);
-  $('auditSem').textContent   = fmtInt(dSem);
+  $('auditSku').textContent   = chartFmtInt(dSku);
+  $('auditNome').textContent  = chartFmtInt(dNome);
+  $('auditBusca').textContent = chartFmtInt(dBusca);
+  $('auditSem').textContent   = chartFmtInt(dSem);
 
   renderChart('chartAudit', 'doughnut',
     ['SKU exato','Nome exato','Busca textual','Sem match'],

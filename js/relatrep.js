@@ -1296,6 +1296,9 @@ function repUpdateAll() {
 
 function repRenderTab(tabId) {
   if (!BD_DATA || !BD_DATA.rows.length) return;
+  if (typeof garantirAbaPremiacaoRepresentantes === 'function') {
+    garantirAbaPremiacaoRepresentantes();
+  }
   const map = {
     'rep-tab-mix':     repMix,
     'rep-tab-positiv': repPositiv,
@@ -2400,7 +2403,7 @@ function repPremiacaoRenderCrescimentoCharts(dados) {
   });
 }
 
-function repPremiacaoFiltroHtml(rows) {
+function repPremiacaoFiltroHtmlLegacy(rows) {
   const campanha = repPremiacaoCampanhaAtual();
   const campo = repPremiacaoPeriodoCampo(campanha.id);
   const baseRows = Array.isArray(rows) && rows.length ? rows : repPremiacaoRowsBase();
@@ -2447,7 +2450,7 @@ function repPremiacaoFiltroHtml(rows) {
   </div>`;
 }
 
-function repPremiacao() {
+function repPremiacaoLegacy() {
   const el = document.getElementById('rep-tab-premiacao');
   if (!el) return;
   const baseRows = repPremiacaoRowsBase();
