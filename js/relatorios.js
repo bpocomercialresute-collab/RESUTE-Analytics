@@ -202,158 +202,52 @@ function _prepararCloneExportacao(pane) {
   return clone;
 }
 
-function _renderizarCloneEmCanvas(clone, titulo) {
-  return new Promise(function(resolve, reject) {
-    var host = document.createElement('div');
-    host.style.position = 'fixed';
-    host.style.left = '-20000px';
-    host.style.top = '0';
-    host.style.zIndex = '-1';
-    host.style.background = '#F0FAF8';
-    host.style.padding = '24px';
-    host.style.width = Math.max(1180, clone.scrollWidth || 1180) + 'px';
-
-    var wrap = document.createElement('div');
-    wrap.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
-    wrap.style.background = '#FFFFFF';
-    wrap.style.border = '1px solid #D5EDE8';
-    wrap.style.borderRadius = '18px';
-    wrap.style.padding = '20px 22px';
-    wrap.style.boxSizing = 'border-box';
-    wrap.style.fontFamily = 'Segoe UI, Arial, sans-serif';
-    wrap.style.color = '#0A2F2F';
-
-    var head = document.createElement('div');
-    head.style.marginBottom = '18px';
-    head.innerHTML = '<h1 style="margin:0 0 6px;font-size:22px;line-height:1.2;color:#0A2F2F;">' + _htmlEscape(titulo) + '</h1>'
-      + '<p style="margin:0;color:#5A7A74;font-size:12px;">Gerado em ' + _htmlEscape(new Date().toLocaleString('pt-BR')) + '</p>';
-
-    wrap.appendChild(head);
-    wrap.appendChild(clone);
-    host.appendChild(wrap);
-    document.body.appendChild(host);
-
-    requestAnimationFrame(function() {
-      try {
-        var exportWidth = Math.ceil(wrap.scrollWidth);
-        var exportHeight = Math.ceil(wrap.scrollHeight);
-        var html = '<div xmlns="http://www.w3.org/1999/xhtml" style="width:' + exportWidth + 'px;background:#F0FAF8;padding:24px;box-sizing:border-box;">'
-          + wrap.outerHTML
-          + '</div>';
-        var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + exportWidth + '" height="' + exportHeight + '">'
-          + '<foreignObject width="100%" height="100%">' + html + '</foreignObject></svg>';
-        var blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
-        var url = URL.createObjectURL(blob);
-        var img = new Image();
-        img.onload = function() {
-          try {
-            var scale = Math.min(2, window.devicePixelRatio || 1.5);
-            var canvas = document.createElement('canvas');
-            canvas.width = Math.ceil(exportWidth * scale);
-            canvas.height = Math.ceil(exportHeight * scale);
-            var ctx = canvas.getContext('2d');
-            ctx.scale(scale, scale);
-            ctx.fillStyle = '#F0FAF8';
-            ctx.fillRect(0, 0, exportWidth, exportHeight);
-            ctx.drawImage(img, 0, 0, exportWidth, exportHeight);
-            URL.revokeObjectURL(url);
-            host.remove();
-            resolve(canvas);
-          } catch (err) {
-            URL.revokeObjectURL(url);
-            host.remove();
-            reject(err);
-          }
-        };
-        img.onerror = function() {
-          URL.revokeObjectURL(url);
-          host.remove();
-          reject(new Error('Nao foi possivel renderizar o relatorio em imagem.'));
-        };
-        img.src = url;
-      } catch (err) {
-        host.remove();
-        reject(err);
-      }
-    });
-  });
-}
-
-function _dataUrlParaBinario(dataUrl) {
-  return atob(String(dataUrl).split(',')[1] || '');
-}
-
-function _gerarPdfImagens(imagens) {
-  var pageW = 595;
-  var pageH = 842;
-  var margin = 26;
-  var drawW = pageW - (margin * 2);
-  var objetos = [''];
-  objetos.push('<< /Type /Catalog /Pages 2 0 R >>');
-  var kids = [];
-  var nextObj = 3;
-
-  imagens.forEach(function(img, idx) {
-    var pageObj = nextObj++;
-    var contentObj = nextObj++;
-    var imageObj = nextObj++;
-    kids.push(pageObj + ' 0 R');
-    var drawH = Math.min(pageH - (margin * 2), (img.height * drawW) / img.width);
-    var y = pageH - margin - drawH;
-    objetos[pageObj] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pageW + ' ' + pageH + '] /Resources << /XObject << /Im' + (idx + 1) + ' ' + imageObj + ' 0 R >> >> /Contents ' + contentObj + ' 0 R >>';
-    objetos[contentObj] = '<< /Length ' + ('q\n' + drawW + ' 0 0 ' + drawH + ' ' + margin + ' ' + y + ' cm\n/Im' + (idx + 1) + ' Do\nQ').length + ' >>\nstream\nq\n' + drawW + ' 0 0 ' + drawH + ' ' + margin + ' ' + y + ' cm\n/Im' + (idx + 1) + ' Do\nQ\nendstream';
-    objetos[imageObj] = '<< /Type /XObject /Subtype /Image /Width ' + img.width + ' /Height ' + img.height + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + img.binary.length + ' >>\nstream\n' + img.binary + '\nendstream';
-  });
-
-  objetos[2] = '<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + imagens.length + ' >>';
-
-  var pdf = '%PDF-1.4\n';
-  var offsets = [0];
-  for (var i = 1; i < objetos.length; i++) {
-    if (!objetos[i]) continue;
-    offsets[i] = pdf.length;
-    pdf += i + ' 0 obj\n' + objetos[i] + '\nendobj\n';
-  }
-  var xref = pdf.length;
-  pdf += 'xref\n0 ' + objetos.length + '\n0000000000 65535 f \n';
-  for (var j = 1; j < objetos.length; j++) {
-    pdf += String(offsets[j] || 0).padStart(10, '0') + ' 00000 n \n';
-  }
-  pdf += 'trailer\n<< /Size ' + objetos.length + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF';
-  return pdf;
-}
-
 async function _exportarPdfVisual(pane, titulo, nomeArquivo) {
   var clone = _prepararCloneExportacao(pane);
-  var canvas = await _renderizarCloneEmCanvas(clone, titulo);
-  var imagens = [];
-  var pageW = 595;
-  var pageH = 842;
-  var margin = 26;
-  var drawW = pageW - (margin * 2);
-  var drawH = pageH - (margin * 2);
-  var sliceHeight = Math.floor(canvas.width * (drawH / drawW));
-  var offsetY = 0;
+  var popup = window.open('', '_blank');
+  if (!popup) throw new Error('Popup bloqueado para exportacao em PDF.');
 
-  while (offsetY < canvas.height) {
-    var currentHeight = Math.min(sliceHeight, canvas.height - offsetY);
-    var sliceCanvas = document.createElement('canvas');
-    sliceCanvas.width = canvas.width;
-    sliceCanvas.height = currentHeight;
-    var sliceCtx = sliceCanvas.getContext('2d');
-    sliceCtx.fillStyle = '#F0FAF8';
-    sliceCtx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-    sliceCtx.drawImage(canvas, 0, offsetY, canvas.width, currentHeight, 0, 0, canvas.width, currentHeight);
-    var jpeg = sliceCanvas.toDataURL('image/jpeg', 0.95);
-    imagens.push({
-      binary: _dataUrlParaBinario(jpeg),
-      width: sliceCanvas.width,
-      height: sliceCanvas.height
-    });
-    offsetY += currentHeight;
-  }
+  var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>' + _htmlEscape(nomeArquivo.replace(/\.pdf$/i, '')) + '</title><style>'
+    + '@page{size:A4 landscape;margin:10mm;}'
+    + 'html,body{margin:0;padding:0;background:#EAF5F2;color:#123B39;font-family:Segoe UI,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+    + 'body{padding:16px 18px 24px;}'
+    + '.pdf-shell{min-height:100vh;}'
+    + '.pdf-wrap{background:#FCFEFD;border:1px solid #CFE7E0;border-radius:18px;padding:18px 20px;box-sizing:border-box;}'
+    + '.pdf-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid #D8ECE7;}'
+    + '.pdf-title{margin:0;font-size:24px;line-height:1.2;color:#0C3B39;font-weight:800;}'
+    + '.pdf-meta{margin:6px 0 0;color:#5C7B76;font-size:12px;}'
+    + '.pdf-tag{display:inline-flex;align-items:center;padding:7px 12px;border-radius:999px;background:#D8F1EA;color:#0E5F57;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;}'
+    + '.export-select-pill{display:inline-flex;align-items:center;padding:8px 12px;border-radius:999px;background:#D8F1EA;color:#0E5F57;font-weight:800;font-size:12px;}'
+    + 'table{width:100%;border-collapse:collapse;page-break-inside:auto;}'
+    + 'thead{display:table-header-group;}'
+    + 'tr,img,canvas,svg{page-break-inside:avoid;}'
+    + 'img{max-width:100%;height:auto;}'
+    + 'button,input,textarea,select,.rel-export-actions,.rel-print-btn,.voltar-btn{display:none !important;}'
+    + '.rel-loading-overlay,.rel-loading-card{display:none !important;}'
+    + '.rep-mensal-wrap,.rep-premiacao-report-card,.rep-premiacao-overview-card,.rel-card,.report-card{break-inside:avoid-page;page-break-inside:avoid;}'
+    + '.av-tab-pane,.report-pane,.rep-pane{display:block !important;opacity:1 !important;visibility:visible !important;}'
+    + 'body *{box-shadow:none !important;}'
+    + '</style></head><body><div class="pdf-shell"><div class="pdf-wrap"><div class="pdf-head"><div><h1 class="pdf-title">'
+    + _htmlEscape(titulo)
+    + '</h1><p class="pdf-meta">Gerado em '
+    + _htmlEscape(new Date().toLocaleString('pt-BR'))
+    + '</p></div><span class="pdf-tag">RESUTE Analytics</span></div>'
+    + clone.outerHTML
+    + '</div></div><script>'
+    + '(function(){'
+    + 'var finalizar=function(){setTimeout(function(){window.focus();window.print();},250);};'
+    + 'var imgs=Array.prototype.slice.call(document.images||[]);'
+    + 'if(!imgs.length){finalizar();return;}'
+    + 'var pendentes=imgs.length;'
+    + 'var done=function(){pendentes-=1;if(pendentes<=0)finalizar();};'
+    + 'imgs.forEach(function(img){if(img.complete){done();}else{img.addEventListener("load",done,{once:true});img.addEventListener("error",done,{once:true});}});'
+    + 'window.onafterprint=function(){setTimeout(function(){window.close();},120);};'
+    + '})();'
+    + '<\/script></body></html>';
 
-  _downloadBlob(new Blob([_gerarPdfImagens(imagens)], { type: 'application/pdf' }), nomeArquivo);
+  popup.document.open();
+  popup.document.write(html);
+  popup.document.close();
 }
 
 async function exportarRelatorioAtual(tipo, formato) {
