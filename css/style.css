@@ -4,7 +4,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --blue-50:  #eff6ff;
+  --blue-50:  #eef6ff;
   --blue-100: #dbeafe;
   --blue-200: #bfdbfe;
   --blue-400: #60a5fa;
@@ -12,23 +12,32 @@
   --blue-600: #2563eb;
   --blue-700: #1d4ed8;
   --blue-800: #1e40af;
-  --blue-900: #1e3a8a;
-  --sidebar-w: 256px;
-  --header-h: 56px;
-  --sidebar-bg: #0f1729;
-  --sidebar-hover: rgba(255,255,255,0.07);
-  --sidebar-active: rgba(59,130,246,0.25);
-  --bg: #0d1117;
-  --card-bg: #161b27;
-  --text: #e2e8f0;
-  --text-muted: #64748b;
-  --border: #1e2d45;
-  --radius: 8px;
-  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+  --blue-900: #172554;
+  --sidebar-w: 260px;
+  --header-h: 60px;
+  --sidebar-bg: #ffffff;
+  --sidebar-hover: rgba(37,99,235,0.06);
+  --sidebar-active: rgba(37,99,235,0.12);
+  --bg: #eef4fb;
+  --card-bg: #ffffff;
+  --text: #17324d;
+  --text-muted: #67809a;
+  --border: #dbe7f3;
+  --radius: 14px;
+  --shadow: 0 10px 30px rgba(18, 40, 72, 0.08);
+  --shadow-md: 0 14px 34px rgba(18, 40, 72, 0.12);
 }
 
-html, body { height: 100%; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); color-scheme: dark; }
+html, body {
+  height: 100%;
+  font-family: 'Poppins', system-ui, sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(37,99,235,.08), transparent 28%),
+    radial-gradient(circle at top right, rgba(14,165,233,.06), transparent 22%),
+    linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+  color: var(--text);
+  color-scheme: light;
+}
 
 /* ── SIDEBAR ─────────────────────────────────────────────── */
 .cui-sidebar {
@@ -3264,4 +3273,496 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
     flex: 1 1 100%;
     text-align: center;
   }
+}
+
+/* ===== LIGHT CORPORATE REFRESH ===== */
+.cui-sidebar {
+  background: rgba(255,255,255,.92);
+  border-right: 1px solid rgba(219,231,243,.95);
+  box-shadow: 12px 0 34px rgba(18,40,72,.05);
+  backdrop-filter: blur(12px);
+}
+.cui-sidebar-brand,
+.cui-sidebar-footer {
+  border-color: rgba(219,231,243,.95);
+}
+.cui-brand-name,
+.cui-nav-item,
+.cui-sidebar-user-nome,
+.cui-breadcrumb,
+.page-title,
+.hero-title,
+.tool-card h3,
+.dc-hero-title,
+.lp-hero-title,
+.lp-form-title,
+.premio-hero h3,
+.premio-campanha-title,
+.premio-growth-head h3,
+.premio-growth-card strong,
+.premio-card-title,
+.admin-emp-ativa,
+.admin-painel-nome {
+  color: #17324d;
+}
+.cui-brand-sub,
+.cui-nav-title,
+.cui-sidebar-user-empresa,
+.cui-sync-status,
+.page-subtitle,
+.hero-subtitle,
+.tool-card p,
+.dc-hero-sub,
+.lp-hero-sub,
+.lp-highlight-text,
+.lp-highlight-tags span,
+.lp-mini-card small,
+.lp-form-sub,
+.lp-form-assurance,
+.premio-hero p,
+.premio-campanha-sub,
+.premio-campanha-alert,
+.premio-campanha-alert.muted,
+.premio-growth-head p,
+.premio-growth-card p,
+.premio-growth-card-meta span,
+.premio-growth-card-meta b,
+.premio-growth-head-side span,
+.premio-growth-head-side strong,
+.premio-table span,
+.admin-sync-status,
+.admin-api-info,
+.adm-module-meta,
+.adm-module-endpoint,
+.adm-manual-hint,
+.adm-manual-cols span,
+.dc-card-lbl,
+.dc-hero-kicker,
+.dc-card-title,
+.dc-panel-title,
+.dc-tabela th,
+.dc-tabela td,
+.lp-about-kicker,
+.lp-about-eyebrow,
+.lp-about-panel-label,
+.lp-service-card p,
+.lp-process-step p {
+  color: #5f748d;
+}
+.cui-nav-item:hover,
+.cui-nav-item.active {
+  color: #17324d;
+}
+.cui-nav-item.active {
+  background: rgba(37,99,235,.10);
+  box-shadow: inset 0 0 0 1px rgba(37,99,235,.12);
+}
+.cui-header {
+  background: rgba(255,255,255,.82);
+  border-bottom-color: rgba(219,231,243,.95);
+  backdrop-filter: blur(12px);
+}
+.cui-header-toggle,
+.cui-sidebar-toggle,
+.cui-sidebar-logout {
+  color: #6b7f96;
+}
+.cui-header-toggle:hover,
+.cui-sidebar-toggle:hover {
+  background: rgba(37,99,235,.08);
+  color: #17324d;
+}
+.cui-main {
+  background:
+    radial-gradient(circle at top right, rgba(37,99,235,.06), transparent 22%),
+    linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+}
+.tool-card,
+.av-exibir-box,
+.av-tab.active,
+.av-exibir-btn,
+.jss-info-bar,
+.jss-btn,
+.lg-wrap,
+.col-filter-dropdown,
+.laudo-chart-wrap,
+.login-modal-box,
+.dc-loading-card,
+.dc-hero-copy,
+.dc-hero-actions,
+.dc-kpi-card,
+.dc-card,
+.dc-panel,
+.admin-painel,
+.admin-sub-tab,
+.admin-api-stat,
+.admin-manual-col-tag,
+.adm-manual-hint,
+.adm-module-card,
+.lp-form-box,
+.lp-highlight-card,
+.lp-mini-card,
+.lp-about-hero-copy,
+.lp-about-hero-panel,
+.lp-about-services,
+.lp-about-process,
+.lp-service-card,
+.lp-process-step,
+.premio-card,
+.premio-chart-box,
+.premio-campanha-card,
+.premio-growth-card,
+.premio-growth-head,
+.premio-growth-head-side,
+.premio-roleta-card,
+.premio-roleta-side,
+.premio-roleta-field input,
+.premio-roleta-add input {
+  background: rgba(255,255,255,.92);
+  border-color: rgba(219,231,243,.95);
+  color: #17324d;
+  box-shadow: var(--shadow);
+}
+.lp-hero-title,
+.lp-hero-accent,
+.hero-title .italic {
+  color: #1e40af;
+}
+.lp-hero-kicker,
+.lp-form-chip,
+.premio-kicker,
+.premio-campanha-badge,
+.premio-growth-card-kicker,
+.premio-growth-head-side span {
+  color: #2563eb;
+}
+.lp-hero-sub,
+.lp-highlight-text,
+.lp-mini-card small,
+.lp-form-sub,
+.premio-hero p,
+.premio-campanha-sub,
+.premio-growth-head p,
+.premio-growth-card p,
+.dc-hero-sub {
+  color: #5f748d;
+}
+.lp-secondary-btn,
+.lp-nav-more,
+.lp-btn,
+.premio-campanha-btn,
+.premio-periodo-reset,
+.premio-periodo-growth,
+.premio-roleta-btn,
+.premio-roleta-save,
+.premio-roleta-add button,
+.admin-emp-tab,
+.admin-sub-tab,
+.cui-btn-sync,
+.btn-primary,
+.tool-card .btn-primary {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  color: #fff;
+  border-color: rgba(37,99,235,.26);
+}
+.lp-form-box,
+.lp-highlight-card,
+.lp-mini-card,
+.lp-about-hero-copy,
+.lp-about-hero-panel,
+.lp-about-services,
+.lp-about-process,
+.dc-loading-card,
+.dc-hero-copy,
+.dc-hero-actions,
+.dc-kpi-card,
+.dc-card,
+.dc-panel,
+.admin-painel,
+.admin-api-stat,
+.adm-module-card,
+.premio-card,
+.premio-chart-box,
+.premio-campanha-card,
+.premio-growth-card,
+.premio-growth-head,
+.premio-growth-head-side,
+.premio-roleta-card,
+.premio-roleta-side {
+  border-radius: 20px;
+}
+.lp-page,
+.login-page {
+  background:
+    radial-gradient(circle at top left, rgba(37,99,235,.14), transparent 22%),
+    radial-gradient(circle at bottom right, rgba(14,165,233,.10), transparent 24%),
+    linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+}
+.lp-nav {
+  background: rgba(255,255,255,.72);
+  border-bottom: 1px solid rgba(219,231,243,.95);
+  backdrop-filter: blur(12px);
+}
+.lp-main {
+  align-items: flex-start;
+  gap: 28px;
+}
+.lp-hero {
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, .88fr);
+  align-items: start;
+  max-width: none;
+}
+.lp-hero-title {
+  color: #17324d;
+  text-wrap: balance;
+}
+.lp-hero-sub {
+  max-width: 680px;
+}
+.lp-highlight-card-primary::after {
+  background: linear-gradient(90deg, rgba(37,99,235,.0), rgba(37,99,235,.12), rgba(37,99,235,.0));
+}
+.lp-highlight-card,
+.lp-form-box,
+.lp-about-shell {
+  background: rgba(255,255,255,.82);
+  backdrop-filter: blur(12px);
+}
+.lp-form-chip,
+.lp-highlight-kicker,
+.lp-mini-label,
+.lp-about-topbar,
+.lp-about-process .lp-about-eyebrow {
+  color: #2563eb;
+}
+.lp-label {
+  color: #3e5974;
+}
+.lp-input,
+.login-input,
+.premio-periodo-select {
+  background: #f8fbff;
+  border-color: #cfe0f0;
+  color: #17324d;
+}
+.lp-input::placeholder,
+.login-input::placeholder {
+  color: #8aa0b7;
+}
+.lp-btn:hover,
+.lp-nav-more:hover,
+.lp-secondary-btn:hover,
+.premio-periodo-growth:hover,
+.premio-periodo-reset:hover,
+.premio-campanha-btn:hover,
+.premio-roleta-btn:hover,
+.premio-roleta-save:hover,
+.premio-roleta-add button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(37,99,235,.18);
+}
+.hero,
+.page-header,
+.av-tabs-bar,
+.premio-campanha-grid,
+.premio-grid,
+.premio-growth-charts,
+.premio-roleta-wrap,
+.dc-hero,
+.dc-kpis,
+.dc-grid,
+.admin-api-resumo,
+.admin-emp-tabs {
+  color: #17324d;
+}
+.premio-table td,
+.dc-tabela td,
+.lg-table td,
+.lg-pb,
+.admin-api-stat-lbl,
+.adm-module-endpoint {
+  color: #4f6782;
+}
+.premio-table strong,
+.dc-card-val,
+.dc-kpi-card strong,
+.lg-table td strong,
+.admin-api-stat-val,
+.adm-module-count,
+.admin-emp-ativa,
+.lp-form-title,
+.lp-hero-title,
+.dc-hero-title,
+.page-title,
+.premio-hero h3,
+.premio-growth-head h3,
+.premio-growth-card strong {
+  color: #10233d;
+}
+.premio-chart-box canvas {
+  filter: saturate(1.05) contrast(1.02);
+}
+.dc-tabela th,
+.lg-table tbody td.lg-rn,
+.cfd-header,
+.av-tabs-bar,
+.admin-sub-tabs {
+  background: rgba(241,246,251,.96);
+  color: #67809a;
+}
+.login-modal-box {
+  background: rgba(255,255,255,.94);
+}
+.login-modal-box .login-input {
+  background: #f8fbff;
+}
+.dc-hero {
+  background: transparent;
+}
+.dc-card,
+.dc-panel,
+.dc-kpi-card,
+.tool-card,
+.premio-card,
+.premio-chart-box,
+.premio-campanha-card,
+.premio-growth-card,
+.premio-roleta-card,
+.premio-roleta-side {
+  border: 1px solid rgba(219,231,243,.95);
+}
+.dc-card-title,
+.premio-card-title {
+  color: #2563eb;
+}
+.adm-rel-aviso {
+  background: rgba(34,197,94,.10);
+  border-color: rgba(34,197,94,.20);
+  color: #0f7a55;
+}
+
+.cli-root {
+  background:
+    radial-gradient(circle at top left, rgba(37,99,235,.08), transparent 24%),
+    linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+  color: #17324d;
+  font-family: 'Poppins', system-ui, sans-serif;
+}
+.cli-header,
+.cli-tabs {
+  background: rgba(255,255,255,.88);
+  border-color: rgba(219,231,243,.95);
+  backdrop-filter: blur(12px);
+}
+.cli-logo,
+.cli-rel-titulo,
+.cli-tab,
+.cli-tab-btn,
+.dc-header-name,
+.dc-hero-title,
+.dc-section-title,
+.dc-kpi-value,
+.dc-card-val,
+.dc-card-icon,
+.dc-panel-title,
+.dc-kpi-val,
+.adm-nome,
+.adm-module-name {
+  color: #17324d;
+}
+.cli-sem-dados p,
+.cli-sem-dados span,
+.cli-sync-status,
+.dc-header-status,
+.dc-kpi-label,
+.dc-card-lbl,
+.dc-card-var,
+.dc-periodo-label,
+.dc-action-btn span,
+.admin-sync-status,
+.admin-api-info,
+.admin-sub-count,
+.adm-module-meta,
+.adm-module-endpoint {
+  color: #6b7f96;
+}
+.cli-btn-logout,
+.dc-btn-sair {
+  border-color: #dbe7f3;
+  color: #6b7f96;
+  background: rgba(255,255,255,.8);
+}
+.cli-btn-logout:hover,
+.dc-btn-sair:hover {
+  background: rgba(37,99,235,.08);
+  color: #17324d;
+}
+.dc-header,
+.dc-main {
+  background: transparent;
+}
+.dc-header {
+  border-bottom: 1px solid rgba(219,231,243,.95);
+  backdrop-filter: blur(12px);
+}
+.dc-filtro,
+.dc-action-btn,
+.dc-loja-btn,
+.dc-kpi-card,
+.dc-card,
+.dc-panel,
+.dc-loading-card {
+  background: rgba(255,255,255,.92);
+  border-color: rgba(219,231,243,.95);
+  color: #17324d;
+  box-shadow: var(--shadow);
+}
+.dc-filtro {
+  color: #17324d;
+}
+.dc-action-btn span,
+.dc-action-btn svg {
+  color: #17324d;
+}
+.dc-kpi-label,
+.dc-card-lbl,
+.dc-kpi-lbl {
+  color: #6b7f96;
+}
+.dc-kpi-value,
+.dc-kpi-val,
+.dc-card-val {
+  color: #17324d;
+}
+.dc-kpi-card:hover,
+.dc-card:hover,
+.tool-card:hover,
+.premio-card:hover,
+.premio-chart-box:hover,
+.lp-highlight-card:hover,
+.lp-mini-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 34px rgba(18,40,72,.10);
+}
+.admin-painel,
+.admin-action-bar,
+.admin-emp-tab,
+.admin-sub-tab,
+.admin-api-stat,
+.adm-module-card,
+.adm-manual-hint,
+.adm-periodo-wrap,
+.adm-toggle-wrap {
+  background: rgba(255,255,255,.92);
+  border-color: rgba(219,231,243,.95);
+}
+.admin-emp-tab.active,
+.admin-sub-tab.active {
+  background: rgba(37,99,235,.10);
+  color: #17324d;
+}
+.admin-emp-tab:hover,
+.admin-sub-tab:hover {
+  background: rgba(37,99,235,.05);
+  color: #17324d;
 }
