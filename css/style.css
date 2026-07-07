@@ -4769,6 +4769,7 @@ textarea:focus {
 #rep-tab-meta,
 #rep-tab-dia,
 #rep-tab-cresc,
+#rep-tab-mensal,
 #rep-tab-premiacao {
   background: #F0FAF8 !important;
   color: #0A2F2F !important;
@@ -5391,6 +5392,111 @@ textarea:focus {
   opacity: 1 !important;
 }
 
+#av-rep-area [data-target="rep-tab-mensal"] {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.rep-mensal-bar {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+  flex-wrap: wrap !important;
+}
+
+.rep-mensal-filter-row {
+  display: flex !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+  align-items: flex-end !important;
+}
+
+.rep-mensal-wrap {
+  border-radius: 18px !important;
+}
+
+.rep-mensal-table {
+  min-width: 1460px !important;
+}
+
+.rep-mensal-table thead td {
+  text-align: center !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.05em !important;
+}
+
+.rep-mensal-col-rep,
+.rep-mensal-rep-name {
+  background: #14746F !important;
+  color: #FFFFFF !important;
+  font-weight: 800 !important;
+  min-width: 280px !important;
+}
+
+.rep-mensal-num,
+.rep-mensal-med,
+.rep-mensal-total,
+.rep-mensal-share,
+.rep-mensal-graf {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.rep-mensal-med {
+  background: #DDEDE1 !important;
+  color: #0A2F2F !important;
+  font-weight: 800 !important;
+}
+
+.rep-mensal-total {
+  background: #EAF6F2 !important;
+  color: #0A2F2F !important;
+  font-weight: 900 !important;
+}
+
+.rep-mensal-share {
+  color: #0D4F4F !important;
+  font-weight: 800 !important;
+}
+
+.rep-mensal-graf {
+  min-width: 100px !important;
+  text-align: center !important;
+}
+
+.rep-mensal-spark {
+  width: 88px !important;
+  height: 24px !important;
+  display: inline-block !important;
+}
+
+.rep-mensal-graf-empty {
+  color: #8AA8A1 !important;
+  font-weight: 700 !important;
+}
+
+.rep-mensal-total-row td {
+  background: #FDEB3B !important;
+  color: #0A2F2F !important;
+  font-weight: 900 !important;
+}
+
+.rep-mensal-foot-row td {
+  background: #F7FCFB !important;
+  color: #0D4F4F !important;
+  font-weight: 800 !important;
+}
+
+.rep-mensal-evol.up {
+  color: #059669 !important;
+}
+
+.rep-mensal-evol.down {
+  color: #DC2626 !important;
+}
+
 @media (max-width: 720px) {
   .lp-nav {
     min-height: 76px !important;
@@ -5406,5 +5512,14 @@ textarea:focus {
     margin: 10px 0 12px 0 !important;
     width: 100% !important;
     justify-content: flex-start !important;
+  }
+
+  .rep-mensal-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .rep-mensal-filter-row {
+    width: 100% !important;
   }
 }

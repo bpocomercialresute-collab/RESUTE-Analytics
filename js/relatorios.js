@@ -151,6 +151,57 @@ function _gerarPdfTexto(linhas) {
   return pdf;
 }
 
+function _inlineExportStyles(origem, clone) {
+  if (!origem || !clone || origem.nodeType !== 1 || clone.nodeType !== 1 || !window.getComputedStyle) return;
+  var computed = window.getComputedStyle(origem);
+  for (var i = 0; i < computed.length; i++) {
+    var prop = computed[i];
+    clone.style.setProperty(prop, computed.getPropertyValue(prop), computed.getPropertyPriority(prop));
+  }
+  clone.removeAttribute('id');
+  clone.removeAttribute('onclick');
+  Array.from(origem.children || []).forEach(function(child, idx) {
+    if (clone.children[idx]) _inlineExportStyles(child, clone.children[idx]);
+  });
+}
+
+function _prepararCloneExportacao(pane) {
+  var clone = pane.cloneNode(true);
+  _inlineExportStyles(pane, clone);
+  var origSelects = Array.from(pane.querySelectorAll('select'));
+  var cloneSelects = Array.from(clone.querySelectorAll('select'));
+  cloneSelects.forEach(function(sel, idx) {
+    var original = origSelects[idx];
+    var label = document.createElement('span');
+    label.className = 'export-select-pill';
+    label.textContent = original && original.options && original.selectedIndex >= 0
+      ? original.options[original.selectedIndex].textContent.trim()
+      : (original ? original.value : '');
+    sel.replaceWith(label);
+  });
+
+  var origCanvases = Array.from(pane.querySelectorAll('canvas'));
+  var cloneCanvases = Array.from(clone.querySelectorAll('canvas'));
+  cloneCanvases.forEach(function(canvas, idx) {
+    var source = origCanvases[idx];
+    if (!source) return;
+    var img = document.createElement('img');
+    img.alt = 'grafico';
+    try {
+      img.src = source.toDataURL('image/png');
+      img.style.maxWidth = '100%';
+      img.style.height = 'auto';
+      canvas.replaceWith(img);
+    } catch (err) {
+      canvas.remove();
+    }
+  });
+
+  clone.querySelectorAll('button, input, textarea').forEach(function(el) { el.remove(); });
+  clone.querySelectorAll('[onclick]').forEach(function(el) { el.removeAttribute('onclick'); });
+  return clone;
+}
+
 function exportarRelatorioAtual(tipo, formato) {
   var alvo = _exportPane(tipo);
   if (!alvo.pane) {
@@ -159,14 +210,19 @@ function exportarRelatorioAtual(tipo, formato) {
   }
   var titulo = alvo.info.titulo;
   if (formato === 'excel') {
-    var clone = alvo.pane.cloneNode(true);
-    clone.querySelectorAll('canvas, svg, button, input, select').forEach(function(el) { el.remove(); });
-    var html = '<html><head><meta charset="UTF-8"></head><body>'
-      + '<h2>' + _htmlEscape(titulo) + '</h2>'
-      + '<p>Gerado em ' + _htmlEscape(new Date().toLocaleString('pt-BR')) + '</p>'
-      + clone.innerHTML
-      + '</body></html>';
-    _downloadBlob(new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' }), _exportNomeArquivo(tipo, 'xls'));
+    var clone = _prepararCloneExportacao(alvo.pane);
+    var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>'
+      + 'body{font-family:Segoe UI,Arial,sans-serif;background:#F0FAF8;color:#0A2F2F;padding:24px;}'
+      + '.export-wrap{background:#FFFFFF;border:1px solid #D5EDE8;border-radius:18px;padding:20px 22px;}'
+      + '.export-head h1{margin:0 0 6px;font-size:22px;color:#0A2F2F;}'
+      + '.export-head p{margin:0 0 18px;color:#5A7A74;font-size:12px;}'
+      + '.export-select-pill{display:inline-block;padding:8px 12px;border-radius:999px;background:#D5EDE8;color:#0A2F2F;font-weight:700;font-size:12px;}'
+      + 'table{border-collapse:collapse;width:100%;}'
+      + 'img{max-width:100%;height:auto;}'
+      + '</style></head><body><div class="export-wrap"><div class="export-head"><h1>' + _htmlEscape(titulo) + '</h1><p>Gerado em ' + _htmlEscape(new Date().toLocaleString('pt-BR')) + '</p></div>'
+      + clone.outerHTML
+      + '</div></body></html>';
+    _downloadBlob(new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8' }), _exportNomeArquivo(tipo, 'xls'));
     return;
   }
   var linhas = _textoRelatorio(alvo.pane, titulo);
@@ -181,6 +237,19 @@ function garantirAbaPremiacaoRepresentantes() {
   var area = document.getElementById('av-rep-area');
   if (!area) return;
   var bar = area.querySelector('.av-tabs-bar');
+  if (bar && !bar.querySelector('[data-target="rep-tab-mensal"]')) {
+    var mensalBtn = document.createElement('button');
+    mensalBtn.className = 'av-tab';
+    mensalBtn.dataset.area = 'rep';
+    mensalBtn.dataset.target = 'rep-tab-mensal';
+    mensalBtn.textContent = 'MENSAL REP';
+    var premioExistente = bar.querySelector('[data-target="rep-tab-premiacao"]');
+    if (premioExistente) {
+      bar.insertBefore(mensalBtn, premioExistente);
+    } else {
+      bar.appendChild(mensalBtn);
+    }
+  }
   if (bar && !bar.querySelector('[data-target="rep-tab-premiacao"]')) {
     var btn = document.createElement('button');
     btn.className = 'av-tab';
@@ -188,6 +257,18 @@ function garantirAbaPremiacaoRepresentantes() {
     btn.dataset.target = 'rep-tab-premiacao';
     btn.textContent = 'PREMIACAO';
     bar.appendChild(btn);
+  }
+  if (!document.getElementById('rep-tab-mensal')) {
+    var mensalPane = document.createElement('div');
+    mensalPane.id = 'rep-tab-mensal';
+    mensalPane.className = 'av-tab-pane';
+    mensalPane.innerHTML = '<div class="av-rel-placeholder"><p>MENSAL REP</p><span>Vendas mensais por representante</span></div>';
+    var premioPaneExistente = document.getElementById('rep-tab-premiacao');
+    if (premioPaneExistente) {
+      area.insertBefore(mensalPane, premioPaneExistente);
+    } else {
+      area.appendChild(mensalPane);
+    }
   }
   if (!document.getElementById('rep-tab-premiacao')) {
     var pane = document.createElement('div');

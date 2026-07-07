@@ -20,6 +20,7 @@ window.REP_PREMIACAO_FILTRO = window.REP_PREMIACAO_FILTRO || {
   ano: ''
 };
 window.REP_PREMIACAO_CRESCIMENTO = window.REP_PREMIACAO_CRESCIMENTO || false;
+window.REP_MENSAL_FILTER = window.REP_MENSAL_FILTER || { ano: '', vendedor: '' };
 
 function repToggleModo(m) {
   REP_MODO = m;
@@ -1269,9 +1270,136 @@ function repToggleHtml() {
 }
 
 // ── INICIALIZA TODOS ──────────────────────────────────────────────────────────
+function repMensalDisponiveis() {
+  const anos = new Set();
+  const vendedores = new Set();
+  const filtro = window.REP_MENSAL_FILTER || {};
+
+  repBaseRows().forEach(row => {
+    const dt = repParseDate(String(row[IDX.saida] || row[IDX.emissao] || '').trim());
+    if (!dt) return;
+    anos.add(dt.getFullYear());
+  });
+
+  const anosLista = Array.from(anos).sort((a, b) => b - a);
+  const anoAtivo = Number(filtro.ano || anosLista[0] || new Date().getFullYear());
+
+  repBaseRows().forEach(row => {
+    const dt = repParseDate(String(row[IDX.saida] || row[IDX.emissao] || '').trim());
+    if (!dt || dt.getFullYear() !== anoAtivo) return;
+    const vendedor = String(row[IDX.vendedor] || '').trim();
+    if (vendedor) vendedores.add(vendedor);
+  });
+
+  return {
+    anos: anosLista,
+    anoAtivo,
+    vendedores: Array.from(vendedores).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  };
+}
+
+function repMensalSetFiltro(campo, valor) {
+  window.REP_MENSAL_FILTER = window.REP_MENSAL_FILTER || { ano: '', vendedor: '' };
+  window.REP_MENSAL_FILTER[campo] = valor || '';
+  if (campo === 'ano') window.REP_MENSAL_FILTER.vendedor = '';
+  repMensalRep();
+}
+
+function repMensalFmtNumero(v) {
+  const n = Number(v) || 0;
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
+    maximumFractionDigits: 2
+  }).format(n);
+}
+
+function repMensalFmtPercent(v) {
+  return `${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(v) || 0)}%`;
+}
+
+function repMensalSpark(values) {
+  const lista = Array.isArray(values) ? values.map(v => Number(v) || 0) : [];
+  const max = Math.max(0, ...lista);
+  if (!max) return '<span class="rep-mensal-graf-empty">-</span>';
+  const width = 92;
+  const height = 28;
+  const step = lista.length > 1 ? width / (lista.length - 1) : width;
+  const points = lista.map((v, i) => {
+    const x = Math.round(i * step);
+    const y = Math.round(height - ((v / max) * (height - 4)) - 2);
+    return `${x},${y}`;
+  }).join(' ');
+  return `<svg class="rep-mensal-spark" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${points}" fill="none" stroke="#14746F" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>`;
+}
+
+function repMensalRep() {
+  const el = document.getElementById('rep-tab-mensal');
+  if (!el) return;
+
+  const mesesFull = ['JANEIRO','FEVEREIRO','MARCO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+  const info = repMensalDisponiveis();
+  const filtro = window.REP_MENSAL_FILTER || {};
+  const anoAtivo = info.anoAtivo;
+  const vendedorAtivo = filtro.vendedor || '';
+  const rows = repBaseRows().filter(row => {
+    const dt = repParseDate(String(row[IDX.saida] || row[IDX.emissao] || '').trim());
+    if (!dt || dt.getFullYear() !== anoAtivo) return false;
+    const vendedor = String(row[IDX.vendedor] || '').trim();
+    if (vendedorAtivo && vendedor !== vendedorAtivo) return false;
+    return true;
+  });
+
+  const anoOptions = info.anos.map(ano => `<option value="${ano}" ${String(ano) === String(anoAtivo) ? 'selected' : ''}>${ano}</option>`).join('');
+  const vendedorOptions = info.vendedores.map(v => `<option value="${repEsc(v)}" ${v === vendedorAtivo ? 'selected' : ''}>${repEsc(v)}</option>`).join('');
+
+  if (!rows.length) {
+    el.innerHTML = `<div class="rel-header-bar rep-mensal-bar"><div class="rel-title">VENDAS MENSAIS POR REPRESENTANTE EM ${anoAtivo}</div><div class="rep-mensal-filter-row"><label class="rep-filter-field"><span>Ano</span><select onchange="repMensalSetFiltro('ano', this.value)">${anoOptions}</select></label><label class="rep-filter-field"><span>Representante</span><select onchange="repMensalSetFiltro('vendedor', this.value)"><option value="">Todos</option>${vendedorOptions}</select></label></div></div><div class="av-rel-placeholder"><p>Sem dados para este recorte</p><span>Escolha outro ano ou representante.</span></div>`;
+    return;
+  }
+
+  const reps = {};
+  const totalMes = Array(12).fill(0);
+  rows.forEach(row => {
+    const dt = repParseDate(String(row[IDX.saida] || row[IDX.emissao] || '').trim());
+    const vendedor = String(row[IDX.vendedor] || '').trim() || 'Sem representante';
+    const valor = typeof parseSmartNumber === 'function' ? parseSmartNumber(row[IDX.valor]) : (Number(row[IDX.valor]) || 0);
+    if (!reps[vendedor]) reps[vendedor] = { nome: vendedor, meses: Array(12).fill(0), total: 0 };
+    reps[vendedor].meses[dt.getMonth()] += valor;
+    reps[vendedor].total += valor;
+    totalMes[dt.getMonth()] += valor;
+  });
+
+  const lista = Object.values(reps).sort((a, b) => b.total - a.total);
+  const totalGeral = totalMes.reduce((s, v) => s + v, 0);
+  const mediaMensal = totalGeral / 12;
+  const shareMes = totalMes.map(v => totalGeral ? (v / totalGeral) * 100 : 0);
+  const evolMes = totalMes.map((v, i) => {
+    if (!i) return null;
+    const anterior = totalMes[i - 1];
+    if (!anterior) return null;
+    return ((v - anterior) / anterior) * 100;
+  });
+
+  let html = `<div class="rel-header-bar rep-mensal-bar"><div class="rel-title">VENDAS MENSAIS POR REPRESENTANTE EM ${anoAtivo}</div><div class="rep-mensal-filter-row"><label class="rep-filter-field"><span>Ano</span><select onchange="repMensalSetFiltro('ano', this.value)">${anoOptions}</select></label><label class="rep-filter-field"><span>Representante</span><select onchange="repMensalSetFiltro('vendedor', this.value)"><option value="">Todos</option>${vendedorOptions}</select></label></div></div>`;
+  html += `<div class="rep-scroll-area rep-mensal-wrap"><table class="rep-tbl rep-mensal-table"><thead><tr><td rowspan="2" class="rep-mensal-col-rep">REPRESENTANTE</td><td colspan="12">TOTAIS MENSAIS</td><td rowspan="2" class="rep-mensal-col-med">MED</td><td rowspan="2" class="rep-mensal-col-total">TOTAL</td><td rowspan="2" class="rep-mensal-col-share">%</td><td rowspan="2" class="rep-mensal-col-graf">Graf.</td></tr><tr>${mesesFull.map(m => `<td>${m}</td>`).join('')}</tr></thead><tbody>`;
+
+  lista.forEach(item => {
+    const mesesAtivos = item.meses.filter(v => v > 0).length || 1;
+    const med = item.total / mesesAtivos;
+    const share = totalGeral ? (item.total / totalGeral) * 100 : 0;
+    html += `<tr><td class="rep-mensal-rep-name">${repEsc(item.nome)}</td>${item.meses.map(v => `<td class="rep-mensal-num">${repMensalFmtNumero(v)}</td>`).join('')}<td class="rep-mensal-med">${repMensalFmtNumero(med)}</td><td class="rep-mensal-total">${repMensalFmtNumero(item.total)}</td><td class="rep-mensal-share">${repMensalFmtPercent(share)}</td><td class="rep-mensal-graf">${repMensalSpark(item.meses)}</td></tr>`;
+  });
+
+  html += `<tr class="rep-row-total rep-mensal-total-row"><td>TOTAL</td>${totalMes.map(v => `<td>${repMensalFmtNumero(v)}</td>`).join('')}<td>${repMensalFmtNumero(mediaMensal)}</td><td>${repMensalFmtNumero(totalGeral)}</td><td>100%</td><td>${repMensalSpark(totalMes)}</td></tr>`;
+  html += `<tr class="rep-mensal-foot-row"><td>% DO TOTAL</td>${shareMes.map(v => `<td>${repMensalFmtPercent(v)}</td>`).join('')}<td>-</td><td>100%</td><td>-</td><td>-</td></tr>`;
+  html += `<tr class="rep-mensal-foot-row"><td>% EVOLUCAO MES</td>${totalMes.map((_, i) => { if (!i || evolMes[i] == null) return '<td>-</td>'; const valor = evolMes[i]; const cls = valor >= 0 ? 'up' : 'down'; const seta = valor >= 0 ? '▲' : '▼'; return `<td class="rep-mensal-evol ${cls}">${seta} ${repMensalFmtPercent(Math.abs(valor))}</td>`; }).join('')}<td>-</td><td>-</td><td>-</td><td>-</td></tr>`;
+  html += `</tbody></table></div>`;
+  el.innerHTML = html;
+}
+
 function repUpdateAll() {
   if (!BD_DATA || !BD_DATA.rows.length) {
-    ['mix','positiv','semano','sem','meta','dia','cresc','premiacao'].forEach(k => {
+    ['mix','positiv','semano','sem','meta','dia','cresc','mensal','premiacao'].forEach(k => {
       const el = document.getElementById('rep-tab-'+k);
       if (el) el.innerHTML = '<div class="av-rel-placeholder"><p>Sem dados</p><span>Cole dados no BD e clique em Processar</span></div>';
     });
@@ -1282,6 +1410,7 @@ function repUpdateAll() {
       const el = document.getElementById('rep-tab-'+k);
       if (el) el.innerHTML = `<div class="rel-header-bar">${repToggleHtml()}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
     });
+    repMensalRep();
     return;
   }
   repMix();
@@ -1291,6 +1420,7 @@ function repUpdateAll() {
   repMeta();
   repDia();
   repCrescMes();
+  repMensalRep();
   repPremiacao();
 }
 
@@ -1307,6 +1437,7 @@ function repRenderTab(tabId) {
     'rep-tab-meta':    repMeta,
     'rep-tab-dia':     repDia,
     'rep-tab-cresc':   repCrescMes,
+    'rep-tab-mensal':  repMensalRep,
     'rep-tab-premiacao': repPremiacao,
   };
   if (map[tabId]) map[tabId]();
