@@ -4183,3 +4183,567 @@ body {
   background: linear-gradient(180deg, rgba(247,250,253,.98) 0%, rgba(236,242,248,.98) 100%) !important;
   color: #5d738b !important;
 }
+
+/* ============================================================
+   TEAL CORPORATIVO FINAL THEME
+   ============================================================ */
+:root {
+  --blue-50: #F0FAF8;
+  --blue-100: #D5EDE8;
+  --blue-200: #A7D8CF;
+  --blue-400: #2DD4BF;
+  --blue-500: #14746F;
+  --blue-600: #0D4F4F;
+  --blue-700: #0A2F2F;
+  --blue-800: #082525;
+  --blue-900: #061C1C;
+  --bg: #F0FAF8;
+  --card-bg: #FFFFFF;
+  --text: #0A2F2F;
+  --text-muted: #5A7A74;
+  --border: #D5EDE8;
+  --sidebar-bg: #0A2F2F;
+  --sidebar-hover: rgba(255,255,255,0.05);
+  --sidebar-active: rgba(45,212,191,0.15);
+  --shadow: 0 1px 3px rgba(10,47,47,0.06);
+  --shadow-md: 0 2px 8px rgba(10,47,47,0.08);
+}
+
+html,
+body,
+.cui-body,
+.cui-wrapper,
+.cui-main,
+.content,
+.page-view,
+.login-page,
+#view-login-page,
+.lp-main,
+.lp-content,
+.lp-hero-highlights,
+.lp-form-wrap,
+.lp-about-page,
+.cli-root,
+.cli-main,
+.dc-root,
+.dc-main,
+.admin-root,
+#view-app,
+#view-home,
+#view-tools {
+  background: #F0FAF8 !important;
+  color: #0A2F2F !important;
+}
+
+.cui-sidebar,
+.cui-sidebar-brand,
+.cui-nav,
+.cui-sidebar-footer,
+.admin-api-side {
+  background: #0A2F2F !important;
+  border-color: rgba(45,212,191,0.16) !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+}
+
+.cui-brand-logo rect {
+  fill: rgba(45,212,191,0.16) !important;
+}
+
+.cui-brand-logo path {
+  stroke: #2DD4BF !important;
+}
+
+.cui-brand-name,
+.cui-sidebar .adm-nome,
+.admin-api-side .adm-nome {
+  color: #2DD4BF !important;
+  font-weight: 800;
+}
+
+.cui-brand-sub,
+.cui-nav-title,
+.cui-sidebar-user-empresa,
+.cui-sidebar .admin-sync-status,
+.admin-api-side .admin-sync-status,
+.admin-api-side .adm-module-meta {
+  color: rgba(255,255,255,0.62) !important;
+}
+
+.cui-nav-item {
+  background: transparent !important;
+  color: rgba(255,255,255,0.70) !important;
+  border: 0 !important;
+}
+
+.cui-nav-item:hover {
+  background: rgba(255,255,255,0.05) !important;
+  color: rgba(255,255,255,0.90) !important;
+}
+
+.cui-nav-item.active,
+.cui-nav-item.is-active {
+  background: rgba(45,212,191,0.15) !important;
+  color: #2DD4BF !important;
+}
+
+.cui-header,
+.lp-nav,
+.cli-header,
+.cli-tabs,
+.dc-header {
+  background: #FFFFFF !important;
+  border-color: #D5EDE8 !important;
+  color: #0A2F2F !important;
+  box-shadow: 0 1px 3px rgba(10,47,47,0.06) !important;
+}
+
+.lp-hero,
+.hero,
+.page-header,
+.dc-hero,
+.admin-api-resumo,
+.admin-painel,
+.admin-action-bar,
+.admin-emp-tabs,
+.admin-sub-tabs,
+.av-tabs-bar,
+.premio-hero,
+.premio-campanha-grid,
+.premio-grid,
+.premio-growth-charts,
+.premio-roleta-wrap,
+.lg-wrap,
+.lg-pag {
+  background: #F0FAF8 !important;
+  color: #0A2F2F !important;
+  border-color: #D5EDE8 !important;
+  box-shadow: none !important;
+}
+
+.lp-highlight-card,
+.lp-form-box,
+.lp-about-shell,
+.lp-mini-card,
+.tool-card,
+.dc-card,
+.dc-kpi,
+.dc-kpi-card,
+.dc-panel,
+.dc-loading-card,
+.admin-api-stat,
+.adm-module-card,
+.adm-manual-hint,
+.adm-periodo-wrap,
+.adm-toggle-wrap,
+.toggle-grupo,
+.premio-card,
+.premio-chart-box,
+.premio-campanha-card,
+.premio-growth-card,
+.premio-roleta-card,
+.premio-roleta-side,
+.av-exibir-box,
+.jss-info-bar,
+.col-filter-dropdown,
+.login-modal-box,
+.loader-box,
+.laudo-chart-wrap,
+.rel-table,
+.lg-table {
+  background: #FFFFFF !important;
+  border: 1px solid #D5EDE8 !important;
+  color: #0A2F2F !important;
+  box-shadow: 0 1px 3px rgba(10,47,47,0.06) !important;
+  border-radius: 12px !important;
+}
+
+.lp-hero-title,
+.lp-hero-accent,
+.hero-title,
+.hero-title .italic,
+.page-title,
+.lp-form-title,
+.lp-highlight-title,
+.lp-mini-card strong,
+.dc-hero-title,
+.dc-section-title,
+.dc-header-name,
+.dc-kpi-value,
+.dc-kpi-val,
+.dc-card-val,
+.dc-card-icon,
+.dc-panel-title,
+.admin-api-stat-val,
+.adm-module-count,
+.adm-module-name,
+.adm-nome,
+.premio-card h3,
+.premio-card-title,
+.premio-growth-card strong,
+.premio-hero h3,
+.tool-card h3 {
+  color: #0A2F2F !important;
+}
+
+.page-subtitle,
+.hero-subtitle,
+.lp-hero-sub,
+.lp-highlight-text,
+.lp-form-sub,
+.lp-label,
+.lp-mini-card small,
+.dc-periodo-label,
+.dc-header-status,
+.dc-kpi-label,
+.dc-kpi-lbl,
+.dc-card-lbl,
+.dc-card-var,
+.admin-api-info,
+.admin-sync-status,
+.admin-api-stat-lbl,
+.adm-module-meta,
+.adm-module-endpoint,
+.premio-card p,
+.premio-table td,
+.tool-card p,
+.lg-table td,
+.rel-table td,
+.dc-tabela td {
+  color: #5A7A74 !important;
+}
+
+.lp-hero-kicker,
+.lp-form-chip,
+.lp-highlight-kicker,
+.lp-mini-label,
+.hero-kicker,
+.dc-header-empresa,
+.dc-card-title,
+.premio-section-kicker,
+.premio-card-badge,
+.tool-icon,
+.av-exibir-btn,
+.adm-btn-api,
+.adm-btn-manual {
+  background: #D5EDE8 !important;
+  color: #0D4F4F !important;
+  border-color: #D5EDE8 !important;
+}
+
+.btn-primary,
+.login-btn,
+.lp-btn,
+.cui-btn-sync,
+.adm-btn-api,
+.btn-sync,
+.dc-btn-principal,
+.dc-action-btn.active,
+.dc-loja-btn.active,
+.admin-emp-tab.active,
+.admin-sub-tab.active,
+.cli-tab.active,
+.cli-tab-btn.active,
+.av-tab.active,
+.jss-btn-primary,
+.premio-roleta-save,
+.premio-roleta-btn-primary,
+.premio-campanha-btn.is-active {
+  background: #14746F !important;
+  border-color: #14746F !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+}
+
+.btn-primary:hover,
+.login-btn:hover,
+.lp-btn:hover,
+.cui-btn-sync:hover,
+.adm-btn-api:hover,
+.btn-sync:hover,
+.dc-btn-principal:hover,
+.dc-action-btn.active:hover,
+.dc-loja-btn.active:hover,
+.jss-btn-primary:hover,
+.premio-roleta-save:hover,
+.premio-roleta-btn-primary:hover {
+  background: #0D4F4F !important;
+  border-color: #0D4F4F !important;
+  color: #FFFFFF !important;
+}
+
+.btn-success,
+.adm-rel-aviso,
+.premio-status-ok,
+.sync-ok,
+.badge-success,
+.jss-status-ok,
+.adm-module-status.ok,
+.admin-api-status.ok {
+  background: #059669 !important;
+  border-color: #059669 !important;
+  color: #FFFFFF !important;
+}
+
+.btn-danger,
+.adm-btn-limpar,
+.btn-limpar,
+.jss-btn-danger,
+.dc-btn-sair,
+.cli-btn-logout {
+  background: transparent !important;
+  border: 1px solid #DC2626 !important;
+  color: #DC2626 !important;
+}
+
+.btn-danger:hover,
+.adm-btn-limpar:hover,
+.btn-limpar:hover,
+.jss-btn-danger:hover,
+.dc-btn-sair:hover,
+.cli-btn-logout:hover {
+  background: #DC2626 !important;
+  border-color: #DC2626 !important;
+  color: #FFFFFF !important;
+}
+
+.lp-secondary-btn,
+.lp-nav-more,
+.voltar-btn,
+.dc-action-btn,
+.dc-loja-btn,
+.admin-emp-tab,
+.admin-sub-tab,
+.jss-btn,
+.premio-periodo-growth,
+.premio-periodo-reset,
+.premio-campanha-btn,
+.premio-roleta-btn,
+.premio-roleta-add button {
+  background: transparent !important;
+  border: 1px solid #D5EDE8 !important;
+  color: #0D4F4F !important;
+  box-shadow: none !important;
+}
+
+.lp-secondary-btn:hover,
+.lp-nav-more:hover,
+.voltar-btn:hover,
+.dc-action-btn:hover,
+.dc-loja-btn:hover,
+.admin-emp-tab:hover,
+.admin-sub-tab:hover,
+.jss-btn:hover,
+.premio-periodo-growth:hover,
+.premio-periodo-reset:hover,
+.premio-campanha-btn:hover,
+.premio-roleta-btn:hover,
+.premio-roleta-add button:hover {
+  background: #D5EDE8 !important;
+  border-color: #D5EDE8 !important;
+  color: #0A2F2F !important;
+  box-shadow: none !important;
+}
+
+.lp-input,
+.login-input,
+.premio-periodo-select,
+.premio-roleta-field input,
+.premio-roleta-add input,
+.dc-filtro,
+.dc-action-input,
+.adm-input,
+.adm-select,
+.sync-empresa-select,
+.laudo-select,
+.col-filter-input,
+input,
+select,
+textarea {
+  background: #F0FAF8 !important;
+  border: 1px solid #D5EDE8 !important;
+  color: #0A2F2F !important;
+  box-shadow: none !important;
+}
+
+.lp-input:focus,
+.login-input:focus,
+.premio-periodo-select:focus,
+.premio-roleta-field input:focus,
+.premio-roleta-add input:focus,
+.dc-filtro:focus,
+.dc-action-input:focus,
+.adm-input:focus,
+.adm-select:focus,
+.sync-empresa-select:focus,
+.laudo-select:focus,
+.col-filter-input:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #14746F !important;
+  box-shadow: 0 0 0 3px rgba(20,116,111,0.15) !important;
+  outline: none !important;
+}
+
+.admin-api-chip,
+.emp-tag,
+.badge,
+.jss-status-badge,
+.adm-module-status,
+.admin-api-status,
+.lp-highlight-tags span,
+.col-tag,
+.admin-col-tag {
+  background: #0A2F2F !important;
+  border-color: #0A2F2F !important;
+  color: #2DD4BF !important;
+}
+
+.dc-tabela th,
+.lg-table thead th,
+.rel-table th,
+.laudo-tbl th,
+.cfd-header {
+  background: #0D4F4F !important;
+  color: #FFFFFF !important;
+  border-color: #0D4F4F !important;
+}
+
+.dc-tabela td,
+.lg-table tbody td,
+.rel-table td,
+.laudo-tbl td {
+  background: #FFFFFF !important;
+  border-color: #D5EDE8 !important;
+  color: #0A2F2F !important;
+}
+
+.dc-tabela tbody tr:nth-child(even) td,
+.lg-table tbody tr:nth-child(even) td,
+.rel-table tr:nth-child(even) td,
+.laudo-tbl tbody tr:nth-child(even) td {
+  background: #F0FAF8 !important;
+}
+
+.dc-tabela tbody tr:hover td,
+.lg-table tbody tr:hover td,
+.rel-table tr:hover td,
+.laudo-tbl tbody tr:hover td {
+  background: #D5EDE8 !important;
+}
+
+.dc-tabela td.num,
+.lg-table td.lg-num,
+.rel-table td strong,
+.laudo-tbl td strong,
+.rel-trend.up,
+.dc-kpi-card.positive .dc-kpi-value {
+  color: #059669 !important;
+}
+
+.dc-bar,
+.dc-bar-fill,
+.dc-bar-w,
+.dc-bar-track,
+.loader-progress circle {
+  background: #14746F !important;
+  stroke: #14746F !important;
+}
+
+::-webkit-scrollbar-track {
+  background: #F0FAF8 !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D5EDE8 !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #14746F !important;
+}
+
+#admin-action-bar,
+.adm-api-wrap,
+.adm-api-top,
+.adm-api-kpis,
+.adm-api-modulos,
+.adm-manual-wrap,
+.adm-manual-top,
+.adm-manual-cols,
+.adm-periodo-resumo {
+  background: #F0FAF8 !important;
+  color: #0A2F2F !important;
+  border-color: #D5EDE8 !important;
+  box-shadow: none !important;
+}
+
+.adm-periodo-wrap,
+.adm-periodo-field input,
+#adm-sync-inicio,
+#adm-sync-fim {
+  background: #F0FAF8 !important;
+  border-color: #D5EDE8 !important;
+  color: #0A2F2F !important;
+}
+
+.adm-periodo-field span,
+.adm-toggle-label,
+.adm-api-ultima,
+.adm-periodo-resumo {
+  color: #5A7A74 !important;
+}
+
+.adm-kpi,
+.adm-module-card,
+.adm-manual-hint {
+  background: #FFFFFF !important;
+  border: 1px solid #D5EDE8 !important;
+  color: #0A2F2F !important;
+  box-shadow: 0 1px 3px rgba(10,47,47,0.06) !important;
+}
+
+.adm-kpi-val,
+.adm-module-count {
+  color: #0A2F2F !important;
+}
+
+.adm-kpi-lbl,
+.adm-module-meta,
+.adm-module-endpoint {
+  color: #5A7A74 !important;
+}
+
+.adm-btn-danger,
+.adm-btn-limpar,
+.btn-limpar {
+  background: transparent !important;
+  border: 1px solid #DC2626 !important;
+  color: #DC2626 !important;
+}
+
+.adm-btn-danger:hover,
+.adm-btn-limpar:hover,
+.btn-limpar:hover {
+  background: #DC2626 !important;
+  border-color: #DC2626 !important;
+  color: #FFFFFF !important;
+}
+
+.adm-btn-manual {
+  background: #059669 !important;
+  border-color: #059669 !important;
+  color: #FFFFFF !important;
+}
+
+.adm-btn-manual:hover {
+  background: #047857 !important;
+  border-color: #047857 !important;
+  color: #FFFFFF !important;
+}
+
+.adm-manual-cols span {
+  background: #0A2F2F !important;
+  border-color: #0A2F2F !important;
+  color: #2DD4BF !important;
+}
