@@ -202,31 +202,189 @@ function _prepararCloneExportacao(pane) {
   return clone;
 }
 
-function exportarRelatorioAtual(tipo, formato) {
+function _renderizarCloneEmCanvas(clone, titulo) {
+  return new Promise(function(resolve, reject) {
+    var host = document.createElement('div');
+    host.style.position = 'fixed';
+    host.style.left = '-20000px';
+    host.style.top = '0';
+    host.style.zIndex = '-1';
+    host.style.background = '#F0FAF8';
+    host.style.padding = '24px';
+    host.style.width = Math.max(1180, clone.scrollWidth || 1180) + 'px';
+
+    var wrap = document.createElement('div');
+    wrap.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+    wrap.style.background = '#FFFFFF';
+    wrap.style.border = '1px solid #D5EDE8';
+    wrap.style.borderRadius = '18px';
+    wrap.style.padding = '20px 22px';
+    wrap.style.boxSizing = 'border-box';
+    wrap.style.fontFamily = 'Segoe UI, Arial, sans-serif';
+    wrap.style.color = '#0A2F2F';
+
+    var head = document.createElement('div');
+    head.style.marginBottom = '18px';
+    head.innerHTML = '<h1 style="margin:0 0 6px;font-size:22px;line-height:1.2;color:#0A2F2F;">' + _htmlEscape(titulo) + '</h1>'
+      + '<p style="margin:0;color:#5A7A74;font-size:12px;">Gerado em ' + _htmlEscape(new Date().toLocaleString('pt-BR')) + '</p>';
+
+    wrap.appendChild(head);
+    wrap.appendChild(clone);
+    host.appendChild(wrap);
+    document.body.appendChild(host);
+
+    requestAnimationFrame(function() {
+      try {
+        var exportWidth = Math.ceil(wrap.scrollWidth);
+        var exportHeight = Math.ceil(wrap.scrollHeight);
+        var html = '<div xmlns="http://www.w3.org/1999/xhtml" style="width:' + exportWidth + 'px;background:#F0FAF8;padding:24px;box-sizing:border-box;">'
+          + wrap.outerHTML
+          + '</div>';
+        var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + exportWidth + '" height="' + exportHeight + '">'
+          + '<foreignObject width="100%" height="100%">' + html + '</foreignObject></svg>';
+        var blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var img = new Image();
+        img.onload = function() {
+          try {
+            var scale = Math.min(2, window.devicePixelRatio || 1.5);
+            var canvas = document.createElement('canvas');
+            canvas.width = Math.ceil(exportWidth * scale);
+            canvas.height = Math.ceil(exportHeight * scale);
+            var ctx = canvas.getContext('2d');
+            ctx.scale(scale, scale);
+            ctx.fillStyle = '#F0FAF8';
+            ctx.fillRect(0, 0, exportWidth, exportHeight);
+            ctx.drawImage(img, 0, 0, exportWidth, exportHeight);
+            URL.revokeObjectURL(url);
+            host.remove();
+            resolve(canvas);
+          } catch (err) {
+            URL.revokeObjectURL(url);
+            host.remove();
+            reject(err);
+          }
+        };
+        img.onerror = function() {
+          URL.revokeObjectURL(url);
+          host.remove();
+          reject(new Error('Nao foi possivel renderizar o relatorio em imagem.'));
+        };
+        img.src = url;
+      } catch (err) {
+        host.remove();
+        reject(err);
+      }
+    });
+  });
+}
+
+function _dataUrlParaBinario(dataUrl) {
+  return atob(String(dataUrl).split(',')[1] || '');
+}
+
+function _gerarPdfImagens(imagens) {
+  var pageW = 595;
+  var pageH = 842;
+  var margin = 26;
+  var drawW = pageW - (margin * 2);
+  var objetos = [''];
+  objetos.push('<< /Type /Catalog /Pages 2 0 R >>');
+  var kids = [];
+  var nextObj = 3;
+
+  imagens.forEach(function(img, idx) {
+    var pageObj = nextObj++;
+    var contentObj = nextObj++;
+    var imageObj = nextObj++;
+    kids.push(pageObj + ' 0 R');
+    var drawH = Math.min(pageH - (margin * 2), (img.height * drawW) / img.width);
+    var y = pageH - margin - drawH;
+    objetos[pageObj] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pageW + ' ' + pageH + '] /Resources << /XObject << /Im' + (idx + 1) + ' ' + imageObj + ' 0 R >> >> /Contents ' + contentObj + ' 0 R >>';
+    objetos[contentObj] = '<< /Length ' + ('q\n' + drawW + ' 0 0 ' + drawH + ' ' + margin + ' ' + y + ' cm\n/Im' + (idx + 1) + ' Do\nQ').length + ' >>\nstream\nq\n' + drawW + ' 0 0 ' + drawH + ' ' + margin + ' ' + y + ' cm\n/Im' + (idx + 1) + ' Do\nQ\nendstream';
+    objetos[imageObj] = '<< /Type /XObject /Subtype /Image /Width ' + img.width + ' /Height ' + img.height + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + img.binary.length + ' >>\nstream\n' + img.binary + '\nendstream';
+  });
+
+  objetos[2] = '<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + imagens.length + ' >>';
+
+  var pdf = '%PDF-1.4\n';
+  var offsets = [0];
+  for (var i = 1; i < objetos.length; i++) {
+    if (!objetos[i]) continue;
+    offsets[i] = pdf.length;
+    pdf += i + ' 0 obj\n' + objetos[i] + '\nendobj\n';
+  }
+  var xref = pdf.length;
+  pdf += 'xref\n0 ' + objetos.length + '\n0000000000 65535 f \n';
+  for (var j = 1; j < objetos.length; j++) {
+    pdf += String(offsets[j] || 0).padStart(10, '0') + ' 00000 n \n';
+  }
+  pdf += 'trailer\n<< /Size ' + objetos.length + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF';
+  return pdf;
+}
+
+async function _exportarPdfVisual(pane, titulo, nomeArquivo) {
+  var clone = _prepararCloneExportacao(pane);
+  var canvas = await _renderizarCloneEmCanvas(clone, titulo);
+  var imagens = [];
+  var pageW = 595;
+  var pageH = 842;
+  var margin = 26;
+  var drawW = pageW - (margin * 2);
+  var drawH = pageH - (margin * 2);
+  var sliceHeight = Math.floor(canvas.width * (drawH / drawW));
+  var offsetY = 0;
+
+  while (offsetY < canvas.height) {
+    var currentHeight = Math.min(sliceHeight, canvas.height - offsetY);
+    var sliceCanvas = document.createElement('canvas');
+    sliceCanvas.width = canvas.width;
+    sliceCanvas.height = currentHeight;
+    var sliceCtx = sliceCanvas.getContext('2d');
+    sliceCtx.fillStyle = '#F0FAF8';
+    sliceCtx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+    sliceCtx.drawImage(canvas, 0, offsetY, canvas.width, currentHeight, 0, 0, canvas.width, currentHeight);
+    var jpeg = sliceCanvas.toDataURL('image/jpeg', 0.95);
+    imagens.push({
+      binary: _dataUrlParaBinario(jpeg),
+      width: sliceCanvas.width,
+      height: sliceCanvas.height
+    });
+    offsetY += currentHeight;
+  }
+
+  _downloadBlob(new Blob([_gerarPdfImagens(imagens)], { type: 'application/pdf' }), nomeArquivo);
+}
+
+async function exportarRelatorioAtual(tipo, formato) {
   var alvo = _exportPane(tipo);
   if (!alvo.pane) {
     alert('Nenhum relatorio ativo para exportar.');
     return;
   }
   var titulo = alvo.info.titulo;
-  if (formato === 'excel') {
-    var clone = _prepararCloneExportacao(alvo.pane);
-    var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>'
-      + 'body{font-family:Segoe UI,Arial,sans-serif;background:#F0FAF8;color:#0A2F2F;padding:24px;}'
-      + '.export-wrap{background:#FFFFFF;border:1px solid #D5EDE8;border-radius:18px;padding:20px 22px;}'
-      + '.export-head h1{margin:0 0 6px;font-size:22px;color:#0A2F2F;}'
-      + '.export-head p{margin:0 0 18px;color:#5A7A74;font-size:12px;}'
-      + '.export-select-pill{display:inline-block;padding:8px 12px;border-radius:999px;background:#D5EDE8;color:#0A2F2F;font-weight:700;font-size:12px;}'
-      + 'table{border-collapse:collapse;width:100%;}'
-      + 'img{max-width:100%;height:auto;}'
-      + '</style></head><body><div class="export-wrap"><div class="export-head"><h1>' + _htmlEscape(titulo) + '</h1><p>Gerado em ' + _htmlEscape(new Date().toLocaleString('pt-BR')) + '</p></div>'
-      + clone.outerHTML
-      + '</div></body></html>';
-    _downloadBlob(new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8' }), _exportNomeArquivo(tipo, 'xls'));
-    return;
+  try {
+    if (formato === 'excel') {
+      var clone = _prepararCloneExportacao(alvo.pane);
+      var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>'
+        + 'body{font-family:Segoe UI,Arial,sans-serif;background:#F0FAF8;color:#0A2F2F;padding:24px;}'
+        + '.export-wrap{background:#FFFFFF;border:1px solid #D5EDE8;border-radius:18px;padding:20px 22px;}'
+        + '.export-head h1{margin:0 0 6px;font-size:22px;color:#0A2F2F;}'
+        + '.export-head p{margin:0 0 18px;color:#5A7A74;font-size:12px;}'
+        + '.export-select-pill{display:inline-block;padding:8px 12px;border-radius:999px;background:#D5EDE8;color:#0A2F2F;font-weight:700;font-size:12px;}'
+        + 'table{border-collapse:collapse;width:100%;}'
+        + 'img{max-width:100%;height:auto;}'
+        + '</style></head><body><div class="export-wrap"><div class="export-head"><h1>' + _htmlEscape(titulo) + '</h1><p>Gerado em ' + _htmlEscape(new Date().toLocaleString('pt-BR')) + '</p></div>'
+        + clone.outerHTML
+        + '</div></body></html>';
+      _downloadBlob(new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8' }), _exportNomeArquivo(tipo, 'xls'));
+      return;
+    }
+    await _exportarPdfVisual(alvo.pane, titulo, _exportNomeArquivo(tipo, 'pdf'));
+  } catch (err) {
+    console.error(err);
+    alert('Nao foi possivel exportar este relatorio. Tente novamente.');
   }
-  var linhas = _textoRelatorio(alvo.pane, titulo);
-  _downloadBlob(new Blob([_gerarPdfTexto(linhas)], { type: 'application/pdf' }), _exportNomeArquivo(tipo, 'pdf'));
 }
 
 function imprimirRelatorioAtual(tipo) {
@@ -283,10 +441,27 @@ function normalizarBotoesExportacao() {
   garantirAbaPremiacaoRepresentantes();
   document.querySelectorAll('.rel-export-pdf').forEach(function(btn) {
     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>Baixar PDF';
-    if (btn.dataset.excelReady === '1') return;
     var onclick = btn.getAttribute('onclick') || '';
     var m = onclick.match(/exportarRelatorioAtual\('([^']+)'/);
     var tipo = m ? m[1] : 'produtos';
+    var excelExistentes = [];
+    if (btn.parentElement) {
+      excelExistentes = Array.from(btn.parentElement.querySelectorAll('.rel-export-excel'));
+      excelExistentes.slice(1).forEach(function(extra) { extra.remove(); });
+      if (excelExistentes[0]) {
+        var excelUnico = excelExistentes[0].cloneNode(false);
+        excelUnico.type = 'button';
+        excelUnico.className = 'rel-print-btn rel-export-excel';
+        excelUnico.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8"/></svg>Baixar Excel';
+        excelUnico.addEventListener('click', function() {
+          exportarRelatorioAtual(tipo, 'excel');
+        });
+        excelExistentes[0].replaceWith(excelUnico);
+        btn.dataset.excelReady = '1';
+        return;
+      }
+    }
+    if (btn.dataset.excelReady === '1') return;
     var excel = document.createElement('button');
     excel.type = 'button';
     excel.className = 'rel-print-btn rel-export-excel';
