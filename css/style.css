@@ -4,37 +4,37 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --blue-50:  #eef6ff;
-  --blue-100: #dbeafe;
-  --blue-200: #bfdbfe;
-  --blue-400: #60a5fa;
-  --blue-500: #3b82f6;
-  --blue-600: #2563eb;
-  --blue-700: #1d4ed8;
-  --blue-800: #1e40af;
-  --blue-900: #172554;
+  --blue-50:  #fbf7f1;
+  --blue-100: #efe4d5;
+  --blue-200: #dfcfb8;
+  --blue-400: #a98a62;
+  --blue-500: #8d6b43;
+  --blue-600: #77583a;
+  --blue-700: #63482f;
+  --blue-800: #4c3926;
+  --blue-900: #372916;
   --sidebar-w: 260px;
   --header-h: 60px;
   --sidebar-bg: #ffffff;
-  --sidebar-hover: rgba(37,99,235,0.06);
-  --sidebar-active: rgba(37,99,235,0.12);
-  --bg: #eef4fb;
-  --card-bg: #ffffff;
+  --sidebar-hover: rgba(141,107,67,0.06);
+  --sidebar-active: rgba(141,107,67,0.12);
+  --bg: #f3ece2;
+  --card-bg: #fbf6ef;
   --text: #17324d;
   --text-muted: #67809a;
-  --border: #dbe7f3;
+  --border: #e1d2bf;
   --radius: 14px;
-  --shadow: 0 10px 30px rgba(18, 40, 72, 0.08);
-  --shadow-md: 0 14px 34px rgba(18, 40, 72, 0.12);
+  --shadow: 0 10px 30px rgba(72, 52, 26, 0.08);
+  --shadow-md: 0 14px 34px rgba(72, 52, 26, 0.12);
 }
 
 html, body {
   height: 100%;
   font-family: 'Poppins', system-ui, sans-serif;
   background:
-    radial-gradient(circle at top left, rgba(37,99,235,.08), transparent 28%),
-    radial-gradient(circle at top right, rgba(14,165,233,.06), transparent 22%),
-    linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+    radial-gradient(circle at top left, rgba(141,107,67,.08), transparent 28%),
+    radial-gradient(circle at top right, rgba(47,111,159,.06), transparent 22%),
+    linear-gradient(180deg, #f5efe7 0%, #ebdfcf 100%);
   color: var(--text);
   color-scheme: light;
 }
