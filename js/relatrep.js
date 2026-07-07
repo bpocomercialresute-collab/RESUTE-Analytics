@@ -1369,7 +1369,7 @@ function repMensalSpark(values) {
   return `<svg class="rep-mensal-spark" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${points}" fill="none" stroke="#14746F" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>`;
 }
 
-function repMensalRep() {
+function repMensalRepLegacy() {
   const el = document.getElementById('rep-tab-mensal');
   if (!el) return;
 
@@ -1454,6 +1454,77 @@ function repMensalRep() {
   html += `<tr class="rep-row-total rep-mensal-total-row"><td>TOTAL</td>${totalMes.map(v => `<td>${repMensalFmtNumero(v)}</td>`).join('')}<td>${repMensalFmtNumero(mediaMensal)}</td><td>${repMensalFmtNumero(totalGeral)}</td><td>100%</td><td>${repMensalSpark(totalMes)}</td></tr>`;
   html += `<tr class="rep-mensal-foot-row"><td>% DO TOTAL</td>${shareMes.map(v => `<td>${repMensalFmtPercent(v)}</td>`).join('')}<td>-</td><td>100%</td><td>-</td><td>-</td></tr>`;
   html += `<tr class="rep-mensal-foot-row"><td>% EVOLUCAO MES</td>${totalMes.map((_, i) => { if (!i || evolMes[i] == null) return '<td>-</td>'; const valor = evolMes[i]; const cls = valor >= 0 ? 'up' : 'down'; const seta = valor >= 0 ? '▲' : '▼'; return `<td class="rep-mensal-evol ${cls}">${seta} ${repMensalFmtPercent(Math.abs(valor))}</td>`; }).join('')}<td>-</td><td>-</td><td>-</td><td>-</td></tr>`;
+  html += `</tbody></table></div>`;
+  el.innerHTML = html;
+}
+
+function repMensalRep() {
+  const el = document.getElementById('rep-tab-mensal');
+  if (!el) return;
+
+  const mesesFull = ['JANEIRO','FEVEREIRO','MARCO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+  const info = repMensalDisponiveis();
+  const filtro = repMensalFiltroAtual();
+  const anoAtivo = info.anoAtivo;
+  const vendedoresAtivos = new Set((filtro.vendedores || []).map(String));
+  const ocultarVazios = filtro.ocultarVazios !== false;
+
+  const anoOptions = info.anos.map(ano => `<option value="${ano}" ${String(ano) === String(anoAtivo) ? 'selected' : ''}>${ano}</option>`).join('');
+  const vendedorChecks = info.vendedores.map(v => `<label class="rep-mensal-check"><input type="checkbox" data-vendedor="${repEsc(v)}" ${vendedoresAtivos.has(v) ? 'checked' : ''} onchange="repMensalToggleVendedor(this.dataset.vendedor, this.checked)"><span>${repEsc(v)}</span></label>`).join('');
+  const headerHtml = `<div class="rel-header-bar rep-mensal-bar"><div class="rel-title">VENDAS MENSAIS POR REPRESENTANTE EM ${anoAtivo}</div><div class="rep-mensal-filter-row"><label class="rep-filter-field"><span>Ano</span><select onchange="repMensalSetFiltro('ano', this.value)">${anoOptions}</select></label><label class="rep-filter-field rep-mensal-toggle"><span>Meses</span><button type="button" class="rel-toggle-btn ${ocultarVazios ? 'active' : ''}" onclick="repMensalSetFiltro('ocultarVazios', ${!ocultarVazios})">${ocultarVazios ? 'Ocultar vazios' : 'Mostrar todos'}</button></label></div></div>`;
+  const repsFilterHtml = `<div class="rep-mensal-subfilters" data-export-ignore="true"><div class="rep-filter-field rep-mensal-reps-field"><span>Representantes exibidos</span><div class="rep-mensal-actions"><button type="button" class="rel-toggle-btn" onclick="repMensalSelecionarTodosVendedores()">Todos</button><button type="button" class="rel-toggle-btn" onclick="repMensalLimparVendedores()">Limpar</button></div><div class="rep-mensal-checklist">${vendedorChecks || '<span class="rep-mensal-check-empty">Sem representantes</span>'}</div></div></div>`;
+
+  const rows = repBaseRows().filter(row => {
+    const dt = repParseDate(String(row[IDX.saida] || row[IDX.emissao] || '').trim());
+    if (!dt || dt.getFullYear() !== anoAtivo) return false;
+    const vendedor = String(row[IDX.vendedor] || '').trim();
+    if (vendedoresAtivos.size && !vendedoresAtivos.has(vendedor)) return false;
+    return true;
+  });
+
+  if (!rows.length) {
+    el.innerHTML = `${headerHtml}${repsFilterHtml}<div class="av-rel-placeholder"><p>Sem dados para este recorte</p><span>Escolha outro ano ou ajuste os representantes marcados.</span></div>`;
+    return;
+  }
+
+  const reps = {};
+  const totalMes = Array(12).fill(0);
+  rows.forEach(row => {
+    const dt = repParseDate(String(row[IDX.saida] || row[IDX.emissao] || '').trim());
+    const vendedor = String(row[IDX.vendedor] || '').trim() || 'Sem representante';
+    const valor = typeof parseSmartNumber === 'function' ? parseSmartNumber(row[IDX.valor]) : (Number(row[IDX.valor]) || 0);
+    if (!reps[vendedor]) reps[vendedor] = { nome: vendedor, meses: Array(12).fill(0), total: 0 };
+    reps[vendedor].meses[dt.getMonth()] += valor;
+    reps[vendedor].total += valor;
+    totalMes[dt.getMonth()] += valor;
+  });
+
+  const lista = Object.values(reps).sort((a, b) => b.total - a.total);
+  const totalGeral = totalMes.reduce((s, v) => s + v, 0);
+  const mesesIdx = ocultarVazios ? totalMes.map((v, i) => v > 0 ? i : -1).filter(i => i >= 0) : totalMes.map((_, i) => i);
+  const mesesVisiveis = mesesIdx.length ? mesesIdx : totalMes.map((_, i) => i);
+  const mediaMensal = totalGeral / Math.max(1, mesesVisiveis.length);
+  const shareMes = totalMes.map(v => totalGeral ? (v / totalGeral) * 100 : 0);
+  const evolMes = totalMes.map((v, i) => {
+    if (!i) return null;
+    const anterior = totalMes[i - 1];
+    if (!anterior) return null;
+    return ((v - anterior) / anterior) * 100;
+  });
+
+  let html = `${headerHtml}${repsFilterHtml}`;
+  html += `<div class="rep-scroll-area rep-mensal-wrap"><table class="rep-tbl rep-mensal-table"><thead><tr><td rowspan="2" class="rep-mensal-col-rep">REPRESENTANTE</td><td colspan="${mesesVisiveis.length}">TOTAIS MENSAIS</td><td rowspan="2" class="rep-mensal-col-med">MED</td><td rowspan="2" class="rep-mensal-col-total">TOTAL</td><td rowspan="2" class="rep-mensal-col-share">%</td><td rowspan="2" class="rep-mensal-col-graf">Graf.</td></tr><tr>${mesesVisiveis.map(i => `<td>${mesesFull[i]}</td>`).join('')}</tr></thead><tbody>`;
+
+  lista.forEach(item => {
+    const mesesAtivos = item.meses.filter(v => v > 0).length || 1;
+    const med = item.total / mesesAtivos;
+    const share = totalGeral ? (item.total / totalGeral) * 100 : 0;
+    html += `<tr><td class="rep-mensal-rep-name">${repEsc(item.nome)}</td>${mesesVisiveis.map(i => `<td class="rep-mensal-num">${repMensalFmtNumero(item.meses[i])}</td>`).join('')}<td class="rep-mensal-med">${repMensalFmtNumero(med)}</td><td class="rep-mensal-total">${repMensalFmtNumero(item.total)}</td><td class="rep-mensal-share">${repMensalFmtPercent(share)}</td><td class="rep-mensal-graf">${repMensalSpark(mesesVisiveis.map(i => item.meses[i]))}</td></tr>`;
+  });
+
+  html += `<tr class="rep-row-total rep-mensal-total-row"><td>TOTAL</td>${mesesVisiveis.map(i => `<td>${repMensalFmtNumero(totalMes[i])}</td>`).join('')}<td>${repMensalFmtNumero(mediaMensal)}</td><td>${repMensalFmtNumero(totalGeral)}</td><td>100%</td><td>${repMensalSpark(mesesVisiveis.map(i => totalMes[i]))}</td></tr>`;
+  html += `<tr class="rep-mensal-foot-row"><td>% DO TOTAL</td>${mesesVisiveis.map(i => `<td>${repMensalFmtPercent(shareMes[i])}</td>`).join('')}<td>-</td><td>100%</td><td>-</td><td>-</td></tr>`;
+  html += `<tr class="rep-mensal-foot-row"><td>% EVOLUCAO MES</td>${mesesVisiveis.map(i => { if (!i || evolMes[i] == null) return '<td>-</td>'; const valor = evolMes[i]; const cls = valor >= 0 ? 'up' : 'down'; const seta = valor >= 0 ? '▲' : '▼'; return `<td class="rep-mensal-evol ${cls}">${seta} ${repMensalFmtPercent(Math.abs(valor))}</td>`; }).join('')}<td>-</td><td>-</td><td>-</td><td>-</td></tr>`;
   html += `</tbody></table></div>`;
   el.innerHTML = html;
 }

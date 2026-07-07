@@ -5413,6 +5413,14 @@ textarea:focus {
   align-items: flex-end !important;
 }
 
+.rep-mensal-subfilters {
+  margin: 14px 0 16px !important;
+  padding: 16px 18px !important;
+  border: 1px solid #D6EAE3 !important;
+  border-radius: 18px !important;
+  background: #F8FCFB !important;
+}
+
 .rep-mensal-reps-field {
   min-width: 320px !important;
   flex: 1 1 360px !important;

@@ -199,6 +199,7 @@ function _prepararCloneExportacao(pane) {
 
   clone.querySelectorAll('button, input, textarea').forEach(function(el) { el.remove(); });
   clone.querySelectorAll('[onclick]').forEach(function(el) { el.removeAttribute('onclick'); });
+  clone.querySelectorAll('[data-export-ignore="true"]').forEach(function(el) { el.remove(); });
   return clone;
 }
 
