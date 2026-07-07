@@ -3766,3 +3766,420 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   background: rgba(37,99,235,.05);
   color: #17324d;
 }
+
+/* ============================================================
+   PREMIUM LIGHT PALETTE REFRESH
+   - remove a sensação de azul escuro
+   - prioriza leitura, contraste suave e aparência premium
+   ============================================================ */
+:root {
+  --blue-50:  #f7fbff;
+  --blue-100: #e6eef7;
+  --blue-200: #cfdceb;
+  --blue-400: #7ea7c9;
+  --blue-500: #4f87b8;
+  --blue-600: #2f6f9f;
+  --blue-700: #245a82;
+  --blue-800: #1d4766;
+  --blue-900: #163248;
+  --bg: #f6f8fb;
+  --card-bg: #ffffff;
+  --text: #17324d;
+  --text-muted: #6b7f96;
+  --border: #d8e4ef;
+  --sidebar-bg: #fbfdff;
+  --sidebar-hover: rgba(47,111,159,0.07);
+  --sidebar-active: rgba(47,111,159,0.12);
+  --shadow: 0 12px 32px rgba(18, 40, 72, 0.08);
+  --shadow-md: 0 18px 42px rgba(18, 40, 72, 0.12);
+}
+
+html, body {
+  background:
+    radial-gradient(circle at top left, rgba(47,111,159,.07), transparent 26%),
+    radial-gradient(circle at top right, rgba(179,138,76,.06), transparent 22%),
+    linear-gradient(180deg, #fbfcfe 0%, #f1f5fa 100%) !important;
+  color: #17324d !important;
+}
+
+body {
+  color: #17324d !important;
+}
+
+.cui-sidebar,
+.cui-header,
+.cui-main,
+.cui-sidebar-brand,
+.cui-nav,
+.cui-nav-item,
+.cui-nav-title,
+.lp-root,
+.lp-shell,
+.lp-content,
+.lp-hero,
+.lp-highlight-card,
+.lp-form-box,
+.lp-about-shell,
+.lp-card,
+.lp-mini-card,
+.lp-nav,
+.lp-modal,
+.cli-root,
+.cli-header,
+.cli-tabs,
+.cli-panel,
+.cli-card,
+.cli-loading-card,
+.dc-root,
+.dc-header,
+.dc-main,
+.dc-panel,
+.dc-card,
+.dc-kpi-card,
+.dc-loading-card,
+.admin-root,
+.admin-painel,
+.admin-action-bar,
+.admin-emp-tab,
+.admin-sub-tab,
+.admin-api-stat,
+.admin-painel,
+.dc-kpi,
+.dc-kpi-card,
+.adm-module-card,
+.adm-manual-hint,
+.adm-periodo-wrap,
+.adm-toggle-wrap,
+.toggle-grupo,
+.premio-root,
+.premio-card,
+.premio-chart-box,
+.premio-campanha-card,
+.premio-growth-card,
+.premio-roleta-card,
+.premio-roleta-side,
+.premio-roleta-wrap,
+.tool-card,
+.av-exibir-box,
+.av-tabs-bar,
+.lg-wrap,
+.lg-pag,
+.lg-table,
+.lg-table thead th,
+.lg-table tbody td,
+.col-filter-dropdown,
+.cfd-header,
+.jss-info-bar,
+.jss-btn,
+.loader-box,
+.login-modal-box,
+.rel-table,
+.laudo-chart-wrap {
+  background: rgba(255,255,255,.94) !important;
+  color: #17324d !important;
+  border-color: #d8e4ef !important;
+}
+
+.cui-sidebar,
+.cui-header,
+.cui-main,
+.dc-header,
+.dc-main,
+.cli-header,
+.premio-hero,
+.lp-hero,
+.page-header,
+.hero,
+.admin-api-resumo,
+.admin-emp-tabs,
+.av-tabs-bar,
+.lg-pag {
+  backdrop-filter: blur(14px);
+}
+
+.cui-brand-name,
+.cui-nav-item,
+.cui-nav-title,
+.cui-sidebar-toggle,
+.cli-logo,
+.cli-rel-titulo,
+.cli-tab,
+.cli-tab-btn,
+.dc-header-name,
+.dc-hero-title,
+.dc-section-title,
+.dc-kpi-value,
+.dc-card-val,
+.dc-card-icon,
+.dc-panel-title,
+.dc-kpi-val,
+.adm-nome,
+.adm-module-name,
+.lp-hero-title,
+.lp-form-title,
+.page-title,
+.premio-hero h3,
+.premio-growth-head h3,
+.premio-growth-card strong,
+.premium-title {
+  color: #17324d !important;
+}
+
+.cui-brand-sub,
+.cli-sem-dados p,
+.cli-sem-dados span,
+.cli-sync-status,
+.dc-header-status,
+.dc-kpi-label,
+.dc-card-lbl,
+.dc-card-var,
+.dc-periodo-label,
+.dc-action-btn span,
+.admin-sync-status,
+.admin-api-info,
+.admin-sub-count,
+.adm-module-meta,
+.adm-module-endpoint,
+.lp-label,
+.lp-hero-sub,
+.premio-table td,
+.dc-tabela td,
+.lg-table td,
+.lg-pb,
+.admin-api-stat-lbl,
+.dc-kpi-label,
+.dc-kpi-lbl,
+.dc-kpi-value,
+.dc-kpi-val {
+  color: #6b7f96 !important;
+}
+
+.cui-nav-item:hover,
+.cui-nav-item.is-active,
+.cui-nav-item.active {
+  background: rgba(47,111,159,.08) !important;
+  color: #17324d !important;
+}
+
+.cui-sidebar-toggle:hover,
+.dc-btn-sair:hover,
+.cli-btn-logout:hover,
+.lp-secondary-btn:hover,
+.lp-nav-more:hover,
+.lp-btn:hover,
+.premio-periodo-growth:hover,
+.premio-periodo-reset:hover,
+.premio-campanha-btn:hover,
+.premio-roleta-btn:hover,
+.premio-roleta-save:hover,
+.premio-roleta-add button:hover,
+.dc-action-btn:hover,
+.dc-loja-btn:hover,
+.admin-emp-tab:hover,
+.admin-sub-tab:hover,
+.jss-btn:hover {
+  background: rgba(47,111,159,.08) !important;
+  color: #17324d !important;
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(18, 40, 72, 0.08);
+}
+
+.btn-primary,
+.login-btn,
+.lp-btn,
+.dc-btn-principal,
+.premio-roleta-save,
+.premio-roleta-btn-primary,
+.admin-emp-tab.active,
+.admin-sub-tab.active,
+.cli-tab.active,
+.cli-tab-btn.active,
+.dc-loja-btn.active,
+.dc-action-btn.active,
+.av-tab.active,
+.av-tab:hover,
+.jss-btn-primary,
+.av-exibir-btn:hover,
+.adm-btn-api:hover,
+.adm-btn-manual:hover {
+  background: linear-gradient(135deg, #2f6f9f 0%, #b38a4c 100%) !important;
+  color: #ffffff !important;
+  border-color: rgba(47,111,159,.30) !important;
+}
+
+.btn-primary:hover,
+.login-btn:hover,
+.lp-btn:hover,
+.dc-btn-principal:hover,
+.premio-roleta-save:hover,
+.jss-btn-primary:hover {
+  box-shadow: 0 18px 36px rgba(47,111,159,.18) !important;
+}
+
+.lp-input,
+.login-input,
+.premio-periodo-select,
+.dc-filtro,
+.dc-action-input,
+.adm-input,
+.adm-select,
+.sync-empresa-select,
+.laudo-select,
+.col-filter-input {
+  background: #fcfeff !important;
+  border-color: #d6e2ee !important;
+  color: #17324d !important;
+}
+
+.lp-input:focus,
+.login-input:focus,
+.premio-periodo-select:focus,
+.dc-filtro:focus,
+.dc-action-input:focus,
+.adm-input:focus,
+.adm-select:focus,
+.sync-empresa-select:focus,
+.laudo-select:focus,
+.col-filter-input:focus {
+  border-color: #2f6f9f !important;
+  box-shadow: 0 0 0 3px rgba(47,111,159,.12) !important;
+}
+
+.dc-kpi-card,
+.dc-card,
+.dc-panel,
+.tool-card,
+.premio-card,
+.premio-chart-box,
+.premio-campanha-card,
+.premio-growth-card,
+.premio-roleta-card,
+.premio-roleta-side,
+.login-modal-box,
+.loader-box,
+.av-exibir-box,
+.jss-info-bar,
+.col-filter-dropdown,
+.cfd-header,
+.lg-wrap,
+.lg-pag,
+.lg-table,
+.rel-table,
+.laudo-chart-wrap,
+.admin-api-stat,
+.adm-module-card,
+.adm-manual-hint,
+.adm-periodo-wrap,
+.adm-toggle-wrap {
+  box-shadow: 0 16px 36px rgba(18, 40, 72, 0.06) !important;
+  border-radius: 18px !important;
+}
+
+.dc-tabela thead th,
+.lg-table thead th,
+.rel-table thead th,
+.laudo-tbl th,
+.cfd-header,
+.av-tabs-bar,
+.admin-sub-tabs,
+.admin-emp-tabs,
+.lg-pag {
+  background: linear-gradient(180deg, rgba(247,250,253,.98) 0%, rgba(239,245,250,.98) 100%) !important;
+  color: #5d738b !important;
+}
+
+.dc-tabela tbody tr:nth-child(even) td,
+.lg-table tbody tr:nth-child(even) td,
+.rel-table tr:nth-child(even) td,
+.laudo-tbl tbody tr:nth-child(even) td {
+  background: #f8fbfe !important;
+}
+
+.dc-tabela tbody tr:hover td,
+.lg-table tbody tr:hover td,
+.rel-table tr:hover td,
+.laudo-tbl tbody tr:hover td {
+  background: rgba(47,111,159,.06) !important;
+}
+
+.dc-bar,
+.dc-bar-fill,
+.dc-bar-w,
+.dc-bar-track {
+  background: linear-gradient(90deg, #2f6f9f 0%, #b38a4c 100%) !important;
+}
+
+.dc-card-title,
+.premio-card-title,
+.dc-header-empresa,
+.lp-form-chip,
+.lp-highlight-kicker,
+.lp-mini-label,
+.lp-about-topbar,
+.lp-about-process .lp-about-eyebrow,
+.premio-section-kicker,
+.tool-card h3,
+.av-exibir-btn,
+.adm-btn-api,
+.adm-btn-manual {
+  color: #2f6f9f !important;
+}
+
+.adm-rel-aviso {
+  background: rgba(16,185,129,.10) !important;
+  border-color: rgba(16,185,129,.20) !important;
+  color: #117a54 !important;
+}
+
+.login-modal-box::before,
+.lp-highlight-card-primary::after {
+  background: linear-gradient(90deg, rgba(47,111,159,.0), rgba(179,138,76,.18), rgba(47,111,159,.0)) !important;
+}
+
+.dc-hero,
+.lp-hero,
+.hero,
+.page-header {
+  background: transparent !important;
+}
+
+.dc-tabela th,
+.rel-table th,
+.lg-table thead th,
+.laudo-tbl th {
+  background: linear-gradient(180deg, rgba(247,250,253,.98) 0%, rgba(236,242,248,.98) 100%) !important;
+  color: #5d738b !important;
+}
+
+.dc-tabela td.num,
+.lg-table td.lg-num,
+.rel-table td strong,
+.laudo-tbl td strong {
+  color: #2f6f9f !important;
+}
+
+.dc-tabela td.pos,
+.lg-table tbody td.lg-rn,
+.lg-table tbody td.lg-auto {
+  background: #f7fbff !important;
+  color: #6b7f96 !important;
+}
+
+.lg-table tbody tr:nth-child(even) td.lg-auto {
+  background: #f4f8fc !important;
+}
+
+.dc-tabela tbody tr:hover td,
+.lg-table tbody tr:hover td,
+.rel-table tr:hover td,
+.laudo-tbl tbody tr:hover td {
+  background: rgba(47,111,159,.06) !important;
+}
+
+.admin-sub-tabs,
+.admin-emp-tabs,
+.cfd-header,
+.av-tabs-bar {
+  background: linear-gradient(180deg, rgba(247,250,253,.98) 0%, rgba(236,242,248,.98) 100%) !important;
+  color: #5d738b !important;
+}
