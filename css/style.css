@@ -5576,3 +5576,854 @@ textarea:focus {
     width: 100% !important;
   }
 }
+
+/* ============================================================
+   BPO ADMIN REWORK
+   Reforma visual isolada somente para o super_admin
+   ============================================================ */
+body.bpo-admin-mode {
+  background:
+    radial-gradient(circle at top left, rgba(20, 116, 111, 0.16), transparent 22%),
+    radial-gradient(circle at top right, rgba(169, 138, 98, 0.14), transparent 20%),
+    linear-gradient(180deg, #edf6f3 0%, #f8f3ea 54%, #eef8f5 100%);
+}
+
+body.bpo-admin-mode .cui-wrapper,
+body.bpo-admin-mode .cui-main {
+  background: transparent !important;
+}
+
+body.bpo-admin-mode .cui-main {
+  padding: 32px 34px 48px !important;
+}
+
+body.bpo-admin-mode #view-home .content,
+body.bpo-admin-mode #view-tools .content,
+body.bpo-admin-mode #view-app .content {
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+body.bpo-admin-mode #view-home .content,
+body.bpo-admin-mode #view-tools .content,
+body.bpo-admin-mode #view-app #av-home {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+body.bpo-admin-mode .cui-sidebar {
+  background:
+    linear-gradient(180deg, rgba(10, 47, 47, 0.98) 0%, rgba(13, 79, 79, 0.96) 100%) !important;
+  border-right: 1px solid rgba(45, 212, 191, 0.18) !important;
+  box-shadow: 20px 0 38px rgba(10, 47, 47, 0.18) !important;
+}
+
+body.bpo-admin-mode .cui-sidebar::after {
+  content: '';
+  position: absolute;
+  inset: auto -40px -60px auto;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(45, 212, 191, 0.20) 0%, rgba(45, 212, 191, 0) 72%);
+  pointer-events: none;
+}
+
+body.bpo-admin-mode .cui-sidebar-brand,
+body.bpo-admin-mode .cui-sidebar-footer {
+  border-color: rgba(45, 212, 191, 0.16) !important;
+}
+
+body.bpo-admin-mode .cui-brand-name,
+body.bpo-admin-mode .cui-sidebar-user-nome {
+  color: #f8fffd !important;
+}
+
+body.bpo-admin-mode .cui-brand-sub,
+body.bpo-admin-mode .cui-sidebar-user-empresa {
+  color: rgba(232, 248, 244, 0.70) !important;
+}
+
+body.bpo-admin-mode .cui-sidebar-user {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 18px !important;
+}
+
+body.bpo-admin-mode .cui-sidebar-avatar {
+  background: rgba(45, 212, 191, 0.14) !important;
+  color: #b8fff1 !important;
+}
+
+body.bpo-admin-mode .cui-nav-title {
+  color: rgba(227, 247, 242, 0.54) !important;
+}
+
+body.bpo-admin-mode .cui-nav-item {
+  color: rgba(240, 253, 250, 0.74) !important;
+  border-radius: 16px !important;
+}
+
+body.bpo-admin-mode .cui-nav-item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+body.bpo-admin-mode .cui-nav-item.active,
+body.bpo-admin-mode .cui-nav-item.is-active {
+  background: linear-gradient(90deg, rgba(45, 212, 191, 0.22), rgba(45, 212, 191, 0.08)) !important;
+  border: 1px solid rgba(45, 212, 191, 0.20) !important;
+  color: #b8fff1 !important;
+}
+
+body.bpo-admin-mode .cui-header {
+  background: rgba(255, 255, 255, 0.82) !important;
+  border: 1px solid rgba(213, 237, 232, 0.96) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 20px 50px rgba(10, 47, 47, 0.08) !important;
+  backdrop-filter: blur(16px);
+  padding: 14px 22px !important;
+}
+
+body.bpo-admin-mode .cui-header-toggle,
+body.bpo-admin-mode .cui-sidebar-toggle,
+body.bpo-admin-mode .cui-sidebar-logout {
+  border-radius: 14px !important;
+}
+
+body.bpo-admin-mode .cui-header-user {
+  padding: 8px 12px;
+  border-radius: 18px;
+  background: rgba(20, 116, 111, 0.08);
+  border: 1px solid rgba(20, 116, 111, 0.12);
+}
+
+body.bpo-admin-mode .cui-header-user-avatar {
+  background: linear-gradient(135deg, rgba(20, 116, 111, 0.16), rgba(45, 212, 191, 0.18)) !important;
+  color: #0d4f4f !important;
+}
+
+body.bpo-admin-mode .hero {
+  position: relative;
+  overflow: hidden;
+  max-width: none !important;
+  padding: 48px 52px !important;
+  margin: 0 !important;
+  background:
+    radial-gradient(circle at top right, rgba(45, 212, 191, 0.20), transparent 30%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(231, 245, 241, 0.94) 100%) !important;
+  border: 1px solid rgba(213, 237, 232, 0.95) !important;
+  border-radius: 34px !important;
+  box-shadow: 0 26px 60px rgba(10, 47, 47, 0.09) !important;
+}
+
+body.bpo-admin-mode .hero::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 10px;
+  background: linear-gradient(180deg, #2dd4bf 0%, #14746f 100%);
+}
+
+body.bpo-admin-mode .hero::after {
+  content: 'BPO RESUTE';
+  position: absolute;
+  top: 24px;
+  right: 28px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(213, 237, 232, 0.92);
+  color: #14746f;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+body.bpo-admin-mode .hero-kicker,
+body.bpo-admin-mode .page-subtitle {
+  color: #567c76 !important;
+}
+
+body.bpo-admin-mode .hero-kicker {
+  display: inline-flex !important;
+  width: fit-content;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(20, 116, 111, 0.10);
+  border: 1px solid rgba(20, 116, 111, 0.10);
+  letter-spacing: 0.14em !important;
+}
+
+body.bpo-admin-mode .hero-kicker-dot {
+  background: #14746f !important;
+  box-shadow: 0 0 0 6px rgba(20, 116, 111, 0.08);
+}
+
+body.bpo-admin-mode .hero-title,
+body.bpo-admin-mode .page-title {
+  color: #0a2f2f !important;
+  text-shadow: none !important;
+}
+
+body.bpo-admin-mode .hero-title .italic {
+  color: #14746f !important;
+}
+
+body.bpo-admin-mode .hero-subtitle {
+  color: #4f746f !important;
+  max-width: 760px;
+}
+
+body.bpo-admin-mode .hero-actions,
+body.bpo-admin-mode .page-header {
+  position: relative;
+  z-index: 1;
+}
+
+body.bpo-admin-mode .page-header {
+  padding: 28px 30px;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(213, 237, 232, 0.95);
+  border-radius: 26px;
+  box-shadow: 0 18px 48px rgba(10, 47, 47, 0.06);
+}
+
+body.bpo-admin-mode .voltar-btn,
+body.bpo-admin-mode .btn.btn-primary,
+body.bpo-admin-mode .adm-btn,
+body.bpo-admin-mode .admin-emp-tab,
+body.bpo-admin-mode .av-exibir-btn {
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, border-color 160ms ease, color 160ms ease !important;
+}
+
+body.bpo-admin-mode .voltar-btn {
+  align-self: flex-start;
+  padding: 12px 16px !important;
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  border: 1px solid rgba(213, 237, 232, 0.95) !important;
+  color: #0d4f4f !important;
+  box-shadow: 0 14px 34px rgba(10, 47, 47, 0.06) !important;
+}
+
+body.bpo-admin-mode .voltar-btn:hover {
+  transform: translateY(-1px);
+  background: #ffffff !important;
+}
+
+body.bpo-admin-mode .btn.btn-primary,
+body.bpo-admin-mode .adm-btn-api,
+body.bpo-admin-mode .adm-btn-manual {
+  background: linear-gradient(135deg, #14746f 0%, #0d4f4f 100%) !important;
+  border: 1px solid #0d4f4f !important;
+  color: #ffffff !important;
+  box-shadow: 0 16px 32px rgba(20, 116, 111, 0.18) !important;
+}
+
+body.bpo-admin-mode .btn.btn-primary:hover,
+body.bpo-admin-mode .adm-btn-api:hover,
+body.bpo-admin-mode .adm-btn-manual:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px rgba(20, 116, 111, 0.22) !important;
+}
+
+body.bpo-admin-mode .adm-btn-danger,
+body.bpo-admin-mode .btn-limpar {
+  background: rgba(255, 246, 246, 0.92) !important;
+  border: 1px solid rgba(220, 38, 38, 0.24) !important;
+  color: #b42318 !important;
+}
+
+body.bpo-admin-mode .adm-btn-danger:hover,
+body.bpo-admin-mode .btn-limpar:hover {
+  transform: translateY(-1px);
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+body.bpo-admin-mode .tools-grid {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 420px)) !important;
+  gap: 24px !important;
+}
+
+body.bpo-admin-mode .tool-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 232px;
+  padding: 28px 28px 24px !important;
+  background:
+    radial-gradient(circle at top right, rgba(45, 212, 191, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(243, 251, 249, 0.94)) !important;
+  border: 1px solid rgba(213, 237, 232, 0.96) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 22px 56px rgba(10, 47, 47, 0.08) !important;
+}
+
+body.bpo-admin-mode .tool-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 6px;
+  background: linear-gradient(90deg, #14746f 0%, #2dd4bf 100%);
+}
+
+body.bpo-admin-mode .tool-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 26px 60px rgba(10, 47, 47, 0.12) !important;
+  border-color: rgba(20, 116, 111, 0.18) !important;
+}
+
+body.bpo-admin-mode .tool-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(20, 116, 111, 0.12), rgba(45, 212, 191, 0.16));
+  color: #14746f !important;
+}
+
+body.bpo-admin-mode .tool-card h3,
+body.bpo-admin-mode .tool-card p,
+body.bpo-admin-mode .tool-meta,
+body.bpo-admin-mode .tool-arrow {
+  position: relative;
+  z-index: 1;
+}
+
+body.bpo-admin-mode .tool-card h3 {
+  color: #0a2f2f !important;
+  margin-top: 18px;
+}
+
+body.bpo-admin-mode .tool-card p {
+  color: #5a7a74 !important;
+}
+
+body.bpo-admin-mode .tool-meta {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body.bpo-admin-mode #admin-empresa-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 !important;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.72) !important;
+  border: 1px solid rgba(213, 237, 232, 0.96) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 16px 42px rgba(10, 47, 47, 0.06) !important;
+}
+
+body.bpo-admin-mode .admin-emp-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 0 18px !important;
+  background: rgba(240, 250, 248, 0.95) !important;
+  border: 1px solid rgba(213, 237, 232, 0.98) !important;
+  border-radius: 18px !important;
+  color: #0d4f4f !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+body.bpo-admin-mode .admin-emp-tab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(20, 116, 111, 0.18) !important;
+  background: #ffffff !important;
+}
+
+body.bpo-admin-mode .admin-emp-tab.active {
+  background: linear-gradient(135deg, #14746f 0%, #0d4f4f 100%) !important;
+  border-color: #0d4f4f !important;
+  color: #ffffff !important;
+  box-shadow: 0 18px 34px rgba(20, 116, 111, 0.20) !important;
+}
+
+body.bpo-admin-mode .emp-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+body.bpo-admin-mode .emp-tag.tag-api {
+  background: rgba(45, 212, 191, 0.16);
+  color: #0d4f4f;
+}
+
+body.bpo-admin-mode .emp-tag.tag-manual {
+  background: rgba(169, 138, 98, 0.18);
+  color: #77583a;
+}
+
+body.bpo-admin-mode .admin-emp-tab.active .emp-tag {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+body.bpo-admin-mode #admin-action-bar {
+  position: relative;
+  overflow: hidden;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 24px !important;
+  padding: 30px !important;
+  background:
+    radial-gradient(circle at top right, rgba(45, 212, 191, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(251, 255, 254, 0.95) 0%, rgba(239, 248, 246, 0.94) 100%) !important;
+  border: 1px solid rgba(213, 237, 232, 0.98) !important;
+  border-radius: 32px !important;
+  box-shadow: 0 28px 72px rgba(10, 47, 47, 0.10) !important;
+}
+
+body.bpo-admin-mode #admin-action-bar::before {
+  content: '';
+  position: absolute;
+  top: -70px;
+  right: -40px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(45, 212, 191, 0.16) 0%, rgba(45, 212, 191, 0) 72%);
+  pointer-events: none;
+}
+
+body.bpo-admin-mode .adm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid rgba(213, 237, 232, 0.98);
+}
+
+body.bpo-admin-mode .adm-header-left {
+  gap: 8px !important;
+}
+
+body.bpo-admin-mode .adm-nome {
+  font-size: clamp(30px, 3vw, 38px) !important;
+  font-weight: 900 !important;
+  color: #0a2f2f !important;
+  line-height: 1.05;
+}
+
+body.bpo-admin-mode .adm-status,
+body.bpo-admin-mode .admin-sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(213, 237, 232, 0.98);
+  color: #567c76 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 10px 24px rgba(10, 47, 47, 0.05);
+}
+
+body.bpo-admin-mode .admin-sync-status.ok {
+  color: #0f9f6e !important;
+  border-color: rgba(15, 159, 110, 0.22);
+  background: rgba(240, 253, 249, 0.94);
+}
+
+body.bpo-admin-mode .admin-sync-status.erro {
+  color: #c2410c !important;
+  border-color: rgba(220, 38, 38, 0.22);
+  background: rgba(255, 247, 237, 0.94);
+}
+
+body.bpo-admin-mode .adm-header-right {
+  align-items: center !important;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+body.bpo-admin-mode .adm-toggle-label {
+  color: #567c76 !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.bpo-admin-mode .adm-toggle-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.78) !important;
+  border: 1px solid rgba(213, 237, 232, 0.98) !important;
+  border-radius: 999px !important;
+  box-shadow: 0 12px 28px rgba(10, 47, 47, 0.05);
+}
+
+body.bpo-admin-mode .adm-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: #567c76;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+body.bpo-admin-mode .adm-toggle-btn.active {
+  background: linear-gradient(135deg, #14746f 0%, #0d4f4f 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 20px rgba(20, 116, 111, 0.16);
+}
+
+body.bpo-admin-mode .adm-api-wrap,
+body.bpo-admin-mode .adm-manual-wrap {
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+body.bpo-admin-mode .adm-api-top,
+body.bpo-admin-mode .adm-manual-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 22px 24px !important;
+  background: rgba(255, 255, 255, 0.80) !important;
+  border: 1px solid rgba(213, 237, 232, 0.98) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 18px 42px rgba(10, 47, 47, 0.06) !important;
+}
+
+body.bpo-admin-mode .adm-periodo-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: stretch;
+}
+
+body.bpo-admin-mode .adm-periodo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 178px;
+}
+
+body.bpo-admin-mode .adm-periodo-field span {
+  color: #567c76 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+body.bpo-admin-mode .adm-periodo-field input,
+body.bpo-admin-mode #adm-sync-inicio,
+body.bpo-admin-mode #adm-sync-fim {
+  min-height: 52px;
+  padding: 0 16px;
+  background: #ffffff !important;
+  border: 1px solid rgba(213, 237, 232, 0.98) !important;
+  border-radius: 16px !important;
+  color: #0a2f2f !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+body.bpo-admin-mode .adm-api-ultima,
+body.bpo-admin-mode .adm-periodo-resumo,
+body.bpo-admin-mode .adm-manual-hint {
+  color: #5a7a74 !important;
+}
+
+body.bpo-admin-mode .adm-periodo-resumo {
+  margin-top: 16px;
+  padding: 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+body.bpo-admin-mode .adm-api-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px !important;
+  margin-top: 18px;
+}
+
+body.bpo-admin-mode .adm-kpi {
+  position: relative;
+  overflow: hidden;
+  min-height: 130px;
+  padding: 20px 20px 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 251, 249, 0.98)) !important;
+  border: 1px solid rgba(213, 237, 232, 0.98) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 18px 42px rgba(10, 47, 47, 0.06) !important;
+}
+
+body.bpo-admin-mode .adm-kpi::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: linear-gradient(180deg, #2dd4bf 0%, #14746f 100%);
+}
+
+body.bpo-admin-mode .adm-kpi-val {
+  font-size: clamp(28px, 2vw, 36px) !important;
+  font-weight: 900 !important;
+  color: #0a2f2f !important;
+  line-height: 1.05;
+}
+
+body.bpo-admin-mode .adm-kpi-lbl {
+  margin-top: 10px;
+  color: #5a7a74 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+body.bpo-admin-mode .adm-api-modulos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px !important;
+  margin-top: 18px;
+}
+
+body.bpo-admin-mode .adm-module-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 236px;
+  padding: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 252, 250, 0.98)) !important;
+  border: 1px solid rgba(213, 237, 232, 0.98) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 18px 42px rgba(10, 47, 47, 0.06) !important;
+}
+
+body.bpo-admin-mode .adm-module-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body.bpo-admin-mode .adm-module-name {
+  color: #0d4f4f !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+body.bpo-admin-mode .adm-module-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(213, 237, 232, 0.98);
+  background: rgba(240, 250, 248, 0.96);
+  color: #5a7a74;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+body.bpo-admin-mode .adm-module-badge.ok {
+  color: #0f9f6e;
+  background: rgba(240, 253, 249, 0.98);
+  border-color: rgba(15, 159, 110, 0.18);
+}
+
+body.bpo-admin-mode .adm-module-badge.derived {
+  color: #a16207;
+  background: rgba(255, 251, 235, 0.98);
+  border-color: rgba(202, 138, 4, 0.18);
+}
+
+body.bpo-admin-mode .adm-module-count {
+  font-size: clamp(34px, 2.2vw, 42px) !important;
+  font-weight: 900 !important;
+  color: #0a2f2f !important;
+  line-height: 1;
+}
+
+body.bpo-admin-mode .adm-module-meta {
+  color: #3f6660 !important;
+  font-size: 14px !important;
+  line-height: 1.65;
+}
+
+body.bpo-admin-mode .adm-module-endpoint {
+  margin-top: auto;
+  color: #73948e !important;
+  font-size: 12px !important;
+  word-break: break-word;
+}
+
+body.bpo-admin-mode .adm-rel-aviso,
+body.bpo-admin-mode .adm-manual-hint {
+  padding: 18px 20px;
+  background: rgba(255, 255, 255, 0.84) !important;
+  border: 1px solid rgba(213, 237, 232, 0.98) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 14px 34px rgba(10, 47, 47, 0.05) !important;
+}
+
+body.bpo-admin-mode .adm-manual-cols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+body.bpo-admin-mode .adm-manual-cols span {
+  padding: 10px 12px !important;
+  background: rgba(20, 116, 111, 0.10) !important;
+  border: 1px solid rgba(20, 116, 111, 0.10) !important;
+  border-radius: 999px !important;
+  color: #0d4f4f !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+body.bpo-admin-mode .av-exibir-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 18px !important;
+  max-width: none !important;
+  margin-top: 0;
+}
+
+body.bpo-admin-mode .av-exibir-box {
+  padding: 24px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 251, 249, 0.96)) !important;
+  border: 1px solid rgba(213, 237, 232, 0.98) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 18px 42px rgba(10, 47, 47, 0.06) !important;
+}
+
+body.bpo-admin-mode .av-exibir-header {
+  margin-bottom: 16px !important;
+  color: #5a7a74 !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.18em !important;
+}
+
+body.bpo-admin-mode .av-exibir-btn {
+  min-height: 56px;
+  justify-content: flex-start;
+  padding: 0 18px !important;
+  border-radius: 18px !important;
+  background: rgba(240, 250, 248, 0.96) !important;
+  border: 1px solid rgba(213, 237, 232, 0.98) !important;
+  color: #0d4f4f !important;
+  box-shadow: none !important;
+}
+
+body.bpo-admin-mode .av-exibir-btn + .av-exibir-btn {
+  margin-top: 12px;
+}
+
+body.bpo-admin-mode .av-exibir-btn:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #14746f 0%, #0d4f4f 100%) !important;
+  border-color: #0d4f4f !important;
+  color: #ffffff !important;
+}
+
+@media (max-width: 1240px) {
+  body.bpo-admin-mode .adm-api-kpis,
+  body.bpo-admin-mode .adm-api-modulos {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 920px) {
+  body.bpo-admin-mode .cui-main {
+    padding: 22px 18px 34px !important;
+  }
+
+  body.bpo-admin-mode .hero,
+  body.bpo-admin-mode .page-header,
+  body.bpo-admin-mode #admin-action-bar {
+    padding: 24px !important;
+    border-radius: 24px !important;
+  }
+
+  body.bpo-admin-mode .hero::after {
+    position: static;
+    display: inline-flex;
+    margin-top: 18px;
+  }
+
+  body.bpo-admin-mode .adm-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  body.bpo-admin-mode .adm-header-right {
+    justify-content: flex-start;
+  }
+
+  body.bpo-admin-mode .adm-api-top,
+  body.bpo-admin-mode .adm-manual-top {
+    padding: 18px !important;
+  }
+}
+
+@media (max-width: 720px) {
+  body.bpo-admin-mode .adm-api-kpis,
+  body.bpo-admin-mode .adm-api-modulos,
+  body.bpo-admin-mode .av-exibir-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  body.bpo-admin-mode .admin-emp-tab {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  body.bpo-admin-mode .adm-periodo-wrap,
+  body.bpo-admin-mode .adm-periodo-field {
+    width: 100%;
+  }
+
+  body.bpo-admin-mode .adm-periodo-field {
+    min-width: 0;
+  }
+}

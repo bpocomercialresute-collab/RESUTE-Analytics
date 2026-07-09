@@ -275,6 +275,7 @@ function _mostrarLogin() {
   var vc = document.getElementById('view-dash-cliente');
   if (vc) vc.style.display = 'none';
   document.body.classList.remove('client-report-mode');
+  document.body.classList.remove('bpo-admin-mode');
   setTimeout(function(){
     var email = document.getElementById('login-email');
     if (email) email.focus();
@@ -379,6 +380,7 @@ function _abrirApp() {
   var ov = document.getElementById('sidebar-overlay');
   if (ov) ov.classList.remove('active');
   document.body.classList.remove('client-report-mode');
+  document.body.classList.remove('bpo-admin-mode');
 
   // Sempre esconde a login page primeiro
   var lp = document.getElementById('view-login-page');
@@ -389,6 +391,8 @@ function _abrirApp() {
     _abrirDashCliente();
     return;
   }
+
+  document.body.classList.add('bpo-admin-mode');
 
   // Super admin → mostra sidebar e wrapper
   var sb = document.getElementById('sidebar');     if (sb) sb.style.display = 'flex';
@@ -715,6 +719,7 @@ var MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
 
 // ── ABRE O DASHBOARD ──────────────────────────────────────────────────────────
 function _abrirDashCliente() {
+  document.body.classList.remove('bpo-admin-mode');
   // Esconde login page e layout admin
   var lp = document.getElementById('view-login-page');
   if (lp) lp.style.display = 'none';
@@ -1129,6 +1134,7 @@ function dcAbrirRelatorio(tipo) {
   var app = document.getElementById('view-app');
   if (app) app.style.display = 'block';
   document.body.classList.add('client-report-mode');
+  document.body.classList.remove('bpo-admin-mode');
   if (typeof switchView === 'function') switchView('view-app');
 
   var campos = {
