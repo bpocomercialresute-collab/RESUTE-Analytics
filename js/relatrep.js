@@ -1530,6 +1530,9 @@ function repMensalRep() {
 }
 
 function repUpdateAll() {
+  if (typeof garantirAbaPremiacaoRepresentantes === 'function') {
+    garantirAbaPremiacaoRepresentantes();
+  }
   if (!BD_DATA || !BD_DATA.rows.length) {
     ['mix','positiv','semano','sem','meta','dia','cresc','mensal','premiacao'].forEach(k => {
       const el = document.getElementById('rep-tab-'+k);
@@ -1557,10 +1560,10 @@ function repUpdateAll() {
 }
 
 function repRenderTab(tabId) {
-  if (!BD_DATA || !BD_DATA.rows.length) return;
   if (typeof garantirAbaPremiacaoRepresentantes === 'function') {
     garantirAbaPremiacaoRepresentantes();
   }
+  if (!BD_DATA || !BD_DATA.rows.length) return;
   const map = {
     'rep-tab-mix':     repMix,
     'rep-tab-positiv': repPositiv,

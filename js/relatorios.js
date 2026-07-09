@@ -290,45 +290,69 @@ function garantirAbaPremiacaoRepresentantes() {
   var area = document.getElementById('av-rep-area');
   if (!area) return;
   var bar = area.querySelector('.av-tabs-bar');
-  if (bar && !bar.querySelector('[data-target="rep-tab-mensal"]')) {
-    var mensalBtn = document.createElement('button');
-    mensalBtn.className = 'av-tab';
-    mensalBtn.dataset.area = 'rep';
-    mensalBtn.dataset.target = 'rep-tab-mensal';
-    mensalBtn.textContent = 'MENSAL REP';
-    var premioExistente = bar.querySelector('[data-target="rep-tab-premiacao"]');
-    if (premioExistente) {
-      bar.insertBefore(mensalBtn, premioExistente);
+  var premioExistente = bar ? bar.querySelector('[data-target="rep-tab-premiacao"]') : null;
+  var mensalExistente = bar ? bar.querySelector('[data-target="rep-tab-mensal"]') : null;
+
+  if (bar) {
+    if (!mensalExistente) {
+      mensalExistente = document.createElement('button');
+      mensalExistente.className = 'av-tab';
+      mensalExistente.dataset.area = 'rep';
+      mensalExistente.dataset.target = 'rep-tab-mensal';
+      mensalExistente.textContent = 'MENSAL REP';
+    }
+    mensalExistente.dataset.area = 'rep';
+    mensalExistente.dataset.target = 'rep-tab-mensal';
+
+    if (!premioExistente) {
+      premioExistente = document.createElement('button');
+      premioExistente.className = 'av-tab';
+      premioExistente.dataset.area = 'rep';
+      premioExistente.dataset.target = 'rep-tab-premiacao';
+      premioExistente.textContent = 'PREMIACAO';
+      bar.appendChild(premioExistente);
     } else {
-      bar.appendChild(mensalBtn);
+      premioExistente.dataset.area = 'rep';
+      premioExistente.dataset.target = 'rep-tab-premiacao';
+    }
+
+    if (mensalExistente.parentElement !== bar) {
+      bar.insertBefore(mensalExistente, premioExistente);
+    } else if (mensalExistente.nextElementSibling !== premioExistente) {
+      bar.insertBefore(mensalExistente, premioExistente);
     }
   }
-  if (bar && !bar.querySelector('[data-target="rep-tab-premiacao"]')) {
-    var btn = document.createElement('button');
-    btn.className = 'av-tab';
-    btn.dataset.area = 'rep';
-    btn.dataset.target = 'rep-tab-premiacao';
-    btn.textContent = 'PREMIACAO';
-    bar.appendChild(btn);
-  }
-  if (!document.getElementById('rep-tab-mensal')) {
-    var mensalPane = document.createElement('div');
+
+  var mensalPane = document.getElementById('rep-tab-mensal');
+  var premioPane = document.getElementById('rep-tab-premiacao');
+  if (!mensalPane) {
+    mensalPane = document.createElement('div');
     mensalPane.id = 'rep-tab-mensal';
     mensalPane.className = 'av-tab-pane';
     mensalPane.innerHTML = '<div class="av-rel-placeholder"><p>MENSAL REP</p><span>Vendas mensais por representante</span></div>';
-    var premioPaneExistente = document.getElementById('rep-tab-premiacao');
-    if (premioPaneExistente) {
-      area.insertBefore(mensalPane, premioPaneExistente);
-    } else {
-      area.appendChild(mensalPane);
-    }
   }
-  if (!document.getElementById('rep-tab-premiacao')) {
-    var pane = document.createElement('div');
-    pane.id = 'rep-tab-premiacao';
-    pane.className = 'av-tab-pane';
-    pane.innerHTML = '<div class="av-rel-placeholder"><p>PREMIACAO</p><span>Ranking de representantes para campanhas e premios</span></div>';
-    area.appendChild(pane);
+  if (!premioPane) {
+    premioPane = document.createElement('div');
+    premioPane.id = 'rep-tab-premiacao';
+    premioPane.className = 'av-tab-pane';
+    premioPane.innerHTML = '<div class="av-rel-placeholder"><p>PREMIACAO</p><span>Ranking de representantes para campanhas e premios</span></div>';
+    area.appendChild(premioPane);
+  }
+  if (mensalPane.parentElement !== area) {
+    area.insertBefore(mensalPane, premioPane);
+  } else if (mensalPane.nextElementSibling !== premioPane) {
+    area.insertBefore(mensalPane, premioPane);
+  }
+
+  var activeRepTab = area.querySelector('.av-tabs-bar .av-tab.active[data-area="rep"]');
+  var activeTarget = activeRepTab ? activeRepTab.dataset.target : '';
+  if (!activeRepTab || !activeTarget || !document.getElementById(activeTarget)) {
+    area.querySelectorAll('.av-tabs-bar .av-tab[data-area="rep"]').forEach(function(btn) { btn.classList.remove('active'); });
+    area.querySelectorAll('.av-tab-pane').forEach(function(pane) { pane.classList.remove('active'); });
+    var defaultBtn = area.querySelector('.av-tabs-bar .av-tab[data-area="rep"][data-target="rep-tab-mix"]');
+    var defaultPane = document.getElementById('rep-tab-mix');
+    if (defaultBtn) defaultBtn.classList.add('active');
+    if (defaultPane) defaultPane.classList.add('active');
   }
 }
 
@@ -421,6 +445,7 @@ function avShowBD() {
 function avShowRel(tipo) {
   _hide('av-home');
   _hide('av-bd-area');
+  _hide('av-rel-area');
   _hide('av-rep-area');
 
   // RELAT REPRESENTANTES vai para área própria
@@ -429,8 +454,17 @@ function avShowRel(tipo) {
     if (typeof normalizarBotoesExportacao === 'function') normalizarBotoesExportacao();
     _show('av-rep-area');
     _setBreadcrumb('Relat. Representantes');
+    var repAtiva = _activePaneId('#av-rep-area') || 'rep-tab-mix';
+    if (!document.querySelector('#av-rep-area .av-tab[data-target="' + repAtiva + '"]')) {
+      repAtiva = 'rep-tab-mix';
+    }
+    document.querySelectorAll('#av-rep-area .av-tab[data-area="rep"]').forEach(function(t){ t.classList.remove('active'); });
+    document.querySelectorAll('#av-rep-area .av-tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    var repTab = document.querySelector('#av-rep-area .av-tab[data-target="' + repAtiva + '"]');
+    var repPane = document.getElementById(repAtiva);
+    if (repTab) repTab.classList.add('active');
+    if (repPane) repPane.classList.add('active');
     if (typeof BD_DATA !== 'undefined' && BD_DATA.rows && BD_DATA.rows.length > 0) {
-      var repAtiva = _activePaneId('#av-rep-area') || 'rep-tab-mix';
       if (typeof repRenderTab === 'function') repRenderTab(repAtiva);
     }
     return;
@@ -482,6 +516,10 @@ document.addEventListener('click', function(e) {
   var bar  = tab.closest('.av-tabs-bar');
   if (!bar) return;
   var area = bar.parentElement;
+  if (tab.dataset.area === 'rep' && typeof garantirAbaPremiacaoRepresentantes === 'function') {
+    garantirAbaPremiacaoRepresentantes();
+    area = document.getElementById('av-rep-area') || area;
+  }
   bar.querySelectorAll('.av-tab').forEach(function(t){ t.classList.remove('active'); });
   area.querySelectorAll('.av-tab-pane').forEach(function(p){ p.classList.remove('active'); });
   tab.classList.add('active');
