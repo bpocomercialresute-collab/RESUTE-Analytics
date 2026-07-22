@@ -6,19 +6,6 @@ function parseBody(body) {
   return body;
 }
 
-function cleanEnv(value) {
-  return String(value || '').trim().replace(/^['"]|['"]$/g, '');
-}
-
-function cleanBaseUrl(value) {
-  return cleanEnv(value).replace(/\/+$/, '');
-}
-
-async function readJsonSafe(resp) {
-  const text = await resp.text();
-  try { return text ? JSON.parse(text) : {}; } catch (e) { return { raw: text }; }
-}
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -34,15 +21,12 @@ export default async function handler(req, res) {
     return res.status(400).json({ erro: 'Email e senha sao obrigatorios.' });
   }
 
-  const supaUrl = cleanBaseUrl(process.env.SUPABASE_URL);
-  const anonKey = cleanEnv(process.env.SUPABASE_ANON_KEY);
-  const serviceKey = cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const supaUrl = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supaUrl || !anonKey || !serviceKey) {
     return res.status(500).json({ erro: 'Variaveis do Supabase nao configuradas na Vercel.' });
-  }
-  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supaUrl)) {
-    return res.status(500).json({ erro: 'SUPABASE_URL invalida na Vercel. Use somente https://SEU-PROJETO.supabase.co, sem aspas e sem barra no final.' });
   }
 
   try {
@@ -55,7 +39,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({ email, password: senha })
     });
 
-    const authData = await readJsonSafe(authResp);
+    const authData = await authResp.json();
     if (!authResp.ok || !authData.access_token) {
       return res.status(401).json({ erro: authData.error_description || 'Email ou senha incorretos.' });
     }
@@ -71,10 +55,7 @@ export default async function handler(req, res) {
       }
     );
 
-    const users = await readJsonSafe(userResp);
-    if (!userResp.ok) {
-      return res.status(500).json({ erro: 'Falha ao consultar tabela usuarios no Supabase. Verifique RLS, SERVICE_ROLE_KEY e schema public.' });
-    }
+    const users = await userResp.json();
     const roleWeight = { super_admin: 3, admin: 2, gestor: 1, cliente: 0 };
     const user = Array.isArray(users) && users.length
       ? users.slice().sort((a, b) => {
@@ -122,12 +103,6 @@ export default async function handler(req, res) {
         || null
     });
   } catch (e) {
-    const msg = e && e.message ? e.message : 'erro desconhecido';
-    if (String(msg).toLowerCase().includes('fetch failed')) {
-      return res.status(500).json({
-        erro: 'Falha ao conectar no Supabase pela Vercel. Confira SUPABASE_URL, SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY em Production.'
-      });
-    }
-    return res.status(500).json({ erro: 'Erro interno: ' + msg });
+    return res.status(500).json({ erro: 'Erro interno: ' + e.message });
   }
 }
