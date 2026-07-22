@@ -1,3 +1,5 @@
+import https from 'node:https';
+
 function parseBody(body) {
   if (!body) return {};
   if (typeof body === 'string') {
@@ -38,6 +40,46 @@ async function readJsonSafe(resp) {
   try { return text ? JSON.parse(text) : {}; } catch (e) { return { raw: text }; }
 }
 
+function requestTextWithHttps(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const req = https.request({
+      protocol: parsed.protocol,
+      hostname: parsed.hostname,
+      path: parsed.pathname + parsed.search,
+      method: options.method || 'GET',
+      headers: options.headers || {},
+      timeout: 20000
+    }, (resp) => {
+      let data = '';
+      resp.setEncoding('utf8');
+      resp.on('data', chunk => { data += chunk; });
+      resp.on('end', () => {
+        resolve({
+          ok: resp.statusCode >= 200 && resp.statusCode < 300,
+          status: resp.statusCode,
+          text: async () => data
+        });
+      });
+    });
+    req.on('timeout', () => {
+      req.destroy(new Error('timeout ao conectar no Supabase'));
+    });
+    req.on('error', reject);
+    if (options.body) req.write(options.body);
+    req.end();
+  });
+}
+
+async function safeRequest(url, options) {
+  try {
+    return await fetch(url, options);
+  } catch (e) {
+    if (!String(e && e.message || '').toLowerCase().includes('fetch failed')) throw e;
+    return await requestTextWithHttps(url, options);
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -69,7 +111,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const authResp = await fetch(`${supaUrl}/auth/v1/token?grant_type=password`, {
+    const authResp = await safeRequest(`${supaUrl}/auth/v1/token?grant_type=password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -84,7 +126,7 @@ export default async function handler(req, res) {
     }
 
     const emailNormalizado = String(email).toLowerCase();
-    const userResp = await fetch(
+    const userResp = await safeRequest(
       `${supaUrl}/rest/v1/usuarios?email=ilike.${encodeURIComponent(emailNormalizado)}&select=*,empresas(*)`,
       {
         headers: {
