@@ -6,6 +6,8 @@ function parseBody(body) {
   return body;
 }
 
+const DEFAULT_SUPABASE_URL = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
+
 function cleanEnv(value) {
   return String(value || '').trim().replace(/^['"]|['"]$/g, '');
 }
@@ -20,6 +22,15 @@ function envFirst(names) {
     if (value) return value;
   }
   return '';
+}
+
+function maskUrl(value) {
+  try {
+    const host = new URL(value).host;
+    return host.length > 10 ? host.slice(0, 6) + '...' + host.slice(-12) : host;
+  } catch (e) {
+    return 'URL invalida';
+  }
 }
 
 async function readJsonSafe(resp) {
@@ -42,7 +53,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ erro: 'Email e senha sao obrigatorios.' });
   }
 
-  const supaUrl = cleanBaseUrl(envFirst(['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'VITE_SUPABASE_URL']));
+  const supaUrl = cleanBaseUrl(envFirst(['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'VITE_SUPABASE_URL']) || DEFAULT_SUPABASE_URL);
   const anonKey = envFirst(['SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY']);
   const serviceKey = envFirst(['SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'SUPABASE_SERVICE_ROLE', 'SUPABASE_SECRET_KEY']);
 
@@ -137,7 +148,7 @@ export default async function handler(req, res) {
     const msg = e && e.message ? e.message : 'erro desconhecido';
     if (String(msg).toLowerCase().includes('fetch failed')) {
       return res.status(500).json({
-        erro: 'Falha ao conectar no Supabase pela Vercel. Confira SUPABASE_URL, SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY em Production.'
+        erro: 'Falha ao conectar no Supabase pela Vercel usando ' + maskUrl(supaUrl) + '. Confira se o projeto Supabase esta ativo e se SUPABASE_URL esta correta em Production.'
       });
     }
     return res.status(500).json({ erro: 'Erro interno: ' + msg });

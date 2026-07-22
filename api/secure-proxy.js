@@ -42,6 +42,7 @@ const VISUAL_CADASTRO_PATHS = new Set([
 
 const VISUAL_LOGIN_TOKEN_CACHE = new Map();
 const VISUAL_AUTH_CACHE = new Map();
+const DEFAULT_SUPABASE_URL = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
 
 function cleanEnv(value) {
   return String(value || '').trim().replace(/^['"]|['"]$/g, '');
@@ -507,7 +508,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Metodo nao permitido' });
 
   const env = {
-    supaUrl: cleanBaseUrl(envFirst(['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'VITE_SUPABASE_URL'])),
+    supaUrl: cleanBaseUrl(envFirst(['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'VITE_SUPABASE_URL']) || DEFAULT_SUPABASE_URL),
     anonKey: envFirst(['SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY']),
     serviceKey: envFirst(['SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'SUPABASE_SERVICE_ROLE', 'SUPABASE_SECRET_KEY']),
     visualUrl: cleanBaseUrl(envFirst(['VISUAL_SAEF_API_URL']) || 'https://api-plastrio.visualsaef.com'),
