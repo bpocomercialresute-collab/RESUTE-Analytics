@@ -2694,6 +2694,29 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 .dc-header-empresa { font-size: 10px; font-weight: 700; color: #3b82f6; text-transform: uppercase; letter-spacing: .12em; }
 .dc-header-right { display: flex; align-items: center; gap: 10px; }
 .dc-header-status { font-size: 11px; color: #475569; }
+.dc-sync-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 270px;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid #D5EDE8;
+  background: #FFFFFF;
+  color: #5A7A74;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 8px 20px rgba(10,47,47,.06);
+}
+.dc-sync-badge.ok {
+  border-color: rgba(5,150,105,.25);
+  background: #E7F7F2;
+  color: #059669;
+}
 
 /* Filtros */
 .dc-filtro {
@@ -2866,6 +2889,26 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   padding: 24px;
   text-align: center;
   color: #8ea3c0;
+}
+.dc-empty-panel {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  padding: 28px;
+  border: 1px dashed #5A7A74;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #FFFFFF 0%, #F0FAF8 100%);
+  color: #0A2F2F;
+  text-align: center;
+}
+.dc-empty-panel strong {
+  font-size: 16px;
+  font-weight: 900;
+}
+.dc-empty-panel span {
+  color: #5A7A74;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 /* Seções */

@@ -589,6 +589,8 @@ async function carregarDadosDoSupabase(empresa_id) {
     );
     var vendas = await r.json();
     if (!Array.isArray(vendas) || !vendas.length) {
+      dcLimparPainelVazio('Nenhum dado disponivel ainda', 'Sincronize a API no painel admin ou confirme se a empresa esta configurada para exibir API.');
+      dcLoading(false);
       _setStatus('⚠ Sem dados no banco. Clique Sincronizar.', '');
       return;
     }
@@ -852,11 +854,13 @@ async function dcCarregarDados(empresa_id_param) {
 
   try {
     dcLoading(true, 'Buscando dados e preparando os relatorios...');
+    dcSetUltimaSync('Conferindo ultima sincronizacao...', false);
     // Busca qual origem o admin configurou para este cliente ver
     var origemR = await fetch(SUPA_URL + '/rest/v1/empresas?id=eq.' + eid + '&select=exibir_origem',
       { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } });
     var origemD = await origemR.json();
     var exibir  = (origemD && origemD[0] && origemD[0].exibir_origem) || 'manual';
+    await dcCarregarUltimaSync(eid);
 
     // Paginação: busca TODOS os registros em lotes (sem limite de 1000)
     dcStatus('⏳ Carregando dados...');
@@ -866,6 +870,8 @@ async function dcCarregarDados(empresa_id_param) {
     );
 
     if (!Array.isArray(vendas) || !vendas.length) {
+      dcLimparPainelVazio('Nenhum dado disponivel ainda', 'Sincronize a API no painel admin ou confirme se a empresa esta configurada para exibir API.');
+      dcLoading(false);
       dcStatus('⚠ Nenhum dado disponível ainda.');
       return;
     }
@@ -897,6 +903,7 @@ async function dcCarregarDados(empresa_id_param) {
     dcStatus('✓ ' + vendas.length.toLocaleString('pt-BR') + ' registros carregados', true);
 
   } catch(e) {
+    dcLoading(false);
     dcStatus('✗ ' + e.message);
     console.error(e);
   }
@@ -949,6 +956,62 @@ function dcLoading(show, msg) {
   var txt = el.querySelector('[data-dc-loading-text]');
   if (txt && msg) txt.textContent = msg;
   el.style.display = show ? 'grid' : 'none';
+}
+
+function dcSetUltimaSync(texto, ok) {
+  var badge = document.getElementById('dc-sync-badge');
+  var footer = document.getElementById('dc-last-update');
+  var valor = texto || 'Sync pendente';
+  if (badge) {
+    badge.textContent = valor;
+    badge.classList.toggle('ok', !!ok);
+  }
+  if (footer) footer.textContent = valor;
+}
+
+async function dcCarregarUltimaSync(eid) {
+  if (!eid) {
+    dcSetUltimaSync('Empresa nao selecionada', false);
+    return;
+  }
+  try {
+    var r = await fetch(
+      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + eid + '&select=ultima_sync,ultima_data,total_registros,status&order=ultima_sync.desc&limit=1',
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
+    );
+    if (!r.ok) throw new Error('sync_log HTTP ' + r.status);
+    var data = await r.json();
+    var log = Array.isArray(data) ? data[0] : null;
+    if (!log || (!log.ultima_sync && !log.ultima_data)) {
+      dcSetUltimaSync('Nenhum sync registrado', false);
+      return;
+    }
+    var quando = log.ultima_sync ? new Date(log.ultima_sync) : null;
+    var label = quando && !isNaN(quando.getTime())
+      ? 'Ultimo sync: ' + quando.toLocaleString('pt-BR')
+      : 'Ultimo sync ate ' + String(log.ultima_data || '').split('-').reverse().join('/');
+    if (log.total_registros) label += ' - ' + Number(log.total_registros).toLocaleString('pt-BR') + ' registros';
+    dcSetUltimaSync(label, String(log.status || '').toLowerCase() !== 'erro');
+  } catch (e) {
+    console.warn('[dcCarregarUltimaSync]', e);
+    dcSetUltimaSync('Sync nao confirmado', false);
+  }
+}
+
+function dcLimparPainelVazio(titulo, detalhe) {
+  var kEl = document.getElementById('dc-kpis');
+  var html = '<div class="dc-empty-panel">'
+    + '<strong>' + (titulo || 'Nenhum dado encontrado') + '</strong>'
+    + '<span>' + (detalhe || 'Selecione outro periodo ou sincronize a API no painel admin.') + '</span>'
+    + '</div>';
+  if (kEl) kEl.innerHTML = html;
+  ['dc-chart-evolucao','dc-chart-trimestre','dc-chart-ano','dc-chart-diasem','dc-chart-produtos','dc-chart-prodqtd','dc-chart-grupos','dc-chart-marca'].forEach(function(id) {
+    if (typeof dcDestroyChart === 'function') dcDestroyChart(id);
+  });
+  ['dc-tab-reps','dc-tab-positiv','dc-tab-ufs','dc-tab-cidades','dc-tab-cli','dc-tab-inat','dc-tab-novos','dc-tab-ticket'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = '<div class="dc-empty">Sem dados para este recorte.</div>';
+  });
 }
 
 function dcDefinirPeriodoInicial(rows) {
@@ -1234,7 +1297,7 @@ function dcRenderizar() {
 
   // ── Última atualização ──
   var lu = document.getElementById('dc-last-update');
-  if (lu) lu.textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR');
+  if (lu && !lu.textContent) lu.textContent = 'Dados renderizados em ' + new Date().toLocaleString('pt-BR');
 }
 
 // Novos gráficos
