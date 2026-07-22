@@ -14,14 +14,6 @@ function cleanBaseUrl(value) {
   return cleanEnv(value).replace(/\/+$/, '');
 }
 
-function envFirst(names) {
-  for (const name of names) {
-    const value = cleanEnv(process.env[name]);
-    if (value) return value;
-  }
-  return '';
-}
-
 async function readJsonSafe(resp) {
   const text = await resp.text();
   try { return text ? JSON.parse(text) : {}; } catch (e) { return { raw: text }; }
@@ -42,16 +34,12 @@ export default async function handler(req, res) {
     return res.status(400).json({ erro: 'Email e senha sao obrigatorios.' });
   }
 
-  const supaUrl = cleanBaseUrl(envFirst(['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'VITE_SUPABASE_URL']));
-  const anonKey = envFirst(['SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY']);
-  const serviceKey = envFirst(['SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'SUPABASE_SERVICE_ROLE', 'SUPABASE_SECRET_KEY']);
+  const supaUrl = cleanBaseUrl(process.env.SUPABASE_URL);
+  const anonKey = cleanEnv(process.env.SUPABASE_ANON_KEY);
+  const serviceKey = cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   if (!supaUrl || !anonKey || !serviceKey) {
-    const faltando = [];
-    if (!supaUrl) faltando.push('SUPABASE_URL');
-    if (!anonKey) faltando.push('SUPABASE_ANON_KEY');
-    if (!serviceKey) faltando.push('SUPABASE_SERVICE_ROLE_KEY');
-    return res.status(500).json({ erro: 'Variaveis do Supabase ausentes na Vercel Production: ' + faltando.join(', ') + '.' });
+    return res.status(500).json({ erro: 'Variaveis do Supabase nao configuradas na Vercel.' });
   }
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supaUrl)) {
     return res.status(500).json({ erro: 'SUPABASE_URL invalida na Vercel. Use somente https://SEU-PROJETO.supabase.co, sem aspas e sem barra no final.' });

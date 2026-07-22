@@ -43,22 +43,6 @@ const VISUAL_CADASTRO_PATHS = new Set([
 const VISUAL_LOGIN_TOKEN_CACHE = new Map();
 const VISUAL_AUTH_CACHE = new Map();
 
-function cleanEnv(value) {
-  return String(value || '').trim().replace(/^['"]|['"]$/g, '');
-}
-
-function cleanBaseUrl(value) {
-  return cleanEnv(value).replace(/\/+$/, '');
-}
-
-function envFirst(names) {
-  for (const name of names) {
-    const value = cleanEnv(process.env[name]);
-    if (value) return value;
-  }
-  return '';
-}
-
 function getSessionEmpresaIds(appUser) {
   if (Array.isArray(appUser.empresa_ids)) return appUser.empresa_ids;
   if (typeof appUser.empresa_ids === 'string' && appUser.empresa_ids) {
@@ -507,23 +491,19 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Metodo nao permitido' });
 
   const env = {
-    supaUrl: cleanBaseUrl(envFirst(['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'VITE_SUPABASE_URL'])),
-    anonKey: envFirst(['SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY']),
-    serviceKey: envFirst(['SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'SUPABASE_SERVICE_ROLE', 'SUPABASE_SECRET_KEY']),
-    visualUrl: cleanBaseUrl(envFirst(['VISUAL_SAEF_API_URL']) || 'https://api-plastrio.visualsaef.com'),
-    visualClientId: envFirst(['VISUAL_SAEF_CLIENT_ID']),
-    visualClientSecret: envFirst(['VISUAL_SAEF_CLIENT_SECRET']),
-    visualCadastroClientId: envFirst(['VISUAL_SAEF_CADASTRO_CLIENT_ID', 'VISUAL_SAEF_CLIENT_ID']),
-    visualCadastroClientSecret: envFirst(['VISUAL_SAEF_CADASTRO_CLIENT_SECRET', 'VISUAL_SAEF_CLIENT_SECRET']),
-    visualCompanyCode: envFirst(['VISUAL_SAEF_CODIGO_EMPRESA'])
+    supaUrl: process.env.SUPABASE_URL,
+    anonKey: process.env.SUPABASE_ANON_KEY,
+    serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    visualUrl: process.env.VISUAL_SAEF_API_URL || 'https://api-plastrio.visualsaef.com',
+    visualClientId: process.env.VISUAL_SAEF_CLIENT_ID,
+    visualClientSecret: process.env.VISUAL_SAEF_CLIENT_SECRET,
+    visualCadastroClientId: process.env.VISUAL_SAEF_CADASTRO_CLIENT_ID || process.env.VISUAL_SAEF_CLIENT_ID,
+    visualCadastroClientSecret: process.env.VISUAL_SAEF_CADASTRO_CLIENT_SECRET || process.env.VISUAL_SAEF_CLIENT_SECRET,
+    visualCompanyCode: process.env.VISUAL_SAEF_CODIGO_EMPRESA || ''
   };
 
   if (!env.supaUrl || !env.anonKey || !env.serviceKey) {
-    const faltando = [];
-    if (!env.supaUrl) faltando.push('SUPABASE_URL');
-    if (!env.anonKey) faltando.push('SUPABASE_ANON_KEY');
-    if (!env.serviceKey) faltando.push('SUPABASE_SERVICE_ROLE_KEY');
-    return res.status(500).json({ erro: 'Variaveis seguras do Supabase ausentes na Vercel Production: ' + faltando.join(', ') + '.' });
+    return res.status(500).json({ erro: 'Variaveis seguras do Supabase nao configuradas na Vercel.' });
   }
 
   const { url, method, headers, body } = req.body || {};
