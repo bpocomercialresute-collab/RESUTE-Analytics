@@ -974,6 +974,46 @@ function repRoletaConicGradient(itens) {
   }).join(', ');
 }
 
+function repRoletaNomeAtual() {
+  const input = document.getElementById('rep-roleta-ganhador-input');
+  return String((input && input.value) || '').trim();
+}
+
+function repRoletaCelebracaoHtml(premio, ganhador) {
+  const confetes = new Array(18).fill('').map(function(_, idx) {
+    return `<span class="premio-roleta-confetti c${(idx % 6) + 1}" style="--i:${idx};"></span>`;
+  }).join('');
+  return `<div class="premio-roleta-celebration-backdrop"></div>
+    <div class="premio-roleta-celebration-burst">${confetes}</div>
+    <div class="premio-roleta-celebration-card">
+      <button type="button" class="premio-roleta-celebration-close" onclick="repRoletaFecharCelebracao()" aria-label="Fechar">x</button>
+      <div class="premio-roleta-celebration-kicker">Premio confirmado</div>
+      <h3>${repEsc(ganhador || 'Representante definido')}</h3>
+      <p>Ganhou <strong>${repEsc(premio || 'Premio sorteado')}</strong></p>
+      <div class="premio-roleta-celebration-note">Registre o ganhador no historico para manter a premiacao organizada.</div>
+    </div>`;
+}
+
+function repRoletaCelebrar(premio, ganhador) {
+  const box = document.getElementById('rep-roleta-celebration');
+  if (!box) return;
+  box.innerHTML = repRoletaCelebracaoHtml(premio, ganhador);
+  box.hidden = false;
+  requestAnimationFrame(function() {
+    box.classList.add('active');
+  });
+}
+
+function repRoletaFecharCelebracao() {
+  const box = document.getElementById('rep-roleta-celebration');
+  if (!box) return;
+  box.classList.remove('active');
+  setTimeout(function() {
+    box.hidden = true;
+    box.innerHTML = '';
+  }, 260);
+}
+
 function repRoletaHtml() {
   const estado = repRoletaGarantirSeed();
   const itens = estado.itens;
@@ -1198,6 +1238,198 @@ function repRoletaSortear() {
       if (centro) centro.style.transition = '';
     }, 80);
   }, 5300);
+}
+
+function repRoletaHtml() {
+  const estado = repRoletaGarantirSeed();
+  const itens = estado.itens;
+  const ang = itens.length ? 360 / itens.length : 0;
+  const ativo = estado.ultimoPremio || itens[0] || '';
+  const reps = repRoletaRepresentantesSugestoes();
+  const repsOptions = reps.map(function(nome) {
+    return `<option value="${repEsc(nome)}"></option>`;
+  }).join('');
+  const labels = itens.map((item, i) => {
+    const rot = (i * ang) + (ang / 2);
+    return `<span class="roleta-label" style="transform: rotate(${rot}deg) translateY(-128px) rotate(${-rot}deg);">${repEsc(item)}</span>`;
+  }).join('');
+  const chips = itens.map((item, idx) => `<div class="roleta-chip">
+    <span>${repEsc(item)}</span>
+    <button type="button" onclick="repRoletaRemoverItem(${idx})" aria-label="Remover">x</button>
+  </div>`).join('');
+
+  return `<div class="premio-roleta-wrap premio-roleta-wrap-updated">
+    <div class="premio-roleta-card">
+      <div class="premio-roleta-head">
+        <div>
+          <div class="premio-card-title">Roleta animada de premios</div>
+          <p class="premio-roleta-sub">Sorteie o premio, destaque o ganhador e mantenha o historico sempre organizado.</p>
+        </div>
+        <span class="premio-roleta-badge">Premiacao atual</span>
+      </div>
+      <div class="premio-roleta-stage">
+        <div class="premio-roleta-pointer"></div>
+        <div class="premio-roleta-wheel" id="rep-roleta-wheel" style="transform: rotate(${Number(estado.angulo || 0)}deg); ${itens.length ? `background: conic-gradient(${repRoletaConicGradient(itens)});` : 'background: radial-gradient(circle at center, #14746F, #0A2F2F);'}">
+          ${labels || '<span class="roleta-empty">Adicione produtos para liberar a roleta.</span>'}
+          <div class="premio-roleta-center" id="rep-roleta-center" style="transform: translate(-50%, -50%) rotate(${-Number(estado.angulo || 0)}deg);">
+            <span>RESUTE</span>
+            <strong>Gire para sortear</strong>
+          </div>
+        </div>
+      </div>
+      <div class="premio-roleta-actions">
+        <button type="button" class="premio-roleta-btn primary" onclick="repRoletaSortear()">Girar roleta</button>
+        <button type="button" class="premio-roleta-btn" onclick="repRoletaImportarProdutos()">Importar produtos do recorte</button>
+        <button type="button" class="premio-roleta-btn" onclick="repRoletaLimparItens()">Limpar produtos</button>
+      </div>
+      <div class="premio-roleta-highlight">
+        <article class="premio-roleta-highlight-card">
+          <span>Ultimo premio</span>
+          <strong id="rep-roleta-ultimo">${repEsc(ativo || 'Sem sorteio')}</strong>
+        </article>
+        <article class="premio-roleta-highlight-card">
+          <span>Representante</span>
+          <strong id="rep-roleta-ganhador-text">${repEsc(estado.ganhador || 'nao definido')}</strong>
+        </article>
+        <article class="premio-roleta-highlight-card">
+          <span>Itens ativos</span>
+          <strong id="rep-roleta-count">${itens.length}</strong>
+        </article>
+      </div>
+      <div id="rep-roleta-celebration" class="premio-roleta-celebration" hidden></div>
+    </div>
+    <div class="premio-roleta-side">
+      <div class="premio-card-title">Representante e historico</div>
+      <p class="premio-roleta-side-sub">Defina o ganhador, registre a data do premio e mantenha os ultimos sorteios visiveis.</p>
+      <datalist id="rep-roleta-reps">${repsOptions}</datalist>
+      <label class="premio-roleta-field">
+        <span>Nome do representante</span>
+        <input id="rep-roleta-ganhador-input" type="text" value="${repEsc(estado.ganhador || '')}" placeholder="Digite o nome do ganhador" list="rep-roleta-reps">
+      </label>
+      <label class="premio-roleta-field">
+        <span>Premio registrado</span>
+        <input id="rep-roleta-premio-input" type="text" value="${repEsc(estado.ultimoPremio || '')}" placeholder="Digite ou use o premio sorteado">
+      </label>
+      <label class="premio-roleta-field">
+        <span>Data do premio</span>
+        <input id="rep-roleta-data-input" type="date" value="${repEsc(repRoletaDataHoje())}">
+      </label>
+      <div class="premio-roleta-actions premio-roleta-actions-side">
+        <button type="button" class="premio-roleta-save" onclick="repRoletaSalvarGanhador()">Salvar representante</button>
+        <button type="button" class="premio-roleta-btn" onclick="repRoletaPreencherAtual()">Usar ultimo sorteio</button>
+        <button type="button" class="premio-roleta-btn primary" onclick="repRoletaAdicionarHistorico()">Adicionar ao historico</button>
+      </div>
+      <div class="premio-card-title premio-roleta-title-gap">Historico de ganhadores</div>
+      <div class="premio-roleta-history" id="rep-roleta-history">
+        ${repRoletaHistoricoHtml(estado)}
+      </div>
+      <div class="premio-card-title premio-roleta-title-gap">Produtos da roleta</div>
+      <div class="premio-roleta-add">
+        <input id="rep-roleta-produto-input" type="text" placeholder="Adicionar produto ou premio">
+        <button type="button" onclick="repRoletaAdicionarItem()">Adicionar</button>
+      </div>
+      <div class="premio-roleta-list" id="rep-roleta-list">
+        ${chips || '<div class="premio-roleta-empty-list">Sem produtos cadastrados. Use o recorte atual ou adicione manualmente.</div>'}
+      </div>
+    </div>
+  </div>`;
+}
+
+function repRoletaAtualizarResumo() {
+  const estado = repRoletaLerEstado();
+  const count = document.getElementById('rep-roleta-count');
+  if (count) count.textContent = String(estado.itens.length);
+  const ganhador = document.getElementById('rep-roleta-ganhador-text');
+  if (ganhador) ganhador.textContent = estado.ganhador || 'nao definido';
+  const ultimo = document.getElementById('rep-roleta-ultimo');
+  if (ultimo && estado.ultimoPremio) ultimo.textContent = estado.ultimoPremio;
+  const premioInput = document.getElementById('rep-roleta-premio-input');
+  if (premioInput && !String(premioInput.value || '').trim() && estado.ultimoPremio) {
+    premioInput.value = estado.ultimoPremio;
+  }
+}
+
+function repRoletaCelebracaoHtml(premio, ganhador) {
+  const confetes = new Array(18).fill('').map(function(_, idx) {
+    return `<span class="premio-roleta-confetti c${(idx % 6) + 1}" style="--i:${idx};"></span>`;
+  }).join('');
+  return `<div class="premio-roleta-celebration-backdrop"></div>
+    <div class="premio-roleta-celebration-burst">${confetes}</div>
+    <div class="premio-roleta-celebration-card">
+      <button type="button" class="premio-roleta-celebration-close" onclick="repRoletaFecharCelebracao()" aria-label="Fechar">x</button>
+      <div class="premio-roleta-celebration-kicker">Premio confirmado</div>
+      <h3>${repEsc(ganhador || 'Representante definido')}</h3>
+      <p>Ganhou <strong>${repEsc(premio || 'Premio sorteado')}</strong></p>
+      <div class="premio-roleta-celebration-note">Registre o ganhador no historico para manter a premiacao organizada.</div>
+    </div>`;
+}
+
+function repRoletaCelebrar(premio, ganhador) {
+  const box = document.getElementById('rep-roleta-celebration');
+  if (!box) return;
+  box.innerHTML = repRoletaCelebracaoHtml(premio, ganhador);
+  box.hidden = false;
+  requestAnimationFrame(function() {
+    box.classList.add('active');
+  });
+}
+
+function repRoletaFecharCelebracao() {
+  const box = document.getElementById('rep-roleta-celebration');
+  if (!box) return;
+  box.classList.remove('active');
+  setTimeout(function() {
+    box.hidden = true;
+    box.innerHTML = '';
+  }, 260);
+}
+
+function repRoletaSortear() {
+  const estado = repRoletaLerEstado();
+  const itens = estado.itens;
+  if (!itens.length) {
+    alert('Adicione ao menos um produto para girar a roleta.');
+    return;
+  }
+  const wheel = document.getElementById('rep-roleta-wheel');
+  if (!wheel) return;
+  if (wheel.dataset.spinning === '1') return;
+  const resultado = document.getElementById('rep-roleta-ultimo');
+  const count = itens.length;
+  const chosen = Math.floor(Math.random() * count);
+  const segmento = 360 / count;
+  const atual = Number(estado.angulo || 0);
+  const giros = 16 + Math.floor(Math.random() * 4);
+  const anguloAlvo = 360 - (chosen * segmento + (segmento / 2));
+  const atualNormalizado = ((atual % 360) + 360) % 360;
+  const delta = ((anguloAlvo - atualNormalizado) + 360) % 360;
+  const novoAngulo = atual + (giros * 360) + delta;
+  const centro = document.getElementById('rep-roleta-center');
+  const nomeAtual = repRoletaNomeAtual();
+  if (nomeAtual) estado.ganhador = nomeAtual;
+  wheel.classList.add('is-spinning');
+  wheel.style.transition = 'transform 6.4s cubic-bezier(.11,.82,.15,1)';
+  wheel.style.transform = `rotate(${novoAngulo}deg)`;
+  if (centro) {
+    centro.style.transition = 'transform 6.4s cubic-bezier(.11,.82,.15,1)';
+    centro.style.transform = `translate(-50%, -50%) rotate(${-novoAngulo}deg)`;
+  }
+  wheel.dataset.spinning = '1';
+  setTimeout(() => {
+    estado.angulo = novoAngulo;
+    estado.ultimoPremio = itens[chosen];
+    repRoletaSalvarEstado(estado);
+    if (resultado) resultado.textContent = itens[chosen];
+    repRoletaAtualizarResumo();
+    repRoletaPreencherAtual();
+    wheel.dataset.spinning = '0';
+    wheel.classList.remove('is-spinning');
+    repRoletaCelebrar(itens[chosen], estado.ganhador || 'Representante a definir');
+    setTimeout(() => {
+      wheel.style.transition = '';
+      if (centro) centro.style.transition = '';
+    }, 80);
+  }, 6500);
 }
 
 function repBaseRows() {

@@ -4,11 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <title>RESUTE Analytics</title>
+  <meta name="description" content="RESUTE Analytics - Painel executivo de vendas, representantes e produtos da Varremaster." />
+  <meta property="og:title" content="RESUTE Analytics" />
+  <meta property="og:description" content="Painel executivo de vendas, representantes e produtos da Varremaster." />
+  <meta property="og:type" content="website" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css?v=5" />
-  <link rel="icon" href="data:," />
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
 </head>
 <body class="cui-body">
 
@@ -621,18 +625,18 @@
           <label class="login-label">Email</label>
           <div class="login-input-wrap">
             <svg class="login-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            <input id="login-email" class="login-input" type="email" placeholder="seu@email.com" />
+            <input id="login-modal-email" class="login-input" type="email" placeholder="seu@email.com" />
           </div>
         </div>
         <div class="login-field">
           <label class="login-label">Senha</label>
           <div class="login-input-wrap">
             <svg class="login-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <input id="login-senha" class="login-input" type="password" placeholder="••••••••" />
+            <input id="login-modal-senha" class="login-input" type="password" placeholder="••••••••" />
           </div>
         </div>
-        <div id="login-erro" class="login-erro"></div>
-        <button id="login-btn" class="login-btn" onclick="fazerLogin()">
+        <div id="login-modal-erro" class="login-erro"></div>
+        <button id="login-modal-btn" class="login-btn" onclick="fazerLogin()">
           Entrar
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
         </button>

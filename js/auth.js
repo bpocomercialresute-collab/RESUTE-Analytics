@@ -303,16 +303,34 @@ function fecharSaibaMaisResute() {
   document.body.style.overflow = '';
 }
 
-async function fazerLogin() {
-  var email = document.getElementById('login-email').value.trim();
-  var senha = document.getElementById('login-senha').value.trim();
-  var erro  = document.getElementById('login-erro');
-  var btn   = document.getElementById('login-btn');
+function _loginModalVisivel() {
+  var modal = document.getElementById('login-modal');
+  return !!(modal && modal.style.display !== 'none');
+}
 
-  erro.textContent = '';
-  if (!email || !senha) { erro.textContent = 'Preencha email e senha.'; return; }
-  btn.disabled = true;
-  btn.innerHTML = '<span class="auth-spin">⟳</span> Entrando...';
+function _loginCampo(mainId, modalId) {
+  if (_loginModalVisivel()) {
+    var modalEl = document.getElementById(modalId);
+    if (modalEl) return modalEl;
+  }
+  return document.getElementById(mainId);
+}
+
+async function fazerLogin() {
+  var emailEl = _loginCampo('login-email', 'login-modal-email');
+  var senhaEl = _loginCampo('login-senha', 'login-modal-senha');
+  var erro  = _loginCampo('login-erro', 'login-modal-erro');
+  var btn   = _loginCampo('login-btn', 'login-modal-btn');
+  var email = emailEl ? emailEl.value.trim() : '';
+  var senha = senhaEl ? senhaEl.value.trim() : '';
+
+  if (erro) erro.textContent = '';
+  if (!email || !senha) {
+    if (erro) erro.textContent = 'Preencha email e senha.';
+    return;
+  }
+  if (btn) btn.disabled = true;
+  if (btn) btn.innerHTML = '<span class="auth-spin">⟳</span> Entrando...';
 
   try {
     // Login via proxy seguro (/api/login) — chaves ficam no servidor
@@ -347,10 +365,12 @@ async function fazerLogin() {
 
   } catch(e) {
     console.error('Login erro:', e);
-    erro.textContent = e.message;
+    if (erro) erro.textContent = e.message;
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = 'Entrar <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M5 12h14M13 5l7 7-7 7"/></svg>';
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = 'Entrar <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M5 12h14M13 5l7 7-7 7"/></svg>';
+    }
   }
 }
 
@@ -360,9 +380,6 @@ function fazerLogout() {
   _clearStoredSession();
 
 // ── LOJA ATIVA (Varremaster) ───────────────────────────────────────────────────
-var LOJA_NOMES = {
-  'af3b599b-65c5-4868-b8bf-a5934da84f0d': 'Varremaster'
-};
   if (typeof switchView === 'function') switchView('view-home');
   ['sync-area','header-user','sidebar-user'].forEach(function(id){
     var el = document.getElementById(id);
@@ -791,10 +808,6 @@ function cliAba(btn, id) {
   var pane = document.getElementById(id);
   if (pane) { pane.classList.add('active'); pane.style.display = 'block'; }
 }
-
-var DC_RAW = [];
-var DC_DATA = [];
-
 
 // =============================================================================
 // PAGINAÇÃO — busca TODOS os registros do Supabase em lotes de 1000
