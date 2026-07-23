@@ -6839,3 +6839,112 @@ body.bpo-admin-mode .av-exibir-btn:hover {
   padding: 22px;
   text-align: center;
 }
+
+.dc-inactive-empty {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  color: #5A7A74;
+  border: 1px dashed rgba(20, 116, 111, .24);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(213, 237, 232, .42), rgba(255, 255, 255, .72));
+}
+
+.dc-inactive-empty::before {
+  content: "OK";
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  color: #0D4F4F;
+  font-size: 12px;
+  font-weight: 950;
+  background: rgba(45, 212, 191, .18);
+  border: 1px solid rgba(20, 116, 111, .22);
+}
+
+.dc-inactive-empty strong {
+  color: #0A2F2F;
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.dc-inactive-empty span {
+  max-width: 360px;
+  line-height: 1.45;
+}
+
+.dc-inactive-empty small {
+  color: #7A918D;
+  font-size: 11px;
+}
+
+.dc-inactive-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.dc-inactive-summary > div {
+  border: 1px solid rgba(20, 116, 111, .16);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(240, 250, 248, .82);
+}
+
+.dc-inactive-summary strong {
+  display: block;
+  color: #0A2F2F;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.dc-inactive-summary span {
+  display: block;
+  color: #5A7A74;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .05em;
+  margin-top: 6px;
+  text-transform: uppercase;
+}
+
+.dc-inactive-table .dc-inactive-badge {
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.dc-inactive-badge.ok {
+  color: #0D4F4F;
+  background: rgba(45, 212, 191, .18);
+}
+
+.dc-inactive-badge.atencao {
+  color: #8A4A00;
+  background: rgba(217, 119, 6, .16);
+}
+
+.dc-inactive-badge.critico {
+  color: #991B1B;
+  background: rgba(220, 38, 38, .14);
+}
+
+@media (max-width: 720px) {
+  .dc-inactive-summary {
+    grid-template-columns: 1fr;
+  }
+}

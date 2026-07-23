@@ -2158,8 +2158,9 @@ function dcChartGrupos(rows) {
 }
 
 function dcTabelaInativos(rows) {
+  var fonte = Array.isArray(DC_RAW) && DC_RAW.length ? DC_RAW : (rows || []);
   var mapa = {};
-  rows.forEach(function(r){
+  fonte.forEach(function(r){
     var k = dcClienteNome(r);
     var d = dcDataValor(r);
     if (!d || isNaN(d.getTime())) return;
@@ -2167,20 +2168,40 @@ function dcTabelaInativos(rows) {
     mapa[k].fat += dcValorLinha(r);
     if (d > mapa[k].ultima) mapa[k].ultima = d;
   });
-  var hoje = new Date();
+  var hoje = fonte.reduce(function(max, r) {
+    var d = dcDataValor(r);
+    return d && !isNaN(d.getTime()) && d > max ? d : max;
+  }, new Date());
   var inativos = Object.entries(mapa).map(function(e){
     var dias = Math.floor((hoje - e[1].ultima) / 86400000);
     return { nome: e[0], dias: dias, ultima: e[1].ultima.toLocaleDateString('pt-BR'), fat: e[1].fat };
   }).filter(function(e){ return e.dias >= 30; }).sort(function(a,b){ return b.dias-a.dias; }).slice(0,10);
   var el = document.getElementById('dc-tabela-inativos') || document.getElementById('dc-tab-inat');
   if (!el) return;
-  if (!inativos.length) { el.innerHTML = '<div class="dc-empty">Nenhum cliente inativo no periodo.</div>'; return; }
-  var html = '<table class="dc-tabela"><thead><tr><th>Cliente</th><th class="num">Dias sem compra</th><th>Ultima compra</th></tr></thead><tbody>';
+  if (!inativos.length) {
+    el.innerHTML = '<div class="dc-inactive-empty">'
+      + '<strong>Sem alerta de inatividade</strong>'
+      + '<span>Nenhum cliente da base ficou 30 dias ou mais sem compra.</span>'
+      + '<small>Referência: última data encontrada nos dados carregados.</small>'
+      + '</div>';
+    return;
+  }
+  var total60 = inativos.filter(function(e){ return e.dias >= 60; }).length;
+  var total90 = inativos.filter(function(e){ return e.dias >= 90; }).length;
+  var html = '<div class="dc-inactive-summary">'
+    + '<div><strong>'+inativos.length+'</strong><span>clientes 30+ dias</span></div>'
+    + '<div><strong>'+total60+'</strong><span>clientes 60+ dias</span></div>'
+    + '<div><strong>'+total90+'</strong><span>clientes 90+ dias</span></div>'
+    + '</div>'
+    + '<table class="dc-tabela dc-inactive-table"><thead><tr><th>Cliente</th><th>Última compra</th><th class="num">Sem compra</th><th class="num">Histórico</th><th>Status</th></tr></thead><tbody>';
   inativos.forEach(function(e){
-    var cor = e.dias > 90 ? '#DC2626' : e.dias > 60 ? '#D97706' : '#5A7A74';
+    var status = e.dias >= 90 ? 'Crítico' : (e.dias >= 60 ? 'Atenção' : 'Monitorar');
+    var classe = e.dias >= 90 ? 'critico' : (e.dias >= 60 ? 'atencao' : 'ok');
     html += '<tr><td>'+escapeHtml(e.nome)+'</td>'
-      + '<td class="num" style="font-weight:800;color:'+cor+'">'+e.dias+' dias</td>'
-      + '<td style="color:#5A7A74">'+e.ultima+'</td></tr>';
+      + '<td style="color:#5A7A74">'+e.ultima+'</td>'
+      + '<td class="num"><strong>'+e.dias+' dias</strong></td>'
+      + '<td class="num">'+dcMoedaLimpa(e.fat)+'</td>'
+      + '<td><span class="dc-inactive-badge '+classe+'">'+status+'</span></td></tr>';
   });
   el.innerHTML = html + '</tbody></table>';
 }
