@@ -297,7 +297,6 @@ function abrirSaibaMaisResute() {
   document.body.classList.add('lp-about-open');
   document.querySelectorAll('.lp-nav-more').forEach(function(btn) {
     btn.textContent = 'Voltar ao login';
-    btn.setAttribute('onclick', 'fecharSaibaMaisResute()');
   });
   document.body.style.overflow = 'hidden';
 }
@@ -308,9 +307,20 @@ function fecharSaibaMaisResute() {
   document.body.classList.remove('lp-about-open');
   document.querySelectorAll('.lp-nav-more').forEach(function(btn) {
     btn.textContent = 'Saiba mais';
-    btn.setAttribute('onclick', 'abrirSaibaMaisResute()');
   });
   document.body.style.overflow = '';
+}
+
+function alternarSaibaMaisResute(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  if (document.body.classList.contains('lp-about-open')) {
+    fecharSaibaMaisResute();
+  } else {
+    abrirSaibaMaisResute();
+  }
 }
 
 function _loginModalVisivel() {
