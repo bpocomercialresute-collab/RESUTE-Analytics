@@ -715,6 +715,16 @@
           <h1 class="dc-hero-title">Resultados organizados por período, produto e representante.</h1>
           <p class="dc-hero-sub">Visão comercial consolidada para acompanhar faturamento, mix de produtos, clientes e performance da equipe.</p>
           <div id="dc-periodo-label" class="dc-periodo-label"></div>
+          <div class="dc-panel-tools">
+            <label>
+              Ordenar relatórios
+              <select id="dc-ordem-tabelas" class="dc-filtro" onchange="dcRenderizar()">
+                <option value="desc">Maior para menor</option>
+                <option value="asc">Menor para maior</option>
+                <option value="az">A-Z</option>
+              </select>
+            </label>
+          </div>
         </div>
         <div class="dc-hero-actions">
           <button class="dc-action-btn" onclick="dcAbrirRelatorio('relat-produtos')">
@@ -801,6 +811,14 @@
       <!-- Regiões -->
       <section class="dc-section">
         <h2 class="dc-section-title">Regiões</h2>
+        <div class="dc-panel-tools dc-panel-tools-inline">
+          <label>
+            Filtrar cidades por UF
+            <select id="dc-filtro-uf-cidade" class="dc-filtro" onchange="dcRenderizar()">
+              <option value="">Todos os estados</option>
+            </select>
+          </label>
+        </div>
         <div class="dc-grid-2">
           <div class="dc-card">
             <div class="dc-card-title">Faturamento por Estado</div>
@@ -829,6 +847,16 @@
         <div class="dc-grid-2">
           <div class="dc-card">
             <div class="dc-card-title">Novos Clientes no Período</div>
+            <div class="dc-panel-tools dc-panel-tools-compact">
+              <label>
+                Organizar
+                <select id="dc-ordem-novos" class="dc-filtro" onchange="_dcTabelaNovosClientes(DC_DATA)">
+                  <option value="recente">Mais recentes</option>
+                  <option value="antigo">Mais antigos</option>
+                  <option value="maior">Maior valor</option>
+                </select>
+              </label>
+            </div>
             <div id="dc-tab-novos" class="dc-tabela-wrap"></div>
           </div>
           <div class="dc-card">
