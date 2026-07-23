@@ -294,12 +294,22 @@ function fecharLogin() {
 function abrirSaibaMaisResute() {
   var about = document.getElementById('lp-about-page');
   if (about) about.style.display = 'block';
+  document.body.classList.add('lp-about-open');
+  document.querySelectorAll('.lp-nav-more').forEach(function(btn) {
+    btn.textContent = 'Voltar ao login';
+    btn.setAttribute('onclick', 'fecharSaibaMaisResute()');
+  });
   document.body.style.overflow = 'hidden';
 }
 
 function fecharSaibaMaisResute() {
   var about = document.getElementById('lp-about-page');
   if (about) about.style.display = 'none';
+  document.body.classList.remove('lp-about-open');
+  document.querySelectorAll('.lp-nav-more').forEach(function(btn) {
+    btn.textContent = 'Saiba mais';
+    btn.setAttribute('onclick', 'abrirSaibaMaisResute()');
+  });
   document.body.style.overflow = '';
 }
 

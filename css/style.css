@@ -7158,3 +7158,181 @@ body.bpo-admin-mode .av-exibir-btn:hover {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Pagina Saiba Mais - camada especifica para vencer resets globais */
+body.lp-about-open {
+  overflow: hidden !important;
+}
+
+body.lp-about-open .lp-nav {
+  background: #0A2F2F !important;
+  border-color: rgba(45, 212, 191, .18) !important;
+  box-shadow: 0 12px 30px rgba(10, 47, 47, .10) !important;
+}
+
+body.lp-about-open .lp-nav-more {
+  border-color: rgba(255, 255, 255, .28) !important;
+  color: #FFFFFF !important;
+  background: rgba(255, 255, 255, .08) !important;
+}
+
+body.lp-about-open .lp-nav-more:hover {
+  background: #2DD4BF !important;
+  border-color: #2DD4BF !important;
+  color: #0A2F2F !important;
+}
+
+body.lp-about-open #lp-about-page.lp-about-page {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(45, 212, 191, .18), transparent 34%),
+    linear-gradient(180deg, #F0FAF8 0%, #E7F5F2 100%) !important;
+  color: #0A2F2F !important;
+  padding-top: 88px !important;
+}
+
+body.lp-about-open .lp-about-shell {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  max-width: 1160px !important;
+  padding: 28px 32px 54px !important;
+}
+
+body.lp-about-open .lp-about-topbar {
+  align-items: center !important;
+  background: #FFFFFF !important;
+  border: 1px solid #D5EDE8 !important;
+  border-radius: 22px !important;
+  box-shadow: 0 18px 44px rgba(10, 47, 47, .08) !important;
+  margin-bottom: 18px !important;
+  padding: 18px 20px !important;
+}
+
+body.lp-about-open .lp-about-kicker,
+body.lp-about-open .lp-about-eyebrow,
+body.lp-about-open .lp-about-panel-label {
+  background: transparent !important;
+  color: #14746F !important;
+  border: 0 !important;
+}
+
+body.lp-about-open .lp-about-title,
+body.lp-about-open .lp-about-hero-copy h3,
+body.lp-about-open .lp-process-head h3,
+body.lp-about-open .lp-service-card h3,
+body.lp-about-open .lp-about-panel-card strong,
+body.lp-about-open .lp-process-step strong {
+  color: #0A2F2F !important;
+}
+
+body.lp-about-open .lp-about-close {
+  background: #14746F !important;
+  border-color: #14746F !important;
+  color: #FFFFFF !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+}
+
+body.lp-about-open .lp-about-close:hover {
+  background: #0D4F4F !important;
+  border-color: #0D4F4F !important;
+}
+
+body.lp-about-open .lp-about-hero {
+  align-items: stretch !important;
+  gap: 18px !important;
+}
+
+body.lp-about-open .lp-about-hero-copy,
+body.lp-about-open .lp-about-hero-panel,
+body.lp-about-open .lp-about-services,
+body.lp-about-open .lp-about-process,
+body.lp-about-open .lp-service-card,
+body.lp-about-open .lp-process-step,
+body.lp-about-open .lp-about-panel-card {
+  background: #FFFFFF !important;
+  border: 1px solid #D5EDE8 !important;
+  color: #0A2F2F !important;
+  box-shadow: 0 14px 36px rgba(10, 47, 47, .07) !important;
+}
+
+body.lp-about-open .lp-about-hero-copy,
+body.lp-about-open .lp-about-hero-panel,
+body.lp-about-open .lp-about-services,
+body.lp-about-open .lp-about-process {
+  border-radius: 26px !important;
+}
+
+body.lp-about-open .lp-about-hero-copy {
+  padding: 34px 36px !important;
+}
+
+body.lp-about-open .lp-about-hero-copy h3 {
+  font-size: clamp(30px, 3.3vw, 42px) !important;
+  line-height: 1.06 !important;
+  margin: 0 0 18px !important;
+  max-width: 760px !important;
+}
+
+body.lp-about-open .lp-about-hero-copy p,
+body.lp-about-open .lp-about-panel-card small,
+body.lp-about-open .lp-service-card p,
+body.lp-about-open .lp-process-step p {
+  color: #486962 !important;
+  font-size: 15px !important;
+  line-height: 1.65 !important;
+}
+
+body.lp-about-open .lp-about-hero-panel {
+  display: grid !important;
+  gap: 14px !important;
+  padding: 18px !important;
+}
+
+body.lp-about-open .lp-about-panel-card {
+  background: linear-gradient(135deg, #0A2F2F 0%, #0D4F4F 100%) !important;
+  border-color: rgba(45, 212, 191, .18) !important;
+  color: #FFFFFF !important;
+  border-radius: 22px !important;
+}
+
+body.lp-about-open .lp-about-panel-card strong {
+  color: #FFFFFF !important;
+}
+
+body.lp-about-open .lp-about-panel-card small,
+body.lp-about-open .lp-about-panel-card .lp-about-panel-label {
+  color: rgba(255, 255, 255, .76) !important;
+}
+
+body.lp-about-open .lp-about-services {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  padding: 18px !important;
+}
+
+body.lp-about-open .lp-service-card,
+body.lp-about-open .lp-process-step {
+  border-radius: 20px !important;
+  padding: 22px !important;
+}
+
+body.lp-about-open .lp-about-process {
+  padding: 28px !important;
+}
+
+body.lp-about-open .lp-process-step span {
+  background: #D5EDE8 !important;
+  color: #0D4F4F !important;
+}
+
+@media (max-width: 980px) {
+  body.lp-about-open .lp-about-hero,
+  body.lp-about-open .lp-about-services,
+  body.lp-about-open .lp-process-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  body.lp-about-open .lp-about-shell {
+    padding: 20px 16px 42px !important;
+  }
+}
