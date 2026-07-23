@@ -1290,6 +1290,69 @@ function dcTextoCurto(texto, limite) {
   return s.length > max ? s.slice(0, max - 1) + '...' : s;
 }
 
+function dcCampoTexto(row, campos, fallback) {
+  for (var i = 0; i < campos.length; i++) {
+    var valor = dcTextoValor(row && row[campos[i]]).trim();
+    if (valor) return valor;
+  }
+  return fallback || '';
+}
+
+function dcProdutoNome(row) {
+  return dcCampoTexto(row, [
+    'produto', 'produto_nome', 'nome_produto', 'descricao_produto',
+    'descricao_item', 'descricaoItem', 'descricaoitem', 'nome',
+    'cod_prod', 'codigo_item', 'codigoItem', 'codigo', 'id_externo'
+  ], 'Sem produto');
+}
+
+function dcGrupoNome(row) {
+  return dcCampoTexto(row, [
+    'grupo', 'grupo_produto', 'grupo_pai', 'grupoPai', 'subgrupo',
+    'familia', 'familia_produto', 'classes', 'classe'
+  ], 'Sem grupo');
+}
+
+function dcMarcaNome(row) {
+  return dcCampoTexto(row, [
+    'marca', 'industria', 'fabricante', 'familia', 'familia_produto',
+    'classes', 'classe'
+  ], 'Sem marca');
+}
+
+function dcRepresentanteNome(row) {
+  return dcCampoTexto(row, [
+    'vendedor', 'representante', 'nome_vendedor', 'vendedor_nome',
+    'nome_representante', 'representante_nome'
+  ], 'Sem representante');
+}
+
+function dcClienteNome(row) {
+  return dcCampoTexto(row, [
+    'cliente', 'nome_cliente', 'cliente_nome', 'razao_social',
+    'razaoSocial', 'fantasia', 'nome_fantasia'
+  ], 'Sem cliente');
+}
+
+function dcCidadeNome(row) {
+  return dcCampoTexto(row, ['cidade', 'municipio', 'cidade_cliente'], 'Sem cidade');
+}
+
+function dcUfNome(row) {
+  return dcCampoTexto(row, ['uf', 'estado', 'uf_cliente'], '');
+}
+
+function dcCampoRelatorio(row, campo) {
+  if (campo === 'produto') return dcProdutoNome(row);
+  if (campo === 'grupo') return dcGrupoNome(row);
+  if (campo === 'marca') return dcMarcaNome(row);
+  if (campo === 'vendedor') return dcRepresentanteNome(row);
+  if (campo === 'cliente') return dcClienteNome(row);
+  if (campo === 'cidade') return dcCidadeNome(row);
+  if (campo === 'uf') return dcUfNome(row) || 'Sem UF';
+  return dcTextoValor(row && row[campo]).trim();
+}
+
 function dcValorCompacto(valor) {
   var n = dcNumeroBase(valor);
   if (!Number.isFinite(n)) n = 0;
@@ -1317,9 +1380,24 @@ function dcOrdenarItens(lista, campoValor) {
 function dcPeriodoAtualDatas() {
   var inicioEl = document.getElementById('dc-filtro-inicio');
   var fimEl = document.getElementById('dc-filtro-fim');
+  var anoEl = document.getElementById('dc-filtro-ano');
+  var mesEl = document.getElementById('dc-filtro-mes');
+  var inicio = inicioEl && inicioEl.value ? new Date(inicioEl.value + 'T00:00:00') : null;
+  var fim = fimEl && fimEl.value ? new Date(fimEl.value + 'T23:59:59') : null;
+  var ano = anoEl ? parseInt(anoEl.value || '0', 10) : 0;
+  var mes = mesEl ? parseInt(mesEl.value || '0', 10) : 0;
+  if (!inicio && !fim && ano) {
+    if (mes) {
+      inicio = new Date(ano, mes - 1, 1, 0, 0, 0);
+      fim = new Date(ano, mes, 0, 23, 59, 59);
+    } else {
+      inicio = new Date(ano, 0, 1, 0, 0, 0);
+      fim = new Date(ano, 11, 31, 23, 59, 59);
+    }
+  }
   return {
-    inicio: inicioEl && inicioEl.value ? new Date(inicioEl.value + 'T00:00:00') : null,
-    fim: fimEl && fimEl.value ? new Date(fimEl.value + 'T23:59:59') : null
+    inicio: inicio,
+    fim: fim
   };
 }
 
@@ -1328,7 +1406,7 @@ function dcAtualizarFiltroUfCidade(rows) {
   if (!sel) return;
   var atual = sel.value || '';
   var ufs = Array.from(new Set((rows || []).map(function(r) {
-    return dcTextoValor(r.uf).trim().toUpperCase();
+    return dcUfNome(r).trim().toUpperCase();
   }).filter(Boolean))).sort();
   sel.innerHTML = '<option value="">Todos os estados</option>' + ufs.map(function(uf) {
     return '<option value="' + escapeHtml(uf) + '">' + escapeHtml(uf) + '</option>';
@@ -1341,34 +1419,42 @@ function dcFiltrarCidadesPorUf(rows) {
   var uf = sel ? String(sel.value || '').trim().toUpperCase() : '';
   if (!uf) return rows || [];
   return (rows || []).filter(function(r) {
-    return dcTextoValor(r.uf).trim().toUpperCase() === uf;
+    return dcUfNome(r).trim().toUpperCase() === uf;
   });
 }
 
 var DC_VALUE_LABEL_PLUGIN = {
   id: 'dcValueLabels',
   afterDatasetsDraw: function(chart) {
-    var pluginOpts = chart.options && chart.options.plugins && chart.options.plugins.dcValueLabels;
-    if (!pluginOpts || pluginOpts.display === false) return;
-    var ctx = chart.ctx;
-    var horizontal = chart.options && chart.options.indexAxis === 'y';
-    ctx.save();
-    ctx.font = (pluginOpts.fontWeight || '700') + ' ' + (pluginOpts.fontSize || 10) + 'px sans-serif';
-    ctx.fillStyle = pluginOpts.color || '#0A2F2F';
-    ctx.textBaseline = 'middle';
-    chart.data.datasets.forEach(function(ds, datasetIndex) {
-      var meta = chart.getDatasetMeta(datasetIndex);
-      if (!meta || meta.hidden) return;
-      meta.data.forEach(function(element, index) {
-        var valor = ds.data[index];
-        if (!valor) return;
-        var label = pluginOpts.formatter ? pluginOpts.formatter(valor, chart.data.labels[index], index) : dcNumeroLimpo(valor, 0);
-        var pos = element.tooltipPosition();
-        ctx.textAlign = horizontal ? 'left' : 'center';
-        ctx.fillText(label, horizontal ? pos.x + 8 : pos.x, horizontal ? pos.y : pos.y - 10);
+    try {
+      var pluginOpts = chart.options && chart.options.plugins && chart.options.plugins.dcValueLabels;
+      if (!pluginOpts || pluginOpts.display === false) return;
+      var ctx = chart.ctx;
+      var horizontal = chart.options && chart.options.indexAxis === 'y';
+      ctx.save();
+      ctx.font = (pluginOpts.fontWeight || '700') + ' ' + (pluginOpts.fontSize || 10) + 'px sans-serif';
+      ctx.fillStyle = pluginOpts.color || '#0A2F2F';
+      ctx.textBaseline = 'middle';
+      chart.data.datasets.forEach(function(ds, datasetIndex) {
+        var meta = chart.getDatasetMeta(datasetIndex);
+        if (!meta || meta.hidden) return;
+        meta.data.forEach(function(element, index) {
+          var valor = dcNumeroBase(ds.data[index]);
+          if (!valor || !Number.isFinite(valor)) return;
+          var label = pluginOpts.formatter ? pluginOpts.formatter(valor, chart.data.labels[index], index) : dcNumeroLimpo(valor, 0);
+          label = dcTextoValor(label);
+          if (!label || !element || typeof element.tooltipPosition !== 'function') return;
+          var pos = element.tooltipPosition();
+          if (!pos) return;
+          ctx.textAlign = horizontal ? 'left' : 'center';
+          ctx.fillText(label, horizontal ? pos.x + 8 : pos.x, horizontal ? pos.y : pos.y - 10);
+        });
       });
-    });
-    ctx.restore();
+      ctx.restore();
+    } catch (e) {
+      try { if (chart && chart.ctx) chart.ctx.restore(); } catch (ignore) {}
+      console.warn('[dcValueLabels]', e);
+    }
   }
 };
 
@@ -1402,9 +1488,9 @@ function dcRenderizar() {
   // ── KPIs principais ──
   var fat = rows.reduce(function(s,r){ return s + dcValorLinha(r); }, 0);
   var ped = dcContarPedidosUnicos(rows);
-  var cli = new Set(rows.map(function(r){ return r.cliente; }).filter(Boolean)).size;
-  var prd = new Set(rows.map(function(r){ return r.produto; }).filter(Boolean)).size;
-  var rep = new Set(rows.map(function(r){ return r.vendedor; }).filter(Boolean)).size;
+  var cli = new Set(rows.map(function(r){ return dcClienteNome(r); }).filter(function(v){ return v && v !== 'Sem cliente'; })).size;
+  var prd = new Set(rows.map(function(r){ return dcProdutoNome(r); }).filter(function(v){ return v && v !== 'Sem produto'; })).size;
+  var rep = new Set(rows.map(function(r){ return dcRepresentanteNome(r); }).filter(function(v){ return v && v !== 'Sem representante'; })).size;
   var tick = ped ? fat/ped : 0;
 
   var kEl = document.getElementById('dc-kpis');
@@ -1892,6 +1978,211 @@ function dcChartOpts(prefix) {
       y: { ticks: { color: '#5A7A74', font: { size: 10 }, callback: function(v){ return this && this.type === 'category' ? this.getLabelForValue(v) : (prefix ? dcValorCompacto(v) : dcNumeroLimpo(v, 0)); } }, grid: { color: '#D5EDE8' } }
     }
   };
+}
+
+// Relatorios do painel inicial usando nomes oficiais e alternativos da API.
+function _dcChartProdQtd(rows) {
+  var m = {};
+  rows.forEach(function(r){ var k = dcProdutoNome(r); m[k] = (m[k] || 0) + dcQtdLinha(r); });
+  var s = Object.entries(m).sort(function(a,b){return b[1]-a[1];}).slice(0,10);
+  _dcDestroy('dc-chart-prodqtd');
+  var ctx = document.getElementById('dc-chart-prodqtd'); if (!ctx) return;
+  DC_CHARTS['prodqtd'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: s.map(function(e){return dcTextoCurto(e[0], 34);}),
+            datasets: [{ data: s.map(function(e){return e[1];}), backgroundColor: '#059669', borderRadius: 4 }] },
+    options: Object.assign(_dcOpts(false), {
+      indexAxis: 'y',
+      plugins: Object.assign(_dcOpts(false).plugins, {
+        dcValueLabels: { formatter: function(v){ return dcNumeroLimpo(v, 0); }, color: '#0A2F2F' }
+      })
+    }),
+    plugins: [DC_VALUE_LABEL_PLUGIN]
+  });
+}
+
+function _dcChartMarca(rows) {
+  var m = {};
+  rows.forEach(function(r){ var k = dcMarcaNome(r); if (k && k.trim()) m[k] = (m[k] || 0) + dcValorLinha(r); });
+  var s = Object.entries(m).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  _dcDestroy('dc-chart-marca');
+  var ctx = document.getElementById('dc-chart-marca'); if (!ctx) return;
+  DC_CHARTS['marca'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: s.map(function(e){return dcTextoCurto(e[0], 24);}),
+            datasets: [{ data: s.map(function(e){return e[1];}),
+              backgroundColor: ['#14746F','#2DD4BF','#059669','#0D4F4F','#D97706','#7C3AED','#DC2626','#5A7A74'], borderWidth: 0, borderRadius: 6 }] },
+    options: Object.assign(_dcOpts(false), { indexAxis: 'y' }),
+    plugins: [DC_VALUE_LABEL_PLUGIN]
+  });
+}
+
+function _dcTabelaPositivacao(rows) {
+  var mp = {};
+  rows.forEach(function(r) {
+    var v = dcRepresentanteNome(r);
+    if (!mp[v]) mp[v] = { clientes: new Set(), pedidos: new Set() };
+    mp[v].clientes.add(dcClienteNome(r));
+    mp[v].pedidos.add(dcPedidoChave(r));
+  });
+  var arr = Object.entries(mp).map(function(e){ return { nome:e[0], cli:e[1].clientes.size, ped:e[1].pedidos.size }; })
+    .sort(function(a,b){return b.cli-a.cli;}).slice(0,12);
+  var max = arr.length ? arr[0].cli : 1;
+  var h = '<table class="dc-tabela"><thead><tr><th>#</th><th>Representante</th><th>Clientes unicos</th><th>Pedidos unicos</th><th>Cobertura</th></tr></thead><tbody>';
+  arr.forEach(function(e,i){
+    var bar = (e.cli/max*100).toFixed(0);
+    h += '<tr><td class="pos">'+(i+1)+'</td><td>'+escapeHtml(e.nome)+'</td><td class="num">'+e.cli+'</td><td>'+e.ped+'</td>'
+      + '<td><div class="dc-bar-track" style="width:90px"><div class="dc-bar-fill" style="width:'+bar+'%"></div></div></td></tr>';
+  });
+  var el = document.getElementById('dc-tab-positiv');
+  if (el) el.innerHTML = arr.length ? h+'</tbody></table>' : '<div class="dc-empty">Sem dados para este recorte.</div>';
+}
+
+function _dcTabelaNovosClientes(rows) {
+  var periodo = dcPeriodoAtualDatas();
+  var primeira = {};
+  (Array.isArray(DC_RAW) ? DC_RAW : rows || []).forEach(function(r) {
+    var c = dcClienteNome(r);
+    var d = dcDataValor(r);
+    if (!d || isNaN(d.getTime())) return;
+    if (!primeira[c] || d < primeira[c].dt) {
+      primeira[c] = {
+        nome: c,
+        dt: d,
+        cidade: dcCidadeNome(r),
+        uf: dcUfNome(r),
+        valor: dcValorLinha(r)
+      };
+    }
+  });
+  var arr = Object.keys(primeira).map(function(k){ return primeira[k]; }).filter(function(item) {
+    if (periodo.inicio && item.dt < periodo.inicio) return false;
+    if (periodo.fim && item.dt > periodo.fim) return false;
+    return true;
+  });
+  var ordem = document.getElementById('dc-ordem-novos');
+  var modo = ordem ? String(ordem.value || 'recente') : 'recente';
+  arr.sort(function(a, b) {
+    if (modo === 'antigo') return a.dt - b.dt;
+    if (modo === 'maior') return b.valor - a.valor;
+    return b.dt - a.dt;
+  });
+  arr = arr.slice(0, 12);
+  var el = document.getElementById('dc-tab-novos');
+  if (!el) return;
+  if (!arr.length) { el.innerHTML = '<div class="dc-empty">Nenhum cliente novo no periodo selecionado.</div>'; return; }
+  var h = '<table class="dc-tabela"><thead><tr><th>Cliente</th><th>UF/Cidade</th><th class="num">Primeira compra</th><th class="num">Valor</th></tr></thead><tbody>';
+  arr.forEach(function(e){
+    h += '<tr><td>'+escapeHtml(e.nome)+'</td><td>'+escapeHtml([e.uf, e.cidade].filter(Boolean).join(' / ') || '- ')+'</td>'
+      + '<td class="num">'+e.dt.toLocaleDateString('pt-BR')+'</td><td class="num">'+dcMoedaLimpa(e.valor)+'</td></tr>';
+  });
+  el.innerHTML = h+'</tbody></table>';
+}
+
+function _dcTabelaTicketCliente(rows) {
+  var mp = {};
+  rows.forEach(function(r) {
+    var c = dcClienteNome(r);
+    if (!mp[c]) mp[c] = { fat:0, pedidos:new Set() };
+    mp[c].fat += dcValorLinha(r);
+    mp[c].pedidos.add(dcPedidoChave(r));
+  });
+  var arr = Object.entries(mp).map(function(e){ return { nome:e[0], fat:e[1].fat, ped:e[1].pedidos.size, tick:e[1].pedidos.size ? e[1].fat/e[1].pedidos.size : 0 }; })
+    .filter(function(e){ return e.ped >= 2; }).sort(function(a,b){return b.tick-a.tick;}).slice(0,10);
+  var el = document.getElementById('dc-tab-ticket');
+  if (!el) return;
+  if (!arr.length) { el.innerHTML = '<div class="dc-empty">Sem dados suficientes.</div>'; return; }
+  var h = '<table class="dc-tabela"><thead><tr><th>#</th><th>Cliente</th><th>Pedidos</th><th class="num">Ticket</th></tr></thead><tbody>';
+  arr.forEach(function(e,i){
+    h += '<tr><td class="pos">'+(i+1)+'</td><td>'+escapeHtml(e.nome)+'</td><td>'+e.ped+'</td><td class="num">'+dcMoedaLimpa(e.tick)+'</td></tr>';
+  });
+  el.innerHTML = h+'</tbody></table>';
+}
+
+function _dcTabela(id, campo, rows, fatTotal, label) {
+  var map = {};
+  rows.forEach(function(r) {
+    var key = dcCampoRelatorio(r, campo) || 'Sem ' + dcTextoValor(label || 'dado').toLowerCase();
+    if (!map[key]) map[key] = { fat: 0, pedidos: new Set() };
+    map[key].fat += dcValorLinha(r);
+    map[key].pedidos.add(dcPedidoChave(r));
+  });
+  var lista = Object.entries(map)
+    .map(function(e) { return { nome: e[0], fat: e[1].fat, pedidos: e[1].pedidos.size }; });
+  dcOrdenarItens(lista, 'fat');
+  lista = lista.slice(0, 12);
+  var max = lista.length ? lista[0].fat : 1;
+  var html = '<table class="dc-tabela"><thead><tr><th>#</th><th>' + (label || 'Item') + '</th><th>Pedidos</th><th class="num">Faturamento</th><th>%</th></tr></thead><tbody>';
+  lista.forEach(function(item, idx) {
+    var pct = fatTotal ? (item.fat / fatTotal * 100) : 0;
+    var bar = max ? (item.fat / max * 100) : 0;
+    html += '<tr><td class="pos">' + (idx + 1) + '</td><td>' + escapeHtml(item.nome) + '</td><td>' + item.pedidos + '</td>'
+      + '<td class="num">' + dcMoedaLimpa(item.fat) + '</td>'
+      + '<td><div style="font-size:10px;color:#7f8ba3;margin-bottom:3px">' + dcNumeroLimpo(pct, 1) + '%</div>'
+      + '<div class="dc-bar-wrap"><div class="dc-bar" style="width:' + bar.toFixed(0) + '%"></div></div></td></tr>';
+  });
+  html += '</tbody></table>';
+  var el = document.getElementById(id);
+  if (el) el.innerHTML = lista.length ? html : '<div class="dc-empty">Sem dados para este recorte.</div>';
+}
+
+function dcChartProdutos(rows) {
+  var map = {};
+  rows.forEach(function(r){ var k = dcProdutoNome(r); map[k] = (map[k] || 0) + dcValorLinha(r); });
+  var sorted = Object.entries(map).sort(function(a,b){return b[1]-a[1];}).slice(0,10);
+  dcDestroyChart('dc-chart-produtos');
+  var ctx = document.getElementById('dc-chart-produtos');
+  if (!ctx) return;
+  DC_CHARTS['produtos'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: sorted.map(function(e){ return dcTextoCurto(e[0], 36); }), datasets:[{label:'Faturamento',data:sorted.map(function(e){ return e[1]; }),backgroundColor:'rgba(20,116,111,0.82)',borderRadius:4}] },
+    options: Object.assign(dcChartOpts('R$ '),{indexAxis:'y'}),
+    plugins: [DC_VALUE_LABEL_PLUGIN]
+  });
+}
+
+function dcChartGrupos(rows) {
+  var map = {};
+  rows.forEach(function(r){ var k = dcGrupoNome(r); if (k && k.trim()) map[k] = (map[k] || 0) + dcValorLinha(r); });
+  var sorted = Object.entries(map).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  var cores = ['#14746F','#2DD4BF','#059669','#0D4F4F','#D97706','#7C3AED','#DC2626','#5A7A74'];
+  dcDestroyChart('dc-chart-grupos');
+  var ctx = document.getElementById('dc-chart-grupos');
+  if (!ctx) return;
+  DC_CHARTS['grupos'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels:sorted.map(function(e){return dcTextoCurto(e[0], 22);}), datasets:[{data:sorted.map(function(e){return e[1];}),backgroundColor:cores,borderWidth:0,borderRadius:8}] },
+    options: Object.assign(_dcOpts(false), { indexAxis: 'y' }),
+    plugins: [DC_VALUE_LABEL_PLUGIN]
+  });
+}
+
+function dcTabelaInativos(rows) {
+  var mapa = {};
+  rows.forEach(function(r){
+    var k = dcClienteNome(r);
+    var d = dcDataValor(r);
+    if (!d || isNaN(d.getTime())) return;
+    if (!mapa[k]) mapa[k] = { ultima: d, fat: 0 };
+    mapa[k].fat += dcValorLinha(r);
+    if (d > mapa[k].ultima) mapa[k].ultima = d;
+  });
+  var hoje = new Date();
+  var inativos = Object.entries(mapa).map(function(e){
+    var dias = Math.floor((hoje - e[1].ultima) / 86400000);
+    return { nome: e[0], dias: dias, ultima: e[1].ultima.toLocaleDateString('pt-BR'), fat: e[1].fat };
+  }).filter(function(e){ return e.dias >= 30; }).sort(function(a,b){ return b.dias-a.dias; }).slice(0,10);
+  var el = document.getElementById('dc-tabela-inativos') || document.getElementById('dc-tab-inat');
+  if (!el) return;
+  if (!inativos.length) { el.innerHTML = '<div class="dc-empty">Nenhum cliente inativo no periodo.</div>'; return; }
+  var html = '<table class="dc-tabela"><thead><tr><th>Cliente</th><th class="num">Dias sem compra</th><th>Ultima compra</th></tr></thead><tbody>';
+  inativos.forEach(function(e){
+    var cor = e.dias > 90 ? '#DC2626' : e.dias > 60 ? '#D97706' : '#5A7A74';
+    html += '<tr><td>'+escapeHtml(e.nome)+'</td>'
+      + '<td class="num" style="font-weight:800;color:'+cor+'">'+e.dias+' dias</td>'
+      + '<td style="color:#5A7A74">'+e.ultima+'</td></tr>';
+  });
+  el.innerHTML = html + '</tbody></table>';
 }
 
 function dcStatus(msg, ok) {
