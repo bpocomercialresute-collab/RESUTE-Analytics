@@ -7226,16 +7226,7 @@ body.lp-about-open .lp-process-step strong {
 }
 
 body.lp-about-open .lp-about-close {
-  background: #14746F !important;
-  border-color: #14746F !important;
-  color: #FFFFFF !important;
-  border-radius: 999px !important;
-  box-shadow: none !important;
-}
-
-body.lp-about-open .lp-about-close:hover {
-  background: #0D4F4F !important;
-  border-color: #0D4F4F !important;
+  display: none !important;
 }
 
 body.lp-about-open .lp-about-hero {
