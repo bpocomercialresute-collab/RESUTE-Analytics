@@ -1232,8 +1232,23 @@ function dcAbrirRelatorio(tipo) {
   setTimeout(function() { dcLoading(false); }, 150);
 }
 
+function dcNumeroBase(valor) {
+  if (valor && typeof valor === 'object') {
+    if (typeof valor.raw !== 'undefined') return dcNumeroBase(valor.raw);
+    if (typeof valor.parsed !== 'undefined') return dcNumeroBase(valor.parsed);
+    if (typeof valor.y !== 'undefined') return dcNumeroBase(valor.y);
+    if (typeof valor.x !== 'undefined') return dcNumeroBase(valor.x);
+    return 0;
+  }
+  try {
+    return typeof parseSmartNumber === 'function' ? parseSmartNumber(valor) : Number(valor || 0);
+  } catch (e) {
+    return 0;
+  }
+}
+
 function dcNumeroLimpo(valor, maxCasas) {
-  var n = typeof parseSmartNumber === 'function' ? parseSmartNumber(valor) : Number(valor || 0);
+  var n = dcNumeroBase(valor);
   if (!Number.isFinite(n)) n = 0;
   var casas = typeof maxCasas === 'number' ? maxCasas : 2;
   var centavos = Math.round(Math.abs(n * 100)) % 100;
@@ -1248,21 +1263,35 @@ function dcMoedaLimpa(valor) {
 }
 
 function dcValorLinha(row) {
-  return typeof parseSmartNumber === 'function' ? parseSmartNumber(row && row.valor) : Number(row && row.valor || 0);
+  return dcNumeroBase(row && row.valor);
 }
 
 function dcQtdLinha(row) {
-  return typeof parseSmartNumber === 'function' ? parseSmartNumber(row && row.qtd) : Number(row && row.qtd || 0);
+  return dcNumeroBase(row && row.qtd);
+}
+
+function dcTextoValor(valor) {
+  if (valor === null || typeof valor === 'undefined') return '';
+  if (valor && typeof valor === 'object') {
+    var chaves = ['nome', 'descricao', 'descricaoItem', 'produto', 'label', 'valor', 'codigo'];
+    for (var i = 0; i < chaves.length; i++) {
+      if (typeof valor[chaves[i]] !== 'undefined' && valor[chaves[i]] !== null) {
+        return dcTextoValor(valor[chaves[i]]);
+      }
+    }
+    try { return JSON.stringify(valor); } catch (e) { return ''; }
+  }
+  try { return String(valor); } catch (e) { return ''; }
 }
 
 function dcTextoCurto(texto, limite) {
-  var s = String(texto || '').trim();
+  var s = dcTextoValor(texto).trim();
   var max = limite || 28;
   return s.length > max ? s.slice(0, max - 1) + '...' : s;
 }
 
 function dcValorCompacto(valor) {
-  var n = typeof parseSmartNumber === 'function' ? parseSmartNumber(valor) : Number(valor || 0);
+  var n = dcNumeroBase(valor);
   if (!Number.isFinite(n)) n = 0;
   var abs = Math.abs(n);
   if (abs >= 1000000) return 'R$ ' + dcNumeroLimpo(n / 1000000, 1) + ' mi';
@@ -1299,7 +1328,7 @@ function dcAtualizarFiltroUfCidade(rows) {
   if (!sel) return;
   var atual = sel.value || '';
   var ufs = Array.from(new Set((rows || []).map(function(r) {
-    return String(r.uf || '').trim().toUpperCase();
+    return dcTextoValor(r.uf).trim().toUpperCase();
   }).filter(Boolean))).sort();
   sel.innerHTML = '<option value="">Todos os estados</option>' + ufs.map(function(uf) {
     return '<option value="' + escapeHtml(uf) + '">' + escapeHtml(uf) + '</option>';
@@ -1312,7 +1341,7 @@ function dcFiltrarCidadesPorUf(rows) {
   var uf = sel ? String(sel.value || '').trim().toUpperCase() : '';
   if (!uf) return rows || [];
   return (rows || []).filter(function(r) {
-    return String(r.uf || '').trim().toUpperCase() === uf;
+    return dcTextoValor(r.uf).trim().toUpperCase() === uf;
   });
 }
 
@@ -1342,6 +1371,15 @@ var DC_VALUE_LABEL_PLUGIN = {
     ctx.restore();
   }
 };
+
+function dcRenderGraficoSeguro(nome, fn) {
+  try {
+    fn();
+  } catch (e) {
+    console.error('[dashboard chart]', nome, e);
+    dcStatus('Erro ao renderizar ' + nome + ': ' + (e && e.message ? e.message : e));
+  }
+}
 
 // ── RENDERIZA TUDO ────────────────────────────────────────────────────────────
 function dcRenderizar() {
@@ -1386,14 +1424,14 @@ function dcRenderizar() {
   }).join('');
 
   // ── Gráficos ──
-  _dcChartEvolucao(rows);
-  _dcChartTrim(rows);
-  _dcChartAno(rows);
-  _dcChartDiaSemana(rows);
-  _dcChartProd(rows);
-  _dcChartProdQtd(rows);
-  _dcChartGrupo(rows);
-  _dcChartMarca(rows);
+  dcRenderGraficoSeguro('Evolução mensal', function(){ _dcChartEvolucao(rows); });
+  dcRenderGraficoSeguro('Por trimestre', function(){ _dcChartTrim(rows); });
+  dcRenderGraficoSeguro('Comparativo anual', function(){ _dcChartAno(rows); });
+  dcRenderGraficoSeguro('Dia da semana', function(){ _dcChartDiaSemana(rows); });
+  dcRenderGraficoSeguro('Produtos por faturamento', function(){ _dcChartProd(rows); });
+  dcRenderGraficoSeguro('Produtos por quantidade', function(){ _dcChartProdQtd(rows); });
+  dcRenderGraficoSeguro('Grupos', function(){ _dcChartGrupo(rows); });
+  dcRenderGraficoSeguro('Marcas', function(){ _dcChartMarca(rows); });
 
   // ── Tabelas ──
   dcAtualizarFiltroUfCidade(rows);
@@ -1607,7 +1645,7 @@ function _dcChartGrupo(rows) {
 function _dcTabela(id, campo, rows, fatTotal, label) {
   var map = {};
   rows.forEach(function(r) {
-    var key = String(r[campo] || '').trim() || 'Sem ' + String(label || 'dado').toLowerCase();
+    var key = dcTextoValor(r[campo]).trim() || 'Sem ' + dcTextoValor(label || 'dado').toLowerCase();
     if (!map[key]) map[key] = { fat: 0, pedidos: new Set() };
     map[key].fat += dcValorLinha(r);
     map[key].pedidos.add(dcPedidoChave(r));
@@ -1828,6 +1866,17 @@ function dcTabelaInativos(rows) {
 function dcDestroyChart(id) {
   var key = id.replace('dc-chart-','');
   if (DC_CHARTS[key]) { try{ DC_CHARTS[key].destroy(); }catch(e){} delete DC_CHARTS[key]; }
+  var canvas = document.getElementById(id);
+  Object.keys(DC_CHARTS || {}).forEach(function(k) {
+    try {
+      if (DC_CHARTS[k] && DC_CHARTS[k].canvas === canvas) {
+        DC_CHARTS[k].destroy();
+        delete DC_CHARTS[k];
+      }
+    } catch (e) {
+      delete DC_CHARTS[k];
+    }
+  });
 }
 
 function dcChartOpts(prefix) {
