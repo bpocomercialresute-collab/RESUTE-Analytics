@@ -1377,6 +1377,22 @@ function dcOrdenarItens(lista, campoValor) {
   });
 }
 
+function dcOrdenacaoRelatorio(id) {
+  var el = document.getElementById('dc-ordem-' + id);
+  return el ? String(el.value || 'desc') : dcOrdenacaoAtual();
+}
+
+function dcOrdenarItensRelatorio(lista, id) {
+  var modo = dcOrdenacaoRelatorio(id);
+  return lista.sort(function(a, b) {
+    if (modo === 'az') return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+    if (modo === 'pedidos') return Number(b.pedidos || b.ped || 0) - Number(a.pedidos || a.ped || 0);
+    var av = Number(a.fat || 0);
+    var bv = Number(b.fat || 0);
+    return modo === 'asc' ? av - bv : bv - av;
+  });
+}
+
 function dcPeriodoAtualDatas() {
   var inicioEl = document.getElementById('dc-filtro-inicio');
   var fimEl = document.getElementById('dc-filtro-fim');
@@ -1421,6 +1437,118 @@ function dcFiltrarCidadesPorUf(rows) {
   return (rows || []).filter(function(r) {
     return dcUfNome(r).trim().toUpperCase() === uf;
   });
+}
+
+function dcSomarValor(rows) {
+  return (rows || []).reduce(function(s, r) { return s + dcValorLinha(r); }, 0);
+}
+
+function dcTopAgrupado(rows, getter, tipo) {
+  var mapa = {};
+  (rows || []).forEach(function(r) {
+    var nome = getter(r);
+    if (!nome) return;
+    if (!mapa[nome]) mapa[nome] = { nome: nome, fat: 0, qtd: 0, pedidos: new Set(), clientes: new Set() };
+    mapa[nome].fat += dcValorLinha(r);
+    mapa[nome].qtd += dcQtdLinha(r);
+    mapa[nome].pedidos.add(dcPedidoChave(r));
+    mapa[nome].clientes.add(dcClienteNome(r));
+  });
+  var arr = Object.keys(mapa).map(function(k) {
+    var item = mapa[k];
+    item.ped = item.pedidos.size;
+    item.cli = item.clientes.size;
+    return item;
+  });
+  var campo = tipo || 'fat';
+  return arr.sort(function(a, b) { return Number(b[campo] || 0) - Number(a[campo] || 0); })[0] || null;
+}
+
+function dcPeriodoAnteriorRows() {
+  var periodo = dcPeriodoAtualDatas();
+  if (!periodo.inicio || !periodo.fim || !(Array.isArray(DC_RAW) && DC_RAW.length)) return [];
+  var duracao = periodo.fim.getTime() - periodo.inicio.getTime();
+  if (!Number.isFinite(duracao) || duracao <= 0) return [];
+  var fimAnterior = new Date(periodo.inicio.getTime() - 1);
+  var inicioAnterior = new Date(fimAnterior.getTime() - duracao);
+  return DC_RAW.filter(function(r) {
+    var d = dcDataValor(r);
+    return d && !isNaN(d.getTime()) && d >= inicioAnterior && d <= fimAnterior;
+  });
+}
+
+function dcVariacaoAtualAnterior(atual, anterior) {
+  if (!anterior) return { texto: 'sem base anterior', classe: 'neutro', pct: null };
+  var pct = ((atual - anterior) / anterior) * 100;
+  return {
+    texto: (pct >= 0 ? '+' : '') + dcNumeroLimpo(pct, 1) + '% vs periodo anterior',
+    classe: pct >= 0 ? 'positivo' : 'negativo',
+    pct: pct
+  };
+}
+
+function dcMetricasDashboard(rows) {
+  var fat = dcSomarValor(rows);
+  var pedidos = dcContarPedidosUnicos(rows);
+  var clientes = new Set(rows.map(function(r){ return dcClienteNome(r); }).filter(function(v){ return v && v !== 'Sem cliente'; })).size;
+  var produtos = new Set(rows.map(function(r){ return dcProdutoNome(r); }).filter(function(v){ return v && v !== 'Sem produto'; })).size;
+  var representantes = new Set(rows.map(function(r){ return dcRepresentanteNome(r); }).filter(function(v){ return v && v !== 'Sem representante'; })).size;
+  var anterior = dcPeriodoAnteriorRows();
+  var fatAnterior = dcSomarValor(anterior);
+  return {
+    fat: fat,
+    pedidos: pedidos,
+    clientes: clientes,
+    produtos: produtos,
+    representantes: representantes,
+    ticket: pedidos ? fat / pedidos : 0,
+    fatAnterior: fatAnterior,
+    pedidosAnterior: dcContarPedidosUnicos(anterior),
+    variacaoFat: dcVariacaoAtualAnterior(fat, fatAnterior),
+    variacaoPedidos: dcVariacaoAtualAnterior(pedidos, dcContarPedidosUnicos(anterior)),
+    topProduto: dcTopAgrupado(rows, dcProdutoNome, 'fat'),
+    topRepresentante: dcTopAgrupado(rows, dcRepresentanteNome, 'fat'),
+    topCidade: dcTopAgrupado(rows, dcCidadeNome, 'fat')
+  };
+}
+
+function dcRenderResumoExecutivo(rows, m) {
+  var el = document.getElementById('dc-executive-summary');
+  if (!el) return;
+  var produto = m.topProduto ? m.topProduto.nome + ' (' + dcMoedaLimpa(m.topProduto.fat) + ')' : 'sem produto lider';
+  var rep = m.topRepresentante ? m.topRepresentante.nome + ' (' + dcMoedaLimpa(m.topRepresentante.fat) + ')' : 'sem representante lider';
+  el.innerHTML = '<div class="dc-summary-card">'
+    + '<strong>Resumo executivo</strong>'
+    + '<span>Faturamento de '+dcMoedaLimpa(m.fat)+' em '+m.pedidos.toLocaleString('pt-BR')+' pedidos, com ticket medio de '+dcMoedaLimpa(m.ticket)+'.</span>'
+    + '</div>'
+    + '<div class="dc-summary-card">'
+    + '<strong>Produto lider</strong>'
+    + '<span>'+escapeHtml(produto)+'</span>'
+    + '</div>'
+    + '<div class="dc-summary-card">'
+    + '<strong>Representante lider</strong>'
+    + '<span>'+escapeHtml(rep)+'</span>'
+    + '</div>';
+}
+
+function dcRenderAlertasExecutivos(rows, m) {
+  var el = document.getElementById('dc-alertas');
+  if (!el) return;
+  var shareProduto = m.topProduto && m.fat ? (m.topProduto.fat / m.fat * 100) : 0;
+  var ticketVar = dcVariacaoAtualAnterior(m.ticket, m.pedidosAnterior ? (m.fatAnterior / m.pedidosAnterior) : 0);
+  var cards = [
+    { titulo: 'Faturamento vs anterior', valor: m.variacaoFat.texto, classe: m.variacaoFat.classe, desc: 'Comparacao com periodo imediatamente anterior.' },
+    { titulo: 'Pedidos vs anterior', valor: m.variacaoPedidos.texto, classe: m.variacaoPedidos.classe, desc: 'Volume comercial no mesmo intervalo anterior.' },
+    { titulo: 'Ticket medio', valor: ticketVar.texto, classe: ticketVar.classe, desc: 'Mudanca do valor medio por pedido.' },
+    { titulo: 'Concentracao do produto lider', valor: dcNumeroLimpo(shareProduto, 1) + '% do faturamento', classe: shareProduto >= 35 ? 'atencao' : 'positivo', desc: 'Quanto o principal produto pesa no resultado.' }
+  ];
+  el.innerHTML = cards.map(function(c) {
+    return '<div class="dc-alert-card '+c.classe+'">'
+      + '<strong>'+escapeHtml(c.titulo)+'</strong>'
+      + '<span>'+escapeHtml(c.valor)+'</span>'
+      + '<small>'+escapeHtml(c.desc)+'</small>'
+      + '</div>';
+  }).join('');
 }
 
 var DC_VALUE_LABEL_PLUGIN = {
@@ -1475,6 +1603,10 @@ function dcRenderizar() {
     dcStatus('⚠ Nenhum dado disponível para esse filtro.');
     var kEl = document.getElementById('dc-kpis');
     if (kEl) kEl.innerHTML = '<div class="dc-kpi-empty">Nenhum registro encontrado para o período selecionado.</div>';
+    var resumoEl = document.getElementById('dc-executive-summary');
+    if (resumoEl) resumoEl.innerHTML = '';
+    var alertasEl = document.getElementById('dc-alertas');
+    if (alertasEl) alertasEl.innerHTML = '';
     ['dc-chart-evolucao','dc-chart-trimestre','dc-chart-ano','dc-chart-diasem','dc-chart-produtos','dc-chart-prodqtd','dc-chart-grupos','dc-chart-marca'].forEach(function(id) {
       if (typeof dcDestroyChart === 'function') dcDestroyChart(id);
     });
@@ -1486,17 +1618,20 @@ function dcRenderizar() {
   }
 
   // ── KPIs principais ──
-  var fat = rows.reduce(function(s,r){ return s + dcValorLinha(r); }, 0);
-  var ped = dcContarPedidosUnicos(rows);
-  var cli = new Set(rows.map(function(r){ return dcClienteNome(r); }).filter(function(v){ return v && v !== 'Sem cliente'; })).size;
-  var prd = new Set(rows.map(function(r){ return dcProdutoNome(r); }).filter(function(v){ return v && v !== 'Sem produto'; })).size;
-  var rep = new Set(rows.map(function(r){ return dcRepresentanteNome(r); }).filter(function(v){ return v && v !== 'Sem representante'; })).size;
-  var tick = ped ? fat/ped : 0;
+  var metricas = dcMetricasDashboard(rows);
+  var fat = metricas.fat;
+  var ped = metricas.pedidos;
+  var cli = metricas.clientes;
+  var prd = metricas.produtos;
+  var rep = metricas.representantes;
+  var tick = metricas.ticket;
+  dcRenderResumoExecutivo(rows, metricas);
+  dcRenderAlertasExecutivos(rows, metricas);
 
   var kEl = document.getElementById('dc-kpis');
   if (kEl) kEl.innerHTML = [
-    { ico:'R$', val:dcMoedaLimpa(fat),             lbl:'Faturamento Total' },
-    { ico:'PD', val:ped.toLocaleString('pt-BR'),    lbl:'Pedidos' },
+    { ico:'R$', val:dcMoedaLimpa(fat),             lbl:'Faturamento Total', sub: metricas.variacaoFat.texto },
+    { ico:'PD', val:ped.toLocaleString('pt-BR'),    lbl:'Pedidos', sub: metricas.variacaoPedidos.texto },
     { ico:'TM', val:dcMoedaLimpa(tick),             lbl:'Ticket Médio' },
     { ico:'CL', val:cli.toLocaleString('pt-BR'),    lbl:'Clientes Ativos' },
     { ico:'PR', val:prd.toLocaleString('pt-BR'),    lbl:'Produtos' },
@@ -1506,6 +1641,7 @@ function dcRenderizar() {
          + '<div class="dc-kpi-icon dc-kpi-code">'+k.ico+'</div>'
          + '<div class="dc-kpi-value">'+k.val+'</div>'
          + '<div class="dc-kpi-label">'+k.lbl+'</div>'
+         + (k.sub ? '<div class="dc-kpi-sub">'+escapeHtml(k.sub)+'</div>' : '')
          + '</div>';
   }).join('');
 
@@ -1739,7 +1875,7 @@ function _dcTabela(id, campo, rows, fatTotal, label) {
   var lista = Object.entries(map)
     .map(function(e) { return { nome: e[0], fat: e[1].fat, pedidos: e[1].pedidos.size }; })
     .sort(function(a, b) { return b.fat - a.fat; });
-  dcOrdenarItens(lista, 'fat');
+  dcOrdenarItensRelatorio(lista, id);
   lista = lista.slice(0, 12);
   var max = lista.length ? lista[0].fat : 1;
   var html = '<table class="dc-tabela"><thead><tr><th>#</th><th>' + (label || 'Item') + '</th><th>Pedidos</th><th class="num">Faturamento</th><th>%</th></tr></thead><tbody>';
@@ -2025,8 +2161,15 @@ function _dcTabelaPositivacao(rows) {
     mp[v].clientes.add(dcClienteNome(r));
     mp[v].pedidos.add(dcPedidoChave(r));
   });
-  var arr = Object.entries(mp).map(function(e){ return { nome:e[0], cli:e[1].clientes.size, ped:e[1].pedidos.size }; })
-    .sort(function(a,b){return b.cli-a.cli;}).slice(0,12);
+  var arr = Object.entries(mp).map(function(e){ return { nome:e[0], cli:e[1].clientes.size, ped:e[1].pedidos.size }; });
+  var ordemPositiv = document.getElementById('dc-ordem-positiv');
+  ordemPositiv = ordemPositiv ? String(ordemPositiv.value || 'clientes') : 'clientes';
+  arr.sort(function(a,b) {
+    if (ordemPositiv === 'az') return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+    if (ordemPositiv === 'pedidos') return b.ped - a.ped;
+    return b.cli - a.cli;
+  });
+  arr = arr.slice(0,12);
   var max = arr.length ? arr[0].cli : 1;
   var h = '<table class="dc-tabela"><thead><tr><th>#</th><th>Representante</th><th>Clientes unicos</th><th>Pedidos unicos</th><th>Cobertura</th></tr></thead><tbody>';
   arr.forEach(function(e,i){
@@ -2051,6 +2194,7 @@ function _dcTabelaNovosClientes(rows) {
         dt: d,
         cidade: dcCidadeNome(r),
         uf: dcUfNome(r),
+        representante: dcRepresentanteNome(r),
         valor: dcValorLinha(r)
       };
     }
@@ -2071,9 +2215,9 @@ function _dcTabelaNovosClientes(rows) {
   var el = document.getElementById('dc-tab-novos');
   if (!el) return;
   if (!arr.length) { el.innerHTML = '<div class="dc-empty">Nenhum cliente novo no periodo selecionado.</div>'; return; }
-  var h = '<table class="dc-tabela"><thead><tr><th>Cliente</th><th>UF/Cidade</th><th class="num">Primeira compra</th><th class="num">Valor</th></tr></thead><tbody>';
+  var h = '<table class="dc-tabela"><thead><tr><th>Cliente</th><th>Representante</th><th>UF/Cidade</th><th class="num">Primeira compra</th><th class="num">Valor</th></tr></thead><tbody>';
   arr.forEach(function(e){
-    h += '<tr><td>'+escapeHtml(e.nome)+'</td><td>'+escapeHtml([e.uf, e.cidade].filter(Boolean).join(' / ') || '- ')+'</td>'
+    h += '<tr><td>'+escapeHtml(e.nome)+'</td><td>'+escapeHtml(e.representante || '-')+'</td><td>'+escapeHtml([e.uf, e.cidade].filter(Boolean).join(' / ') || '- ')+'</td>'
       + '<td class="num">'+e.dt.toLocaleDateString('pt-BR')+'</td><td class="num">'+dcMoedaLimpa(e.valor)+'</td></tr>';
   });
   el.innerHTML = h+'</tbody></table>';
@@ -2087,8 +2231,17 @@ function _dcTabelaTicketCliente(rows) {
     mp[c].fat += dcValorLinha(r);
     mp[c].pedidos.add(dcPedidoChave(r));
   });
-  var arr = Object.entries(mp).map(function(e){ return { nome:e[0], fat:e[1].fat, ped:e[1].pedidos.size, tick:e[1].pedidos.size ? e[1].fat/e[1].pedidos.size : 0 }; })
-    .filter(function(e){ return e.ped >= 2; }).sort(function(a,b){return b.tick-a.tick;}).slice(0,10);
+  var arr = Object.entries(mp).map(function(e){ return { nome:e[0], fat:e[1].fat, ped:e[1].pedidos.size, pedidos:e[1].pedidos.size, tick:e[1].pedidos.size ? e[1].fat/e[1].pedidos.size : 0 }; })
+    .filter(function(e){ return e.ped >= 2; });
+  var modoTicket = document.getElementById('dc-ordem-ticket');
+  modoTicket = modoTicket ? String(modoTicket.value || 'ticket') : 'ticket';
+  arr.sort(function(a, b) {
+    if (modoTicket === 'az') return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+    if (modoTicket === 'fat') return b.fat - a.fat;
+    if (modoTicket === 'pedidos') return b.ped - a.ped;
+    return b.tick - a.tick;
+  });
+  arr = arr.slice(0,10);
   var el = document.getElementById('dc-tab-ticket');
   if (!el) return;
   if (!arr.length) { el.innerHTML = '<div class="dc-empty">Sem dados suficientes.</div>'; return; }
@@ -2109,7 +2262,7 @@ function _dcTabela(id, campo, rows, fatTotal, label) {
   });
   var lista = Object.entries(map)
     .map(function(e) { return { nome: e[0], fat: e[1].fat, pedidos: e[1].pedidos.size }; });
-  dcOrdenarItens(lista, 'fat');
+  dcOrdenarItensRelatorio(lista, id);
   lista = lista.slice(0, 12);
   var max = lista.length ? lista[0].fat : 1;
   var html = '<table class="dc-tabela"><thead><tr><th>#</th><th>' + (label || 'Item') + '</th><th>Pedidos</th><th class="num">Faturamento</th><th>%</th></tr></thead><tbody>';

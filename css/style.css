@@ -6833,6 +6833,105 @@ body.bpo-admin-mode .av-exibir-btn:hover {
   word-break: break-word;
 }
 
+.dc-kpi-sub {
+  color: #5A7A74;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+  margin-top: 2px;
+}
+
+.dc-executive-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.dc-summary-card {
+  border: 1px solid rgba(20, 116, 111, .16);
+  border-radius: 16px;
+  background: rgba(240, 250, 248, .76);
+  padding: 13px 14px;
+  box-shadow: 0 12px 26px rgba(10, 47, 47, .05);
+}
+
+.dc-summary-card strong {
+  display: block;
+  color: #0A2F2F;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: .08em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.dc-summary-card span {
+  color: #486962;
+  display: block;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.dc-alert-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dc-alert-card {
+  border: 1px solid rgba(20, 116, 111, .16);
+  border-radius: 18px;
+  background: #fff;
+  padding: 16px;
+  box-shadow: 0 14px 34px rgba(10, 47, 47, .06);
+}
+
+.dc-alert-card strong {
+  color: #0A2F2F;
+  display: block;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.dc-alert-card span {
+  display: block;
+  font-size: 17px;
+  font-weight: 950;
+  margin-top: 8px;
+}
+
+.dc-alert-card small {
+  color: #5A7A74;
+  display: block;
+  font-size: 11px;
+  line-height: 1.35;
+  margin-top: 6px;
+}
+
+.dc-alert-card.positivo span {
+  color: #059669;
+}
+
+.dc-alert-card.negativo span,
+.dc-alert-card.atencao span {
+  color: #D97706;
+}
+
+.dc-alert-card.neutro span {
+  color: #5A7A74;
+}
+
+.dc-card-note {
+  color: #5A7A74;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: -6px 0 14px;
+  max-width: 760px;
+}
+
 .dc-empty {
   color: #5A7A74;
   font-size: 13px;
@@ -6944,6 +7043,11 @@ body.bpo-admin-mode .av-exibir-btn:hover {
 }
 
 @media (max-width: 720px) {
+  .dc-executive-summary,
+  .dc-alert-grid {
+    grid-template-columns: 1fr;
+  }
+
   .dc-inactive-summary {
     grid-template-columns: 1fr;
   }
