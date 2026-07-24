@@ -1329,6 +1329,20 @@ function adminConsoleAbrirSyncEmpresa(empresaId) {
   if (typeof _adminSyncAtualizarSelect === 'function') _adminSyncAtualizarSelect(eid);
   if (typeof _adminAutoSyncCarregarConfig === 'function') _adminAutoSyncCarregarConfig(eid);
   if (typeof _adminPreencherPeriodoSync === 'function') _adminPreencherPeriodoSync();
+
+  // Mostra cards de módulos em estado "aguardando" antes do primeiro sync
+  if (typeof _adminRenderApiModules === 'function') {
+    _adminRenderApiModules({
+      vendas: { pending: true, count: 0, message: 'Base principal de vendas — itens, clientes e representantes por data.' },
+      clientes: { pending: true, count: 0, message: 'Cadastros de clientes para enriquecer cidade, setor e ciclo.' },
+      produtos: { pending: true, count: 0, message: 'Cadastros de produtos para enriquecer grupo, marca e mix.' },
+      representantes: { pending: true, count: 0, message: 'Equipe comercial para cobertura e relatórios regionais.' }
+    });
+  }
+  // Carrega contagens reais salvas em background
+  if (typeof _adminCarregarCadastrosApiSalvos === 'function') {
+    setTimeout(function() { _adminCarregarCadastrosApiSalvos(); }, 300);
+  }
 }
 
 async function adminConsoleDispararSyncEmpresa(empresaId) {

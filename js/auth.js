@@ -2876,6 +2876,21 @@ function _adminRenderSyncEmpresaSelect() {
   var sel = document.getElementById('adm-sync-empresa-select');
   var wrap = document.getElementById('adm-sync-empresa-wrap');
   if (!sel || !wrap) return;
+
+  // Admin console context: usa ADMIN_CONSOLE.companies (todas as empresas)
+  if (typeof ADMIN_CONSOLE !== 'undefined' && ADMIN_CONSOLE.companies && ADMIN_CONSOLE.companies.length) {
+    var all = ADMIN_CONSOLE.companies.filter(function(c) { return c.ativo !== false; });
+    wrap.style.display = '';
+    sel.innerHTML = all.map(function(c) {
+      var id = c.id || c.empresa_id;
+      var hasApi = String(c.exibir_origem || '').toLowerCase() === 'api';
+      return '<option value="' + id + '">' + (c.nome || id) + (hasApi ? '' : ' ·') + '</option>';
+    }).join('');
+    if (EMPRESA_ATIVA && EMPRESA_ATIVA.empresa_id) sel.value = EMPRESA_ATIVA.empresa_id;
+    return;
+  }
+
+  // Contexto view-app: usa EMPRESAS_ADMIN (só APIs)
   var apis = (EMPRESAS_ADMIN || []).filter(function(e) { return e.tem_api; });
   if (apis.length <= 1) { wrap.style.display = 'none'; return; }
   wrap.style.display = '';

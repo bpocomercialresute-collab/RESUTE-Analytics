@@ -3236,6 +3236,22 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   font-size: 12px; color: #8ea3c0; line-height: 1.6; margin: 0;
 }
 .adm-autosync-hint strong { color: #93c5fd; }
+.adm-autosync-modules {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;
+}
+.adm-autosync-module-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(147,197,253,.08);
+  border: 1px solid rgba(147,197,253,.2);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 11px; font-weight: 600; color: #93c5fd;
+}
+.adm-sync-section-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: #8ea3c0;
+  margin-bottom: 10px;
+}
 
 .admin-sync-panel-embed {
   margin-bottom: 32px;
@@ -4885,6 +4901,14 @@ textarea:focus {
 }
 .adm-autosync-hint strong {
   color: var(--admin-teal) !important;
+}
+.adm-autosync-modules .adm-autosync-module-tag {
+  background: rgba(45,90,84,.1) !important;
+  border-color: rgba(45,90,84,.3) !important;
+  color: var(--admin-teal) !important;
+}
+.adm-sync-section-label {
+  color: #5A7A74 !important;
 }
 .adm-autosync-status {
   color: var(--admin-teal) !important;
