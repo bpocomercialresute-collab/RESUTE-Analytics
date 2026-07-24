@@ -2895,6 +2895,20 @@ function adminSyncSelecionarEmpresa(empresaId) {
   adminSelecionarEmpresa(empresaId);
 }
 
+function admSyncAba(aba) {
+  var panels = ['manual', 'auto'];
+  panels.forEach(function(id) {
+    var panel = document.getElementById('adm-tab-' + id);
+    var btn = document.getElementById('adm-tab-' + id + '-btn');
+    var active = id === aba;
+    if (panel) panel.style.display = active ? '' : 'none';
+    if (btn) {
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    }
+  });
+}
+
 async function _adminCarregar(empresa_id) {
   try {
     var v = await _fetchAll(

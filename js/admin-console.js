@@ -731,7 +731,7 @@ function adminConsoleFiltrarSync() {
       + '<td>' + adminConsoleBadge(syncState.label, syncState.type) + '</td>'
       + '<td class="admin-table-actions">'
       + '<button class="admin-table-action" onclick="adminConsoleDetalharSync(' + index + ')">Detalhes</button>'
-      + '<button class="admin-table-action admin-table-action-primary" onclick="adminConsoleDispararSyncEmpresa(\'' + eid + '\')">Sincronizar</button>'
+      + '<button class="admin-table-action" onclick="adminConsoleAbrirSyncEmpresa(\'' + eid + '\')">Abrir painel</button>'
       + '</td></tr>';
   }).join('');
   ADMIN_CONSOLE.filteredSyncLogs = list;
@@ -749,8 +749,8 @@ function adminConsoleDetalharSync(index) {
     + '<span>Tipo<strong>Vendas e cadastros</strong></span>'
     + ((item.mensagem || item.erro) ? '<span class="admin-field-full">Mensagem<strong>' + adminConsoleEscape(adminConsoleSafeText(item.mensagem || item.erro, 500)) + '</strong></span>' : '')
     + '</div>'
-    + '<div class="admin-form-help">O schema atual de sync_log registra o estado consolidado por empresa. Nenhum token ou segredo e exibido.</div>'
-    + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Fechar</button><button class="admin-btn-secondary" type="button" onclick="adminConsoleFecharModal(); adminConsoleAbrirSyncEmpresa(\'' + adminConsoleEscape(String(item.empresa_id || '')) + '\')">Abrir painel</button><button class="admin-btn-primary" type="button" onclick="adminConsoleFecharModal(); adminConsoleDispararSyncEmpresa(\'' + adminConsoleEscape(String(item.empresa_id || '')) + '\')">Sincronizar novamente</button></div>';
+    + '<div class="admin-form-help">O sync_log registra o estado consolidado por empresa. Nenhum token ou segredo e exibido.</div>'
+    + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Fechar</button><button class="admin-btn-primary" type="button" onclick="adminConsoleFecharModal(); adminConsoleAbrirSyncEmpresa(\'' + adminConsoleEscape(String(item.empresa_id || '')) + '\')">Abrir painel de sync</button></div>';
   adminConsoleAbrirModal('SINCRONIZACAO', 'Detalhes do registro', html, function() {});
 }
 
