@@ -414,6 +414,12 @@ async function fazerLogin() {
 function fazerLogout() {
   SESSION = null; EMPRESAS = [];
   _clearStoredSession();
+  DC_LOAD_SEQUENCE += 1;
+  DC_ACTIVE_COMPANY = '';
+  DC_IS_LOADING = false;
+  DC_RAW = [];
+  DC_DATA = [];
+  dcLoading(false);
 
 // ── LOJA ATIVA (Varremaster) ───────────────────────────────────────────────────
   if (typeof switchView === 'function') switchView('view-home');
@@ -774,6 +780,10 @@ document.addEventListener('keydown', function(e) {
 var DC_DATA  = [];  // dados filtrados
 var DC_RAW   = [];  // todos os dados do banco
 var DC_CHARTS = {}; // instâncias Chart.js
+var DC_LOAD_SEQUENCE = 0;
+var DC_ACTIVE_COMPANY = '';
+var DC_LOADING_TIMER = null;
+var DC_IS_LOADING = false;
 
 var MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 var MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -890,30 +900,70 @@ async function _fetchAll(baseUrl, headers) {
   return all;
 }
 
+function dcComTimeout(promise, timeoutMs, mensagem) {
+  var timer;
+  return Promise.race([
+    promise,
+    new Promise(function(_, reject) {
+      timer = setTimeout(function() {
+        reject(new Error(mensagem || 'Tempo limite excedido ao carregar os dados.'));
+      }, timeoutMs);
+    })
+  ]).finally(function() {
+    clearTimeout(timer);
+  });
+}
+
 async function dcCarregarDados(empresa_id_param) {
   var eid = empresa_id_param || SESSION.empresa_id;
   if (!eid) { dcStatus('⚠ Empresa não selecionada.'); return; }
+  if (DC_IS_LOADING && DC_ACTIVE_COMPANY === eid) return;
+  if (!DC_IS_LOADING && DC_ACTIVE_COMPANY === eid && DC_RAW.length) {
+    dcAplicarFiltro();
+    dcLoading(false);
+    return;
+  }
+  if (DC_ACTIVE_COMPANY && DC_ACTIVE_COMPANY !== eid) {
+    DC_RAW = [];
+    DC_DATA = [];
+  }
+  var loadSequence = ++DC_LOAD_SEQUENCE;
+  DC_ACTIVE_COMPANY = eid;
+  DC_IS_LOADING = true;
 
   try {
     dcLoading(true, 'Buscando dados e preparando os relatorios...');
     dcSetUltimaSync('Conferindo ultima sincronizacao...', false);
     // Busca qual origem o admin configurou para este cliente ver
-    var origemR = await fetch(SUPA_URL + '/rest/v1/empresas?id=eq.' + eid + '&select=exibir_origem',
-      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } });
+    var origemR = await dcComTimeout(
+      fetch(SUPA_URL + '/rest/v1/empresas?id=eq.' + eid + '&select=exibir_origem',
+        { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }),
+      20000,
+      'A consulta da empresa demorou mais que o esperado.'
+    );
     var origemD = await origemR.json();
     var exibir  = (origemD && origemD[0] && origemD[0].exibir_origem) || 'manual';
-    await dcCarregarUltimaSync(eid);
+    await dcComTimeout(
+      dcCarregarUltimaSync(eid),
+      20000,
+      'A consulta da ultima sincronizacao demorou mais que o esperado.'
+    );
 
     // Paginação: busca TODOS os registros em lotes (sem limite de 1000)
     dcStatus('⏳ Carregando dados...');
-    var vendas = await _fetchAll(
-      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid + '&origem=eq.' + exibir + '&select=*&order=dt_saida.asc',
-      { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
+    var vendas = await dcComTimeout(
+      _fetchAll(
+        SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid + '&origem=eq.' + exibir + '&select=*&order=dt_saida.asc',
+        { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
+      ),
+      60000,
+      'O carregamento dos registros demorou mais de 60 segundos.'
     );
+
+    if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
 
     if (!Array.isArray(vendas) || !vendas.length) {
       dcLimparPainelVazio('Nenhum dado disponivel ainda', 'Sincronize a API no painel admin ou confirme se a empresa esta configurada para exibir API.');
-      dcLoading(false);
       dcStatus('⚠ Nenhum dado disponível ainda.');
       return;
     }
@@ -936,18 +986,19 @@ async function dcCarregarDados(empresa_id_param) {
     dcDefinirPeriodoInicial(vendas);
 
     dcAplicarFiltro();
-    setTimeout(function() {
-      if ((DC_DATA || []).length) {
-        dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
-      }
-      dcLoading(false);
-    }, 0);
+    if ((DC_DATA || []).length) {
+      dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
+    }
     dcStatus('✓ ' + vendas.length.toLocaleString('pt-BR') + ' registros carregados', true);
 
   } catch(e) {
-    dcLoading(false);
     dcStatus('✗ ' + e.message);
     console.error(e);
+  } finally {
+    if (loadSequence === DC_LOAD_SEQUENCE) {
+      DC_IS_LOADING = false;
+      dcLoading(false);
+    }
   }
 }
 
@@ -997,7 +1048,20 @@ function dcLoading(show, msg) {
   if (!el) return;
   var txt = el.querySelector('[data-dc-loading-text]');
   if (txt && msg) txt.textContent = msg;
+  if (DC_LOADING_TIMER) {
+    clearTimeout(DC_LOADING_TIMER);
+    DC_LOADING_TIMER = null;
+  }
   el.style.display = show ? 'grid' : 'none';
+  el.setAttribute('aria-hidden', show ? 'false' : 'true');
+  if (show) {
+    DC_LOADING_TIMER = setTimeout(function() {
+      el.style.display = 'none';
+      el.setAttribute('aria-hidden', 'true');
+      DC_LOADING_TIMER = null;
+      dcStatus('O carregamento demorou mais que o esperado. Tente atualizar os dados.', false);
+    }, 75000);
+  }
 }
 
 function dcSetUltimaSync(texto, ok) {
@@ -1240,38 +1304,46 @@ function dcAbrirRelatorio(tipo) {
   }
 
   dcLoading(true, 'Montando relatorio selecionado...');
-  dcPrepararDadosRelatorios(rows);
+  try {
+    dcPrepararDadosRelatorios(rows);
 
-  var dash = document.getElementById('view-dash-cliente');
-  if (dash) dash.style.display = 'none';
+    var dash = document.getElementById('view-dash-cliente');
+    if (dash) dash.style.display = 'none';
 
-  var wrapper = document.getElementById('cui-wrapper');
-  if (wrapper) wrapper.style.display = 'flex';
-  var sidebar = document.getElementById('sidebar');
-  if (sidebar) sidebar.style.display = 'none';
-  var app = document.getElementById('view-app');
-  if (app) app.style.display = 'block';
-  document.body.classList.add('client-report-mode');
-  document.body.classList.remove('bpo-admin-mode');
-  if (typeof switchView === 'function') switchView('view-app');
+    var wrapper = document.getElementById('cui-wrapper');
+    if (wrapper) wrapper.style.display = 'flex';
+    var sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.style.display = 'none';
+    var app = document.getElementById('view-app');
+    if (app) app.style.display = 'block';
+    document.body.classList.add('client-report-mode');
+    document.body.classList.remove('bpo-admin-mode');
+    if (typeof switchView === 'function') switchView('view-app');
 
-  var campos = {
-    'user-nome': SESSION.nome,
-    'user-empresa': document.getElementById('dc-empresa') ? document.getElementById('dc-empresa').textContent : (SESSION.empresa_nome || 'Empresa'),
-    'sidebar-user-nome': SESSION.nome,
-    'sidebar-user-empresa': document.getElementById('dc-empresa') ? document.getElementById('dc-empresa').textContent : (SESSION.empresa_nome || 'Empresa')
-  };
-  Object.keys(campos).forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.textContent = campos[id];
-  });
-  ['header-user'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.style.display = 'flex';
-  });
+    var campos = {
+      'user-nome': SESSION.nome,
+      'user-empresa': document.getElementById('dc-empresa') ? document.getElementById('dc-empresa').textContent : (SESSION.empresa_nome || 'Empresa'),
+      'sidebar-user-nome': SESSION.nome,
+      'sidebar-user-empresa': document.getElementById('dc-empresa') ? document.getElementById('dc-empresa').textContent : (SESSION.empresa_nome || 'Empresa')
+    };
+    Object.keys(campos).forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = campos[id];
+    });
+    ['header-user'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = 'flex';
+    });
 
-  if (typeof avShowRel === 'function') avShowRel(tipo);
-  setTimeout(function() { dcLoading(false); }, 150);
+    if (typeof avShowRel === 'function') avShowRel(tipo);
+  } catch (e) {
+    console.error('[relatorio cliente]', e);
+    dcStatus('Erro ao abrir o relatorio: ' + (e && e.message ? e.message : e));
+    var dashFallback = document.getElementById('view-dash-cliente');
+    if (dashFallback) dashFallback.style.display = 'flex';
+  } finally {
+    setTimeout(function() { dcLoading(false); }, 150);
+  }
 }
 
 function dcNumeroBase(valor) {
