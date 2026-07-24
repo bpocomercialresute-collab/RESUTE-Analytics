@@ -791,6 +791,63 @@ async function handleAdminUserUpdate(res, appUser, payload, env) {
   });
 }
 
+async function handleAdminUserDelete(res, appUser, payload, env) {
+  const userId = payload && payload.id ? String(payload.id).trim() : null;
+  if (!userId) throw new Error('Usuario nao informado.');
+  if (String(userId) === String(appUser.id)) {
+    throw new Error('Voce nao pode excluir o proprio perfil.');
+  }
+
+  const currentResponse = await fetch(
+    `${env.supaUrl}/rest/v1/usuarios?id=eq.${encodeURIComponent(userId)}&select=id,email,nome,papel,empresa_id,ativo&limit=1`,
+    { headers: adminActionHeaders(env) }
+  );
+  const currentRows = await adminActionReadJson(currentResponse);
+  const current = Array.isArray(currentRows) ? currentRows[0] : null;
+  if (!current) throw new Error('Usuario nao encontrado.');
+
+  if (current.papel === 'super_admin') {
+    const adminsResponse = await fetch(
+      `${env.supaUrl}/rest/v1/usuarios?papel=eq.super_admin&ativo=eq.true&select=id`,
+      { headers: adminActionHeaders(env) }
+    );
+    const admins = await adminActionReadJson(adminsResponse);
+    if (!Array.isArray(admins) || admins.length <= 1) {
+      throw new Error('O ultimo super_admin nao pode ser excluido.');
+    }
+  }
+
+  const authResponse = await fetch(
+    `${env.supaUrl}/auth/v1/admin/users/${encodeURIComponent(userId)}`,
+    { method: 'DELETE', headers: adminActionHeaders(env) }
+  );
+  if (!authResponse.ok) {
+    const errText = await authResponse.text();
+    let errMsg = 'HTTP ' + authResponse.status;
+    try { const j = JSON.parse(errText); errMsg = j.msg || j.message || j.error_description || errMsg; } catch (e) {}
+    throw new Error('Falha ao excluir autenticacao: ' + errMsg);
+  }
+
+  await fetch(
+    `${env.supaUrl}/rest/v1/usuarios?id=eq.${encodeURIComponent(userId)}`,
+    {
+      method: 'DELETE',
+      headers: { ...adminActionHeaders(env), 'Prefer': 'return=minimal' }
+    }
+  );
+
+  await writeAdminAudit(env, appUser, {
+    action: 'excluir_usuario',
+    entity: 'usuario',
+    entityId: userId,
+    empresaId: current.empresa_id,
+    summary: `Usuario ${current.email} excluido permanentemente`,
+    metadata: { papel: current.papel, nome: current.nome }
+  });
+
+  return res.status(200).json({ ok: true, mensagem: 'Usuario excluido com sucesso.' });
+}
+
 async function handleAdminCompanyArchive(res, appUser, payload, env) {
   const companyIds = Array.from(new Set(
     (Array.isArray(payload && payload.company_ids) ? payload.company_ids : [])
@@ -933,6 +990,9 @@ async function handleAdminAction(req, res, action, payload, env) {
   }
   if (action === 'admin-user-update') {
     return handleAdminUserUpdate(res, appUser, payload, env);
+  }
+  if (action === 'admin-user-delete') {
+    return handleAdminUserDelete(res, appUser, payload, env);
   }
   if (action === 'admin-company-archive') {
     return handleAdminCompanyArchive(res, appUser, payload, env);

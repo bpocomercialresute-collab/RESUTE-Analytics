@@ -191,55 +191,6 @@ function adminConsoleCompanyName(companyId) {
   return company ? company.nome : (companyId ? 'Empresa nao localizada' : 'RESUTE');
 }
 
-function adminConsoleIsLegacyCompany(company) {
-  var identity = adminConsoleSlugify(
-    String(company && company.nome || '') + '-' + String(company && company.slug || '')
-  ).replace(/-/g, '');
-  return identity.indexOf('llamenina') >= 0
-    || identity.indexOf('44tshirts') >= 0
-    || identity.indexOf('44shirts') >= 0;
-}
-
-function adminConsoleRetirarClientesLegados() {
-  var legacyCompanies = ADMIN_CONSOLE.companies.filter(adminConsoleIsLegacyCompany);
-  if (!legacyCompanies.length) return;
-  var legacyIds = legacyCompanies.map(function(company) {
-    return String(company.id || company.empresa_id);
-  }).filter(Boolean);
-  var activeLegacyIds = legacyCompanies.filter(function(company) {
-    return company.ativo !== false;
-  }).map(function(company) {
-    return String(company.id || company.empresa_id);
-  }).filter(Boolean);
-
-  ADMIN_CONSOLE.companies = ADMIN_CONSOLE.companies.filter(function(company) {
-    return legacyIds.indexOf(String(company.id || company.empresa_id)) < 0;
-  });
-  ADMIN_CONSOLE.users = ADMIN_CONSOLE.users.filter(function(user) {
-    return legacyIds.indexOf(String(user.empresa_id || '')) < 0;
-  });
-  ADMIN_CONSOLE.integrations = ADMIN_CONSOLE.integrations.filter(function(api) {
-    return legacyIds.indexOf(String(api.empresa_id || '')) < 0;
-  });
-  ADMIN_CONSOLE.syncLogs = ADMIN_CONSOLE.syncLogs.filter(function(log) {
-    return legacyIds.indexOf(String(log.empresa_id || '')) < 0;
-  });
-
-  // A manutencao do banco nao pode impedir a exibicao do painel.
-  if (activeLegacyIds.length) {
-    adminConsoleAction('admin-company-archive', { company_ids: activeLegacyIds })
-      .then(function() {
-        adminConsoleTrackActivity(
-          'empresa',
-          'Clientes antigos arquivados',
-          activeLegacyIds.length + ' cadastro(s) removido(s) da operacao ativa.'
-        );
-      })
-      .catch(function(error) {
-        console.warn('[ADMIN CONSOLE] Falha ao arquivar clientes antigos:', error.message);
-      });
-  }
-}
 
 function adminConsoleBadge(label, type) {
   return '<span class="admin-status-badge ' + adminConsoleEscape(type || 'neutral') + '">'
@@ -292,7 +243,6 @@ async function adminConsoleInicializar(force) {
         ADMIN_CONSOLE.loadErrors.push(labels[index] + ': ' + (result.reason && result.reason.message ? result.reason.message : result.reason));
       }
     });
-    adminConsoleRetirarClientesLegados();
     // O painel RESUTE administra clientes e acessos. Os dados comerciais
     // permanecem na central operacional de cada empresa.
     ADMIN_CONSOLE.metricsByCompany = {};
@@ -680,6 +630,7 @@ function adminConsoleRenderUsuarios(list) {
       + '<td class="admin-table-actions">'
       + '<button class="admin-table-action" onclick="adminConsoleEditarUsuario(\'' + uid + '\')">Editar</button>'
       + (canEnter ? '<button class="admin-table-action admin-table-action-primary" onclick="adminConsoleEntrarComo(\'' + uid + '\')">Entrar como</button>' : '')
+      + '<button class="admin-table-action admin-table-action-danger" onclick="adminConsoleExcluirUsuario(\'' + uid + '\')">Excluir</button>'
       + '</td></tr>';
   }).join('');
 }
@@ -1120,6 +1071,24 @@ function adminConsoleFiltrarPorEmpresa(empresaId) {
 function adminConsoleEditarUsuario(userId) {
   var user = ADMIN_CONSOLE.users.find(function(item) { return String(item.id) === String(userId); });
   if (user) adminConsoleUsuarioModal(user, '');
+}
+
+async function adminConsoleExcluirUsuario(userId) {
+  var user = ADMIN_CONSOLE.users.find(function(item) { return String(item.id) === String(userId); });
+  if (!user) { adminConsoleAviso('Usuario nao encontrado.', 'error'); return; }
+  var confirmed = window.confirm(
+    'Excluir permanentemente ' + (user.nome || user.email || 'este usuario')
+    + '?\n\nEsta acao nao pode ser desfeita. O acesso sera removido do banco de dados.'
+  );
+  if (!confirmed) return;
+  try {
+    await adminConsoleAction('admin-user-delete', { id: userId });
+    adminConsoleTrackActivity('usuario', 'Usuario excluido', (user.nome || user.email) + ' - ' + user.papel);
+    await adminConsoleAtualizar(true);
+    adminConsoleAviso('Usuario excluido com sucesso.', 'success');
+  } catch (error) {
+    adminConsoleAviso('Falha ao excluir usuario: ' + error.message, 'error');
+  }
 }
 
 function adminConsoleEntrarComo(userId) {

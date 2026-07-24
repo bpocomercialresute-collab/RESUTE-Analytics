@@ -7999,6 +7999,16 @@ body.bpo-admin-mode .admin-table-action.admin-table-action-primary:hover {
   opacity: .88;
   transform: translateY(-1px);
 }
+body.bpo-admin-mode .admin-table-action.admin-table-action-danger {
+  color: #dc2626 !important;
+  border-color: #fca5a5 !important;
+  background: transparent !important;
+}
+body.bpo-admin-mode .admin-table-action.admin-table-action-danger:hover {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: #fff !important;
+}
 
 body.bpo-admin-mode .admin-section-intro {
   padding: 20px 22px;
@@ -9300,6 +9310,16 @@ body.lp-about-open .lp-process-step span {
 .admin-table-action-primary:hover {
   background: #1e40af;
   border-color: #1e40af;
+  color: #ffffff;
+}
+.admin-table-action-danger {
+  background: transparent;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+.admin-table-action-danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
   color: #ffffff;
 }
 
