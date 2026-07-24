@@ -926,11 +926,3 @@ async function adminConsoleTestarIntegracao() {
 document.addEventListener('keydown', function(event) {
   if (event.key === 'Escape') adminConsoleFecharModal();
 });
-
-document.addEventListener('DOMContentLoaded', function() {
-  var restored = typeof _readStoredSession === 'function' ? _readStoredSession() : null;
-  if (restored && restored.token) {
-    SESSION = restored;
-    if (typeof _abrirApp === 'function') _abrirApp();
-  }
-});

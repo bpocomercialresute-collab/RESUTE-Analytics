@@ -268,8 +268,9 @@ function _normalizarTelaInicial() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  _normalizarTelaInicial();
-  _limparBlocosInstitucionaisAntigos();
+  SESSION = null;
+  dcLoading(false);
+  _mostrarLogin();
 });
 
 function _mostrarLogin() {
