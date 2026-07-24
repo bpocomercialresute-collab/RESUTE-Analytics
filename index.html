@@ -481,37 +481,71 @@
             <!-- MODO API (empresas com sincronização automática) -->
             <div id="adm-modo-api" style="display:none">
               <div class="adm-api-wrap">
-                <div class="adm-api-top">
-                  <button id="admin-btn-sync" onclick="adminSincronizar()" class="adm-btn adm-btn-api">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
-                    Sincronizar API
-                  </button>
-                  <div class="adm-periodo-wrap">
-                    <label class="adm-periodo-field">
-                      <span>Início</span>
-                      <input id="adm-sync-inicio" type="date" onchange="_adminObterPeriodoSync()" />
+
+                <!-- Controles -->
+                <div class="adm-sync-controls">
+
+                  <!-- Linha 1: empresa + período -->
+                  <div class="adm-sync-row">
+                    <label class="adm-ctrl-field" id="adm-sync-empresa-wrap" style="display:none">
+                      <span>Empresa</span>
+                      <select id="adm-sync-empresa-select" class="adm-select" onchange="adminSyncSelecionarEmpresa(this.value)"></select>
                     </label>
-                    <label class="adm-periodo-field">
-                      <span>Fim</span>
-                      <input id="adm-sync-fim" type="date" onchange="_adminObterPeriodoSync()" />
+                    <label class="adm-ctrl-field">
+                      <span>Início do período</span>
+                      <input id="adm-sync-inicio" type="date" class="adm-input" onchange="_adminObterPeriodoSync()" />
                     </label>
+                    <label class="adm-ctrl-field">
+                      <span>Fim do período</span>
+                      <input id="adm-sync-fim" type="date" class="adm-input" onchange="_adminObterPeriodoSync()" />
+                    </label>
+                    <div id="adm-api-ultima" class="adm-api-ultima adm-api-ultima-inline"></div>
                   </div>
-                  <button onclick="adminLimparOrigem('api')" class="adm-btn adm-btn-danger">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-                    Limpar
-                  </button>
-                  <div id="adm-api-ultima" class="adm-api-ultima"></div>
+
+                  <!-- Linha 2: ações + auto-sync -->
+                  <div class="adm-sync-row adm-sync-row-actions">
+                    <button id="admin-btn-sync" onclick="adminSincronizar()" class="adm-btn adm-btn-api">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+                      Sincronizar agora
+                    </button>
+                    <button onclick="adminLimparOrigem('api')" class="adm-btn adm-btn-danger">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                      Limpar dados API
+                    </button>
+                    <div class="adm-autosync-block">
+                      <label class="adm-ctrl-field">
+                        <span>Sincronização automática</span>
+                        <select id="adm-autosync-interval" class="adm-select" onchange="adminAutoSyncConfigurar(this.value)">
+                          <option value="0">Manual (desativado)</option>
+                          <option value="30">A cada 30 minutos</option>
+                          <option value="60">A cada 1 hora</option>
+                          <option value="180">A cada 3 horas</option>
+                          <option value="360">A cada 6 horas</option>
+                          <option value="720">A cada 12 horas</option>
+                          <option value="1440">A cada 24 horas</option>
+                        </select>
+                      </label>
+                      <div id="adm-autosync-status" class="adm-autosync-status" style="display:none">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span id="adm-autosync-countdown">—</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div id="adm-periodo-resumo" class="adm-periodo-resumo"></div>
                 </div>
-                <div id="adm-periodo-resumo" class="adm-periodo-resumo"></div>
+
                 <!-- KPIs do sync -->
                 <div id="adm-api-kpis" class="adm-api-kpis" style="display:none"></div>
                 <div id="adm-api-modulos" class="adm-api-modulos"></div>
-                <!-- Relatórios aparecem aqui após sync -->
+
+                <!-- Aviso pós-sync -->
                 <div id="adm-api-relatorios" class="adm-api-relatorios" style="display:none">
                   <div class="adm-rel-aviso">
                     ✓ Dados sincronizados — veja os relatórios abaixo nas abas <strong>RELAT PRODUTOS</strong> e <strong>RELAT REPRESENTANTES</strong>
                   </div>
                 </div>
+
               </div>
             </div>
 

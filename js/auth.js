@@ -2755,6 +2755,7 @@ async function adminInicializar() {
     : EMPRESAS_ADMIN;
   if (!lista.length) lista = EMPRESAS_ADMIN;
   _adminRenderAbas(lista);
+  _adminRenderSyncEmpresaSelect();
   var autoId = (SESSION && SESSION.empresa_id && lista.find(function(e) { return e.empresa_id === SESSION.empresa_id; }))
     ? SESSION.empresa_id
     : (lista[0] && lista[0].empresa_id);
@@ -2788,6 +2789,10 @@ async function adminSelecionarEmpresa(id) {
   // Mostra modo correto
   _adminMostrarModo(EMPRESA_ATIVA.tem_api);
 
+  // Atualiza select de empresa no painel de sync e carrega config de auto-sync
+  _adminSyncAtualizarSelect(id);
+  _adminAutoSyncCarregarConfig(id);
+
   // Carrega origem configurada e contagens
   await _adminCarregarOrigemEmpresa(id);
   await _adminAtualizarContagens();
@@ -2796,6 +2801,98 @@ async function adminSelecionarEmpresa(id) {
   // Carrega dados existentes
   await _adminCarregar(id);
   await _adminCarregarCadastrosApiSalvos();
+}
+
+// ── AUTO-SYNC SCHEDULER ───────────────────────────────────────────────────────
+
+var _AUTOSYNC_TICK_ID = null;
+var _AUTOSYNC_INTERVAL_MIN = 0;
+var _AUTOSYNC_NEXT_MS = 0;
+var _AUTOSYNC_LS_KEY = 'resute_autosync_v1';
+
+function adminAutoSyncConfigurar(intervalMin, empresaIdOverride) {
+  if (_AUTOSYNC_TICK_ID) { clearInterval(_AUTOSYNC_TICK_ID); _AUTOSYNC_TICK_ID = null; }
+  _AUTOSYNC_INTERVAL_MIN = parseInt(intervalMin) || 0;
+  var empresaId = empresaIdOverride || (EMPRESA_ATIVA && EMPRESA_ATIVA.empresa_id) || '';
+  try {
+    var stored = JSON.parse(localStorage.getItem(_AUTOSYNC_LS_KEY) || '{}');
+    stored[empresaId] = _AUTOSYNC_INTERVAL_MIN;
+    localStorage.setItem(_AUTOSYNC_LS_KEY, JSON.stringify(stored));
+  } catch(e) {}
+  var statusEl = document.getElementById('adm-autosync-status');
+  if (!_AUTOSYNC_INTERVAL_MIN || !empresaId) {
+    if (statusEl) statusEl.style.display = 'none';
+    return;
+  }
+  _AUTOSYNC_NEXT_MS = Date.now() + _AUTOSYNC_INTERVAL_MIN * 60 * 1000;
+  if (statusEl) statusEl.style.display = 'flex';
+  _AUTOSYNC_TICK_ID = setInterval(function() {
+    var remaining = _AUTOSYNC_NEXT_MS - Date.now();
+    var countdown = document.getElementById('adm-autosync-countdown');
+    if (remaining <= 0) {
+      clearInterval(_AUTOSYNC_TICK_ID); _AUTOSYNC_TICK_ID = null;
+      var target = (EMPRESAS_ADMIN || []).find(function(e){ return e.empresa_id === empresaId; });
+      if (target && target.tem_api) {
+        if (countdown) countdown.textContent = 'Sincronizando...';
+        if (EMPRESA_ATIVA && EMPRESA_ATIVA.empresa_id !== empresaId) EMPRESA_ATIVA = target;
+        adminSincronizar().then(function() {
+          adminAutoSyncConfigurar(_AUTOSYNC_INTERVAL_MIN, empresaId);
+        }).catch(function() {
+          adminAutoSyncConfigurar(_AUTOSYNC_INTERVAL_MIN, empresaId);
+        });
+      } else {
+        adminAutoSyncConfigurar(_AUTOSYNC_INTERVAL_MIN, empresaId);
+      }
+      return;
+    }
+    var h = Math.floor(remaining / 3600000);
+    var m = Math.floor((remaining % 3600000) / 60000);
+    var s = Math.floor((remaining % 60000) / 1000);
+    if (countdown) {
+      countdown.textContent = 'Próximo sync em '
+        + (h ? h + 'h ' : '')
+        + String(m).padStart(2, '0') + 'min '
+        + String(s).padStart(2, '0') + 's';
+    }
+  }, 1000);
+}
+
+function _adminAutoSyncCarregarConfig(empresaId) {
+  if (!empresaId) return;
+  try {
+    var stored = JSON.parse(localStorage.getItem(_AUTOSYNC_LS_KEY) || '{}');
+    var interval = stored[empresaId] || 0;
+    var sel = document.getElementById('adm-autosync-interval');
+    if (sel) sel.value = String(interval);
+    if (interval) adminAutoSyncConfigurar(interval, empresaId);
+    else {
+      var statusEl = document.getElementById('adm-autosync-status');
+      if (statusEl) statusEl.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+function _adminRenderSyncEmpresaSelect() {
+  var sel = document.getElementById('adm-sync-empresa-select');
+  var wrap = document.getElementById('adm-sync-empresa-wrap');
+  if (!sel || !wrap) return;
+  var apis = (EMPRESAS_ADMIN || []).filter(function(e) { return e.tem_api; });
+  if (apis.length <= 1) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  sel.innerHTML = apis.map(function(e) {
+    return '<option value="' + e.empresa_id + '">' + (e.nome || e.empresa_id) + '</option>';
+  }).join('');
+  if (EMPRESA_ATIVA) sel.value = EMPRESA_ATIVA.empresa_id;
+}
+
+function _adminSyncAtualizarSelect(empresaId) {
+  var sel = document.getElementById('adm-sync-empresa-select');
+  if (sel && empresaId) sel.value = empresaId;
+}
+
+function adminSyncSelecionarEmpresa(empresaId) {
+  if (!empresaId) return;
+  adminSelecionarEmpresa(empresaId);
 }
 
 async function _adminCarregar(empresa_id) {
