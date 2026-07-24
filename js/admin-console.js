@@ -624,7 +624,7 @@ function adminConsoleRenderUsuarios(list) {
     return '<tr><td><div class="admin-user-cell"><span>' + adminConsoleEscape(initial) + '</span><div><strong>'
       + adminConsoleEscape(user.nome || 'Sem nome') + '</strong><small>' + adminConsoleEscape(user.email || '') + '</small></div></div></td>'
       + '<td>' + adminConsoleEscape(adminConsoleCompanyName(user.empresa_id)) + '</td>'
-      + '<td>' + adminConsoleBadge(user.papel || 'cliente', user.papel === 'super_admin' ? 'featured' : 'neutral') + '</td>'
+      + '<td>' + adminConsoleBadge(user.papel === 'super_admin' ? 'Gerente geral' : user.papel === 'admin' ? 'Admin' : 'Cliente', user.papel === 'super_admin' ? 'featured' : 'neutral') + '</td>'
       + '<td>' + adminConsoleBadge(active ? 'Ativo' : 'Inativo', active ? 'ok' : 'neutral') + '</td>'
       + '<td>' + adminConsoleEscape(adminConsoleDate(user.criado_em, false)) + '</td>'
       + '<td>' + adminConsoleEscape(adminConsoleDate(user.ultimo_acesso || user.last_sign_in_at, true)) + '</td>'
@@ -1154,7 +1154,13 @@ function adminConsoleUsuarioModal(user, preEmpresaId) {
   var html = '<div class="admin-form-grid">'
     + '<label class="admin-field"><span>Nome completo</span><input name="nome" required maxlength="140" value="' + adminConsoleEscape(user && user.nome) + '"></label>'
     + '<label class="admin-field"><span>E-mail</span><input name="email" type="email" required value="' + adminConsoleEscape(user && user.email) + '"></label>'
-    + '<label class="admin-field"><span>Nivel de acesso</span><select name="papel" onchange="adminConsoleAtualizarEscopoUsuario(this.form)"><option value="cliente"' + (!user || user.papel === 'cliente' ? ' selected' : '') + '>Cliente</option><option value="admin"' + (user && user.papel === 'admin' ? ' selected' : '') + '>Admin</option><option value="super_admin"' + (user && user.papel === 'super_admin' ? ' selected' : '') + '>Super admin</option></select></label>'
+    + '<label class="admin-field"><span>Nivel de acesso</span><select name="papel" onchange="adminConsoleAtualizarEscopoUsuario(this.form)">'
+    + '<option value="cliente"' + (!user || user.papel === 'cliente' ? ' selected' : '') + '>Cliente</option>'
+    + '<option value="admin"' + (user && user.papel === 'admin' ? ' selected' : '') + '>Admin da empresa</option>'
+    + (!preEmpresaId || (user && user.papel === 'super_admin')
+        ? '<option value="super_admin"' + (user && user.papel === 'super_admin' ? ' selected' : '') + '>Gerente geral — acesso a todas as empresas</option>'
+        : '')
+    + '</select><small class="admin-field-note">' + (preEmpresaId ? 'Gerente geral nao pode ser vinculado a uma empresa especifica.' : 'Gerente geral nao precisa de empresa — acessa tudo.') + '</small></label>'
     + '<label class="admin-field"><span>Empresa vinculada</span><select name="empresa_id">' + adminConsoleCompanyOptions(empresaValue, true) + '</select><small class="admin-field-note">Obrigatoria para cliente e admin.</small></label>'
     + '<label class="admin-field"><span>' + (editing ? 'Nova senha (opcional)' : 'Senha temporaria') + '</span><input name="password" type="password" ' + (editing ? '' : 'required') + ' minlength="8" autocomplete="new-password"></label>'
     + '<label class="admin-field admin-field-switch"><input name="ativo" type="checkbox"' + (!user || user.ativo !== false ? ' checked' : '') + '><span>Usuario ativo</span></label>'
