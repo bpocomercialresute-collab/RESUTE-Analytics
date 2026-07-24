@@ -821,7 +821,7 @@ async function handleAdminUserDelete(res, appUser, payload, env) {
     `${env.supaUrl}/auth/v1/admin/users/${encodeURIComponent(userId)}`,
     { method: 'DELETE', headers: adminActionHeaders(env) }
   );
-  if (!authResponse.ok) {
+  if (!authResponse.ok && authResponse.status !== 404) {
     const errText = await authResponse.text();
     let errMsg = 'HTTP ' + authResponse.status;
     try { const j = JSON.parse(errText); errMsg = j.msg || j.message || j.error_description || errMsg; } catch (e) {}
