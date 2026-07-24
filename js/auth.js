@@ -192,10 +192,8 @@ function _saveSession(sessionData) {
   _touchSession();
 }
 
-// ── LOJA ATIVA (Varremaster) ───────────────────────────────────────────────────
-var LOJA_NOMES = {
-  'af3b599b-65c5-4868-b8bf-a5934da84f0d': 'Varremaster'
-};
+// ── NOMES DE LOJAS (populado dinamicamente) ───────────────────────────────────
+var LOJA_NOMES = {};
 var ADMIN_PREVIEW_COMPANIES = [];
 
 function abrirAnaliseVendas() {
@@ -709,15 +707,9 @@ async function _carregarEmpresasComAPI() {
     var sel = document.getElementById('sync-empresa-select');
 
     if (!lista.length) {
-      // Fallback Varremaster (super_admin)
-      if (SESSION.papel === 'super_admin') {
-        lista = [{ empresa_id: 'af3b599b-65c5-4868-b8bf-a5934da84f0d', nome: 'Varremaster', slug: 'varremaster', sistema: 'visual_saef' }];
-        EMPRESAS = lista;
-      } else {
-        if (sel) sel.style.display = 'none';
-        _setStatus('⚠ Sem empresa com API configurada.', '');
-        return;
-      }
+      if (sel) sel.style.display = 'none';
+      _setStatus('⚠ Sem empresa com API configurada.', '');
+      return;
     }
 
     if (sel) {
@@ -985,13 +977,19 @@ function _abrirDashCliente(empresaIdPreview) {
   if (botaoVoltar) botaoVoltar.style.display = previewAdmin ? 'inline-flex' : 'none';
   if (previewBadge) previewBadge.style.display = previewAdmin ? 'inline-flex' : 'none';
   if (logo) {
-    if (eidAtual === 'af3b599b-65c5-4868-b8bf-a5934da84f0d') {
-      logo.src = 'assets/varremaster-logo.png';
-      logo.alt = 'Varremaster';
+    var eObj = empresaPreview
+      || (ADMIN_PREVIEW_COMPANIES || []).find(function(e){ return e.empresa_id === eidAtual; })
+      || (EMPRESAS_ADMIN || []).find(function(e){ return e.empresa_id === eidAtual; });
+    var logoSrc = (eObj && eObj.logo_url)
+      || ((eObj && eObj.slug) ? 'assets/' + eObj.slug + '-logo.png' : null)
+      || ((SESSION && SESSION.empresa_slug) ? 'assets/' + SESSION.empresa_slug + '-logo.png' : null);
+    if (logoSrc) {
+      logo.src = logoSrc;
+      logo.alt = eObj ? (eObj.nome || '') : '';
       logo.style.display = '';
+      logo.onerror = function() { this.style.display = 'none'; };
     } else {
       logo.removeAttribute('src');
-      logo.alt = 'Empresa';
       logo.style.display = 'none';
     }
   }
@@ -2667,10 +2665,8 @@ function dcStatus(msg, ok) {
 // =============================================================================
 
 var EMPRESA_ATIVA = null;
-var EMPRESAS_ADMIN_BASE = [
-  { empresa_id: 'af3b599b-65c5-4868-b8bf-a5934da84f0d', nome: 'Varremaster', tem_api: true }
-];
-var EMPRESAS_ADMIN = EMPRESAS_ADMIN_BASE.slice();
+var EMPRESAS_ADMIN_BASE = [];
+var EMPRESAS_ADMIN = [];
 
 async function _adminCarregarEmpresasMeta() {
   try {
@@ -2706,9 +2702,8 @@ async function _adminCarregarEmpresasMeta() {
     }).filter(function(empresa) {
       return !!empresa.empresa_id;
     });
-    if (!EMPRESAS_ADMIN.length) EMPRESAS_ADMIN = EMPRESAS_ADMIN_BASE.slice();
+    EMPRESAS_ADMIN.forEach(function(e) { if (e.empresa_id && e.nome) LOJA_NOMES[e.empresa_id] = e.nome; });
   } catch (e) {
-    EMPRESAS_ADMIN = EMPRESAS_ADMIN_BASE.slice();
     console.warn('[ADMIN] Falha ao carregar metadados das empresas:', e);
   }
 }
@@ -2716,13 +2711,22 @@ async function _adminCarregarEmpresasMeta() {
 async function adminInicializar() {
   var sa = document.getElementById('sync-area'); if (sa) sa.style.display = 'none';
   await _adminCarregarEmpresasMeta();
-  _adminRenderAbas();
-  adminSelecionarEmpresa(EMPRESAS_ADMIN[0].empresa_id);
+  var allowedIds = SESSION && Array.isArray(SESSION.empresa_ids) ? SESSION.empresa_ids : null;
+  var lista = (allowedIds && allowedIds.length)
+    ? EMPRESAS_ADMIN.filter(function(e) { return allowedIds.indexOf(e.empresa_id) !== -1; })
+    : EMPRESAS_ADMIN;
+  if (!lista.length) lista = EMPRESAS_ADMIN;
+  _adminRenderAbas(lista);
+  var autoId = (SESSION && SESSION.empresa_id && lista.find(function(e) { return e.empresa_id === SESSION.empresa_id; }))
+    ? SESSION.empresa_id
+    : (lista[0] && lista[0].empresa_id);
+  if (autoId) adminSelecionarEmpresa(autoId);
 }
 
-function _adminRenderAbas() {
+function _adminRenderAbas(lista) {
   var c = document.getElementById('admin-empresa-tabs'); if (!c) return;
-  c.innerHTML = EMPRESAS_ADMIN.map(function(e) {
+  var items = Array.isArray(lista) ? lista : EMPRESAS_ADMIN;
+  c.innerHTML = items.map(function(e) {
     var tag = e.tem_api ? '<span class="emp-tag tag-api">API</span>' : '<span class="emp-tag tag-manual">Manual</span>';
     return '<button class="admin-emp-tab" data-id="' + e.empresa_id + '">' + e.nome + tag + '</button>';
   }).join('');
@@ -3433,7 +3437,7 @@ async function adminSincronizar() {
            + String(d.getFullYear());
     };
     var DI = fmt(dataInicio), DF = fmt(dataFim);
-    _adminSetStatus('⏳ Conectando API Varremaster — período: ' + DI + ' a ' + DF);
+    _adminSetStatus('⏳ Conectando API ' + (EMPRESA_ATIVA ? EMPRESA_ATIVA.nome : '') + ' — período: ' + DI + ' a ' + DF);
 
     // 1. Login na Visual Saef via proxy seguro
     var lR = await _fetchVisualSaefProxy('/login', null, { Accept: 'application/json' });
@@ -3521,7 +3525,7 @@ async function adminSincronizar() {
         grupo:        String(get(item,['nomadacategoria','nomeDaCategoria','grupocategoria','grupo','categoria']) || ''),
         uf:           String(get(item,['uf','estado','ufcliente','siglaestado']) || ''),
         cidade:       String(get(item,['cidade','municipio','nomecidade']) || ''),
-        empresa_nome: 'Varremaster'
+        empresa_nome: EMPRESA_ATIVA ? EMPRESA_ATIVA.nome : ''
       };
     });
 
@@ -3568,7 +3572,7 @@ async function adminSincronizar() {
     await _atualizarSyncLog(EMPRESA_ATIVA.empresa_id, dataFim, inseridos, inseridos + ' registros de ' + DI + ' a ' + DF);
 
     // 6. Recarrega dados e processa relatórios
-    _adminSetStatus('✓ ' + inseridos + ' registros importados da Varremaster!', true);
+    _adminSetStatus('✓ ' + inseridos + ' registros importados' + (EMPRESA_ATIVA ? ' de ' + EMPRESA_ATIVA.nome : '') + '!', true);
     await _adminCarregar(EMPRESA_ATIVA.empresa_id);
     try { bdMapColumns(); } catch(e) { console.error(e); }
     try { bdAutoFill(); }   catch(e) { console.error(e); }
@@ -4080,7 +4084,7 @@ adminSincronizar = async function() {
         grupo:        String(get(item,['nomadacategoria','nomeDaCategoria','grupocategoria','grupo','categoria']) || ''),
         uf:           String(get(item,['uf','estado','ufcliente','siglaestado']) || ''),
         cidade:       String(get(item,['cidade','municipio','nomecidade']) || ''),
-        empresa_nome: 'Varremaster'
+        empresa_nome: EMPRESA_ATIVA ? EMPRESA_ATIVA.nome : ''
       };
     });
 
