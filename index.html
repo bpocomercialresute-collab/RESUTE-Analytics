@@ -389,9 +389,13 @@
               <input id="admin-sync-date-from" type="date" aria-label="Data inicial" onchange="adminConsoleFiltrarSync()">
               <input id="admin-sync-date-to" type="date" aria-label="Data final" onchange="adminConsoleFiltrarSync()">
               <span id="admin-sync-result" class="admin-result-count">0 registros</span>
-              <button class="admin-btn-primary" onclick="abrirAnaliseVendas()">Abrir central de sincroniza&ccedil;&atilde;o</button>
+              <button class="admin-btn-secondary" onclick="adminConsoleAbrirSyncEmpresa()">Abrir painel de sync</button>
+              <button class="admin-btn-primary" onclick="adminConsoleDispararSyncEmpresa()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+                Sincronizar agora
+              </button>
             </div>
-            <div class="admin-table-card"><div class="admin-table-scroll"><table class="admin-data-table"><thead><tr><th>Empresa</th><th>Tipo</th><th>&Uacute;ltima sincroniza&ccedil;&atilde;o</th><th>Per&iacute;odo final</th><th>Registros</th><th>Status</th><th>Detalhes</th></tr></thead><tbody id="admin-sync-body"></tbody></table></div></div>
+            <div class="admin-table-card"><div class="admin-table-scroll"><table class="admin-data-table"><thead><tr><th>Empresa</th><th>Tipo</th><th>&Uacute;ltima sincroniza&ccedil;&atilde;o</th><th>Per&iacute;odo final</th><th>Registros</th><th>Status</th><th>A&ccedil;&otilde;es</th></tr></thead><tbody id="admin-sync-body"></tbody></table></div></div>
           </section>
 
           <section id="admin-section-audit" class="admin-console-section">
@@ -891,6 +895,10 @@
         <input id="dc-filtro-fim" class="dc-filtro" type="date" onchange="dcFiltroPeriodoAlterado()">
         <div id="dc-loja-selector" class="dc-loja-selector" style="display:none"></div>
         <span id="dc-sync-badge" class="dc-sync-badge">Sync pendente</span>
+        <button id="dc-btn-atualizar" type="button" onclick="dcSincronizarOuAtualizar()" class="dc-btn-atualizar" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+          <span id="dc-btn-atualizar-label">Atualizar</span>
+        </button>
         <span id="dc-status" class="dc-header-status"></span>
         <button id="dc-admin-back" type="button" onclick="dcVoltarAoAdmin()" class="dc-admin-back" style="display:none">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>

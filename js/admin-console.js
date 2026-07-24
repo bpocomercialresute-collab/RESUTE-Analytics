@@ -762,13 +762,17 @@ function adminConsoleFiltrarSync() {
   }
   body.innerHTML = list.map(function(item, index) {
     var syncState = adminConsoleSyncState(item);
+    var eid = adminConsoleEscape(String(item.empresa_id || ''));
     return '<tr><td><strong>' + adminConsoleEscape(adminConsoleCompanyName(item.empresa_id)) + '</strong></td>'
       + '<td>Vendas e cadastros</td>'
       + '<td>' + adminConsoleEscape(adminConsoleDate(item.ultima_sync, true)) + '</td>'
       + '<td>' + adminConsoleEscape(adminConsoleDate(item.ultima_data, false)) + '</td>'
       + '<td>' + adminConsoleNumber(item.total_registros) + '</td>'
       + '<td>' + adminConsoleBadge(syncState.label, syncState.type) + '</td>'
-      + '<td><button class="admin-table-action" onclick="adminConsoleDetalharSync(' + index + ')">Abrir</button></td></tr>';
+      + '<td class="admin-table-actions">'
+      + '<button class="admin-table-action" onclick="adminConsoleDetalharSync(' + index + ')">Detalhes</button>'
+      + '<button class="admin-table-action admin-table-action-primary" onclick="adminConsoleDispararSyncEmpresa(\'' + eid + '\')">Sincronizar</button>'
+      + '</td></tr>';
   }).join('');
   ADMIN_CONSOLE.filteredSyncLogs = list;
 }
@@ -786,7 +790,7 @@ function adminConsoleDetalharSync(index) {
     + ((item.mensagem || item.erro) ? '<span class="admin-field-full">Mensagem<strong>' + adminConsoleEscape(adminConsoleSafeText(item.mensagem || item.erro, 500)) + '</strong></span>' : '')
     + '</div>'
     + '<div class="admin-form-help">O schema atual de sync_log registra o estado consolidado por empresa. Nenhum token ou segredo e exibido.</div>'
-    + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Fechar</button><button class="admin-btn-primary" type="button" onclick="adminConsoleFecharModal(); abrirAnaliseVendas()">Abrir central e repetir</button></div>';
+    + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Fechar</button><button class="admin-btn-secondary" type="button" onclick="adminConsoleFecharModal(); adminConsoleAbrirSyncEmpresa(\'' + adminConsoleEscape(String(item.empresa_id || '')) + '\')">Abrir painel</button><button class="admin-btn-primary" type="button" onclick="adminConsoleFecharModal(); adminConsoleDispararSyncEmpresa(\'' + adminConsoleEscape(String(item.empresa_id || '')) + '\')">Sincronizar novamente</button></div>';
   adminConsoleAbrirModal('SINCRONIZACAO', 'Detalhes do registro', html, function() {});
 }
 
@@ -1228,3 +1232,60 @@ async function adminConsoleTestarIntegracao(companyId, button) {
 document.addEventListener('keydown', function(event) {
   if (event.key === 'Escape') adminConsoleFecharModal();
 });
+
+// ── SYNC DIRETO DO ADMIN CONSOLE ─────────────────────────────────────────────
+
+function adminConsoleAbrirSyncEmpresa(empresaId) {
+  var eid = empresaId
+    || (function(){ var s = document.getElementById('admin-sync-company'); return s && s.value; }())
+    || '';
+  if (!eid) {
+    var first = (ADMIN_CONSOLE.companies || []).find(function(c){ return c.ativo !== false && c.exibir_origem === 'api'; });
+    eid = first ? (first.id || first.empresa_id) : '';
+  }
+  if (!eid) { adminConsoleAviso('Selecione uma empresa com API configurada.', 'error'); return; }
+  adminConsoleAbrirOperacao(eid);
+}
+
+async function adminConsoleDispararSyncEmpresa(empresaId) {
+  var eid = empresaId
+    || (function(){ var s = document.getElementById('admin-sync-company'); return s && s.value; }())
+    || '';
+  if (!eid) { adminConsoleAviso('Selecione uma empresa para sincronizar.', 'error'); return; }
+
+  var empresa = (ADMIN_CONSOLE.companies || []).find(function(c){
+    return String(c.id || c.empresa_id) === String(eid);
+  });
+  if (!empresa) { adminConsoleAviso('Empresa nao encontrada no cache. Atualize a pagina.', 'error'); return; }
+
+  var origem = String(empresa.exibir_origem || 'manual').toLowerCase();
+  if (origem !== 'api') { adminConsoleAviso('Esta empresa nao tem API configurada (origem: ' + origem + ').', 'error'); return; }
+
+  if (typeof EMPRESA_ATIVA === 'undefined') { adminConsoleAviso('Abra o painel de sincronizacao primeiro.', 'error'); return; }
+
+  var integration = (ADMIN_CONSOLE.integrations || []).find(function(a){
+    return String(a.empresa_id) === String(eid) && a.ativo !== false;
+  });
+
+  EMPRESA_ATIVA = {
+    empresa_id: eid,
+    nome: empresa.nome || 'Empresa',
+    slug: empresa.slug || null,
+    tem_api: true,
+    sistema: integration ? integration.sistema : null,
+    exibir_origem: 'api'
+  };
+
+  if (typeof adminSincronizar !== 'function') {
+    adminConsoleAviso('Funcao de sync nao disponivel. Abra o painel de sincronizacao primeiro.', 'error');
+    return;
+  }
+
+  adminConsoleAviso('Sincronizando ' + (empresa.nome || 'empresa') + '...', 'info');
+  try {
+    await adminSincronizar();
+    setTimeout(function(){ adminConsoleAtualizar(true); }, 2000);
+  } catch(e) {
+    adminConsoleAviso('Erro no sync: ' + e.message, 'error');
+  }
+}

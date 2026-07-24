@@ -1023,6 +1023,44 @@ function _abrirDashCliente(empresaIdPreview) {
     if (eid) dcCarregarDados(eid);
     else dcStatus('⚠ Empresa não configurada.');
   }
+
+  // Botão de sync/atualizar no header do dashboard
+  var atualizarBtn = document.getElementById('dc-btn-atualizar');
+  var atualizarLabel = document.getElementById('dc-btn-atualizar-label');
+  if (atualizarBtn) {
+    atualizarBtn.style.display = 'inline-flex';
+    if (atualizarLabel) {
+      atualizarLabel.textContent = (previewAdmin && empresaPreview && empresaPreview.tem_api)
+        ? 'Sincronizar' : 'Atualizar';
+    }
+  }
+}
+
+async function dcSincronizarOuAtualizar() {
+  var btn = document.getElementById('dc-btn-atualizar');
+  var label = document.getElementById('dc-btn-atualizar-label');
+  if (btn) btn.disabled = true;
+  try {
+    if (DC_ADMIN_PREVIEW && DC_ADMIN_PREVIEW_COMPANY) {
+      var empresa = DC_ADMIN_PREVIEW_COMPANY;
+      if (empresa.tem_api && typeof adminSincronizar === 'function') {
+        EMPRESA_ATIVA = empresa;
+        await adminSincronizar();
+        DC_ACTIVE_COMPANY = '';
+        await dcCarregarDados(empresa.empresa_id);
+      } else {
+        DC_ACTIVE_COMPANY = '';
+        await dcCarregarDados(empresa.empresa_id);
+      }
+    } else {
+      var eid = SESSION && SESSION.empresa_id;
+      if (eid) { DC_ACTIVE_COMPANY = ''; await dcCarregarDados(eid); }
+    }
+  } catch(e) {
+    dcStatus('✗ ' + e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 // ── CARREGA DADOS DO SUPABASE ─────────────────────────────────────────────────

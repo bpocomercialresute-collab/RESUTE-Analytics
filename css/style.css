@@ -9144,6 +9144,38 @@ body.lp-about-open .lp-process-step span {
   background: #094f4c;
 }
 
+.dc-btn-atualizar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  background: #1d4ed8;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 150ms;
+}
+.dc-btn-atualizar:hover { background: #1e40af; }
+.dc-btn-atualizar:disabled { opacity: .6; cursor: not-allowed; }
+.dc-btn-atualizar svg { flex-shrink: 0; }
+
+.admin-table-action-primary {
+  background: #1d4ed8;
+  color: #ffffff;
+  border-color: #1d4ed8;
+}
+.admin-table-action-primary:hover {
+  background: #1e40af;
+  border-color: #1e40af;
+  color: #ffffff;
+}
+
 @media (max-width: 980px) {
   .admin-client-access-hero {
     grid-template-columns: 1fr;
