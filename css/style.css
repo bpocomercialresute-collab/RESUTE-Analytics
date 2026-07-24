@@ -7909,6 +7909,18 @@ body.bpo-admin-mode .admin-company-actions .admin-company-danger:hover {
   color: #991B1B;
 }
 
+body.bpo-admin-mode .admin-company-actions .admin-company-delete {
+  border-color: #DC2626;
+  background: #DC2626;
+  color: #fff;
+  font-weight: 600;
+}
+body.bpo-admin-mode .admin-company-actions .admin-company-delete:hover {
+  background: #991B1B;
+  border-color: #991B1B;
+  color: #fff;
+}
+
 body.bpo-admin-mode .admin-table-card {
   overflow: hidden;
   border-radius: 20px;

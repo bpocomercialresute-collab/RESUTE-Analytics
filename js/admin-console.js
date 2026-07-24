@@ -568,6 +568,7 @@ function adminConsoleRenderEmpresas(list) {
       + '<button onclick="adminConsoleNovoUsuarioPara(\'' + adminConsoleEscape(id) + '\')">Adicionar usuario</button>'
       + '<button onclick="adminConsoleFiltrarPorEmpresa(\'' + adminConsoleEscape(id) + '\')">Ver usuarios</button>'
       + '<button class="admin-company-danger" onclick="adminConsoleArquivarEmpresa(\'' + adminConsoleEscape(id) + '\')">Arquivar</button>'
+      + '<button class="admin-company-delete" onclick="adminConsoleExcluirEmpresa(\'' + adminConsoleEscape(id) + '\')">Excluir empresa</button>'
       + '<button class="admin-company-primary" onclick="adminConsoleAbrirOperacao(\'' + adminConsoleEscape(id) + '\')">Abrir operacao</button></div>'
       + '</article>';
   }).join('');
@@ -988,6 +989,34 @@ function adminConsoleEditarEmpresa(companyId) {
     return String(item.id || item.empresa_id) === String(companyId);
   });
   if (company) adminConsoleEmpresaModal(company);
+}
+
+async function adminConsoleExcluirEmpresa(companyId) {
+  var company = ADMIN_CONSOLE.companies.find(function(item) {
+    return String(item.id || item.empresa_id) === String(companyId);
+  });
+  if (!company) return;
+  var confirmed = window.confirm(
+    'EXCLUIR PERMANENTEMENTE "' + (company.nome || companyId) + '"?\n\n'
+    + 'Isso apaga a empresa, todos os usuarios, integracao, sincronizacoes e dados operacionais do banco de dados.\n\n'
+    + 'Esta acao NAO pode ser desfeita.'
+  );
+  if (!confirmed) return;
+  var confirmNome = window.prompt(
+    'Digite o nome da empresa para confirmar a exclusao:\n\n"' + (company.nome || companyId) + '"'
+  );
+  if (!confirmNome || confirmNome.trim() !== (company.nome || '').trim()) {
+    adminConsoleAviso('Nome nao confere. Exclusao cancelada.', 'error');
+    return;
+  }
+  try {
+    await adminConsoleAction('admin-company-delete', { id: companyId });
+    adminConsoleTrackActivity('empresa', 'Empresa excluida', company.nome || companyId);
+    await adminConsoleAtualizar(true);
+    adminConsoleAviso('Empresa e todos os dados vinculados foram excluidos.', 'success');
+  } catch (error) {
+    adminConsoleAviso('Falha ao excluir empresa: ' + error.message, 'error');
+  }
 }
 
 async function adminConsoleArquivarEmpresa(companyId) {

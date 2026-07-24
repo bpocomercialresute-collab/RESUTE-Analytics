@@ -848,6 +848,88 @@ async function handleAdminUserDelete(res, appUser, payload, env) {
   return res.status(200).json({ ok: true, mensagem: 'Usuario excluido com sucesso.' });
 }
 
+async function handleAdminCompanyDelete(res, appUser, payload, env) {
+  const companyId = payload && payload.id ? String(payload.id).trim() : null;
+  if (!companyId || !/^[a-zA-Z0-9-]{8,80}$/.test(companyId)) {
+    throw new Error('Empresa nao informada ou ID invalido.');
+  }
+
+  const companyResponse = await fetch(
+    `${env.supaUrl}/rest/v1/empresas?id=eq.${encodeURIComponent(companyId)}&select=id,nome,slug&limit=1`,
+    { headers: adminActionHeaders(env) }
+  );
+  const companyRows = await adminActionReadJson(companyResponse);
+  const company = Array.isArray(companyRows) ? companyRows[0] : null;
+  if (!company) throw new Error('Empresa nao encontrada.');
+
+  // Load company users to delete from Auth
+  const usersResponse = await fetch(
+    `${env.supaUrl}/rest/v1/usuarios?empresa_id=eq.${encodeURIComponent(companyId)}&select=id,email`,
+    { headers: adminActionHeaders(env) }
+  );
+  const companyUsers = await adminActionReadJson(usersResponse);
+
+  // Delete operational tables (errors tolerated — table may be empty or not exist yet)
+  for (const table of ['vendas', 'clientes_cad', 'produtos', 'representantes', 'grupos']) {
+    await fetch(
+      `${env.supaUrl}/rest/v1/${table}?empresa_id=eq.${encodeURIComponent(companyId)}`,
+      { method: 'DELETE', headers: { ...adminActionHeaders(env), 'Prefer': 'return=minimal' } }
+    ).catch(() => null);
+  }
+
+  // Delete api_config and sync_log
+  await fetch(
+    `${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(companyId)}`,
+    { method: 'DELETE', headers: { ...adminActionHeaders(env), 'Prefer': 'return=minimal' } }
+  ).catch(() => null);
+  await fetch(
+    `${env.supaUrl}/rest/v1/sync_log?empresa_id=eq.${encodeURIComponent(companyId)}`,
+    { method: 'DELETE', headers: { ...adminActionHeaders(env), 'Prefer': 'return=minimal' } }
+  ).catch(() => null);
+
+  // Delete users: Auth first, then profile rows
+  if (Array.isArray(companyUsers)) {
+    for (const u of companyUsers) {
+      if (u.id) {
+        await fetch(
+          `${env.supaUrl}/auth/v1/admin/users/${encodeURIComponent(u.id)}`,
+          { method: 'DELETE', headers: adminActionHeaders(env) }
+        ).catch(() => null);
+      }
+    }
+  }
+  await fetch(
+    `${env.supaUrl}/rest/v1/usuarios?empresa_id=eq.${encodeURIComponent(companyId)}`,
+    { method: 'DELETE', headers: { ...adminActionHeaders(env), 'Prefer': 'return=minimal' } }
+  ).catch(() => null);
+
+  // Delete the company itself
+  const deleteResp = await fetch(
+    `${env.supaUrl}/rest/v1/empresas?id=eq.${encodeURIComponent(companyId)}`,
+    { method: 'DELETE', headers: { ...adminActionHeaders(env), 'Prefer': 'return=minimal' } }
+  );
+  if (!deleteResp.ok) {
+    const t = await deleteResp.text();
+    let msg = 'HTTP ' + deleteResp.status;
+    try { const j = JSON.parse(t); msg = j.msg || j.message || j.error_description || msg; } catch (e) {}
+    throw new Error('Falha ao excluir empresa: ' + msg);
+  }
+
+  await writeAdminAudit(env, appUser, {
+    action: 'excluir_empresa',
+    entity: 'empresa',
+    entityId: companyId,
+    empresaId: companyId,
+    summary: `Empresa ${company.nome || companyId} excluida permanentemente`,
+    metadata: { usuarios_removidos: Array.isArray(companyUsers) ? companyUsers.length : 0 }
+  });
+
+  return res.status(200).json({
+    ok: true,
+    mensagem: 'Empresa e todos os dados vinculados foram excluidos.'
+  });
+}
+
 async function handleAdminCompanyArchive(res, appUser, payload, env) {
   const companyIds = Array.from(new Set(
     (Array.isArray(payload && payload.company_ids) ? payload.company_ids : [])
@@ -993,6 +1075,9 @@ async function handleAdminAction(req, res, action, payload, env) {
   }
   if (action === 'admin-user-delete') {
     return handleAdminUserDelete(res, appUser, payload, env);
+  }
+  if (action === 'admin-company-delete') {
+    return handleAdminCompanyDelete(res, appUser, payload, env);
   }
   if (action === 'admin-company-archive') {
     return handleAdminCompanyArchive(res, appUser, payload, env);
