@@ -8419,6 +8419,105 @@ body.bpo-admin-mode .admin-console-nav + .cui-nav-title {
   margin-top: 18px;
 }
 
+body.bpo-admin-mode .admin-result-count {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 1px solid #CBE4DF;
+  border-radius: 999px;
+  color: #486A64;
+  background: #F2FAF8;
+  font-size: 9px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+body.bpo-admin-mode .admin-kpi-card::after {
+  content: "";
+  position: absolute;
+  right: -18px;
+  top: -22px;
+  width: 78px;
+  height: 78px;
+  border: 14px solid rgba(45, 212, 191, .08);
+  border-radius: 50%;
+}
+
+body.bpo-admin-mode .admin-kpi-card,
+body.bpo-admin-mode .admin-company-card,
+body.bpo-admin-mode .admin-integration-card,
+body.bpo-admin-mode .admin-panel-card {
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+body.bpo-admin-mode .admin-kpi-card:hover,
+body.bpo-admin-mode .admin-company-card:hover,
+body.bpo-admin-mode .admin-integration-card:hover {
+  border-color: #A9D9D0;
+  box-shadow: 0 18px 38px rgba(10, 47, 47, .09);
+  transform: translateY(-2px);
+}
+
+body.bpo-admin-mode .admin-company-primary {
+  border-color: var(--admin-teal) !important;
+  color: #FFFFFF !important;
+  background: linear-gradient(135deg, var(--admin-teal), var(--admin-deep)) !important;
+}
+
+body.bpo-admin-mode .admin-integration-card {
+  position: relative;
+  overflow: hidden;
+}
+
+body.bpo-admin-mode .admin-integration-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, var(--admin-deep), var(--admin-accent));
+}
+
+body.bpo-admin-mode .admin-section-toolbar {
+  box-shadow: 0 8px 22px rgba(10, 47, 47, .045);
+}
+
+body.bpo-admin-mode button:disabled {
+  opacity: .48;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+body.bpo-admin-mode .admin-pagination button:disabled {
+  color: #91AAA5;
+  background: #EDF5F3;
+}
+
+body.bpo-admin-mode .admin-console.is-loading .admin-live-dot {
+  animation: adminLivePulse .85s ease-in-out infinite alternate;
+}
+
+body.bpo-admin-mode .admin-console.is-loading .admin-console-section.active {
+  opacity: .72;
+  pointer-events: none;
+}
+
+@keyframes adminLivePulse {
+  from { opacity: .45; transform: scale(.78); }
+  to { opacity: 1; transform: scale(1.12); }
+}
+
+.admin-field.is-disabled {
+  opacity: .6;
+}
+
+.admin-field-note {
+  color: #6A8580;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
 @media (max-width: 1180px) {
   body.bpo-admin-mode .admin-overview-kpis,
   body.bpo-admin-mode .admin-company-grid {
@@ -8438,6 +8537,35 @@ body.bpo-admin-mode .admin-console-nav + .cui-nav-title {
 }
 
 @media (max-width: 900px) {
+  body.bpo-admin-mode .cui-sidebar {
+    width: min(300px, 86vw);
+    transform: translateX(-100%);
+  }
+
+  body.bpo-admin-mode .cui-sidebar.open {
+    transform: translateX(0);
+  }
+
+  body.bpo-admin-mode .cui-wrapper,
+  body.bpo-admin-mode .cui-wrapper-expanded {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  body.bpo-admin-mode .cui-sidebar-overlay.active {
+    display: block;
+  }
+
+  body.bpo-admin-mode .cui-main {
+    padding: 18px 14px 36px !important;
+  }
+
+  body.bpo-admin-mode .cui-header {
+    margin: 8px 10px 0;
+    padding: 10px 14px !important;
+    border-radius: 18px !important;
+  }
+
   body.bpo-admin-mode .admin-console-content {
     padding: 20px 16px 40px;
   }
@@ -8461,6 +8589,10 @@ body.bpo-admin-mode .admin-console-nav + .cui-nav-title {
   }
 
   body.bpo-admin-mode .admin-section-toolbar select {
+    width: 100%;
+  }
+
+  body.bpo-admin-mode .admin-result-count {
     width: 100%;
   }
 

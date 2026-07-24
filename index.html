@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=7" />
+  <link rel="stylesheet" href="css/style.css?v=8" />
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
 </head>
 <body class="cui-body">
@@ -274,7 +274,7 @@
             </div>
             <div class="admin-console-session">
               <span class="admin-live-dot"></span>
-              <div><strong>Sess&atilde;o protegida</strong><small id="admin-session-label">super_admin</small></div>
+              <div><strong id="admin-session-status">Sess&atilde;o protegida</strong><small id="admin-session-label">super_admin</small><small id="admin-last-refresh">Aguardando atualiza&ccedil;&atilde;o</small></div>
               <button type="button" onclick="fazerLogout()" title="Encerrar sess&atilde;o">Sair</button>
             </div>
           </section>
@@ -294,7 +294,7 @@
             </div>
             <div class="admin-overview-grid">
               <article class="admin-panel-card admin-overview-main">
-                <div class="admin-card-heading"><div><span>OPERACAO</span><h2>Sa&uacute;de do ambiente</h2></div><button class="admin-btn-secondary" onclick="adminConsoleAtualizar()">Atualizar dados</button></div>
+                <div class="admin-card-heading"><div><span>OPERACAO</span><h2>Sa&uacute;de do ambiente</h2></div><button class="admin-btn-secondary" data-admin-refresh onclick="adminConsoleAtualizar()">Atualizar dados</button></div>
                 <div id="admin-health-list" class="admin-health-list"><div class="admin-skeleton"></div></div>
               </article>
               <article class="admin-panel-card">
@@ -318,6 +318,7 @@
               <div class="admin-search-wrap"><input id="admin-company-search" type="search" placeholder="Buscar empresa..." oninput="adminConsoleFiltrarEmpresas()"></div>
               <select id="admin-company-status" onchange="adminConsoleFiltrarEmpresas()"><option value="">Todos os status</option><option value="active">Ativas</option><option value="inactive">Inativas</option></select>
               <select id="admin-company-origin" onchange="adminConsoleFiltrarEmpresas()"><option value="">Todas as origens</option><option value="api">API</option><option value="manual">Manual</option></select>
+              <span id="admin-company-result" class="admin-result-count">0 empresas</span>
               <button class="admin-btn-primary" onclick="adminConsoleNovaEmpresa()">Adicionar empresa</button>
             </div>
             <div id="admin-companies-grid" class="admin-company-grid"></div>
@@ -325,17 +326,18 @@
 
           <section id="admin-section-users" class="admin-console-section">
             <div class="admin-section-toolbar">
-              <div class="admin-search-wrap"><input id="admin-user-search" type="search" placeholder="Buscar nome ou e-mail..." oninput="adminConsoleFiltrarUsuarios()"></div>
-              <select id="admin-user-role" onchange="adminConsoleFiltrarUsuarios()"><option value="">Todos os pap&eacute;is</option><option value="super_admin">Super admin</option><option value="admin">Admin</option><option value="cliente">Cliente</option></select>
-              <select id="admin-user-company" onchange="adminConsoleFiltrarUsuarios()"><option value="">Todas as empresas</option></select>
-              <select id="admin-user-status" onchange="adminConsoleFiltrarUsuarios()"><option value="">Todos os status</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select>
+              <div class="admin-search-wrap"><input id="admin-user-search" type="search" placeholder="Buscar nome ou e-mail..." oninput="adminConsoleFiltrarUsuarios(true)"></div>
+              <select id="admin-user-role" onchange="adminConsoleFiltrarUsuarios(true)"><option value="">Todos os pap&eacute;is</option><option value="super_admin">Super admin</option><option value="admin">Admin</option><option value="cliente">Cliente</option></select>
+              <select id="admin-user-company" onchange="adminConsoleFiltrarUsuarios(true)"><option value="">Todas as empresas</option></select>
+              <select id="admin-user-status" onchange="adminConsoleFiltrarUsuarios(true)"><option value="">Todos os status</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select>
+              <span id="admin-user-result" class="admin-result-count">0 usu&aacute;rios</span>
               <button class="admin-btn-primary" onclick="adminConsoleNovoUsuario()">Adicionar usu&aacute;rio</button>
             </div>
-            <div class="admin-table-card"><div class="admin-table-scroll"><table class="admin-data-table"><thead><tr><th>Usu&aacute;rio</th><th>Empresa</th><th>Papel</th><th>Status</th><th>Criado em</th><th>&Uacute;ltimo acesso</th><th>A&ccedil;&otilde;es</th></tr></thead><tbody id="admin-users-body"></tbody></table></div><div class="admin-pagination"><span id="admin-users-page-info">0 usu&aacute;rios</span><div><button onclick="adminConsoleMudarPaginaUsuarios(-1)">Anterior</button><button onclick="adminConsoleMudarPaginaUsuarios(1)">Pr&oacute;xima</button></div></div></div>
+            <div class="admin-table-card"><div class="admin-table-scroll"><table class="admin-data-table"><thead><tr><th>Usu&aacute;rio</th><th>Empresa</th><th>Papel</th><th>Status</th><th>Criado em</th><th>&Uacute;ltimo acesso</th><th>A&ccedil;&otilde;es</th></tr></thead><tbody id="admin-users-body"></tbody></table></div><div class="admin-pagination"><span id="admin-users-page-info">0 usu&aacute;rios</span><div><button id="admin-users-prev" onclick="adminConsoleMudarPaginaUsuarios(-1)">Anterior</button><button id="admin-users-next" onclick="adminConsoleMudarPaginaUsuarios(1)">Pr&oacute;xima</button></div></div></div>
           </section>
 
           <section id="admin-section-integrations" class="admin-console-section">
-            <div class="admin-section-intro"><div><span>CONEXOES PROTEGIDAS</span><h2>Integra&ccedil;&otilde;es e APIs</h2><p>As credenciais permanecem na Vercel e nunca s&atilde;o exibidas no navegador.</p></div><div class="admin-inline-actions"><button class="admin-btn-secondary" onclick="adminConsoleTestarIntegracao()">Testar conex&atilde;o</button><button class="admin-btn-primary" onclick="abrirAnaliseVendas()">Sincronizar agora</button></div></div>
+            <div class="admin-section-intro"><div><span>CONEXOES PROTEGIDAS</span><h2>Integra&ccedil;&otilde;es e APIs</h2><p>As credenciais permanecem na Vercel e nunca s&atilde;o exibidas no navegador.</p></div><div class="admin-inline-actions"><button class="admin-btn-secondary" onclick="adminConsoleNovaIntegracao()">Nova integra&ccedil;&atilde;o</button><button class="admin-btn-secondary" onclick="adminConsoleTestarIntegracao('', this)">Testar conex&atilde;o</button><button class="admin-btn-primary" onclick="abrirAnaliseVendas()">Sincronizar agora</button></div></div>
             <div id="admin-integrations-grid" class="admin-integration-grid"></div>
             <article class="admin-panel-card admin-endpoints-card">
               <div class="admin-card-heading"><div><span>VISUAL SAEF</span><h2>Endpoints monitorados</h2></div></div>
@@ -349,6 +351,7 @@
               <select id="admin-sync-status-filter" onchange="adminConsoleFiltrarSync()"><option value="">Todos os status</option><option value="sucesso">Sucesso</option><option value="erro">Erro</option><option value="sincronizando">Sincronizando</option></select>
               <input id="admin-sync-date-from" type="date" aria-label="Data inicial" onchange="adminConsoleFiltrarSync()">
               <input id="admin-sync-date-to" type="date" aria-label="Data final" onchange="adminConsoleFiltrarSync()">
+              <span id="admin-sync-result" class="admin-result-count">0 registros</span>
               <button class="admin-btn-primary" onclick="abrirAnaliseVendas()">Abrir central de sincroniza&ccedil;&atilde;o</button>
             </div>
             <div class="admin-table-card"><div class="admin-table-scroll"><table class="admin-data-table"><thead><tr><th>Empresa</th><th>Tipo</th><th>&Uacute;ltima sincroniza&ccedil;&atilde;o</th><th>Per&iacute;odo final</th><th>Registros</th><th>Status</th><th>Detalhes</th></tr></thead><tbody id="admin-sync-body"></tbody></table></div></div>
@@ -799,6 +802,11 @@
       var sb = document.getElementById('sidebar');
       var wr = document.getElementById('cui-wrapper');
       var ov = document.getElementById('sidebar-overlay');
+      if (window.innerWidth <= 900 && document.body.classList.contains('bpo-admin-mode')) {
+        sb.classList.toggle('open');
+        ov.classList.toggle('active');
+        return;
+      }
       sb.classList.toggle('cui-sidebar-collapsed');
       wr.classList.toggle('cui-wrapper-expanded');
       ov.classList.toggle('active');
@@ -1101,7 +1109,7 @@
     </main>
   </div>
 
-  <div id="admin-modal-backdrop" class="admin-modal-backdrop" hidden>
+  <div id="admin-modal-backdrop" class="admin-modal-backdrop" hidden onclick="adminConsoleBackdropClick(event)">
     <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
       <div class="admin-modal-header">
         <div><span id="admin-modal-kicker">ADMINISTRACAO</span><h2 id="admin-modal-title">Editar registro</h2></div>
@@ -1121,7 +1129,7 @@
   <script src="js/dashboard.js?v=2"></script>
   <script src="js/actions.js?v=2"></script>
   <script src="js/auth.js?v=18"></script>
-  <script src="js/admin-console.js?v=4"></script>
+  <script src="js/admin-console.js?v=5"></script>
   <script src="js/jss.js?v=2"></script>
   <script src="js/bd.js?v=2"></script>
   <script src="js/relatorios.js?v=2"></script>

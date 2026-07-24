@@ -15,7 +15,9 @@ var ADMIN_CONSOLE = {
   userPage: 1,
   userPageSize: 10,
   activities: [],
-  refreshTimer: null
+  refreshTimer: null,
+  lastRefresh: null,
+  loadErrors: []
 };
 
 var ADMIN_SECTION_META = {
@@ -87,8 +89,47 @@ function adminConsoleSafeText(value, maxLength) {
   return maxLength ? text.slice(0, maxLength) : text;
 }
 
+function adminConsoleWithTimeout(promise, timeoutMs, message) {
+  var timer;
+  return Promise.race([
+    promise,
+    new Promise(function(_, reject) {
+      timer = window.setTimeout(function() {
+        reject(new Error(message || 'A operacao demorou mais que o esperado.'));
+      }, timeoutMs || 30000);
+    })
+  ]).finally(function() {
+    window.clearTimeout(timer);
+  });
+}
+
+function adminConsoleSetLoading(loading) {
+  var view = document.getElementById('view-admin-console');
+  var status = document.getElementById('admin-session-status');
+  if (view) {
+    view.classList.toggle('is-loading', !!loading);
+    view.setAttribute('aria-busy', loading ? 'true' : 'false');
+  }
+  if (status) status.textContent = loading ? 'Atualizando painel' : 'Sessao protegida';
+  document.querySelectorAll('#view-admin-console [data-admin-refresh]').forEach(function(button) {
+    button.disabled = !!loading;
+  });
+}
+
+function adminConsoleSetLastRefresh(date) {
+  var node = document.getElementById('admin-last-refresh');
+  if (!node) return;
+  node.textContent = date
+    ? 'Atualizado ' + date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    : 'Aguardando atualizacao';
+}
+
 async function adminConsoleFetch(path, options) {
-  var response = await fetch(SUPA_URL + path, options || {});
+  var response = await adminConsoleWithTimeout(
+    fetch(SUPA_URL + path, options || {}),
+    30000,
+    'O Supabase nao respondeu dentro do tempo esperado.'
+  );
   var text = await response.text();
   var payload = null;
   if (text) {
@@ -104,17 +145,21 @@ async function adminConsoleFetch(path, options) {
 }
 
 async function adminConsoleAction(action, payload) {
-  var response = await NATIVE_FETCH('/api/secure-proxy', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-session-token': _getSessionToken()
-    },
-    body: JSON.stringify({
-      action: action,
-      payload: payload || {}
-    })
-  });
+  var response = await adminConsoleWithTimeout(
+    NATIVE_FETCH('/api/secure-proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-token': _getSessionToken()
+      },
+      body: JSON.stringify({
+        action: action,
+        payload: payload || {}
+      })
+    }),
+    35000,
+    'A acao administrativa demorou mais que o esperado.'
+  );
   var data = await response.json().catch(function() { return {}; });
   if (!response.ok) throw new Error(data.erro || ('HTTP ' + response.status));
   return data;
@@ -164,14 +209,16 @@ function adminConsoleTrackActivity(type, title, detail) {
 }
 
 async function adminConsoleInicializar(force) {
-  if (!SESSION || SESSION.papel !== 'super_admin') return;
-  if (ADMIN_CONSOLE.loading) return;
+  if (!SESSION || SESSION.papel !== 'super_admin') return false;
+  if (ADMIN_CONSOLE.loading) return false;
   if (ADMIN_CONSOLE.loaded && !force) {
     adminConsoleAbrir(ADMIN_CONSOLE.activeSection || 'overview');
-    return;
+    return true;
   }
 
   ADMIN_CONSOLE.loading = true;
+  ADMIN_CONSOLE.loadErrors = [];
+  adminConsoleSetLoading(true);
   var sessionLabel = document.getElementById('admin-session-label');
   if (sessionLabel) sessionLabel.textContent = (SESSION.email || SESSION.nome || 'RESUTE') + ' - super_admin';
 
@@ -183,23 +230,41 @@ async function adminConsoleInicializar(force) {
     var auditRequest = adminConsoleFetch('/rest/v1/admin_audit_log?select=id,criado_em,ator_email,acao,entidade,entidade_id,empresa_id,resumo,metadados&order=criado_em.desc&limit=200')
       .catch(function() { return { data: [] }; });
 
-    var results = await Promise.all([companyRequest, userRequest, integrationRequest, syncRequest, auditRequest]);
-    ADMIN_CONSOLE.companies = Array.isArray(results[0].data) ? results[0].data : [];
-    ADMIN_CONSOLE.users = Array.isArray(results[1].data) ? results[1].data : [];
-    ADMIN_CONSOLE.integrations = Array.isArray(results[2].data) ? results[2].data : [];
-    ADMIN_CONSOLE.syncLogs = Array.isArray(results[3].data) ? results[3].data : [];
-    ADMIN_CONSOLE.persistentAudit = Array.isArray(results[4].data) ? results[4].data : [];
-    ADMIN_CONSOLE.metricsByCompany = await adminConsoleCarregarMetricas();
+    var requests = [companyRequest, userRequest, integrationRequest, syncRequest, auditRequest];
+    var labels = ['empresas', 'usuarios', 'integracoes', 'sincronizacoes', 'auditoria'];
+    var results = await Promise.allSettled(requests);
+    var targets = ['companies', 'users', 'integrations', 'syncLogs', 'persistentAudit'];
+    results.forEach(function(result, index) {
+      if (result.status === 'fulfilled') {
+        ADMIN_CONSOLE[targets[index]] = Array.isArray(result.value.data) ? result.value.data : [];
+      } else {
+        ADMIN_CONSOLE.loadErrors.push(labels[index] + ': ' + (result.reason && result.reason.message ? result.reason.message : result.reason));
+      }
+    });
+    try {
+      ADMIN_CONSOLE.metricsByCompany = await adminConsoleCarregarMetricas();
+    } catch (metricError) {
+      ADMIN_CONSOLE.loadErrors.push('metricas: ' + metricError.message);
+    }
     ADMIN_CONSOLE.salesCount = adminConsoleMetricTotal('vendas');
     ADMIN_CONSOLE.loaded = true;
+    ADMIN_CONSOLE.lastRefresh = new Date();
     adminConsolePreencherFiltros();
     adminConsoleRenderTudo();
     adminConsoleCarregarPreferencias();
+    adminConsoleSetLastRefresh(ADMIN_CONSOLE.lastRefresh);
+    if (ADMIN_CONSOLE.loadErrors.length) {
+      adminConsoleAviso('Painel carregado parcialmente. Revise: ' + ADMIN_CONSOLE.loadErrors.join(' | '), 'error');
+      return false;
+    }
+    return true;
   } catch (error) {
     console.error('[ADMIN CONSOLE]', error);
     adminConsoleAviso('Nao foi possivel carregar o painel: ' + error.message, 'error');
+    return false;
   } finally {
     ADMIN_CONSOLE.loading = false;
+    adminConsoleSetLoading(false);
   }
 }
 
@@ -277,10 +342,11 @@ function adminConsoleAbrir(section, navItem) {
   return false;
 }
 
-async function adminConsoleAtualizar() {
+async function adminConsoleAtualizar(silent) {
   ADMIN_CONSOLE.loaded = false;
-  await adminConsoleInicializar(true);
-  adminConsoleAviso('Dados administrativos atualizados.', 'success');
+  var ok = await adminConsoleInicializar(true);
+  if (ok && !silent) adminConsoleAviso('Dados administrativos atualizados.', 'success');
+  return ok;
 }
 
 function adminConsoleRenderTudo() {
@@ -305,7 +371,7 @@ function adminConsoleRenderResumo() {
     });
   }).length;
   var alertCount = ADMIN_CONSOLE.syncLogs.filter(function(item) {
-    return String(item.status || '').toLowerCase().indexOf('erro') >= 0;
+    return adminConsoleSyncState(item).type === 'warn';
   }).length + (ADMIN_CONSOLE.users.length - activeUsers) + disconnected;
   var values = {
     'admin-kpi-companies': activeCompanies,
@@ -347,7 +413,7 @@ function adminConsoleRenderResumo() {
       detail: latest && latest.ultima_sync
         ? adminConsoleDate(latest.ultima_sync, true) + ' - ' + adminConsoleCompanyName(latest.empresa_id)
         : 'Ainda nao registrada',
-      type: latest && String(latest.status || '').toLowerCase().indexOf('erro') < 0 ? 'ok' : 'warn'
+      type: latest && adminConsoleSyncState(latest).type === 'ok' ? 'ok' : 'warn'
     },
     {
       label: 'Acessos',
@@ -422,6 +488,8 @@ function adminConsoleFiltrarEmpresas() {
     var matchesOrigin = !origin || String(company.exibir_origem || 'manual') === origin;
     return matchesQuery && matchesStatus && matchesOrigin;
   });
+  var result = document.getElementById('admin-company-result');
+  if (result) result.textContent = list.length + (list.length === 1 ? ' empresa' : ' empresas');
   adminConsoleRenderEmpresas(list);
 }
 
@@ -455,12 +523,15 @@ function adminConsoleRenderEmpresas(list) {
       + adminConsoleNumber(metrics.representantes) + '</strong> representantes</span><span><strong>'
       + (integration && integration.ativo !== false ? 'Conectada' : 'Pendente') + '</strong> API</span></div>'
       + '<div class="admin-company-actions"><button onclick="adminConsoleEditarEmpresa(\'' + adminConsoleEscape(id) + '\')">Editar empresa</button>'
-      + '<button onclick="adminConsoleAbrirOperacao(\'' + adminConsoleEscape(id) + '\')">Abrir operacao</button></div>'
+      + (integration
+        ? '<button onclick="adminConsoleEditarIntegracao(\'' + adminConsoleEscape(id) + '\')">Configurar API</button>'
+        : '<button onclick="adminConsoleNovaIntegracao(\'' + adminConsoleEscape(id) + '\')">Conectar API</button>')
+      + '<button class="admin-company-primary" onclick="adminConsoleAbrirOperacao(\'' + adminConsoleEscape(id) + '\')">Abrir operacao</button></div>'
       + '</article>';
   }).join('');
 }
 
-function adminConsoleFiltrarUsuarios() {
+function adminConsoleFiltrarUsuarios(resetPage) {
   var query = String((document.getElementById('admin-user-search') || {}).value || '').trim().toLowerCase();
   var role = String((document.getElementById('admin-user-role') || {}).value || '');
   var company = String((document.getElementById('admin-user-company') || {}).value || '');
@@ -474,8 +545,11 @@ function adminConsoleFiltrarUsuarios() {
       && (!status || (status === 'active' ? active : !active));
   });
   ADMIN_CONSOLE.filteredUsers = list;
+  if (resetPage) ADMIN_CONSOLE.userPage = 1;
   var maxPage = Math.max(1, Math.ceil(list.length / ADMIN_CONSOLE.userPageSize));
   if (ADMIN_CONSOLE.userPage > maxPage) ADMIN_CONSOLE.userPage = maxPage;
+  var result = document.getElementById('admin-user-result');
+  if (result) result.textContent = list.length + (list.length === 1 ? ' usuario' : ' usuarios');
   adminConsoleRenderUsuarios(list);
 }
 
@@ -485,6 +559,11 @@ function adminConsoleRenderUsuarios(list) {
   var start = (ADMIN_CONSOLE.userPage - 1) * ADMIN_CONSOLE.userPageSize;
   var pageItems = list.slice(start, start + ADMIN_CONSOLE.userPageSize);
   var pageInfo = document.getElementById('admin-users-page-info');
+  var previous = document.getElementById('admin-users-prev');
+  var next = document.getElementById('admin-users-next');
+  var maxPage = Math.max(1, Math.ceil(list.length / ADMIN_CONSOLE.userPageSize));
+  if (previous) previous.disabled = !list.length || ADMIN_CONSOLE.userPage <= 1;
+  if (next) next.disabled = !list.length || ADMIN_CONSOLE.userPage >= maxPage;
   if (pageInfo) {
     pageInfo.textContent = list.length
       ? (start + 1) + '-' + Math.min(start + ADMIN_CONSOLE.userPageSize, list.length) + ' de ' + list.length + ' usuarios'
@@ -515,6 +594,20 @@ function adminConsoleMudarPaginaUsuarios(direction) {
   adminConsoleRenderUsuarios(list);
 }
 
+function adminConsoleSyncState(item) {
+  var status = String(item && item.status || '').toLowerCase();
+  if (status.indexOf('erro') >= 0 || status.indexOf('falha') >= 0 || status.indexOf('bloque') >= 0) {
+    return { label: item.status || 'Erro', type: 'warn', filter: 'erro' };
+  }
+  if (status === 'ok' || status === 'sincronizado' || status.indexOf('sucesso') >= 0 || status.indexOf('conclu') >= 0) {
+    return { label: item.status || 'Sucesso', type: 'ok', filter: 'sucesso' };
+  }
+  if (status.indexOf('sincron') >= 0 || status.indexOf('process') >= 0) {
+    return { label: item.status || 'Sincronizando', type: 'featured', filter: 'sincronizando' };
+  }
+  return { label: item && item.status ? item.status : 'Nao informado', type: 'neutral', filter: '' };
+}
+
 function adminConsoleIntegrationStatus(api) {
   var log = ADMIN_CONSOLE.syncLogs.find(function(item) {
     return String(item.empresa_id) === String(api.empresa_id);
@@ -525,7 +618,9 @@ function adminConsoleIntegrationStatus(api) {
     return { label: 'Erro', type: 'warn', log: log };
   }
   if (rawStatus.indexOf('bloque') >= 0) return { label: 'Bloqueada', type: 'warn', log: log };
-  if (rawStatus.indexOf('sincron') >= 0) return { label: 'Sincronizando', type: 'featured', log: log };
+  if (rawStatus.indexOf('sincronizando') >= 0 || rawStatus.indexOf('process') >= 0) {
+    return { label: 'Sincronizando', type: 'featured', log: log };
+  }
   if (!log || (!log.ultima_sync && !log.ultima_data)) {
     return { label: 'Nunca sincronizada', type: 'neutral', log: log };
   }
@@ -552,7 +647,7 @@ function adminConsoleRenderIntegracoes() {
       + ((log.mensagem || log.erro) ? '<span>Resumo <strong>' + adminConsoleEscape(adminConsoleSafeText(log.mensagem || log.erro, 120)) + '</strong></span>' : '')
       + '<span>Client ID <strong>Protegido na Vercel</strong></span><span>Client Secret <strong>************</strong></span></div>'
       + '<div class="admin-company-actions"><button onclick="adminConsoleEditarIntegracao(\'' + adminConsoleEscape(api.empresa_id) + '\')">Editar configuracao</button>'
-      + '<button onclick="adminConsoleTestarIntegracao()">Testar conexao</button></div></article>';
+      + '<button onclick="adminConsoleTestarIntegracao(\'' + adminConsoleEscape(api.empresa_id) + '\', this)">Testar conexao</button></div></article>';
   }).join('');
 }
 
@@ -562,16 +657,16 @@ function adminConsoleFiltrarSync() {
   var dateFrom = String((document.getElementById('admin-sync-date-from') || {}).value || '');
   var dateTo = String((document.getElementById('admin-sync-date-to') || {}).value || '');
   var list = ADMIN_CONSOLE.syncLogs.filter(function(item) {
-    var itemStatus = String(item.status || '').toLowerCase();
+    var syncState = adminConsoleSyncState(item);
     var itemDate = String(item.ultima_sync || item.ultima_data || '').slice(0, 10);
-    var matchesStatus = !status
-      || itemStatus.indexOf(status) >= 0
-      || (status === 'sucesso' && (itemStatus === 'ok' || itemStatus.indexOf('conclu') >= 0));
+    var matchesStatus = !status || syncState.filter === status;
     return (!company || String(item.empresa_id || '') === company)
       && matchesStatus
       && (!dateFrom || itemDate >= dateFrom)
       && (!dateTo || itemDate <= dateTo);
   });
+  var result = document.getElementById('admin-sync-result');
+  if (result) result.textContent = list.length + (list.length === 1 ? ' registro' : ' registros');
   var body = document.getElementById('admin-sync-body');
   if (!body) return;
   if (!list.length) {
@@ -579,14 +674,13 @@ function adminConsoleFiltrarSync() {
     return;
   }
   body.innerHTML = list.map(function(item, index) {
-    var statusText = item.status || 'nao informado';
-    var type = String(statusText).toLowerCase().indexOf('erro') >= 0 ? 'warn' : 'ok';
+    var syncState = adminConsoleSyncState(item);
     return '<tr><td><strong>' + adminConsoleEscape(adminConsoleCompanyName(item.empresa_id)) + '</strong></td>'
       + '<td>Vendas e cadastros</td>'
       + '<td>' + adminConsoleEscape(adminConsoleDate(item.ultima_sync, true)) + '</td>'
       + '<td>' + adminConsoleEscape(adminConsoleDate(item.ultima_data, false)) + '</td>'
       + '<td>' + adminConsoleNumber(item.total_registros) + '</td>'
-      + '<td>' + adminConsoleBadge(statusText, type) + '</td>'
+      + '<td>' + adminConsoleBadge(syncState.label, syncState.type) + '</td>'
       + '<td><button class="admin-table-action" onclick="adminConsoleDetalharSync(' + index + ')">Abrir</button></td></tr>';
   }).join('');
   ADMIN_CONSOLE.filteredSyncLogs = list;
@@ -759,10 +853,49 @@ function adminConsoleAbrirModal(kicker, title, html, submitHandler) {
   }, 40);
 }
 
+function adminConsoleBackdropClick(event) {
+  if (event && event.target && event.target.id === 'admin-modal-backdrop') {
+    adminConsoleFecharModal();
+  }
+}
+
 function adminConsoleFecharModal() {
   var backdrop = document.getElementById('admin-modal-backdrop');
   if (backdrop) backdrop.hidden = true;
   document.body.classList.remove('admin-modal-open');
+}
+
+function adminConsoleSlugify(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
+function adminConsoleSincronizarSlug(input) {
+  var form = input && input.form;
+  var slug = form && form.elements ? form.elements.slug : null;
+  if (slug && !slug.dataset.manual) slug.value = adminConsoleSlugify(input.value);
+}
+
+function adminConsoleMarcarSlugManual(input) {
+  if (input) input.dataset.manual = input.value ? 'true' : '';
+}
+
+function adminConsoleAtualizarEscopoUsuario(form) {
+  if (!form || !form.elements) return;
+  var role = form.elements.papel;
+  var company = form.elements.empresa_id;
+  if (!role || !company) return;
+  var globalAccess = role.value === 'super_admin';
+  company.disabled = globalAccess;
+  company.required = !globalAccess;
+  if (globalAccess) company.value = '';
+  var field = company.closest('.admin-field');
+  if (field) field.classList.toggle('is-disabled', globalAccess);
 }
 
 function adminConsoleCompanyOptions(selectedId, includeResute) {
@@ -788,8 +921,8 @@ function adminConsoleEditarEmpresa(companyId) {
 function adminConsoleEmpresaModal(company) {
   var editing = !!company;
   var html = '<div class="admin-form-grid">'
-    + '<label class="admin-field"><span>Nome da empresa</span><input name="nome" required maxlength="120" value="' + adminConsoleEscape(company && company.nome) + '"></label>'
-    + '<label class="admin-field"><span>Slug</span><input name="slug" required maxlength="80" pattern="[a-z0-9-]+" value="' + adminConsoleEscape(company && company.slug) + '"></label>'
+    + '<label class="admin-field"><span>Nome da empresa</span><input name="nome" required maxlength="120" oninput="adminConsoleSincronizarSlug(this)" value="' + adminConsoleEscape(company && company.nome) + '"></label>'
+    + '<label class="admin-field"><span>Slug</span><input name="slug" required maxlength="80" pattern="[a-z0-9-]+"' + (editing ? ' data-manual="true"' : '') + ' oninput="adminConsoleMarcarSlugManual(this)" value="' + adminConsoleEscape(company && company.slug) + '"></label>'
     + '<label class="admin-field"><span>Origem dos dados</span><select name="exibir_origem"><option value="manual"' + (company && company.exibir_origem === 'manual' ? ' selected' : '') + '>Manual</option><option value="api"' + (company && company.exibir_origem === 'api' ? ' selected' : '') + '>API</option></select></label>'
     + '<label class="admin-field admin-field-switch"><input name="ativo" type="checkbox"' + (!company || company.ativo !== false ? ' checked' : '') + '><span>Empresa ativa</span></label>'
     + (editing ? '<label class="admin-field admin-field-switch admin-field-full"><input name="confirmacao" type="checkbox" required><span>Confirmo a alteracao desta empresa sem excluir seus dados</span></label>' : '')
@@ -819,7 +952,7 @@ function adminConsoleEmpresaModal(company) {
         });
       }
       adminConsoleFecharModal();
-      await adminConsoleAtualizar();
+      await adminConsoleAtualizar(true);
       adminConsoleTrackActivity('empresa', editing ? 'Empresa atualizada' : 'Empresa cadastrada', payload.nome);
       adminConsoleAviso(editing ? 'Empresa atualizada com sucesso.' : 'Empresa cadastrada com sucesso.', 'success');
     } catch (error) {
@@ -843,8 +976,8 @@ function adminConsoleUsuarioModal(user) {
   var html = '<div class="admin-form-grid">'
     + '<label class="admin-field"><span>Nome completo</span><input name="nome" required maxlength="140" value="' + adminConsoleEscape(user && user.nome) + '"></label>'
     + '<label class="admin-field"><span>E-mail</span><input name="email" type="email" required value="' + adminConsoleEscape(user && user.email) + '"></label>'
-    + '<label class="admin-field"><span>Nivel de acesso</span><select name="papel"><option value="cliente"' + (user && user.papel === 'cliente' ? ' selected' : '') + '>Cliente</option><option value="admin"' + (user && user.papel === 'admin' ? ' selected' : '') + '>Admin</option><option value="super_admin"' + (user && user.papel === 'super_admin' ? ' selected' : '') + '>Super admin</option></select></label>'
-    + '<label class="admin-field"><span>Empresa vinculada</span><select name="empresa_id">' + adminConsoleCompanyOptions(user && user.empresa_id, true) + '</select></label>'
+    + '<label class="admin-field"><span>Nivel de acesso</span><select name="papel" onchange="adminConsoleAtualizarEscopoUsuario(this.form)"><option value="cliente"' + (!user || user.papel === 'cliente' ? ' selected' : '') + '>Cliente</option><option value="admin"' + (user && user.papel === 'admin' ? ' selected' : '') + '>Admin</option><option value="super_admin"' + (user && user.papel === 'super_admin' ? ' selected' : '') + '>Super admin</option></select></label>'
+    + '<label class="admin-field"><span>Empresa vinculada</span><select name="empresa_id">' + adminConsoleCompanyOptions(user && user.empresa_id, true) + '</select><small class="admin-field-note">Obrigatoria para cliente e admin.</small></label>'
     + '<label class="admin-field"><span>' + (editing ? 'Nova senha (opcional)' : 'Senha temporaria') + '</span><input name="password" type="password" ' + (editing ? '' : 'required') + ' minlength="8" autocomplete="new-password"></label>'
     + '<label class="admin-field admin-field-switch"><input name="ativo" type="checkbox"' + (!user || user.ativo !== false ? ' checked' : '') + '><span>Usuario ativo</span></label>'
     + (editing ? '<label class="admin-field admin-field-switch admin-field-full"><input name="confirmacao" type="checkbox" required><span>Confirmo a revisao do papel, empresa e status deste acesso</span></label>' : '')
@@ -858,14 +991,19 @@ function adminConsoleUsuarioModal(user) {
       nome: String(data.get('nome') || '').trim(),
       email: String(data.get('email') || '').trim().toLowerCase(),
       papel: String(data.get('papel') || 'cliente'),
-      empresa_id: String(data.get('empresa_id') || '') || null,
+      empresa_id: String(data.get('papel') || 'cliente') === 'super_admin'
+        ? null
+        : (String(data.get('empresa_id') || '') || null),
       password: String(data.get('password') || ''),
       ativo: data.get('ativo') === 'on'
     };
     try {
+      if (payload.papel !== 'super_admin' && !payload.empresa_id) {
+        throw new Error('Selecione a empresa vinculada para este nivel de acesso.');
+      }
       await adminConsoleAction(editing ? 'admin-user-update' : 'admin-user-create', payload);
       adminConsoleFecharModal();
-      await adminConsoleAtualizar();
+      await adminConsoleAtualizar(true);
       adminConsoleTrackActivity('usuario', editing ? 'Usuario atualizado' : 'Usuario criado', payload.email + ' - ' + payload.papel);
       adminConsoleAviso(editing ? 'Usuario atualizado com sucesso.' : 'Usuario criado no Auth e na tabela usuarios.', 'success');
     } catch (error) {
@@ -873,37 +1011,61 @@ function adminConsoleUsuarioModal(user) {
       if (button) button.disabled = false;
     }
   });
+  var modalForm = document.getElementById('admin-modal-form');
+  adminConsoleAtualizarEscopoUsuario(modalForm);
+}
+
+function adminConsoleNovaIntegracao(companyId) {
+  adminConsoleIntegracaoModal(null, companyId || '');
 }
 
 function adminConsoleEditarIntegracao(companyId) {
   var api = ADMIN_CONSOLE.integrations.find(function(item) {
     return String(item.empresa_id) === String(companyId);
   });
-  if (!api) return;
+  if (api) adminConsoleIntegracaoModal(api, companyId);
+}
+
+function adminConsoleIntegracaoModal(api, companyId) {
+  var editing = !!api;
+  var selectedCompany = companyId || (api && api.empresa_id) || '';
+  var companyField = editing
+    ? '<label class="admin-field"><span>Empresa</span><input value="' + adminConsoleEscape(adminConsoleCompanyName(selectedCompany)) + '" disabled><input name="empresa_id" type="hidden" value="' + adminConsoleEscape(selectedCompany) + '"></label>'
+    : '<label class="admin-field"><span>Empresa</span><select name="empresa_id" required>' + adminConsoleCompanyOptions(selectedCompany, false) + '</select></label>';
   var html = '<div class="admin-form-grid">'
-    + '<label class="admin-field"><span>Empresa</span><input value="' + adminConsoleEscape(adminConsoleCompanyName(companyId)) + '" disabled></label>'
-    + '<label class="admin-field"><span>Sistema</span><input name="sistema" required value="' + adminConsoleEscape(api.sistema || '') + '"></label>'
-    + '<label class="admin-field admin-field-full"><span>URL da API</span><input name="api_url" type="url" required value="' + adminConsoleEscape(api.api_url || '') + '"></label>'
-    + '<label class="admin-field admin-field-switch"><input name="ativo" type="checkbox"' + (api.ativo !== false ? ' checked' : '') + '><span>Integracao ativa</span></label>'
+    + companyField
+    + '<label class="admin-field"><span>Sistema</span><input name="sistema" required value="' + adminConsoleEscape(api && api.sistema || 'visual_saef') + '"></label>'
+    + '<label class="admin-field admin-field-full"><span>URL da API</span><input name="api_url" type="url" required value="' + adminConsoleEscape(api && api.api_url || 'https://api-plastrio.visualsaef.com') + '"></label>'
+    + '<label class="admin-field admin-field-switch"><input name="ativo" type="checkbox"' + (!api || api.ativo !== false ? ' checked' : '') + '><span>Integracao ativa</span></label>'
     + '</div><div class="admin-form-help">Client ID e Client Secret ficam protegidos nas variaveis de ambiente da Vercel. Este formulario nao recupera nem revela esses valores.</div>'
-    + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Cancelar</button><button class="admin-btn-primary" type="submit">Salvar configuracao</button></div>';
-  adminConsoleAbrirModal('INTEGRACOES', 'Editar integracao', html, async function(data, form) {
+    + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Cancelar</button><button class="admin-btn-primary" type="submit">' + (editing ? 'Salvar configuracao' : 'Criar integracao') + '</button></div>';
+  adminConsoleAbrirModal('INTEGRACOES', editing ? 'Editar integracao' : 'Nova integracao', html, async function(data, form) {
     var button = form.querySelector('[type="submit"]');
     if (button) button.disabled = true;
+    var targetCompany = String(data.get('empresa_id') || '').trim();
+    var payload = {
+      empresa_id: targetCompany,
+      sistema: String(data.get('sistema') || '').trim(),
+      api_url: String(data.get('api_url') || '').trim().replace(/\/+$/, ''),
+      ativo: data.get('ativo') === 'on'
+    };
     try {
-      await adminConsoleFetch('/rest/v1/api_config?empresa_id=eq.' + encodeURIComponent(companyId), {
-        method: 'PATCH',
+      if (!editing && ADMIN_CONSOLE.integrations.some(function(item) {
+        return String(item.empresa_id) === targetCompany;
+      })) {
+        throw new Error('Esta empresa ja possui uma integracao cadastrada.');
+      }
+      await adminConsoleFetch(editing
+        ? '/rest/v1/api_config?empresa_id=eq.' + encodeURIComponent(targetCompany)
+        : '/rest/v1/api_config', {
+        method: editing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-        body: JSON.stringify({
-          sistema: String(data.get('sistema') || '').trim(),
-          api_url: String(data.get('api_url') || '').trim(),
-          ativo: data.get('ativo') === 'on'
-        })
+        body: JSON.stringify(payload)
       });
       adminConsoleFecharModal();
-      await adminConsoleAtualizar();
-      adminConsoleTrackActivity('integracao', 'Integracao atualizada', adminConsoleCompanyName(companyId) + ' - ' + String(data.get('sistema') || 'API'));
-      adminConsoleAviso('Integracao atualizada com sucesso.', 'success');
+      await adminConsoleAtualizar(true);
+      adminConsoleTrackActivity('integracao', editing ? 'Integracao atualizada' : 'Integracao criada', adminConsoleCompanyName(targetCompany) + ' - ' + payload.sistema);
+      adminConsoleAviso(editing ? 'Integracao atualizada com sucesso.' : 'Integracao criada com sucesso.', 'success');
     } catch (error) {
       adminConsoleAviso('Falha ao atualizar integracao: ' + error.message, 'error');
       if (button) button.disabled = false;
@@ -911,15 +1073,26 @@ function adminConsoleEditarIntegracao(companyId) {
   });
 }
 
-async function adminConsoleTestarIntegracao() {
-  adminConsoleAviso('Testando comunicacao segura com a Visual Saef...', 'info');
+async function adminConsoleTestarIntegracao(companyId, button) {
+  var originalText = button ? button.textContent : '';
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Testando...';
+  }
+  var companyName = companyId ? adminConsoleCompanyName(companyId) : 'Visual Saef';
+  adminConsoleAviso('Testando comunicacao segura com ' + companyName + '...', 'info');
   try {
-    var result = await adminConsoleAction('admin-integration-test', {});
+    var result = await adminConsoleAction('admin-integration-test', { empresa_id: companyId || null });
     adminConsoleTrackActivity('integracao', 'Teste de API concluido', result.mensagem || 'Visual Saef respondeu corretamente');
     adminConsoleAviso(result.mensagem || 'Conexao validada com sucesso.', 'success');
   } catch (error) {
     adminConsoleTrackActivity('integracao', 'Falha no teste de API', error.message);
     adminConsoleAviso('Teste de conexao falhou: ' + error.message, 'error');
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
   }
 }
 

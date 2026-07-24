@@ -390,13 +390,15 @@ async function proxySupabase(req, res, targetUrl, method, incomingHeaders, body,
     if (targetUrl.pathname === '/rest/v1/api_config') {
       let safeConfig = {};
       try { safeConfig = body ? JSON.parse(body) : {}; } catch (error) {}
-      const empresaId = String(targetUrl.searchParams.get('empresa_id') || '').replace(/^eq\./, '') || null;
+      const empresaId = String(targetUrl.searchParams.get('empresa_id') || '').replace(/^eq\./, '')
+        || safeConfig.empresa_id
+        || null;
       await writeAdminAudit(env, appUser, {
-        action: 'atualizar_integracao',
+        action: method === 'POST' ? 'criar_integracao' : 'atualizar_integracao',
         entity: 'integracao',
         entityId: empresaId,
         empresaId,
-        summary: `Configuracao de integracao atualizada para ${safeConfig.sistema || 'API'}`,
+        summary: `${method === 'POST' ? 'Integracao criada' : 'Configuracao de integracao atualizada'} para ${safeConfig.sistema || 'API'}`,
         metadata: {
           metodo: method,
           sistema: safeConfig.sistema || null,
@@ -755,7 +757,18 @@ async function handleAdminUserUpdate(res, appUser, payload, env) {
   });
 }
 
-async function handleAdminIntegrationTest(res, env, appUser) {
+async function handleAdminIntegrationTest(res, env, appUser, payload) {
+  const empresaId = payload && payload.empresa_id ? String(payload.empresa_id) : null;
+  if (empresaId) {
+    const configResponse = await fetch(
+      `${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(empresaId)}&select=empresa_id,sistema,api_url,ativo&limit=1`,
+      { headers: adminActionHeaders(env) }
+    );
+    const configs = await adminActionReadJson(configResponse);
+    const config = Array.isArray(configs) ? configs[0] : null;
+    if (!config) throw new Error('Integracao nao cadastrada para esta empresa.');
+    if (config.ativo === false) throw new Error('A integracao desta empresa esta inativa.');
+  }
   const auth = await getVisualLoginToken(
     env,
     env.visualCadastroClientId || env.visualClientId,
@@ -765,6 +778,8 @@ async function handleAdminIntegrationTest(res, env, appUser) {
     await writeAdminAudit(env, appUser, {
       action: 'testar_integracao',
       entity: 'integracao',
+      entityId: empresaId,
+      empresaId,
       summary: 'Teste da Visual Saef falhou',
       metadata: { status: auth.status || 502 }
     });
@@ -775,6 +790,8 @@ async function handleAdminIntegrationTest(res, env, appUser) {
   await writeAdminAudit(env, appUser, {
     action: 'testar_integracao',
     entity: 'integracao',
+    entityId: empresaId,
+    empresaId,
     summary: 'Teste da Visual Saef concluido com sucesso',
     metadata: { status: 200 }
   });
@@ -804,7 +821,7 @@ async function handleAdminAction(req, res, action, payload, env) {
     return handleAdminUserUpdate(res, appUser, payload, env);
   }
   if (action === 'admin-integration-test') {
-    return handleAdminIntegrationTest(res, env, appUser);
+    return handleAdminIntegrationTest(res, env, appUser, payload);
   }
   return res.status(400).json({ erro: 'Acao administrativa invalida.' });
 }
