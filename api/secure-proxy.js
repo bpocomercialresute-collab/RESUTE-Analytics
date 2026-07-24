@@ -757,6 +757,86 @@ async function handleAdminUserUpdate(res, appUser, payload, env) {
   });
 }
 
+async function handleAdminCompanyArchive(res, appUser, payload, env) {
+  const companyIds = Array.from(new Set(
+    (Array.isArray(payload && payload.company_ids) ? payload.company_ids : [])
+      .map((value) => String(value || '').trim())
+      .filter((value) => /^[a-zA-Z0-9-]{8,80}$/.test(value))
+  )).slice(0, 20);
+  if (!companyIds.length) throw new Error('Nenhuma empresa valida foi informada.');
+
+  const archived = [];
+  for (const companyId of companyIds) {
+    const companyResponse = await fetch(
+      `${env.supaUrl}/rest/v1/empresas?id=eq.${encodeURIComponent(companyId)}&select=id,nome,slug,ativo&limit=1`,
+      { headers: adminActionHeaders(env) }
+    );
+    const companyRows = await adminActionReadJson(companyResponse);
+    const company = Array.isArray(companyRows) ? companyRows[0] : null;
+    if (!company) continue;
+
+    const companyUpdate = await fetch(
+      `${env.supaUrl}/rest/v1/empresas?id=eq.${encodeURIComponent(companyId)}`,
+      {
+        method: 'PATCH',
+        headers: {
+          ...adminActionHeaders(env, 'application/json'),
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ ativo: false })
+      }
+    );
+    await adminActionReadJson(companyUpdate);
+
+    const integrationUpdate = await fetch(
+      `${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(companyId)}`,
+      {
+        method: 'PATCH',
+        headers: {
+          ...adminActionHeaders(env, 'application/json'),
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ ativo: false })
+      }
+    );
+    await adminActionReadJson(integrationUpdate);
+
+    const userUpdate = await fetch(
+      `${env.supaUrl}/rest/v1/usuarios?empresa_id=eq.${encodeURIComponent(companyId)}`,
+      {
+        method: 'PATCH',
+        headers: {
+          ...adminActionHeaders(env, 'application/json'),
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ ativo: false })
+      }
+    );
+    await adminActionReadJson(userUpdate);
+
+    archived.push({ id: companyId, nome: company.nome || company.slug || companyId });
+    await writeAdminAudit(env, appUser, {
+      action: 'arquivar_empresa',
+      entity: 'empresa',
+      entityId: companyId,
+      empresaId: companyId,
+      summary: `Empresa arquivada: ${company.nome || company.slug || companyId}`,
+      metadata: {
+        integracao_desativada: true,
+        acessos_desativados: true
+      }
+    });
+  }
+
+  return res.status(200).json({
+    ok: true,
+    empresas: archived,
+    mensagem: archived.length
+      ? `${archived.length} empresa(s) arquivada(s) e acessos bloqueados.`
+      : 'Nenhuma empresa precisou ser arquivada.'
+  });
+}
+
 async function handleAdminIntegrationTest(res, env, appUser, payload) {
   const empresaId = payload && payload.empresa_id ? String(payload.empresa_id) : null;
   if (empresaId) {
@@ -819,6 +899,9 @@ async function handleAdminAction(req, res, action, payload, env) {
   }
   if (action === 'admin-user-update') {
     return handleAdminUserUpdate(res, appUser, payload, env);
+  }
+  if (action === 'admin-company-archive') {
+    return handleAdminCompanyArchive(res, appUser, payload, env);
   }
   if (action === 'admin-integration-test') {
     return handleAdminIntegrationTest(res, env, appUser, payload);

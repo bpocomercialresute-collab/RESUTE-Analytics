@@ -2506,29 +2506,29 @@ async function _adminCarregarEmpresasMeta() {
     });
     var apiConfigs = await apiResp.json();
 
-    EMPRESAS_ADMIN = EMPRESAS_ADMIN_BASE.map(function(base) {
-      var empresaDb = (empresas || []).find(function(emp) {
-        return (emp.id || emp.empresa_id) === base.empresa_id;
-      }) || {};
+    if (!Array.isArray(empresas)) throw new Error('Resposta invalida ao carregar empresas.');
+    EMPRESAS_ADMIN = empresas.map(function(empresaDb) {
       var apiCfg = (apiConfigs || []).find(function(cfg) {
-        return cfg.empresa_id === base.empresa_id && cfg.ativo !== false;
+        return cfg.empresa_id === (empresaDb.id || empresaDb.empresa_id) && cfg.ativo !== false;
       }) || null;
-      var origem = String(empresaDb.exibir_origem || base.exibir_origem || 'manual').toLowerCase();
-      return Object.assign({}, base, empresaDb, {
-        empresa_id: empresaDb.id || empresaDb.empresa_id || base.empresa_id,
-        nome: empresaDb.nome || base.nome,
-        slug: empresaDb.slug || base.slug || null,
-        tem_api: (!!apiCfg && origem === 'api') || !!base.tem_api,
-        sistema: apiCfg && apiCfg.sistema ? apiCfg.sistema : (empresaDb.sistema || base.sistema || null),
+      var origem = String(empresaDb.exibir_origem || 'manual').toLowerCase();
+      return Object.assign({}, empresaDb, {
+        empresa_id: empresaDb.id || empresaDb.empresa_id,
+        nome: empresaDb.nome || 'Empresa',
+        slug: empresaDb.slug || null,
+        tem_api: !!apiCfg && origem === 'api',
+        sistema: apiCfg && apiCfg.sistema ? apiCfg.sistema : (empresaDb.sistema || null),
         empresa_codigo: empresaDb.codigo_empresa
           || empresaDb.codigo_cliente
           || empresaDb.codigo_cliente_id
           || empresaDb.visual_codigo_empresa
           || empresaDb.visual_codigo_cliente
-          || base.empresa_codigo
           || null
       });
+    }).filter(function(empresa) {
+      return !!empresa.empresa_id;
     });
+    if (!EMPRESAS_ADMIN.length) EMPRESAS_ADMIN = EMPRESAS_ADMIN_BASE.slice();
   } catch (e) {
     EMPRESAS_ADMIN = EMPRESAS_ADMIN_BASE.slice();
     console.warn('[ADMIN] Falha ao carregar metadados das empresas:', e);

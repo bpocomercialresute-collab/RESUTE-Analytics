@@ -81,6 +81,11 @@ export default async function handler(req, res) {
     }
 
     var empresaRelacion = Array.isArray(user.empresas) ? (user.empresas[0] || {}) : (user.empresas || {});
+    if (user.papel !== 'super_admin' && empresaRelacion.ativo === false) {
+      return res.status(403).json({
+        erro: 'Esta empresa nao esta mais ativa na plataforma RESUTE.'
+      });
+    }
     var empresaIds = null;
     if (user.empresa_ids) {
       try { empresaIds = JSON.parse(user.empresa_ids); } catch (e) { empresaIds = null; }

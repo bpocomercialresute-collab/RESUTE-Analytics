@@ -190,6 +190,45 @@ function adminConsoleCompanyName(companyId) {
   return company ? company.nome : (companyId ? 'Empresa nao localizada' : 'RESUTE');
 }
 
+function adminConsoleIsLegacyCompany(company) {
+  var identity = adminConsoleSlugify(
+    String(company && company.nome || '') + '-' + String(company && company.slug || '')
+  ).replace(/-/g, '');
+  return identity.indexOf('llamenina') >= 0
+    || identity.indexOf('44tshirts') >= 0
+    || identity.indexOf('44shirts') >= 0;
+}
+
+async function adminConsoleRetirarClientesLegados() {
+  var legacyCompanies = ADMIN_CONSOLE.companies.filter(adminConsoleIsLegacyCompany);
+  if (!legacyCompanies.length) return;
+  var legacyIds = legacyCompanies.map(function(company) {
+    return String(company.id || company.empresa_id);
+  }).filter(Boolean);
+  var activeLegacyIds = legacyCompanies.filter(function(company) {
+    return company.ativo !== false;
+  }).map(function(company) {
+    return String(company.id || company.empresa_id);
+  }).filter(Boolean);
+
+  if (activeLegacyIds.length) {
+    await adminConsoleAction('admin-company-archive', { company_ids: activeLegacyIds });
+  }
+
+  ADMIN_CONSOLE.companies = ADMIN_CONSOLE.companies.filter(function(company) {
+    return legacyIds.indexOf(String(company.id || company.empresa_id)) < 0;
+  });
+  ADMIN_CONSOLE.users = ADMIN_CONSOLE.users.filter(function(user) {
+    return legacyIds.indexOf(String(user.empresa_id || '')) < 0;
+  });
+  ADMIN_CONSOLE.integrations = ADMIN_CONSOLE.integrations.filter(function(api) {
+    return legacyIds.indexOf(String(api.empresa_id || '')) < 0;
+  });
+  ADMIN_CONSOLE.syncLogs = ADMIN_CONSOLE.syncLogs.filter(function(log) {
+    return legacyIds.indexOf(String(log.empresa_id || '')) < 0;
+  });
+}
+
 function adminConsoleBadge(label, type) {
   return '<span class="admin-status-badge ' + adminConsoleEscape(type || 'neutral') + '">'
     + adminConsoleEscape(label) + '</span>';
@@ -241,6 +280,11 @@ async function adminConsoleInicializar(force) {
         ADMIN_CONSOLE.loadErrors.push(labels[index] + ': ' + (result.reason && result.reason.message ? result.reason.message : result.reason));
       }
     });
+    try {
+      await adminConsoleRetirarClientesLegados();
+    } catch (legacyError) {
+      ADMIN_CONSOLE.loadErrors.push('clientes antigos: ' + legacyError.message);
+    }
     // O painel RESUTE administra clientes e acessos. Os dados comerciais
     // permanecem na central operacional de cada empresa.
     ADMIN_CONSOLE.metricsByCompany = {};
@@ -563,6 +607,7 @@ function adminConsoleRenderEmpresas(list) {
       + (integration
         ? '<button onclick="adminConsoleEditarIntegracao(\'' + adminConsoleEscape(id) + '\')">Configurar API</button>'
         : '<button onclick="adminConsoleNovaIntegracao(\'' + adminConsoleEscape(id) + '\')">Conectar API</button>')
+      + '<button class="admin-company-danger" onclick="adminConsoleArquivarEmpresa(\'' + adminConsoleEscape(id) + '\')">Arquivar</button>'
       + '<button class="admin-company-primary" onclick="adminConsoleAbrirOperacao(\'' + adminConsoleEscape(id) + '\')">Abrir operacao</button></div>'
       + '</article>';
   }).join('');
@@ -951,6 +996,26 @@ function adminConsoleEditarEmpresa(companyId) {
     return String(item.id || item.empresa_id) === String(companyId);
   });
   if (company) adminConsoleEmpresaModal(company);
+}
+
+async function adminConsoleArquivarEmpresa(companyId) {
+  var company = ADMIN_CONSOLE.companies.find(function(item) {
+    return String(item.id || item.empresa_id) === String(companyId);
+  });
+  if (!company) return;
+  var confirmed = window.confirm(
+    'Arquivar ' + (company.nome || 'esta empresa')
+      + '? A empresa, a integracao e os acessos vinculados serao desativados.'
+  );
+  if (!confirmed) return;
+  try {
+    await adminConsoleAction('admin-company-archive', { company_ids: [companyId] });
+    adminConsoleTrackActivity('empresa', 'Empresa arquivada', company.nome || companyId);
+    await adminConsoleAtualizar(true);
+    adminConsoleAviso('Empresa arquivada e acessos vinculados bloqueados.', 'success');
+  } catch (error) {
+    adminConsoleAviso('Falha ao arquivar empresa: ' + error.message, 'error');
+  }
 }
 
 function adminConsoleEmpresaModal(company) {
