@@ -383,17 +383,102 @@
           </section>
 
           <section id="admin-section-sync" class="admin-console-section">
+
+            <!-- Painel de sincronização -->
+            <div class="adm-api-wrap admin-sync-panel-embed">
+
+              <!-- Cabeçalho: empresa + última sync -->
+              <div class="adm-sync-header">
+                <div id="adm-sync-empresa-wrap" class="adm-sync-empresa-slot" style="display:none">
+                  <label class="adm-ctrl-field">
+                    <span>Empresa</span>
+                    <select id="adm-sync-empresa-select" class="adm-select" onchange="adminSyncSelecionarEmpresa(this.value)"></select>
+                  </label>
+                </div>
+                <div id="adm-api-ultima" class="adm-api-ultima"></div>
+              </div>
+
+              <!-- Abas -->
+              <div class="adm-sync-tabs" role="tablist">
+                <button class="adm-sync-tab active" id="adm-tab-manual-btn" onclick="admSyncAba('manual')" role="tab">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  Sincronização Manual
+                </button>
+                <button class="adm-sync-tab" id="adm-tab-auto-btn" onclick="admSyncAba('auto')" role="tab">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Sincronização Automática
+                </button>
+              </div>
+
+              <!-- Painel: Manual -->
+              <div class="adm-sync-tab-panel" id="adm-tab-manual" role="tabpanel">
+                <div class="adm-sync-period-row">
+                  <label class="adm-ctrl-field">
+                    <span>Início do período</span>
+                    <input id="adm-sync-inicio" type="date" class="adm-input" onchange="_adminObterPeriodoSync()" />
+                  </label>
+                  <label class="adm-ctrl-field">
+                    <span>Fim do período</span>
+                    <input id="adm-sync-fim" type="date" class="adm-input" onchange="_adminObterPeriodoSync()" />
+                  </label>
+                </div>
+                <div id="adm-periodo-resumo" class="adm-periodo-resumo"></div>
+                <div class="adm-sync-actions">
+                  <button id="admin-btn-sync" onclick="adminSincronizar()" class="adm-btn adm-btn-api">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+                    Sincronizar agora
+                  </button>
+                  <button onclick="adminLimparOrigem('api')" class="adm-btn adm-btn-danger">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                    Limpar dados
+                  </button>
+                </div>
+                <div id="adm-api-kpis" class="adm-api-kpis" style="display:none"></div>
+                <div id="adm-api-modulos" class="adm-api-modulos"></div>
+                <div id="adm-api-relatorios" class="adm-api-relatorios" style="display:none">
+                  <div class="adm-rel-aviso">
+                    ✓ Dados sincronizados com sucesso.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Painel: Automática -->
+              <div class="adm-sync-tab-panel" id="adm-tab-auto" role="tabpanel" style="display:none">
+                <div class="adm-autosync-card">
+                  <div class="adm-autosync-top">
+                    <label class="adm-ctrl-field">
+                      <span>Intervalo de sincronização</span>
+                      <select id="adm-autosync-interval" class="adm-select" onchange="adminAutoSyncConfigurar(this.value)">
+                        <option value="0">Desativada</option>
+                        <option value="30">A cada 30 minutos</option>
+                        <option value="60">A cada 1 hora</option>
+                        <option value="180">A cada 3 horas</option>
+                        <option value="360">A cada 6 horas</option>
+                        <option value="720">A cada 12 horas</option>
+                        <option value="1440">A cada 24 horas</option>
+                      </select>
+                    </label>
+                    <div id="adm-autosync-status" class="adm-autosync-status" style="display:none">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      Próxima sync em <strong><span id="adm-autosync-countdown">—</span></strong>
+                    </div>
+                  </div>
+                  <p class="adm-autosync-hint">
+                    A sincronização automática executa em segundo plano enquanto esta página estiver aberta. O período utilizado é o mesmo configurado na aba <strong>Sincronização Manual</strong>.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Histórico -->
+            <div class="admin-sync-history-head">Histórico de sincronizações</div>
             <div class="admin-section-toolbar">
               <select id="admin-sync-company" onchange="adminConsoleFiltrarSync()"><option value="">Todas as empresas</option></select>
               <select id="admin-sync-status-filter" onchange="adminConsoleFiltrarSync()"><option value="">Todos os status</option><option value="sucesso">Sucesso</option><option value="erro">Erro</option><option value="sincronizando">Sincronizando</option></select>
               <input id="admin-sync-date-from" type="date" aria-label="Data inicial" onchange="adminConsoleFiltrarSync()">
               <input id="admin-sync-date-to" type="date" aria-label="Data final" onchange="adminConsoleFiltrarSync()">
               <span id="admin-sync-result" class="admin-result-count">0 registros</span>
-              <button class="admin-btn-secondary" onclick="adminConsoleAbrirSyncEmpresa()">Abrir painel de sync</button>
-              <button class="admin-btn-primary" onclick="adminConsoleDispararSyncEmpresa()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
-                Sincronizar agora
-              </button>
             </div>
             <div class="admin-table-card"><div class="admin-table-scroll"><table class="admin-data-table"><thead><tr><th>Empresa</th><th>Tipo</th><th>&Uacute;ltima sincroniza&ccedil;&atilde;o</th><th>Per&iacute;odo final</th><th>Registros</th><th>Status</th><th>A&ccedil;&otilde;es</th></tr></thead><tbody id="admin-sync-body"></tbody></table></div></div>
           </section>
@@ -478,98 +563,6 @@
               </div>
             </div>
 
-            <!-- MODO API -->
-            <div id="adm-modo-api" style="display:none">
-              <div class="adm-api-wrap">
-
-                <!-- Cabeçalho: empresa + última sync -->
-                <div class="adm-sync-header">
-                  <div id="adm-sync-empresa-wrap" class="adm-sync-empresa-slot" style="display:none">
-                    <label class="adm-ctrl-field">
-                      <span>Empresa</span>
-                      <select id="adm-sync-empresa-select" class="adm-select" onchange="adminSyncSelecionarEmpresa(this.value)"></select>
-                    </label>
-                  </div>
-                  <div id="adm-api-ultima" class="adm-api-ultima"></div>
-                </div>
-
-                <!-- Abas -->
-                <div class="adm-sync-tabs" role="tablist">
-                  <button class="adm-sync-tab active" id="adm-tab-manual-btn" onclick="admSyncAba('manual')" role="tab">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                    Sincronização Manual
-                  </button>
-                  <button class="adm-sync-tab" id="adm-tab-auto-btn" onclick="admSyncAba('auto')" role="tab">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    Sincronização Automática
-                  </button>
-                </div>
-
-                <!-- Painel: Manual -->
-                <div class="adm-sync-tab-panel" id="adm-tab-manual" role="tabpanel">
-                  <div class="adm-sync-period-row">
-                    <label class="adm-ctrl-field">
-                      <span>Início do período</span>
-                      <input id="adm-sync-inicio" type="date" class="adm-input" onchange="_adminObterPeriodoSync()" />
-                    </label>
-                    <label class="adm-ctrl-field">
-                      <span>Fim do período</span>
-                      <input id="adm-sync-fim" type="date" class="adm-input" onchange="_adminObterPeriodoSync()" />
-                    </label>
-                  </div>
-                  <div id="adm-periodo-resumo" class="adm-periodo-resumo"></div>
-                  <div class="adm-sync-actions">
-                    <button id="admin-btn-sync" onclick="adminSincronizar()" class="adm-btn adm-btn-api">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
-                      Sincronizar agora
-                    </button>
-                    <button onclick="adminLimparOrigem('api')" class="adm-btn adm-btn-danger">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-                      Limpar dados
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Painel: Automática -->
-                <div class="adm-sync-tab-panel" id="adm-tab-auto" role="tabpanel" style="display:none">
-                  <div class="adm-autosync-card">
-                    <div class="adm-autosync-top">
-                      <label class="adm-ctrl-field">
-                        <span>Intervalo de sincronização</span>
-                        <select id="adm-autosync-interval" class="adm-select" onchange="adminAutoSyncConfigurar(this.value)">
-                          <option value="0">Desativada</option>
-                          <option value="30">A cada 30 minutos</option>
-                          <option value="60">A cada 1 hora</option>
-                          <option value="180">A cada 3 horas</option>
-                          <option value="360">A cada 6 horas</option>
-                          <option value="720">A cada 12 horas</option>
-                          <option value="1440">A cada 24 horas</option>
-                        </select>
-                      </label>
-                      <div id="adm-autosync-status" class="adm-autosync-status" style="display:none">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        Próxima sync em <strong><span id="adm-autosync-countdown">—</span></strong>
-                      </div>
-                    </div>
-                    <p class="adm-autosync-hint">
-                      A sincronização automática executa em segundo plano enquanto esta página estiver aberta. O período utilizado é o mesmo configurado na aba <strong>Sincronização Manual</strong>.
-                    </p>
-                  </div>
-                </div>
-
-                <!-- KPIs e módulos -->
-                <div id="adm-api-kpis" class="adm-api-kpis" style="display:none"></div>
-                <div id="adm-api-modulos" class="adm-api-modulos"></div>
-
-                <!-- Aviso pós-sync -->
-                <div id="adm-api-relatorios" class="adm-api-relatorios" style="display:none">
-                  <div class="adm-rel-aviso">
-                    ✓ Dados sincronizados — veja os relatórios abaixo nas abas <strong>RELAT PRODUTOS</strong> e <strong>RELAT REPRESENTANTES</strong>
-                  </div>
-                </div>
-
-              </div>
-            </div>
 
             <!-- MODO MANUAL (empresas com dados colados do Excel) -->
             <div id="adm-modo-manual" style="display:none">
@@ -1235,7 +1228,7 @@
   <script src="js/dashboard.js?v=2"></script>
   <script src="js/actions.js?v=2"></script>
   <script src="js/auth.js?v=22"></script>
-  <script src="js/admin-console.js?v=12"></script>
+  <script src="js/admin-console.js?v=13"></script>
   <script src="js/jss.js?v=2"></script>
   <script src="js/bd.js?v=2"></script>
   <script src="js/relatorios.js?v=3"></script>

@@ -3237,6 +3237,21 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 }
 .adm-autosync-hint strong { color: #93c5fd; }
 
+.admin-sync-panel-embed {
+  margin-bottom: 32px;
+  border-bottom: 1px solid var(--admin-line, #e5e7eb);
+  padding-bottom: 28px;
+}
+.admin-sync-history-head {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--admin-muted, #64748b);
+  margin-bottom: 12px;
+  padding-left: 2px;
+}
+
 /* Sync panel redesign (legacy compat) */
 .adm-sync-controls { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
 .adm-sync-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }

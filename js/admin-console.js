@@ -731,7 +731,6 @@ function adminConsoleFiltrarSync() {
       + '<td>' + adminConsoleBadge(syncState.label, syncState.type) + '</td>'
       + '<td class="admin-table-actions">'
       + '<button class="admin-table-action" onclick="adminConsoleDetalharSync(' + index + ')">Detalhes</button>'
-      + '<button class="admin-table-action" onclick="adminConsoleAbrirSyncEmpresa(\'' + eid + '\')">Abrir painel</button>'
       + '</td></tr>';
   }).join('');
   ADMIN_CONSOLE.filteredSyncLogs = list;
@@ -1305,7 +1304,31 @@ function adminConsoleAbrirSyncEmpresa(empresaId) {
     eid = first ? (first.id || first.empresa_id) : '';
   }
   if (!eid) { adminConsoleAviso('Selecione uma empresa com API configurada.', 'error'); return; }
-  adminConsoleAbrirOperacao(eid);
+
+  var empresa = (ADMIN_CONSOLE.companies || []).find(function(c) {
+    return String(c.id || c.empresa_id) === String(eid);
+  });
+  var integration = (ADMIN_CONSOLE.integrations || []).find(function(a) {
+    return String(a.empresa_id) === String(eid) && a.ativo !== false;
+  });
+  if (empresa) {
+    if (typeof EMPRESA_ATIVA !== 'undefined') {
+      EMPRESA_ATIVA = {
+        empresa_id: eid,
+        nome: empresa.nome || 'Empresa',
+        slug: empresa.slug || null,
+        tem_api: true,
+        sistema: integration ? integration.sistema : null,
+        exibir_origem: 'api'
+      };
+    }
+  }
+
+  adminConsoleAbrir('sync');
+  if (typeof _adminRenderSyncEmpresaSelect === 'function') _adminRenderSyncEmpresaSelect();
+  if (typeof _adminSyncAtualizarSelect === 'function') _adminSyncAtualizarSelect(eid);
+  if (typeof _adminAutoSyncCarregarConfig === 'function') _adminAutoSyncCarregarConfig(eid);
+  if (typeof _adminPreencherPeriodoSync === 'function') _adminPreencherPeriodoSync();
 }
 
 async function adminConsoleDispararSyncEmpresa(empresaId) {
