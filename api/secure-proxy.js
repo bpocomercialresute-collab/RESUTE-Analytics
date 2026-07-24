@@ -4,6 +4,7 @@ const ALLOWED_SUPABASE_PATHS = [
   '/rest/v1/empresas',
   '/rest/v1/api_config',
   '/rest/v1/sync_log',
+  '/rest/v1/admin_audit_log',
   '/rest/v1/clientes_cad',
   '/rest/v1/produtos',
   '/rest/v1/representantes',
@@ -223,6 +224,7 @@ async function getAppUser(sessionToken, supaUrl, anonKey, serviceKey) {
       })[0]
     : null;
   if (!appUser) return null;
+  if (appUser.ativo === false) return null;
 
   appUser.email = email;
   appUser.empresa_ids = getSessionEmpresaIds(appUser);
@@ -280,6 +282,16 @@ function assertAuthorized(appUser, targetUrl, method, body) {
       } else {
         throw new Error('Filtro de empresa obrigatorio.');
       }
+    }
+    return;
+  }
+
+  if (targetUrl.pathname === '/rest/v1/admin_audit_log') {
+    if (appUser.papel !== 'super_admin') {
+      throw new Error('Apenas super_admin pode acessar esta rota.');
+    }
+    if (isWrite) {
+      throw new Error('Registros de auditoria nao podem ser alterados pelo navegador.');
     }
     return;
   }
@@ -356,6 +368,43 @@ async function proxySupabase(req, res, targetUrl, method, incomingHeaders, body,
   const text = await upstream.text();
   const contentType = upstream.headers.get('content-type') || 'application/json; charset=utf-8';
   const contentRange = upstream.headers.get('content-range');
+
+  if (upstream.ok && method !== 'GET' && method !== 'HEAD') {
+    if (targetUrl.pathname === '/rest/v1/empresas') {
+      let safeBody = {};
+      try { safeBody = body ? JSON.parse(body) : {}; } catch (error) {}
+      const entityId = String(targetUrl.searchParams.get('id') || '').replace(/^eq\./, '') || null;
+      await writeAdminAudit(env, appUser, {
+        action: method === 'POST' ? 'criar_empresa' : 'atualizar_empresa',
+        entity: 'empresa',
+        entityId,
+        empresaId: entityId,
+        summary: `${method === 'POST' ? 'Empresa criada' : 'Empresa atualizada'}: ${safeBody.nome || entityId || 'registro'}`,
+        metadata: {
+          metodo: method,
+          origem: safeBody.exibir_origem || null,
+          ativo: typeof safeBody.ativo === 'boolean' ? safeBody.ativo : null
+        }
+      });
+    }
+    if (targetUrl.pathname === '/rest/v1/api_config') {
+      let safeConfig = {};
+      try { safeConfig = body ? JSON.parse(body) : {}; } catch (error) {}
+      const empresaId = String(targetUrl.searchParams.get('empresa_id') || '').replace(/^eq\./, '') || null;
+      await writeAdminAudit(env, appUser, {
+        action: 'atualizar_integracao',
+        entity: 'integracao',
+        entityId: empresaId,
+        empresaId,
+        summary: `Configuracao de integracao atualizada para ${safeConfig.sistema || 'API'}`,
+        metadata: {
+          metodo: method,
+          sistema: safeConfig.sistema || null,
+          ativo: typeof safeConfig.ativo === 'boolean' ? safeConfig.ativo : null
+        }
+      });
+    }
+  }
 
   res.status(upstream.status);
   res.setHeader('Content-Type', contentType);
@@ -482,6 +531,284 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env
   return res.send(text);
 }
 
+function adminActionHeaders(env, contentType) {
+  return {
+    'apikey': env.serviceKey,
+    'Authorization': `Bearer ${env.serviceKey}`,
+    ...(contentType ? { 'Content-Type': contentType } : {})
+  };
+}
+
+async function writeAdminAudit(env, appUser, event) {
+  if (!env || !appUser || !event) return;
+  const payload = {
+    ator_id: appUser.id || null,
+    ator_email: String(appUser.email || 'super_admin'),
+    acao: String(event.action || 'alteracao'),
+    entidade: String(event.entity || 'administracao'),
+    entidade_id: event.entityId ? String(event.entityId) : null,
+    empresa_id: event.empresaId || null,
+    resumo: String(event.summary || 'Acao administrativa executada'),
+    metadados: event.metadata && typeof event.metadata === 'object' ? event.metadata : {}
+  };
+  try {
+    await fetch(`${env.supaUrl}/rest/v1/admin_audit_log`, {
+      method: 'POST',
+      headers: {
+        ...adminActionHeaders(env, 'application/json'),
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch (error) {
+    // Audit is optional until docs/supabase-admin-audit.sql is reviewed and run.
+  }
+}
+
+async function adminActionReadJson(response) {
+  const text = await response.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch (e) {
+    data = text;
+  }
+  if (!response.ok) {
+    const message = data && (data.msg || data.message || data.error_description || data.erro);
+    throw new Error(message || `HTTP ${response.status}`);
+  }
+  return data;
+}
+
+function normalizeAdminUserPayload(payload) {
+  const input = payload || {};
+  const email = String(input.email || '').trim().toLowerCase();
+  const nome = String(input.nome || '').trim();
+  const papel = String(input.papel || 'cliente').trim().toLowerCase();
+  const password = String(input.password || '');
+  const empresaId = input.empresa_id ? String(input.empresa_id).trim() : null;
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error('Informe um e-mail valido.');
+  }
+  if (!nome) throw new Error('Informe o nome do usuario.');
+  if (!['super_admin', 'admin', 'cliente'].includes(papel)) {
+    throw new Error('Nivel de acesso invalido.');
+  }
+  if (papel !== 'super_admin' && !empresaId) {
+    throw new Error('Admin e cliente precisam estar vinculados a uma empresa.');
+  }
+  if (password && password.length < 8) {
+    throw new Error('A senha deve ter pelo menos 8 caracteres.');
+  }
+
+  return {
+    id: input.id ? String(input.id) : null,
+    email,
+    nome,
+    papel,
+    password,
+    empresa_id: papel === 'super_admin' ? null : empresaId,
+    ativo: input.ativo !== false
+  };
+}
+
+async function handleAdminUserCreate(res, appUser, payload, env) {
+  const user = normalizeAdminUserPayload(payload);
+  if (!user.password) throw new Error('Informe uma senha temporaria.');
+
+  const authResponse = await fetch(`${env.supaUrl}/auth/v1/admin/users`, {
+    method: 'POST',
+    headers: adminActionHeaders(env, 'application/json'),
+    body: JSON.stringify({
+      email: user.email,
+      password: user.password,
+      email_confirm: true,
+      user_metadata: { nome: user.nome, papel: user.papel }
+    })
+  });
+  const authPayload = await adminActionReadJson(authResponse);
+  const authUser = authPayload && authPayload.user ? authPayload.user : authPayload;
+  if (!authUser || !authUser.id) {
+    throw new Error('Supabase Auth nao retornou o identificador do usuario.');
+  }
+
+  try {
+    const profileResponse = await fetch(`${env.supaUrl}/rest/v1/usuarios`, {
+      method: 'POST',
+      headers: {
+        ...adminActionHeaders(env, 'application/json'),
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        id: authUser.id,
+        email: user.email,
+        nome: user.nome,
+        papel: user.papel,
+        empresa_id: user.empresa_id,
+        ativo: user.ativo
+      })
+    });
+    const profile = await adminActionReadJson(profileResponse);
+    await writeAdminAudit(env, appUser, {
+      action: 'criar_usuario',
+      entity: 'usuario',
+      entityId: authUser.id,
+      empresaId: user.empresa_id,
+      summary: `Usuario ${user.email} criado com papel ${user.papel}`,
+      metadata: { papel: user.papel, ativo: user.ativo }
+    });
+    return res.status(201).json({
+      ok: true,
+      usuario: Array.isArray(profile) ? profile[0] : profile
+    });
+  } catch (error) {
+    // Compensates a failed profile insert so Auth and public.usuarios stay aligned.
+    await fetch(`${env.supaUrl}/auth/v1/admin/users/${encodeURIComponent(authUser.id)}`, {
+      method: 'DELETE',
+      headers: adminActionHeaders(env)
+    }).catch(() => null);
+    throw error;
+  }
+}
+
+async function handleAdminUserUpdate(res, appUser, payload, env) {
+  const user = normalizeAdminUserPayload(payload);
+  if (!user.id) throw new Error('Usuario nao informado.');
+
+  const currentResponse = await fetch(
+    `${env.supaUrl}/rest/v1/usuarios?id=eq.${encodeURIComponent(user.id)}&select=id,email,nome,papel,empresa_id,ativo`,
+    { headers: adminActionHeaders(env) }
+  );
+  const currentRows = await adminActionReadJson(currentResponse);
+  const current = Array.isArray(currentRows) ? currentRows[0] : null;
+  if (!current) throw new Error('Usuario nao encontrado.');
+
+  const removesSuperAdmin = current.papel === 'super_admin'
+    && (user.papel !== 'super_admin' || user.ativo === false);
+  if (String(current.id) === String(appUser.id) && removesSuperAdmin) {
+    throw new Error('Voce nao pode remover o proprio acesso de super_admin.');
+  }
+  if (removesSuperAdmin) {
+    const adminsResponse = await fetch(
+      `${env.supaUrl}/rest/v1/usuarios?papel=eq.super_admin&ativo=eq.true&select=id`,
+      { headers: adminActionHeaders(env) }
+    );
+    const admins = await adminActionReadJson(adminsResponse);
+    if (!Array.isArray(admins) || admins.length <= 1) {
+      throw new Error('O ultimo super_admin ativo nao pode ser desativado ou rebaixado.');
+    }
+  }
+
+  const authChanges = {};
+  if (user.email !== String(current.email || '').toLowerCase()) {
+    authChanges.email = user.email;
+    authChanges.email_confirm = true;
+  }
+  if (user.password) authChanges.password = user.password;
+  if (Object.keys(authChanges).length) {
+    const authResponse = await fetch(
+      `${env.supaUrl}/auth/v1/admin/users/${encodeURIComponent(user.id)}`,
+      {
+        method: 'PUT',
+        headers: adminActionHeaders(env, 'application/json'),
+        body: JSON.stringify(authChanges)
+      }
+    );
+    await adminActionReadJson(authResponse);
+  }
+
+  const profileResponse = await fetch(
+    `${env.supaUrl}/rest/v1/usuarios?id=eq.${encodeURIComponent(user.id)}`,
+    {
+      method: 'PATCH',
+      headers: {
+        ...adminActionHeaders(env, 'application/json'),
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        email: user.email,
+        nome: user.nome,
+        papel: user.papel,
+        empresa_id: user.empresa_id,
+        ativo: user.ativo
+      })
+    }
+  );
+  const profile = await adminActionReadJson(profileResponse);
+  await writeAdminAudit(env, appUser, {
+    action: 'atualizar_usuario',
+    entity: 'usuario',
+    entityId: user.id,
+    empresaId: user.empresa_id,
+    summary: `Usuario ${user.email} atualizado`,
+    metadata: {
+      papel_anterior: current.papel,
+      papel_atual: user.papel,
+      ativo_anterior: current.ativo,
+      ativo_atual: user.ativo
+    }
+  });
+  return res.status(200).json({
+    ok: true,
+    usuario: Array.isArray(profile) ? profile[0] : profile
+  });
+}
+
+async function handleAdminIntegrationTest(res, env, appUser) {
+  const auth = await getVisualLoginToken(
+    env,
+    env.visualCadastroClientId || env.visualClientId,
+    env.visualCadastroClientSecret || env.visualClientSecret
+  );
+  if (!auth.ok || !auth.token) {
+    await writeAdminAudit(env, appUser, {
+      action: 'testar_integracao',
+      entity: 'integracao',
+      summary: 'Teste da Visual Saef falhou',
+      metadata: { status: auth.status || 502 }
+    });
+    return res.status(auth.status || 502).json({
+      erro: auth.message || 'Nao foi possivel autenticar na Visual Saef.'
+    });
+  }
+  await writeAdminAudit(env, appUser, {
+    action: 'testar_integracao',
+    entity: 'integracao',
+    summary: 'Teste da Visual Saef concluido com sucesso',
+    metadata: { status: 200 }
+  });
+  return res.status(200).json({
+    ok: true,
+    mensagem: 'Supabase e autenticacao da Visual Saef responderam corretamente.'
+  });
+}
+
+async function handleAdminAction(req, res, action, payload, env) {
+  const sessionToken = req.headers['x-session-token'] || '';
+  const appUser = await getAppUser(
+    sessionToken,
+    env.supaUrl,
+    env.anonKey,
+    env.serviceKey
+  );
+  if (!appUser) return res.status(401).json({ erro: 'Sessao invalida.' });
+  if (appUser.papel !== 'super_admin') {
+    return res.status(403).json({ erro: 'Apenas super_admin pode executar esta acao.' });
+  }
+
+  if (action === 'admin-user-create') {
+    return handleAdminUserCreate(res, appUser, payload, env);
+  }
+  if (action === 'admin-user-update') {
+    return handleAdminUserUpdate(res, appUser, payload, env);
+  }
+  if (action === 'admin-integration-test') {
+    return handleAdminIntegrationTest(res, env, appUser);
+  }
+  return res.status(400).json({ erro: 'Acao administrativa invalida.' });
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -506,7 +833,14 @@ export default async function handler(req, res) {
     return res.status(500).json({ erro: 'Variaveis seguras do Supabase nao configuradas na Vercel.' });
   }
 
-  const { url, method, headers, body } = req.body || {};
+  const { action, payload, url, method, headers, body } = req.body || {};
+  if (action) {
+    try {
+      return await handleAdminAction(req, res, String(action), payload, env);
+    } catch (e) {
+      return res.status(400).json({ erro: e.message });
+    }
+  }
   if (!url) return res.status(400).json({ erro: 'URL obrigatoria.' });
 
   const incomingHeaders = normalizeHeaders(headers);

@@ -199,7 +199,23 @@ var LOJA_NOMES = {
 
 function abrirAnaliseVendas() {
   SESSION = _readStoredSession();
-  if (SESSION && SESSION.token) { _abrirApp(); } else { _mostrarLogin(); }
+  if (!SESSION || !SESSION.token) {
+    _mostrarLogin();
+    return;
+  }
+  if (SESSION.papel === 'cliente') {
+    _abrirDashCliente();
+    return;
+  }
+  if (typeof switchView === 'function') switchView('view-app');
+  var breadcrumb = document.getElementById('breadcrumb-text');
+  if (breadcrumb) breadcrumb.textContent = 'Analise de Vendas';
+  document.querySelectorAll('.cui-nav-item').forEach(function(item) {
+    item.classList.remove('active', 'is-active');
+  });
+  var operationLink = document.querySelector('.cui-nav-item[onclick*="abrirAnaliseVendas"]');
+  if (operationLink) operationLink.classList.add('active');
+  if (typeof adminInicializar === 'function') adminInicializar();
 }
 
 function _limparBlocosInstitucionaisAntigos() {
@@ -449,10 +465,16 @@ function _abrirApp() {
   var syncArea = document.getElementById('sync-area');
   if (syncArea) syncArea.style.display = 'none';
 
-  if (typeof switchView === 'function') switchView('view-app');
+  var adminNav = document.querySelector('.admin-console-nav');
+  if (adminNav) adminNav.style.display = SESSION.papel === 'super_admin' ? '' : 'none';
 
-  // Inicializa painel multi-empresa
-  if (typeof adminInicializar === 'function') adminInicializar();
+  if (SESSION.papel === 'super_admin' && typeof adminConsoleAbrir === 'function') {
+    adminConsoleAbrir('overview');
+    if (typeof adminConsoleInicializar === 'function') adminConsoleInicializar();
+  } else {
+    if (typeof switchView === 'function') switchView('view-app');
+    if (typeof adminInicializar === 'function') adminInicializar();
+  }
 }
 
 // ── PERMISSÕES — Cliente vê só relatórios ────────────────────────────────────

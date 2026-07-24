@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=5" />
+  <link rel="stylesheet" href="css/style.css?v=7" />
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
 </head>
 <body class="cui-body">
@@ -172,6 +172,17 @@
       <button class="cui-sidebar-toggle" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
     </div>
     <nav class="cui-nav">
+      <div class="admin-console-nav">
+        <div class="cui-nav-title">ADMINISTRACAO</div>
+        <a class="cui-nav-item admin-console-link" data-admin-target="overview" onclick="adminConsoleAbrir('overview', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span>Vis&atilde;o geral</span></a>
+        <a class="cui-nav-item admin-console-link" data-admin-target="companies" onclick="adminConsoleAbrir('companies', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 9h1M14 9h1M9 13h1M14 13h1M9 17h1M14 17h1"/></svg><span>Empresas</span></a>
+        <a class="cui-nav-item admin-console-link" data-admin-target="users" onclick="adminConsoleAbrir('users', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg><span>Usu&aacute;rios e acessos</span></a>
+        <a class="cui-nav-item admin-console-link" data-admin-target="integrations" onclick="adminConsoleAbrir('integrations', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M8 12h8M12 8v8"/><path d="M7 3h10v4H7zM7 17h10v4H7z"/></svg><span>Integra&ccedil;&otilde;es e APIs</span></a>
+        <a class="cui-nav-item admin-console-link" data-admin-target="sync" onclick="adminConsoleAbrir('sync', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.5 9a9 9 0 0 1 14.8-3.4L23 10M1 14l4.7 4.4A9 9 0 0 0 20.5 15"/></svg><span>Sincroniza&ccedil;&otilde;es</span></a>
+        <a class="cui-nav-item admin-console-link" data-admin-target="audit" onclick="adminConsoleAbrir('audit', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><span>Registros e auditoria</span></a>
+        <a class="cui-nav-item admin-console-link" data-admin-target="security" onclick="adminConsoleAbrir('security', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg><span>Seguran&ccedil;a</span></a>
+        <a class="cui-nav-item admin-console-link" data-admin-target="settings" onclick="adminConsoleAbrir('settings', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1z"/></svg><span>Configura&ccedil;&otilde;es</span></a>
+      </div>
       <div class="cui-nav-title">NAVEGAÇÃO</div>
       <a class="cui-nav-item" onclick="switchView('view-home'); setSidebarActive(this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Início</span></a>
       <a class="cui-nav-item active" onclick="abrirAnaliseVendas(); setSidebarActive(this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg><span>Análise de Vendas</span></a>
@@ -250,6 +261,141 @@
               <div class="tool-meta"><span class="badge badge-active"><span class="badge-dot"></span>Disponível</span><div class="tool-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div></div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div id="view-admin-console" class="page-view admin-console" style="display:none">
+        <div class="admin-console-content">
+          <section class="admin-console-hero">
+            <div>
+              <div class="admin-console-kicker">RESUTE BPO CONTROL CENTER</div>
+              <h1 id="admin-console-title">Vis&atilde;o geral</h1>
+              <p id="admin-console-subtitle">Controle centralizado de empresas, acessos, integra&ccedil;&otilde;es e sincroniza&ccedil;&otilde;es.</p>
+            </div>
+            <div class="admin-console-session">
+              <span class="admin-live-dot"></span>
+              <div><strong>Sess&atilde;o protegida</strong><small id="admin-session-label">super_admin</small></div>
+              <button type="button" onclick="fazerLogout()" title="Encerrar sess&atilde;o">Sair</button>
+            </div>
+          </section>
+
+          <div id="admin-console-notice" class="admin-console-notice" hidden></div>
+
+          <section id="admin-section-overview" class="admin-console-section active">
+            <div class="admin-overview-kpis">
+              <div class="admin-kpi-card"><span>Empresas ativas</span><strong id="admin-kpi-companies">--</strong><small>opera&ccedil;&otilde;es cadastradas</small></div>
+              <div class="admin-kpi-card"><span>Usu&aacute;rios ativos</span><strong id="admin-kpi-users">--</strong><small>acessos liberados</small></div>
+              <div class="admin-kpi-card"><span>Registros de vendas</span><strong id="admin-kpi-sales">--</strong><small>base comercial</small></div>
+              <div class="admin-kpi-card"><span>Clientes cadastrados</span><strong id="admin-kpi-clients">--</strong><small>cadastro oficial</small></div>
+              <div class="admin-kpi-card"><span>Produtos cadastrados</span><strong id="admin-kpi-products">--</strong><small>cat&aacute;logo oficial</small></div>
+              <div class="admin-kpi-card"><span>Representantes</span><strong id="admin-kpi-representatives">--</strong><small>equipe comercial</small></div>
+              <div class="admin-kpi-card"><span>Integra&ccedil;&otilde;es</span><strong id="admin-kpi-integrations">--</strong><small>conex&otilde;es ativas</small></div>
+              <div class="admin-kpi-card"><span>Alertas recentes</span><strong id="admin-kpi-alerts">--</strong><small>itens que exigem aten&ccedil;&atilde;o</small></div>
+            </div>
+            <div class="admin-overview-grid">
+              <article class="admin-panel-card admin-overview-main">
+                <div class="admin-card-heading"><div><span>OPERACAO</span><h2>Sa&uacute;de do ambiente</h2></div><button class="admin-btn-secondary" onclick="adminConsoleAtualizar()">Atualizar dados</button></div>
+                <div id="admin-health-list" class="admin-health-list"><div class="admin-skeleton"></div></div>
+              </article>
+              <article class="admin-panel-card">
+                <div class="admin-card-heading"><div><span>ATALHOS</span><h2>A&ccedil;&otilde;es frequentes</h2></div></div>
+                <div class="admin-quick-actions">
+                  <button onclick="adminConsoleNovoUsuario()">Adicionar usu&aacute;rio<small>Criar acesso e definir permiss&atilde;o</small></button>
+                  <button onclick="adminConsoleNovaEmpresa()">Cadastrar empresa<small>Adicionar uma nova opera&ccedil;&atilde;o</small></button>
+                  <button onclick="adminConsoleAbrir('integrations')">Testar integra&ccedil;&atilde;o<small>Verificar comunica&ccedil;&atilde;o com a API</small></button>
+                  <button onclick="adminConsoleAbrir('sync')">Consultar registros<small>Revisar as &uacute;ltimas sincroniza&ccedil;&otilde;es</small></button>
+                </div>
+              </article>
+            </div>
+            <article class="admin-panel-card admin-activity-panel">
+              <div class="admin-card-heading"><div><span>ATIVIDADE RECENTE</span><h2>&Uacute;ltimos eventos operacionais</h2></div><button class="admin-btn-secondary" onclick="adminConsoleAbrir('audit')">Ver auditoria</button></div>
+              <div id="admin-recent-activity" class="admin-activity-list"><div class="admin-skeleton"></div></div>
+            </article>
+          </section>
+
+          <section id="admin-section-companies" class="admin-console-section">
+            <div class="admin-section-toolbar">
+              <div class="admin-search-wrap"><input id="admin-company-search" type="search" placeholder="Buscar empresa..." oninput="adminConsoleFiltrarEmpresas()"></div>
+              <select id="admin-company-status" onchange="adminConsoleFiltrarEmpresas()"><option value="">Todos os status</option><option value="active">Ativas</option><option value="inactive">Inativas</option></select>
+              <select id="admin-company-origin" onchange="adminConsoleFiltrarEmpresas()"><option value="">Todas as origens</option><option value="api">API</option><option value="manual">Manual</option></select>
+              <button class="admin-btn-primary" onclick="adminConsoleNovaEmpresa()">Adicionar empresa</button>
+            </div>
+            <div id="admin-companies-grid" class="admin-company-grid"></div>
+          </section>
+
+          <section id="admin-section-users" class="admin-console-section">
+            <div class="admin-section-toolbar">
+              <div class="admin-search-wrap"><input id="admin-user-search" type="search" placeholder="Buscar nome ou e-mail..." oninput="adminConsoleFiltrarUsuarios()"></div>
+              <select id="admin-user-role" onchange="adminConsoleFiltrarUsuarios()"><option value="">Todos os pap&eacute;is</option><option value="super_admin">Super admin</option><option value="admin">Admin</option><option value="cliente">Cliente</option></select>
+              <select id="admin-user-company" onchange="adminConsoleFiltrarUsuarios()"><option value="">Todas as empresas</option></select>
+              <select id="admin-user-status" onchange="adminConsoleFiltrarUsuarios()"><option value="">Todos os status</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select>
+              <button class="admin-btn-primary" onclick="adminConsoleNovoUsuario()">Adicionar usu&aacute;rio</button>
+            </div>
+            <div class="admin-table-card"><div class="admin-table-scroll"><table class="admin-data-table"><thead><tr><th>Usu&aacute;rio</th><th>Empresa</th><th>Papel</th><th>Status</th><th>Criado em</th><th>&Uacute;ltimo acesso</th><th>A&ccedil;&otilde;es</th></tr></thead><tbody id="admin-users-body"></tbody></table></div><div class="admin-pagination"><span id="admin-users-page-info">0 usu&aacute;rios</span><div><button onclick="adminConsoleMudarPaginaUsuarios(-1)">Anterior</button><button onclick="adminConsoleMudarPaginaUsuarios(1)">Pr&oacute;xima</button></div></div></div>
+          </section>
+
+          <section id="admin-section-integrations" class="admin-console-section">
+            <div class="admin-section-intro"><div><span>CONEXOES PROTEGIDAS</span><h2>Integra&ccedil;&otilde;es e APIs</h2><p>As credenciais permanecem na Vercel e nunca s&atilde;o exibidas no navegador.</p></div><div class="admin-inline-actions"><button class="admin-btn-secondary" onclick="adminConsoleTestarIntegracao()">Testar conex&atilde;o</button><button class="admin-btn-primary" onclick="abrirAnaliseVendas()">Sincronizar agora</button></div></div>
+            <div id="admin-integrations-grid" class="admin-integration-grid"></div>
+            <article class="admin-panel-card admin-endpoints-card">
+              <div class="admin-card-heading"><div><span>VISUAL SAEF</span><h2>Endpoints monitorados</h2></div></div>
+              <div class="admin-endpoint-list"><span>Vendas <code>/relacaovendaitem</code></span><span>Clientes <code>/cadastrocliente</code></span><span>Produtos <code>/cadastroproduto</code></span><span>Representantes <code>/cadastrovendedor</code></span></div>
+            </article>
+          </section>
+
+          <section id="admin-section-sync" class="admin-console-section">
+            <div class="admin-section-toolbar">
+              <select id="admin-sync-company" onchange="adminConsoleFiltrarSync()"><option value="">Todas as empresas</option></select>
+              <select id="admin-sync-status-filter" onchange="adminConsoleFiltrarSync()"><option value="">Todos os status</option><option value="sucesso">Sucesso</option><option value="erro">Erro</option><option value="sincronizando">Sincronizando</option></select>
+              <input id="admin-sync-date-from" type="date" aria-label="Data inicial" onchange="adminConsoleFiltrarSync()">
+              <input id="admin-sync-date-to" type="date" aria-label="Data final" onchange="adminConsoleFiltrarSync()">
+              <button class="admin-btn-primary" onclick="abrirAnaliseVendas()">Abrir central de sincroniza&ccedil;&atilde;o</button>
+            </div>
+            <div class="admin-table-card"><div class="admin-table-scroll"><table class="admin-data-table"><thead><tr><th>Empresa</th><th>Tipo</th><th>&Uacute;ltima sincroniza&ccedil;&atilde;o</th><th>Per&iacute;odo final</th><th>Registros</th><th>Status</th><th>Detalhes</th></tr></thead><tbody id="admin-sync-body"></tbody></table></div></div>
+          </section>
+
+          <section id="admin-section-audit" class="admin-console-section">
+            <div class="admin-section-intro"><div><span>RASTREABILIDADE</span><h2>Registros e auditoria</h2><p>Eventos da sess&atilde;o atual e registros operacionais existentes no Supabase, sem credenciais ou tokens.</p></div><button class="admin-btn-secondary" onclick="adminConsoleLimparFiltroAuditoria()">Limpar filtros</button></div>
+            <div class="admin-section-toolbar">
+              <div class="admin-search-wrap"><input id="admin-audit-search" type="search" placeholder="Buscar evento, empresa ou respons&aacute;vel..." oninput="adminConsoleRenderAuditoria()"></div>
+              <select id="admin-audit-type" onchange="adminConsoleRenderAuditoria()"><option value="">Todos os eventos</option><option value="usuario">Usu&aacute;rios</option><option value="empresa">Empresas</option><option value="integracao">Integra&ccedil;&otilde;es</option><option value="sincronizacao">Sincroniza&ccedil;&otilde;es</option></select>
+            </div>
+            <div id="admin-audit-list" class="admin-audit-list"></div>
+            <article class="admin-panel-card admin-migration-note"><div><span>AUDITORIA PERSISTENTE</span><h2>Estrutura preparada, sem alterar o banco automaticamente</h2><p>O arquivo SQL de auditoria foi documentado separadamente para revis&atilde;o antes de qualquer mudan&ccedil;a no Supabase.</p></div><code>docs/supabase-admin-audit.sql</code></article>
+          </section>
+
+          <section id="admin-section-security" class="admin-console-section">
+            <div class="admin-permissions-grid">
+              <article class="admin-permission-card featured"><span>ACESSO GLOBAL</span><h2>Super admin</h2><p>Gerencia empresas, usu&aacute;rios, integra&ccedil;&otilde;es, sincroniza&ccedil;&otilde;es e configura&ccedil;&otilde;es globais.</p><strong>Painel BPO completo</strong></article>
+              <article class="admin-permission-card"><span>ACESSO DA EMPRESA</span><h2>Admin</h2><p>Administra somente a empresa vinculada, respeitando as regras de isolamento e as pol&iacute;ticas do banco.</p><strong>Escopo empresarial</strong></article>
+              <article class="admin-permission-card"><span>CONSULTA</span><h2>Cliente</h2><p>Acessa apenas os relat&oacute;rios e dados autorizados da pr&oacute;pria empresa.</p><strong>Relat&oacute;rios da empresa</strong></article>
+            </div>
+            <article class="admin-panel-card admin-security-checklist">
+              <div class="admin-card-heading"><div><span>PROTECAO</span><h2>Controles ativos</h2></div></div>
+              <div class="admin-check-grid"><span>Proxy seguro para opera&ccedil;&otilde;es sens&iacute;veis</span><span>Chaves protegidas no ambiente da Vercel</span><span>Isolamento por empresa</span><span>Sess&atilde;o com expira&ccedil;&atilde;o autom&aacute;tica</span><span>Acesso administrativo restrito por papel</span><span>Segredos omitidos dos logs e da interface</span></div>
+            </article>
+            <article class="admin-panel-card admin-security-checklist">
+              <div class="admin-card-heading"><div><span>DIAGNOSTICO</span><h2>Alertas de acesso</h2></div></div>
+              <div id="admin-security-alerts" class="admin-health-list"></div>
+            </article>
+          </section>
+
+          <section id="admin-section-settings" class="admin-console-section">
+            <div class="admin-settings-grid">
+              <article class="admin-panel-card">
+                <div class="admin-card-heading"><div><span>PLATAFORMA</span><h2>Ambiente RESUTE</h2></div></div>
+                <div class="admin-setting-list"><span>Aplicativo <strong>RESUTE Analytics</strong></span><span>Perfil atual <strong id="admin-settings-role">super_admin</strong></span><span>Ambiente <strong>Vercel Production</strong></span><span>Sess&atilde;o <strong>90 minutos de inatividade</strong></span><span>Status da API <strong id="admin-settings-api">Verificando</strong></span><span>&Uacute;ltima sincroniza&ccedil;&atilde;o <strong id="admin-settings-sync">N&atilde;o registrada</strong></span></div>
+              </article>
+              <article class="admin-panel-card">
+                <div class="admin-card-heading"><div><span>EXIBICAO LOCAL</span><h2>Prefer&ecirc;ncias do painel</h2></div></div>
+                <div class="admin-settings-form">
+                  <label class="admin-field admin-field-switch"><input id="admin-setting-compact" type="checkbox" onchange="adminConsoleSalvarPreferencias()"><span>Modo compacto nas tabelas</span></label>
+                  <label class="admin-field"><span>Atualiza&ccedil;&atilde;o autom&aacute;tica</span><select id="admin-setting-refresh" onchange="adminConsoleSalvarPreferencias()"><option value="0">Desativada</option><option value="60">A cada 1 minuto</option><option value="300">A cada 5 minutos</option></select></label>
+                </div>
+                <div class="admin-form-help">Essas prefer&ecirc;ncias ficam somente neste navegador. Configura&ccedil;&otilde;es globais exigem uma tabela administrativa revisada no Supabase.</div>
+              </article>
+            </div>
+          </section>
         </div>
       </div>
 
@@ -955,6 +1101,16 @@
     </main>
   </div>
 
+  <div id="admin-modal-backdrop" class="admin-modal-backdrop" hidden>
+    <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
+      <div class="admin-modal-header">
+        <div><span id="admin-modal-kicker">ADMINISTRACAO</span><h2 id="admin-modal-title">Editar registro</h2></div>
+        <button type="button" onclick="adminConsoleFecharModal()" aria-label="Fechar">&times;</button>
+      </div>
+      <form id="admin-modal-form" class="admin-modal-form"></form>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="js/utils.js?v=2"></script>
@@ -964,7 +1120,8 @@
   <script src="js/charts.js?v=2"></script>
   <script src="js/dashboard.js?v=2"></script>
   <script src="js/actions.js?v=2"></script>
-  <script src="js/auth.js?v=15"></script>
+  <script src="js/auth.js?v=16"></script>
+  <script src="js/admin-console.js?v=3"></script>
   <script src="js/jss.js?v=2"></script>
   <script src="js/bd.js?v=2"></script>
   <script src="js/relatorios.js?v=2"></script>

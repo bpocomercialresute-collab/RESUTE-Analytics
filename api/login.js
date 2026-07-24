@@ -74,6 +74,12 @@ export default async function handler(req, res) {
       });
     }
 
+    if (user.ativo === false) {
+      return res.status(403).json({
+        erro: 'Este usuario esta inativo. Solicite a liberacao ao administrador RESUTE.'
+      });
+    }
+
     var empresaRelacion = Array.isArray(user.empresas) ? (user.empresas[0] || {}) : (user.empresas || {});
     var empresaIds = null;
     if (user.empresa_ids) {
