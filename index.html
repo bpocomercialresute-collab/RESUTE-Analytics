@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=10" />
+  <link rel="stylesheet" href="css/style.css?v=11" />
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
 </head>
 <body class="cui-body">
@@ -185,7 +185,6 @@
       </div>
       <div class="cui-nav-title">OPERAÇÕES DOS CLIENTES</div>
       <a class="cui-nav-item" onclick="switchView('view-home'); setSidebarActive(this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Central operacional</span></a>
-      <a class="cui-nav-item" onclick="abrirAnaliseVendas(); setSidebarActive(this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg><span>Operações comerciais</span></a>
     </nav>
     <div class="cui-sidebar-footer">
       <div id="sidebar-user" class="cui-sidebar-user" style="display:none">
@@ -261,6 +260,44 @@
               <div class="tool-meta"><span class="badge badge-active"><span class="badge-dot"></span>Disponível</span><div class="tool-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div></div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div id="view-client-access" class="page-view admin-client-access" style="display:none">
+        <div class="content">
+          <button class="voltar-btn" type="button" onclick="switchView('view-tools')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Ferramentas
+          </button>
+
+          <section class="admin-client-access-hero">
+            <div>
+              <span class="admin-client-access-kicker">VISUALIZAÇÃO SUPERVISIONADA</span>
+              <h1>Análise de Vendas</h1>
+              <p>Selecione uma empresa para acompanhar o mesmo painel e os mesmos relatórios disponíveis ao cliente, sem encerrar sua sessão administrativa.</p>
+            </div>
+            <div class="admin-client-access-shield">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+              <div><strong>Acesso RESUTE</strong><span>Nenhuma credencial do cliente é utilizada.</span></div>
+            </div>
+          </section>
+
+          <section class="admin-client-access-panel">
+            <div class="admin-client-access-toolbar">
+              <label class="admin-client-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input id="admin-client-search" type="search" placeholder="Buscar empresa..." oninput="filtrarEmpresasParaVisualizacao()">
+              </label>
+              <span id="admin-client-count" class="admin-client-count">Carregando empresas...</span>
+              <button class="admin-client-refresh" type="button" onclick="abrirSeletorEmpresasCliente(true)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.5 9a9 9 0 0 1 14.8-3.4L23 10M1 14l4.7 4.4A9 9 0 0 0 20.5 15"/></svg>
+                Atualizar
+              </button>
+            </div>
+            <div id="admin-client-grid" class="admin-client-grid">
+              <div class="admin-client-loading"><span></span><strong>Carregando empresas ativas...</strong></div>
+            </div>
+          </section>
         </div>
       </div>
 
@@ -836,6 +873,7 @@
       <div class="dc-header-left">
         <img class="dc-client-logo" src="assets/varremaster-logo.png" alt="Varremaster">
         <div id="dc-empresa" class="dc-header-empresa"></div>
+        <span id="dc-admin-preview-badge" class="dc-admin-preview-badge" style="display:none">Visualização supervisionada</span>
       </div>
       <div class="dc-header-right">
         <!-- Filtros -->
@@ -854,6 +892,10 @@
         <div id="dc-loja-selector" class="dc-loja-selector" style="display:none"></div>
         <span id="dc-sync-badge" class="dc-sync-badge">Sync pendente</span>
         <span id="dc-status" class="dc-header-status"></span>
+        <button id="dc-admin-back" type="button" onclick="dcVoltarAoAdmin()" class="dc-admin-back" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar ao Admin
+        </button>
         <button onclick="fazerLogout()" class="dc-btn-sair" title="Sair">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
@@ -1128,11 +1170,11 @@
   <script src="js/charts.js?v=2"></script>
   <script src="js/dashboard.js?v=2"></script>
   <script src="js/actions.js?v=2"></script>
-  <script src="js/auth.js?v=21"></script>
+  <script src="js/auth.js?v=22"></script>
   <script src="js/admin-console.js?v=8"></script>
   <script src="js/jss.js?v=2"></script>
   <script src="js/bd.js?v=2"></script>
-  <script src="js/relatorios.js?v=2"></script>
+  <script src="js/relatorios.js?v=3"></script>
   <script src="js/relatrep.js?v=2"></script>
 </body>
 </html>

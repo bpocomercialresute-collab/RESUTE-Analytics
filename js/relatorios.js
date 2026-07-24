@@ -415,7 +415,8 @@ function normalizarBotoesExportacao() {
 document.addEventListener('DOMContentLoaded', normalizarBotoesExportacao);
 
 function avGoHome() {
-  if (typeof SESSION !== 'undefined' && SESSION && SESSION.papel === 'cliente') {
+  var visualizacaoAdmin = typeof DC_ADMIN_PREVIEW !== 'undefined' && DC_ADMIN_PREVIEW;
+  if (typeof SESSION !== 'undefined' && SESSION && (SESSION.papel === 'cliente' || visualizacaoAdmin)) {
     var wrapper = document.getElementById('cui-wrapper');
     if (wrapper) wrapper.style.display = 'none';
     var app = document.getElementById('view-app');

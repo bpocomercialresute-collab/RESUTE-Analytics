@@ -196,6 +196,7 @@ function _saveSession(sessionData) {
 var LOJA_NOMES = {
   'af3b599b-65c5-4868-b8bf-a5934da84f0d': 'Varremaster'
 };
+var ADMIN_PREVIEW_COMPANIES = [];
 
 function abrirAnaliseVendas() {
   SESSION = _readStoredSession();
@@ -207,15 +208,174 @@ function abrirAnaliseVendas() {
     _abrirDashCliente();
     return;
   }
-  if (typeof switchView === 'function') switchView('view-app');
+  abrirSeletorEmpresasCliente();
+}
+
+function _adminPreviewEscape(value) {
+  if (typeof escapeHtml === 'function') return escapeHtml(String(value == null ? '' : value));
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+async function abrirSeletorEmpresasCliente(force) {
+  SESSION = _readStoredSession();
+  if (!SESSION || !SESSION.token) {
+    _mostrarLogin();
+    return;
+  }
+  if (SESSION.papel !== 'super_admin') {
+    _abrirDashCliente();
+    return;
+  }
+
+  DC_ADMIN_PREVIEW = false;
+  DC_ADMIN_PREVIEW_COMPANY = null;
+  document.body.classList.remove('client-report-mode');
+  document.body.classList.add('bpo-admin-mode');
+
+  var dashboard = document.getElementById('view-dash-cliente');
+  if (dashboard) dashboard.style.display = 'none';
+  var sidebar = document.getElementById('sidebar');
+  var wrapper = document.getElementById('cui-wrapper');
+  if (sidebar) sidebar.style.display = 'flex';
+  if (wrapper) wrapper.style.display = 'flex';
+  if (typeof switchView === 'function') switchView('view-client-access');
+
   var breadcrumb = document.getElementById('breadcrumb-text');
-  if (breadcrumb) breadcrumb.textContent = 'Analise de Vendas';
+  if (breadcrumb) breadcrumb.textContent = 'Análise de Vendas';
   document.querySelectorAll('.cui-nav-item').forEach(function(item) {
     item.classList.remove('active', 'is-active');
   });
-  var operationLink = document.querySelector('.cui-nav-item[onclick*="abrirAnaliseVendas"]');
-  if (operationLink) operationLink.classList.add('active');
-  if (typeof adminInicializar === 'function') adminInicializar();
+
+  var grid = document.getElementById('admin-client-grid');
+  var count = document.getElementById('admin-client-count');
+  if (grid) {
+    grid.innerHTML = '<div class="admin-client-loading"><span></span><strong>Carregando empresas ativas...</strong></div>';
+  }
+  if (count) count.textContent = 'Carregando empresas...';
+
+  try {
+    if (force || !ADMIN_PREVIEW_COMPANIES.length) {
+      await _adminCarregarEmpresasMeta();
+      ADMIN_PREVIEW_COMPANIES = (EMPRESAS_ADMIN || []).filter(function(empresa) {
+        return empresa && empresa.empresa_id && empresa.ativo !== false;
+      });
+      ADMIN_PREVIEW_COMPANIES.forEach(function(empresa) {
+        LOJA_NOMES[empresa.empresa_id] = empresa.nome || 'Empresa';
+      });
+    }
+    renderEmpresasParaVisualizacao(ADMIN_PREVIEW_COMPANIES);
+  } catch (error) {
+    console.error('[ADMIN PREVIEW]', error);
+    if (grid) {
+      grid.innerHTML = '<div class="admin-client-empty"><strong>Não foi possível carregar as empresas.</strong><span>'
+        + _adminPreviewEscape(error.message || 'Tente atualizar a lista.')
+        + '</span></div>';
+    }
+    if (count) count.textContent = 'Falha ao carregar';
+  }
+}
+
+function renderEmpresasParaVisualizacao(empresas) {
+  var grid = document.getElementById('admin-client-grid');
+  var count = document.getElementById('admin-client-count');
+  if (!grid) return;
+
+  var lista = Array.isArray(empresas) ? empresas : [];
+  if (count) {
+    count.textContent = lista.length + (lista.length === 1 ? ' empresa disponível' : ' empresas disponíveis');
+  }
+  if (!lista.length) {
+    grid.innerHTML = '<div class="admin-client-empty"><strong>Nenhuma empresa ativa encontrada.</strong><span>Cadastre ou ative uma empresa no painel administrativo.</span></div>';
+    return;
+  }
+
+  grid.innerHTML = lista.map(function(empresa) {
+    var nome = empresa.nome || 'Empresa';
+    var origem = String(empresa.exibir_origem || (empresa.tem_api ? 'api' : 'manual')).toLowerCase();
+    var integracao = empresa.tem_api ? (empresa.sistema || 'API configurada') : 'Operação manual';
+    var inicial = nome.trim().charAt(0).toUpperCase() || 'E';
+    return '<article class="admin-client-card" data-company-name="' + _adminPreviewEscape(nome.toLowerCase()) + '">'
+      + '<div class="admin-client-card-top">'
+      + '<span class="admin-client-initial">' + _adminPreviewEscape(inicial) + '</span>'
+      + '<span class="admin-client-status"><i></i>Ativa</span>'
+      + '</div>'
+      + '<div class="admin-client-card-copy">'
+      + '<h2>' + _adminPreviewEscape(nome) + '</h2>'
+      + '<p>Visualize indicadores, filtros e relatórios exatamente como aparecem para este cliente.</p>'
+      + '</div>'
+      + '<div class="admin-client-card-meta">'
+      + '<span>' + _adminPreviewEscape(origem === 'api' ? 'Dados via API' : 'Dados manuais') + '</span>'
+      + '<span>' + _adminPreviewEscape(integracao) + '</span>'
+      + '</div>'
+      + '<button type="button" class="admin-client-open" data-company-id="' + _adminPreviewEscape(empresa.empresa_id) + '">'
+      + '<span>Abrir painel do cliente</span>'
+      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 5l7 7-7 7"/></svg>'
+      + '</button>'
+      + '</article>';
+  }).join('');
+
+  grid.querySelectorAll('.admin-client-open').forEach(function(button) {
+    button.addEventListener('click', function() {
+      abrirPainelClienteAdmin(this.getAttribute('data-company-id'));
+    });
+  });
+}
+
+function filtrarEmpresasParaVisualizacao() {
+  var input = document.getElementById('admin-client-search');
+  var termo = input ? input.value.trim().toLowerCase() : '';
+  var filtradas = ADMIN_PREVIEW_COMPANIES.filter(function(empresa) {
+    return !termo || String(empresa.nome || '').toLowerCase().indexOf(termo) !== -1;
+  });
+  renderEmpresasParaVisualizacao(filtradas);
+}
+
+function abrirPainelClienteAdmin(empresaId) {
+  if (!SESSION || SESSION.papel !== 'super_admin') return;
+  var empresa = ADMIN_PREVIEW_COMPANIES.find(function(item) {
+    return item.empresa_id === empresaId;
+  });
+  if (!empresa) {
+    var grid = document.getElementById('admin-client-grid');
+    if (grid) {
+      grid.insertAdjacentHTML('afterbegin', '<div class="admin-client-empty"><strong>Empresa não encontrada.</strong><span>Atualize a lista e tente novamente.</span></div>');
+    }
+    return;
+  }
+
+  DC_ADMIN_PREVIEW = true;
+  DC_ADMIN_PREVIEW_COMPANY = empresa;
+  DC_LOAD_SEQUENCE += 1;
+  DC_ACTIVE_COMPANY = '';
+  DC_IS_LOADING = false;
+  DC_RAW = [];
+  DC_DATA = [];
+  dcLoading(false);
+  _abrirDashCliente(empresaId);
+}
+
+function dcVoltarAoAdmin() {
+  if (!SESSION || SESSION.papel !== 'super_admin' || !DC_ADMIN_PREVIEW) return;
+  DC_LOAD_SEQUENCE += 1;
+  DC_ACTIVE_COMPANY = '';
+  DC_IS_LOADING = false;
+  DC_RAW = [];
+  DC_DATA = [];
+  dcLoading(false);
+  Object.keys(DC_CHARTS || {}).forEach(function(key) {
+    try {
+      if (DC_CHARTS[key] && typeof DC_CHARTS[key].destroy === 'function') DC_CHARTS[key].destroy();
+    } catch (e) {}
+  });
+  DC_CHARTS = {};
+  DC_ADMIN_PREVIEW = false;
+  DC_ADMIN_PREVIEW_COMPANY = null;
+  abrirSeletorEmpresasCliente();
 }
 
 function _limparBlocosInstitucionaisAntigos() {
@@ -420,6 +580,9 @@ function fazerLogout() {
   DC_IS_LOADING = false;
   DC_RAW = [];
   DC_DATA = [];
+  DC_ADMIN_PREVIEW = false;
+  DC_ADMIN_PREVIEW_COMPANY = null;
+  ADMIN_PREVIEW_COMPANIES = [];
   dcLoading(false);
 
 // ── LOJA ATIVA (Varremaster) ───────────────────────────────────────────────────
@@ -785,12 +948,20 @@ var DC_LOAD_SEQUENCE = 0;
 var DC_ACTIVE_COMPANY = '';
 var DC_LOADING_TIMER = null;
 var DC_IS_LOADING = false;
+var DC_ADMIN_PREVIEW = false;
+var DC_ADMIN_PREVIEW_COMPANY = null;
 
 var MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 var MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 // ── ABRE O DASHBOARD ──────────────────────────────────────────────────────────
-function _abrirDashCliente() {
+function _abrirDashCliente(empresaIdPreview) {
+  var previewAdmin = SESSION && SESSION.papel === 'super_admin' && !!empresaIdPreview;
+  var empresaPreview = previewAdmin
+    ? (ADMIN_PREVIEW_COMPANIES || []).find(function(item) { return item.empresa_id === empresaIdPreview; })
+    : null;
+  DC_ADMIN_PREVIEW = previewAdmin;
+  DC_ADMIN_PREVIEW_COMPANY = empresaPreview || null;
   document.body.classList.remove('bpo-admin-mode');
   // Esconde login page e layout admin
   var lp = document.getElementById('view-login-page');
@@ -807,10 +978,14 @@ function _abrirDashCliente() {
   if (vc) vc.style.display = 'flex';
 
   // Multi-loja: monta seletor se houver mais de uma empresa
-  var ids = SESSION.empresa_ids;
+  var ids = previewAdmin ? [empresaIdPreview] : SESSION.empresa_ids;
   var sel = document.getElementById('dc-loja-selector');
   var logo = document.querySelector('.dc-client-logo');
   var eidAtual = (ids && ids[0]) || SESSION.empresa_id;
+  var botaoVoltar = document.getElementById('dc-admin-back');
+  var previewBadge = document.getElementById('dc-admin-preview-badge');
+  if (botaoVoltar) botaoVoltar.style.display = previewAdmin ? 'inline-flex' : 'none';
+  if (previewBadge) previewBadge.style.display = previewAdmin ? 'inline-flex' : 'none';
   if (logo) {
     if (eidAtual === 'af3b599b-65c5-4868-b8bf-a5934da84f0d') {
       logo.src = 'assets/varremaster-logo.png';
@@ -843,7 +1018,12 @@ function _abrirDashCliente() {
     if (sel) sel.style.display = 'none';
     var eid = (ids && ids[0]) || SESSION.empresa_id;
     var badge = document.getElementById('dc-empresa');
-    if (badge) badge.textContent = LOJA_NOMES[eid] || SESSION.empresa_nome || 'Empresa';
+    if (badge) {
+      badge.textContent = (empresaPreview && empresaPreview.nome)
+        || LOJA_NOMES[eid]
+        || SESSION.empresa_nome
+        || 'Empresa';
+    }
     if (eid) dcCarregarDados(eid);
     else dcStatus('⚠ Empresa não configurada.');
   }
