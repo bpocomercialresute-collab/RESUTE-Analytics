@@ -86,6 +86,27 @@ export default async function handler(req, res) {
         erro: 'Esta empresa nao esta mais ativa na plataforma RESUTE.'
       });
     }
+
+    // O registro de acesso e informativo e nao deve impedir um login valido.
+    try {
+      const userId = authData.user && authData.user.id ? authData.user.id : user.id;
+      const userFilter = userId
+        ? `id=eq.${encodeURIComponent(userId)}`
+        : `email=ilike.${encodeURIComponent(emailNormalizado)}`;
+      await fetch(`${supaUrl}/rest/v1/usuarios?${userFilter}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`
+        },
+        body: JSON.stringify({ ultimo_acesso: new Date().toISOString() })
+      });
+    } catch (accessError) {
+      console.warn('[LOGIN] Nao foi possivel registrar ultimo_acesso:', accessError.message);
+    }
+
     var empresaIds = null;
     if (user.empresa_ids) {
       try { empresaIds = JSON.parse(user.empresa_ids); } catch (e) { empresaIds = null; }

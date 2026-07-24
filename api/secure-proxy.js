@@ -90,6 +90,32 @@ function normalizeHeaders(inputHeaders) {
   return out;
 }
 
+function sanitizeApiConfigResponse(text) {
+  if (!text) return text;
+  try {
+    const payload = JSON.parse(text);
+    const secretFields = new Set([
+      'api_key',
+      'api_pass',
+      'api_password',
+      'client_secret',
+      'secret',
+      'token',
+      'access_token',
+      'refresh_token'
+    ]);
+    const sanitize = (item) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return item;
+      return Object.fromEntries(
+        Object.entries(item).filter(([key]) => !secretFields.has(String(key).toLowerCase()))
+      );
+    };
+    return JSON.stringify(Array.isArray(payload) ? payload.map(sanitize) : sanitize(payload));
+  } catch (error) {
+    return text;
+  }
+}
+
 function getVisualCodigoEmpresa(incomingHeaders, body, appUser) {
   const candidates = [
     incomingHeaders && incomingHeaders['x-visual-codigo-empresa'],
@@ -365,7 +391,14 @@ async function proxySupabase(req, res, targetUrl, method, incomingHeaders, body,
     body: method === 'GET' || method === 'HEAD' ? undefined : body
   });
 
-  const text = await upstream.text();
+  let text = await upstream.text();
+  if (
+    upstream.ok &&
+    method === 'GET' &&
+    targetUrl.pathname === '/rest/v1/api_config'
+  ) {
+    text = sanitizeApiConfigResponse(text);
+  }
   const contentType = upstream.headers.get('content-type') || 'application/json; charset=utf-8';
   const contentRange = upstream.headers.get('content-range');
 

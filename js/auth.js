@@ -2912,7 +2912,7 @@ function _adminAplicarGridApi(kind, rows, totalCols, minRows) {
 function _adminMapClientesApi(items) {
   var seen = {};
   return items.map(function(item, idx) {
-    var codigo = String(_vsPick(item, ['id', 'codigo', 'codcliente', 'clienteid', 'idcliente']) || idx + 1).trim();
+    var codigo = String(_vsPick(item, ['codigoCliente', 'id', 'codigo', 'codcliente', 'clienteid', 'idcliente']) || idx + 1).trim();
     var id = codigo || ('cli_' + (idx + 1));
     var base = id;
     var seq = 1;
@@ -2921,9 +2921,9 @@ function _adminMapClientesApi(items) {
     return {
       empresa_id: EMPRESA_ATIVA.empresa_id,
       id_externo: id,
-      nome: String(_vsPick(item, ['nome', 'cliente', 'nomecliente', 'razaosocial']) || '').trim(),
-      razao_social: String(_vsPick(item, ['razaosocial', 'razao', 'nome']) || '').trim(),
-      cnpj_cpf: String(_vsPick(item, ['cnpj', 'cpf', 'cnpjcpf', 'documento']) || '').trim(),
+      nome: String(_vsPick(item, ['nomeCliente', 'nome', 'cliente', 'nomecliente', 'razaosocial']) || '').trim(),
+      razao_social: String(_vsPick(item, ['nomeCliente', 'razaosocial', 'razao', 'nome']) || '').trim(),
+      cnpj_cpf: String(_vsPick(item, ['cpfcnpj', 'cnpj', 'cpf', 'cnpjcpf', 'documento']) || '').trim(),
       cidade: String(_vsPick(item, ['cidade', 'municipio']) || '').trim(),
       uf: String(_vsPick(item, ['uf', 'estado']) || '').trim(),
       telefone: String(_vsPick(item, ['telefone', 'fone', 'celular']) || '').trim(),
@@ -2978,8 +2978,8 @@ function _adminMapProdutosApi(items) {
 function _adminMapRepresentantesApi(items) {
   var seen = {};
   return items.map(function(item, idx) {
-    var codigo = String(_vsPick(item, ['codigo', 'codrepresentante', 'codvendedor', 'id']) || '').trim();
-    var nome = String(_vsPick(item, ['nome', 'representante', 'vendedor']) || '').trim();
+    var codigo = String(_vsPick(item, ['codigoVendedor', 'codigo', 'codrepresentante', 'codvendedor', 'id']) || '').trim();
+    var nome = String(_vsPick(item, ['nomeVendedor', 'nome', 'representante', 'vendedor']) || '').trim();
     var id = codigo || nome || ('rep_' + (idx + 1));
     var base = id;
     var seq = 1;
@@ -2990,7 +2990,7 @@ function _adminMapRepresentantesApi(items) {
       id_externo: id,
       codigo: codigo || id,
       nome: nome,
-      regiao: String(_vsPick(item, ['regiao', 'zona', 'rota']) || '').trim(),
+      regiao: String(_vsPick(item, ['codigoZonaVenda', 'regiao', 'zona', 'rota']) || '').trim(),
       uf: String(_vsPick(item, ['uf', 'estado']) || '').trim(),
       telefone: String(_vsPick(item, ['telefone', 'fone', 'celular']) || '').trim(),
       email: String(_vsPick(item, ['email', 'mail']) || '').trim(),
