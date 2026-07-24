@@ -127,7 +127,7 @@ function adminConsoleSetLastRefresh(date) {
 async function adminConsoleFetch(path, options) {
   var response = await adminConsoleWithTimeout(
     fetch(SUPA_URL + path, options || {}),
-    30000,
+    12000,
     'O Supabase nao respondeu dentro do tempo esperado.'
   );
   var text = await response.text();
@@ -199,7 +199,7 @@ function adminConsoleIsLegacyCompany(company) {
     || identity.indexOf('44shirts') >= 0;
 }
 
-async function adminConsoleRetirarClientesLegados() {
+function adminConsoleRetirarClientesLegados() {
   var legacyCompanies = ADMIN_CONSOLE.companies.filter(adminConsoleIsLegacyCompany);
   if (!legacyCompanies.length) return;
   var legacyIds = legacyCompanies.map(function(company) {
@@ -210,10 +210,6 @@ async function adminConsoleRetirarClientesLegados() {
   }).map(function(company) {
     return String(company.id || company.empresa_id);
   }).filter(Boolean);
-
-  if (activeLegacyIds.length) {
-    await adminConsoleAction('admin-company-archive', { company_ids: activeLegacyIds });
-  }
 
   ADMIN_CONSOLE.companies = ADMIN_CONSOLE.companies.filter(function(company) {
     return legacyIds.indexOf(String(company.id || company.empresa_id)) < 0;
@@ -227,6 +223,21 @@ async function adminConsoleRetirarClientesLegados() {
   ADMIN_CONSOLE.syncLogs = ADMIN_CONSOLE.syncLogs.filter(function(log) {
     return legacyIds.indexOf(String(log.empresa_id || '')) < 0;
   });
+
+  // A manutencao do banco nao pode impedir a exibicao do painel.
+  if (activeLegacyIds.length) {
+    adminConsoleAction('admin-company-archive', { company_ids: activeLegacyIds })
+      .then(function() {
+        adminConsoleTrackActivity(
+          'empresa',
+          'Clientes antigos arquivados',
+          activeLegacyIds.length + ' cadastro(s) removido(s) da operacao ativa.'
+        );
+      })
+      .catch(function(error) {
+        console.warn('[ADMIN CONSOLE] Falha ao arquivar clientes antigos:', error.message);
+      });
+  }
 }
 
 function adminConsoleBadge(label, type) {
@@ -280,11 +291,7 @@ async function adminConsoleInicializar(force) {
         ADMIN_CONSOLE.loadErrors.push(labels[index] + ': ' + (result.reason && result.reason.message ? result.reason.message : result.reason));
       }
     });
-    try {
-      await adminConsoleRetirarClientesLegados();
-    } catch (legacyError) {
-      ADMIN_CONSOLE.loadErrors.push('clientes antigos: ' + legacyError.message);
-    }
+    adminConsoleRetirarClientesLegados();
     // O painel RESUTE administra clientes e acessos. Os dados comerciais
     // permanecem na central operacional de cada empresa.
     ADMIN_CONSOLE.metricsByCompany = {};
