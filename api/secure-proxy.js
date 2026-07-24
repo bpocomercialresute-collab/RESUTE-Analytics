@@ -332,7 +332,8 @@ function assertAuthorized(appUser, targetUrl, method, body) {
   if (
     targetUrl.pathname === '/rest/v1/clientes_cad' ||
     targetUrl.pathname === '/rest/v1/produtos' ||
-    targetUrl.pathname === '/rest/v1/representantes'
+    targetUrl.pathname === '/rest/v1/representantes' ||
+    targetUrl.pathname === '/rest/v1/grupos'
   ) {
     // Clientes podem ler cadastros da sua empresa
     if (appUser.papel !== 'super_admin') {

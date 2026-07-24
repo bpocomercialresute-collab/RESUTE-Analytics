@@ -910,13 +910,35 @@ function adminConsoleConfigurarAtualizacao(seconds) {
   }, seconds * 1000);
 }
 
-function adminConsoleAbrirOperacao(companyId) {
-  if (typeof adminSelecionarEmpresa === 'function') {
-    if (typeof switchView === 'function') switchView('view-app');
-    adminSelecionarEmpresa(companyId);
-    var breadcrumb = document.getElementById('breadcrumb-text');
-    if (breadcrumb) breadcrumb.textContent = 'Analise de Vendas';
+async function adminConsoleAbrirOperacao(companyId) {
+  if (!companyId) return;
+  // Sync EMPRESAS_ADMIN from admin console cache so adminSelecionarEmpresa can
+  // find the company even when view-app was never opened in this session.
+  if (ADMIN_CONSOLE.companies.length && typeof EMPRESAS_ADMIN !== 'undefined') {
+    EMPRESAS_ADMIN = ADMIN_CONSOLE.companies.map(function(c) {
+      var api = ADMIN_CONSOLE.integrations.find(function(a) {
+        return String(a.empresa_id) === String(c.id || c.empresa_id) && a.ativo !== false;
+      });
+      var origem = String(c.exibir_origem || 'manual').toLowerCase();
+      return {
+        empresa_id: c.id || c.empresa_id,
+        nome: c.nome || '',
+        slug: c.slug || '',
+        ativo: c.ativo !== false,
+        tem_api: !!api && origem === 'api',
+        sistema: api ? api.sistema : null,
+        exibir_origem: origem
+      };
+    });
+    if (typeof _adminRenderAbas === 'function') _adminRenderAbas();
+  } else if (typeof _adminCarregarEmpresasMeta === 'function') {
+    await _adminCarregarEmpresasMeta();
+    if (typeof _adminRenderAbas === 'function') _adminRenderAbas();
   }
+  if (typeof switchView === 'function') switchView('view-app');
+  if (typeof adminSelecionarEmpresa === 'function') adminSelecionarEmpresa(companyId);
+  var breadcrumb = document.getElementById('breadcrumb-text');
+  if (breadcrumb) breadcrumb.textContent = 'Analise de Vendas';
 }
 
 function adminConsoleAbrirModal(kicker, title, html, submitHandler) {

@@ -584,8 +584,6 @@ function fazerLogout() {
   DC_ADMIN_PREVIEW_COMPANY = null;
   ADMIN_PREVIEW_COMPANIES = [];
   dcLoading(false);
-
-// ── LOJA ATIVA (Varremaster) ───────────────────────────────────────────────────
   if (typeof switchView === 'function') switchView('view-home');
   ['sync-area','header-user','sidebar-user'].forEach(function(id){
     var el = document.getElementById(id);
