@@ -226,7 +226,7 @@ async function adminConsoleInicializar(force) {
     var companyRequest = adminConsoleFetch('/rest/v1/empresas?select=*&order=nome.asc');
     var userRequest = adminConsoleFetch('/rest/v1/usuarios?select=*&order=nome.asc');
     var integrationRequest = adminConsoleFetch('/rest/v1/api_config?select=empresa_id,sistema,api_url,ativo&order=empresa_id.asc');
-    var syncRequest = adminConsoleFetch('/rest/v1/sync_log?select=*&order=ultima_sync.desc');
+    var syncRequest = adminConsoleFetch('/rest/v1/sync_log?select=*&order=ultima_sync.desc.nullslast');
     var auditRequest = adminConsoleFetch('/rest/v1/admin_audit_log?select=id,criado_em,ator_email,acao,entidade,entidade_id,empresa_id,resumo,metadados&order=criado_em.desc&limit=200')
       .catch(function() { return { data: [] }; });
 
@@ -241,12 +241,10 @@ async function adminConsoleInicializar(force) {
         ADMIN_CONSOLE.loadErrors.push(labels[index] + ': ' + (result.reason && result.reason.message ? result.reason.message : result.reason));
       }
     });
-    try {
-      ADMIN_CONSOLE.metricsByCompany = await adminConsoleCarregarMetricas();
-    } catch (metricError) {
-      ADMIN_CONSOLE.loadErrors.push('metricas: ' + metricError.message);
-    }
-    ADMIN_CONSOLE.salesCount = adminConsoleMetricTotal('vendas');
+    // O painel RESUTE administra clientes e acessos. Os dados comerciais
+    // permanecem na central operacional de cada empresa.
+    ADMIN_CONSOLE.metricsByCompany = {};
+    ADMIN_CONSOLE.salesCount = 0;
     ADMIN_CONSOLE.loaded = true;
     ADMIN_CONSOLE.lastRefresh = new Date();
     adminConsolePreencherFiltros();
@@ -309,6 +307,24 @@ function adminConsoleMetricTotal(field) {
   }, 0);
 }
 
+function adminConsoleSyncDateValue(item) {
+  if (!item) return 0;
+  var value = item.ultima_sync || item.atualizado_em || item.criado_em || item.ultima_data;
+  var time = new Date(value || 0).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function adminConsoleLatestSync(companyId) {
+  return ADMIN_CONSOLE.syncLogs
+    .filter(function(item) {
+      return !companyId || String(item.empresa_id || '') === String(companyId);
+    })
+    .slice()
+    .sort(function(a, b) {
+      return adminConsoleSyncDateValue(b) - adminConsoleSyncDateValue(a);
+    })[0] || null;
+}
+
 function adminConsoleAbrir(section, navItem) {
   if (!SESSION || SESSION.papel !== 'super_admin') return false;
   var target = ADMIN_SECTION_META[section] ? section : 'overview';
@@ -363,6 +379,18 @@ function adminConsoleRenderTudo() {
 function adminConsoleRenderResumo() {
   var activeCompanies = ADMIN_CONSOLE.companies.filter(function(item) { return item.ativo !== false; }).length;
   var activeUsers = ADMIN_CONSOLE.users.filter(function(item) { return item.ativo !== false; }).length;
+  var clientUsers = ADMIN_CONSOLE.users.filter(function(item) {
+    return item.ativo !== false && item.papel === 'cliente' && item.empresa_id;
+  }).length;
+  var adminUsers = ADMIN_CONSOLE.users.filter(function(item) {
+    return item.ativo !== false && (item.papel === 'admin' || item.papel === 'super_admin');
+  }).length;
+  var apiCompanies = ADMIN_CONSOLE.companies.filter(function(item) {
+    return item.ativo !== false && String(item.exibir_origem || 'manual').toLowerCase() === 'api';
+  }).length;
+  var monitoredSyncs = new Set(ADMIN_CONSOLE.syncLogs.map(function(item) {
+    return String(item.empresa_id || '');
+  }).filter(Boolean)).size;
   var activeIntegrations = ADMIN_CONSOLE.integrations.filter(function(item) { return item.ativo !== false; }).length;
   var disconnected = ADMIN_CONSOLE.companies.filter(function(company) {
     var id = company.id || company.empresa_id;
@@ -376,10 +404,10 @@ function adminConsoleRenderResumo() {
   var values = {
     'admin-kpi-companies': activeCompanies,
     'admin-kpi-users': activeUsers,
-    'admin-kpi-sales': ADMIN_CONSOLE.salesCount,
-    'admin-kpi-clients': adminConsoleMetricTotal('clientes'),
-    'admin-kpi-products': adminConsoleMetricTotal('produtos'),
-    'admin-kpi-representatives': adminConsoleMetricTotal('representantes'),
+    'admin-kpi-client-users': clientUsers,
+    'admin-kpi-admins': adminUsers,
+    'admin-kpi-api-companies': apiCompanies,
+    'admin-kpi-sync': monitoredSyncs,
     'admin-kpi-integrations': activeIntegrations,
     'admin-kpi-alerts': alertCount
   };
@@ -388,7 +416,7 @@ function adminConsoleRenderResumo() {
     if (node) node.textContent = adminConsoleNumber(values[id]);
   });
 
-  var latest = ADMIN_CONSOLE.syncLogs[0] || null;
+  var latest = adminConsoleLatestSync();
   var settingsApi = document.getElementById('admin-settings-api');
   var settingsSync = document.getElementById('admin-settings-sync');
   if (settingsApi) settingsApi.textContent = activeIntegrations ? 'Configurada' : 'Pendente';
@@ -402,27 +430,28 @@ function adminConsoleRenderResumo() {
 
   var items = [
     {
-      label: 'Base comercial',
-      detail: ADMIN_CONSOLE.salesCount
-        ? adminConsoleNumber(ADMIN_CONSOLE.salesCount) + ' registros disponiveis'
-        : 'Nenhum registro de venda localizado',
-      type: ADMIN_CONSOLE.salesCount ? 'ok' : 'warn'
+      label: 'Empresas gerenciadas',
+      detail: activeCompanies + ' de ' + ADMIN_CONSOLE.companies.length + ' empresa(s) ativa(s)',
+      type: activeCompanies ? 'ok' : 'warn'
     },
     {
-      label: 'Ultima sincronizacao',
-      detail: latest && latest.ultima_sync
-        ? adminConsoleDate(latest.ultima_sync, true) + ' - ' + adminConsoleCompanyName(latest.empresa_id)
+      label: 'Ultima sincronizacao dos clientes',
+      detail: latest && adminConsoleSyncDateValue(latest)
+        ? adminConsoleDate(latest.ultima_sync || latest.atualizado_em || latest.criado_em || latest.ultima_data, true)
+          + ' - ' + adminConsoleCompanyName(latest.empresa_id)
         : 'Ainda nao registrada',
       type: latest && adminConsoleSyncState(latest).type === 'ok' ? 'ok' : 'warn'
     },
     {
-      label: 'Acessos',
-      detail: inactiveUsers ? inactiveUsers + ' usuario(s) inativo(s)' : 'Todos os usuarios estao ativos',
+      label: 'Acessos da plataforma',
+      detail: activeUsers + ' ativo(s)' + (inactiveUsers ? ' e ' + inactiveUsers + ' inativo(s)' : ''),
       type: inactiveUsers ? 'warn' : 'ok'
     },
     {
-      label: 'Integracoes',
-      detail: disconnected ? disconnected + ' empresa(s) aguardando configuracao' : 'Configuracoes operacionais coerentes',
+      label: 'Integracoes dos clientes',
+      detail: disconnected
+        ? disconnected + ' empresa(s) com API aguardando configuracao'
+        : activeIntegrations + ' conexao(oes) administrativa(s) ativa(s)',
       type: disconnected ? 'warn' : 'ok'
     }
   ];
@@ -438,11 +467,12 @@ function adminConsoleRenderResumo() {
 
 function adminConsoleOperationalActivities() {
   return ADMIN_CONSOLE.syncLogs.map(function(item) {
+    var state = adminConsoleSyncState(item);
     return {
       type: 'sincronizacao',
-      title: 'Sincronizacao ' + (item.status || 'registrada'),
-      detail: adminConsoleCompanyName(item.empresa_id) + ' - ' + adminConsoleNumber(item.total_registros) + ' registros',
-      at: item.ultima_sync || item.ultima_data,
+      title: 'Sincronizacao ' + state.label.toLowerCase(),
+      detail: adminConsoleCompanyName(item.empresa_id) + ' - acompanhamento operacional',
+      at: item.ultima_sync || item.atualizado_em || item.criado_em || item.ultima_data,
       actor: 'Sistema'
     };
   });
@@ -502,13 +532,17 @@ function adminConsoleRenderEmpresas(list) {
   }
   grid.innerHTML = list.map(function(company) {
     var id = company.id || company.empresa_id;
-    var users = ADMIN_CONSOLE.users.filter(function(user) {
-      return String(user.empresa_id || '') === String(id);
-    }).length;
     var integration = ADMIN_CONSOLE.integrations.find(function(api) {
       return String(api.empresa_id) === String(id);
     });
-    var metrics = ADMIN_CONSOLE.metricsByCompany[String(id)] || {};
+    var companyUsers = ADMIN_CONSOLE.users.filter(function(user) {
+      return String(user.empresa_id || '') === String(id) && user.ativo !== false;
+    });
+    var latestSync = adminConsoleLatestSync(id);
+    var syncState = latestSync
+      ? adminConsoleSyncState(latestSync)
+      : { label: 'Nao registrada', type: 'neutral' };
+    var origin = String(company.exibir_origem || 'manual').toLowerCase() === 'api' ? 'API' : 'Manual';
     return '<article class="admin-company-card">'
       + '<div class="admin-company-top"><div class="admin-company-monogram">'
       + adminConsoleEscape(String(company.nome || 'E').slice(0, 2).toUpperCase())
@@ -516,12 +550,15 @@ function adminConsoleRenderEmpresas(list) {
       + adminConsoleEscape(company.slug || 'sem slug') + '</span></div>'
       + adminConsoleBadge(company.ativo === false ? 'Inativa' : 'Ativa', company.ativo === false ? 'neutral' : 'ok')
       + '</div>'
-      + '<div class="admin-company-metrics"><span><strong>' + users + '</strong> usuarios</span><span><strong>'
-      + adminConsoleNumber(metrics.vendas) + '</strong> vendas</span><span><strong>'
-      + adminConsoleNumber(metrics.clientes) + '</strong> clientes</span><span><strong>'
-      + adminConsoleNumber(metrics.produtos) + '</strong> produtos</span><span><strong>'
-      + adminConsoleNumber(metrics.representantes) + '</strong> representantes</span><span><strong>'
-      + (integration && integration.ativo !== false ? 'Conectada' : 'Pendente') + '</strong> API</span></div>'
+      + '<div class="admin-company-metrics"><span><strong>' + companyUsers.length + '</strong> acesso(s)</span><span><strong>'
+      + companyUsers.filter(function(user) { return user.papel === 'cliente'; }).length + '</strong> cliente(s)</span><span><strong>'
+      + adminConsoleEscape(origin) + '</strong> origem</span><span><strong>'
+      + (integration && integration.ativo !== false ? 'Conectada' : 'Pendente') + '</strong> integracao</span><span><strong>'
+      + adminConsoleEscape(syncState.label) + '</strong> sincronizacao</span><span><strong>'
+      + adminConsoleEscape(latestSync
+        ? adminConsoleDate(latestSync.ultima_sync || latestSync.atualizado_em || latestSync.criado_em || latestSync.ultima_data, false)
+        : 'Nao registrada')
+      + '</strong> ultima execucao</span></div>'
       + '<div class="admin-company-actions"><button onclick="adminConsoleEditarEmpresa(\'' + adminConsoleEscape(id) + '\')">Editar empresa</button>'
       + (integration
         ? '<button onclick="adminConsoleEditarIntegracao(\'' + adminConsoleEscape(id) + '\')">Configurar API</button>'
@@ -609,9 +646,7 @@ function adminConsoleSyncState(item) {
 }
 
 function adminConsoleIntegrationStatus(api) {
-  var log = ADMIN_CONSOLE.syncLogs.find(function(item) {
-    return String(item.empresa_id) === String(api.empresa_id);
-  });
+  var log = adminConsoleLatestSync(api.empresa_id);
   var rawStatus = String(log && log.status || '').toLowerCase();
   if (api.ativo === false) return { label: 'Pendente', type: 'neutral', log: log };
   if (rawStatus.indexOf('erro') >= 0 || rawStatus.indexOf('falha') >= 0) {
@@ -642,8 +677,8 @@ function adminConsoleRenderIntegracoes() {
       + adminConsoleEscape(company) + '</span><h2>' + adminConsoleEscape(api.sistema || 'API') + '</h2></div>'
       + adminConsoleBadge(status.label, status.type) + '</div>'
       + '<div class="admin-integration-info"><span>URL <strong>' + adminConsoleEscape(api.api_url || 'Nao configurada') + '</strong></span>'
-      + '<span>Ultima sincronizacao <strong>' + adminConsoleEscape(adminConsoleDate(log.ultima_sync || log.ultima_data, true)) + '</strong></span>'
-      + '<span>Registros importados <strong>' + adminConsoleNumber(log.total_registros) + '</strong></span>'
+      + '<span>Ultima sincronizacao <strong>' + adminConsoleEscape(adminConsoleDate(log.ultima_sync || log.atualizado_em || log.criado_em || log.ultima_data, true)) + '</strong></span>'
+      + '<span>Estado operacional <strong>' + adminConsoleEscape(status.label) + '</strong></span>'
       + ((log.mensagem || log.erro) ? '<span>Resumo <strong>' + adminConsoleEscape(adminConsoleSafeText(log.mensagem || log.erro, 120)) + '</strong></span>' : '')
       + '<span>Client ID <strong>Protegido na Vercel</strong></span><span>Client Secret <strong>************</strong></span></div>'
       + '<div class="admin-company-actions"><button onclick="adminConsoleEditarIntegracao(\'' + adminConsoleEscape(api.empresa_id) + '\')">Editar configuracao</button>'

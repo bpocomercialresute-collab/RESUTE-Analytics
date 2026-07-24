@@ -5700,6 +5700,8 @@ body.bpo-admin-mode .cui-sidebar-avatar {
 }
 
 body.bpo-admin-mode .cui-nav-title {
+  background: transparent !important;
+  border-color: transparent !important;
   color: rgba(227, 247, 242, 0.54) !important;
 }
 
