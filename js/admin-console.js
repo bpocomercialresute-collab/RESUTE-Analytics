@@ -165,16 +165,17 @@ async function adminConsoleAction(action, payload) {
   return data;
 }
 
-function adminConsoleAviso(message, type) {
+function adminConsoleAviso(message, type, isHtml) {
   var notice = document.getElementById('admin-console-notice');
   if (!notice) return;
   notice.hidden = false;
   notice.className = 'admin-console-notice ' + (type || 'info');
-  notice.textContent = message;
+  if (isHtml) notice.innerHTML = message;
+  else notice.textContent = message;
   window.clearTimeout(adminConsoleAviso._timer);
   adminConsoleAviso._timer = window.setTimeout(function() {
     notice.hidden = true;
-  }, 6500);
+  }, 10000);
 }
 
 function adminConsoleEmpty(message) {
@@ -614,6 +615,8 @@ function adminConsoleRenderEmpresas(list) {
       + (integration
         ? '<button onclick="adminConsoleEditarIntegracao(\'' + adminConsoleEscape(id) + '\')">Configurar API</button>'
         : '<button onclick="adminConsoleNovaIntegracao(\'' + adminConsoleEscape(id) + '\')">Conectar API</button>')
+      + '<button onclick="adminConsoleNovoUsuarioPara(\'' + adminConsoleEscape(id) + '\')">Adicionar usuario</button>'
+      + '<button onclick="adminConsoleFiltrarPorEmpresa(\'' + adminConsoleEscape(id) + '\')">Ver usuarios</button>'
       + '<button class="admin-company-danger" onclick="adminConsoleArquivarEmpresa(\'' + adminConsoleEscape(id) + '\')">Arquivar</button>'
       + '<button class="admin-company-primary" onclick="adminConsoleAbrirOperacao(\'' + adminConsoleEscape(id) + '\')">Abrir operacao</button></div>'
       + '</article>';
@@ -665,6 +668,8 @@ function adminConsoleRenderUsuarios(list) {
   body.innerHTML = pageItems.map(function(user) {
     var initial = String(user.nome || user.email || 'U').slice(0, 1).toUpperCase();
     var active = user.ativo !== false;
+    var uid = adminConsoleEscape(user.id);
+    var canEnter = active && user.papel !== 'super_admin' && user.empresa_id;
     return '<tr><td><div class="admin-user-cell"><span>' + adminConsoleEscape(initial) + '</span><div><strong>'
       + adminConsoleEscape(user.nome || 'Sem nome') + '</strong><small>' + adminConsoleEscape(user.email || '') + '</small></div></div></td>'
       + '<td>' + adminConsoleEscape(adminConsoleCompanyName(user.empresa_id)) + '</td>'
@@ -672,7 +677,10 @@ function adminConsoleRenderUsuarios(list) {
       + '<td>' + adminConsoleBadge(active ? 'Ativo' : 'Inativo', active ? 'ok' : 'neutral') + '</td>'
       + '<td>' + adminConsoleEscape(adminConsoleDate(user.criado_em, false)) + '</td>'
       + '<td>' + adminConsoleEscape(adminConsoleDate(user.ultimo_acesso || user.last_sign_in_at, true)) + '</td>'
-      + '<td><button class="admin-table-action" onclick="adminConsoleEditarUsuario(\'' + adminConsoleEscape(user.id) + '\')">Editar</button></td></tr>';
+      + '<td class="admin-table-actions">'
+      + '<button class="admin-table-action" onclick="adminConsoleEditarUsuario(\'' + uid + '\')">Editar</button>'
+      + (canEnter ? '<button class="admin-table-action admin-table-action-primary" onclick="adminConsoleEntrarComo(\'' + uid + '\')">Entrar como</button>' : '')
+      + '</td></tr>';
   }).join('');
 }
 
@@ -1096,21 +1104,60 @@ function adminConsoleEmpresaModal(company) {
 }
 
 function adminConsoleNovoUsuario() {
-  adminConsoleUsuarioModal(null);
+  adminConsoleUsuarioModal(null, '');
+}
+
+function adminConsoleNovoUsuarioPara(empresaId) {
+  adminConsoleUsuarioModal(null, empresaId || '');
+}
+
+function adminConsoleFiltrarPorEmpresa(empresaId) {
+  var sel = document.getElementById('admin-user-company');
+  if (sel) { sel.value = empresaId || ''; adminConsoleFiltrarUsuarios(true); }
+  adminConsoleAbrir('users');
 }
 
 function adminConsoleEditarUsuario(userId) {
   var user = ADMIN_CONSOLE.users.find(function(item) { return String(item.id) === String(userId); });
-  if (user) adminConsoleUsuarioModal(user);
+  if (user) adminConsoleUsuarioModal(user, '');
 }
 
-function adminConsoleUsuarioModal(user) {
+function adminConsoleEntrarComo(userId) {
+  var user = ADMIN_CONSOLE.users.find(function(item) { return String(item.id) === String(userId); });
+  if (!user) { adminConsoleAviso('Usuario nao encontrado.', 'error'); return; }
+  if (user.ativo === false) { adminConsoleAviso('Este usuario esta inativo.', 'error'); return; }
+  if (!user.empresa_id) { adminConsoleAviso('Este usuario nao esta vinculado a uma empresa.', 'error'); return; }
+  if (user.papel === 'admin') {
+    // Usa a operacao existente que sincroniza EMPRESAS_ADMIN e abre view-app
+    adminConsoleAbrirOperacao(user.empresa_id);
+  } else if (user.papel === 'cliente') {
+    // Popula ADMIN_PREVIEW_COMPANIES com dados do admin console para o preview
+    if (typeof ADMIN_PREVIEW_COMPANIES !== 'undefined' && ADMIN_CONSOLE.companies.length) {
+      ADMIN_PREVIEW_COMPANIES = ADMIN_CONSOLE.companies.map(function(c) {
+        return {
+          empresa_id: c.id || c.empresa_id,
+          nome: c.nome || '',
+          slug: c.slug || '',
+          ativo: c.ativo !== false,
+          tem_api: String(c.exibir_origem || '').toLowerCase() === 'api',
+          logo_url: c.logo_url || null
+        };
+      });
+    }
+    if (typeof _abrirDashCliente === 'function') _abrirDashCliente(user.empresa_id);
+  } else {
+    adminConsoleAviso('Nao e possivel entrar como ' + (user.papel || 'este papel') + '.', 'error');
+  }
+}
+
+function adminConsoleUsuarioModal(user, preEmpresaId) {
   var editing = !!user;
+  var empresaValue = editing ? (user.empresa_id || '') : (preEmpresaId || '');
   var html = '<div class="admin-form-grid">'
     + '<label class="admin-field"><span>Nome completo</span><input name="nome" required maxlength="140" value="' + adminConsoleEscape(user && user.nome) + '"></label>'
     + '<label class="admin-field"><span>E-mail</span><input name="email" type="email" required value="' + adminConsoleEscape(user && user.email) + '"></label>'
     + '<label class="admin-field"><span>Nivel de acesso</span><select name="papel" onchange="adminConsoleAtualizarEscopoUsuario(this.form)"><option value="cliente"' + (!user || user.papel === 'cliente' ? ' selected' : '') + '>Cliente</option><option value="admin"' + (user && user.papel === 'admin' ? ' selected' : '') + '>Admin</option><option value="super_admin"' + (user && user.papel === 'super_admin' ? ' selected' : '') + '>Super admin</option></select></label>'
-    + '<label class="admin-field"><span>Empresa vinculada</span><select name="empresa_id">' + adminConsoleCompanyOptions(user && user.empresa_id, true) + '</select><small class="admin-field-note">Obrigatoria para cliente e admin.</small></label>'
+    + '<label class="admin-field"><span>Empresa vinculada</span><select name="empresa_id">' + adminConsoleCompanyOptions(empresaValue, true) + '</select><small class="admin-field-note">Obrigatoria para cliente e admin.</small></label>'
     + '<label class="admin-field"><span>' + (editing ? 'Nova senha (opcional)' : 'Senha temporaria') + '</span><input name="password" type="password" ' + (editing ? '' : 'required') + ' minlength="8" autocomplete="new-password"></label>'
     + '<label class="admin-field admin-field-switch"><input name="ativo" type="checkbox"' + (!user || user.ativo !== false ? ' checked' : '') + '><span>Usuario ativo</span></label>'
     + (editing ? '<label class="admin-field admin-field-switch admin-field-full"><input name="confirmacao" type="checkbox" required><span>Confirmo a revisao do papel, empresa e status deste acesso</span></label>' : '')
@@ -1119,14 +1166,13 @@ function adminConsoleUsuarioModal(user) {
   adminConsoleAbrirModal('USUARIOS E ACESSOS', editing ? 'Editar usuario' : 'Adicionar usuario', html, async function(data, form) {
     var button = form.querySelector('[type="submit"]');
     if (button) button.disabled = true;
+    var papel = String(data.get('papel') || 'cliente');
     var payload = {
       id: user ? user.id : null,
       nome: String(data.get('nome') || '').trim(),
       email: String(data.get('email') || '').trim().toLowerCase(),
-      papel: String(data.get('papel') || 'cliente'),
-      empresa_id: String(data.get('papel') || 'cliente') === 'super_admin'
-        ? null
-        : (String(data.get('empresa_id') || '') || null),
+      papel: papel,
+      empresa_id: papel === 'super_admin' ? null : (String(data.get('empresa_id') || '') || null),
       password: String(data.get('password') || ''),
       ativo: data.get('ativo') === 'on'
     };
@@ -1134,11 +1180,22 @@ function adminConsoleUsuarioModal(user) {
       if (payload.papel !== 'super_admin' && !payload.empresa_id) {
         throw new Error('Selecione a empresa vinculada para este nivel de acesso.');
       }
-      await adminConsoleAction(editing ? 'admin-user-update' : 'admin-user-create', payload);
+      var result = await adminConsoleAction(editing ? 'admin-user-update' : 'admin-user-create', payload);
       adminConsoleFecharModal();
       await adminConsoleAtualizar(true);
       adminConsoleTrackActivity('usuario', editing ? 'Usuario atualizado' : 'Usuario criado', payload.email + ' - ' + payload.papel);
-      adminConsoleAviso(editing ? 'Usuario atualizado com sucesso.' : 'Usuario criado no Auth e na tabela usuarios.', 'success');
+      if (!editing && result && result.usuario && payload.papel !== 'super_admin') {
+        var novoId = adminConsoleEscape(result.usuario.id);
+        var novoNome = adminConsoleEscape(result.usuario.nome || payload.email);
+        adminConsoleAviso(
+          'Usuario <strong>' + novoNome + '</strong> criado. '
+          + '<button onclick="adminConsoleEntrarComo(\'' + novoId + '\')" class="admin-notice-action">Entrar como ' + novoNome + ' →</button>',
+          'success',
+          true
+        );
+      } else {
+        adminConsoleAviso(editing ? 'Usuario atualizado com sucesso.' : 'Usuario criado com sucesso.', 'success');
+      }
     } catch (error) {
       adminConsoleAviso('Falha ao salvar usuario: ' + error.message, 'error');
       if (button) button.disabled = false;

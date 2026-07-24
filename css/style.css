@@ -7501,6 +7501,17 @@ body.bpo-admin-mode .admin-console-notice.error {
   background: #FFF3F4;
 }
 
+body.bpo-admin-mode .admin-notice-action {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-left: 10px; padding: 3px 10px;
+  background: rgba(8,117,94,.12); border: 1px solid rgba(8,117,94,.3);
+  border-radius: 20px; color: #08755E; font: inherit; font-size: 11px;
+  font-weight: 800; cursor: pointer; white-space: nowrap;
+}
+body.bpo-admin-mode .admin-notice-action:hover {
+  background: #08755E; color: #fff; border-color: #08755E;
+}
+
 body.bpo-admin-mode .admin-console-section {
   display: none;
   animation: adminSectionIn .24s ease both;
@@ -7977,6 +7988,16 @@ body.bpo-admin-mode .admin-user-cell small {
 body.bpo-admin-mode .admin-table-action {
   min-height: 32px;
   padding: 0 11px;
+}
+
+body.bpo-admin-mode .admin-table-action.admin-table-action-primary {
+  background: linear-gradient(135deg, var(--admin-teal), var(--admin-deep)) !important;
+  color: #fff !important;
+  border-color: var(--admin-teal) !important;
+}
+body.bpo-admin-mode .admin-table-action.admin-table-action-primary:hover {
+  opacity: .88;
+  transform: translateY(-1px);
 }
 
 body.bpo-admin-mode .admin-section-intro {
