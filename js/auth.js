@@ -2037,124 +2037,6 @@ function _dcChartDiaSemana(rows) {
   });
 }
 
-function _dcChartProdQtd(rows) {
-  var m = {};
-  rows.forEach(function(r){ var k=r.produto||'—'; m[k]=(m[k]||0)+dcQtdLinha(r); });
-  var s = Object.entries(m).sort(function(a,b){return b[1]-a[1];}).slice(0,10);
-  _dcDestroy('dc-chart-prodqtd');
-  var ctx = document.getElementById('dc-chart-prodqtd'); if (!ctx) return;
-  DC_CHARTS['prodqtd'] = new Chart(ctx, {
-    type: 'bar',
-    data: { labels: s.map(function(e){return dcTextoCurto(e[0], 34);}),
-            datasets: [{ data: s.map(function(e){return e[1];}), backgroundColor: '#059669', borderRadius: 4 }] },
-    options: Object.assign(_dcOpts(false), {
-      indexAxis: 'y',
-      plugins: Object.assign(_dcOpts(false).plugins, {
-        dcValueLabels: { formatter: function(v){ return dcNumeroLimpo(v, 0); }, color: '#0A2F2F' }
-      })
-    }),
-    plugins: [DC_VALUE_LABEL_PLUGIN]
-  });
-}
-
-function _dcChartMarca(rows) {
-  var m = {};
-  rows.forEach(function(r){ var k=r.marca||r.industria||'Sem marca'; if(k&&k.trim()) m[k]=(m[k]||0)+dcValorLinha(r); });
-  var s = Object.entries(m).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
-  _dcDestroy('dc-chart-marca');
-  var ctx = document.getElementById('dc-chart-marca'); if (!ctx) return;
-  DC_CHARTS['marca'] = new Chart(ctx, {
-    type: 'bar',
-    data: { labels: s.map(function(e){return dcTextoCurto(e[0], 24);}),
-            datasets: [{ data: s.map(function(e){return e[1];}),
-              backgroundColor: ['#14746F','#2DD4BF','#059669','#0D4F4F','#D97706','#7C3AED','#DC2626','#5A7A74'], borderWidth: 0, borderRadius: 6 }] },
-    options: Object.assign(_dcOpts(false), { indexAxis: 'y' }),
-    plugins: [DC_VALUE_LABEL_PLUGIN]
-  });
-}
-
-// Tabelas novas
-function _dcTabelaPositivacao(rows) {
-  var mp = {};
-  rows.forEach(function(r) {
-    var v = r.vendedor || '—';
-    if (!mp[v]) mp[v] = { clientes: new Set(), pedidos: new Set() };
-    mp[v].clientes.add(r.cliente || 'x');
-    mp[v].pedidos.add(dcPedidoChave(r));
-  });
-  var arr = Object.entries(mp).map(function(e){ return { nome:e[0], cli:e[1].clientes.size, ped:e[1].pedidos.size }; }).sort(function(a,b){return b.cli-a.cli;}).slice(0,12);
-  var max = arr.length ? arr[0].cli : 1;
-  var h = '<table class="dc-tabela"><thead><tr><th>#</th><th>Representante</th><th>Clientes unicos</th><th>Pedidos unicos</th><th>Cobertura</th></tr></thead><tbody>';
-  arr.forEach(function(e,i){
-    var bar = (e.cli/max*100).toFixed(0);
-    h+='<tr><td class="pos">'+(i+1)+'</td><td>'+e.nome+'</td><td class="num">'+e.cli+'</td><td>'+e.ped+'</td>'
-      +'<td><div class="dc-bar-track" style="width:90px"><div class="dc-bar-fill" style="width:'+bar+'%"></div></div></td></tr>';
-  });
-  var el = document.getElementById('dc-tab-positiv');
-  if (el) el.innerHTML = h+'</tbody></table>';
-}
-
-function _dcTabelaNovosClientes(rows) {
-  var periodo = dcPeriodoAtualDatas();
-  var primeira = {};
-  (Array.isArray(DC_RAW) ? DC_RAW : rows || []).forEach(function(r) {
-    var c = r.cliente || '—';
-    var d = r.dt_saida ? new Date(r.dt_saida) : null;
-    if (!d || isNaN(d.getTime())) return;
-    if (!primeira[c] || d < primeira[c].dt) {
-      primeira[c] = {
-        nome: c,
-        dt: d,
-        cidade: r.cidade || '',
-        uf: r.uf || '',
-        valor: dcValorLinha(r)
-      };
-    }
-  });
-  var arr = Object.keys(primeira).map(function(k){ return primeira[k]; }).filter(function(item) {
-    if (periodo.inicio && item.dt < periodo.inicio) return false;
-    if (periodo.fim && item.dt > periodo.fim) return false;
-    return true;
-  });
-  var ordem = document.getElementById('dc-ordem-novos');
-  var modo = ordem ? String(ordem.value || 'recente') : 'recente';
-  arr.sort(function(a, b) {
-    if (modo === 'antigo') return a.dt - b.dt;
-    if (modo === 'maior') return b.valor - a.valor;
-    return b.dt - a.dt;
-  });
-  arr = arr.slice(0, 12);
-  var el = document.getElementById('dc-tab-novos');
-  if (!el) return;
-  if (!arr.length) { el.innerHTML = '<div class="dc-empty">Nenhum cliente novo no período selecionado.</div>'; return; }
-  var h = '<table class="dc-tabela"><thead><tr><th>Cliente</th><th>UF/Cidade</th><th class="num">Primeira compra</th><th class="num">Valor</th></tr></thead><tbody>';
-  arr.forEach(function(e){
-    h+='<tr><td>'+escapeHtml(e.nome)+'</td><td>'+escapeHtml([e.uf, e.cidade].filter(Boolean).join(' / ') || '—')+'</td>'
-      + '<td class="num">'+e.dt.toLocaleDateString('pt-BR')+'</td><td class="num">'+dcMoedaLimpa(e.valor)+'</td></tr>';
-  });
-  el.innerHTML = h+'</tbody></table>';
-}
-
-function _dcTabelaTicketCliente(rows) {
-  var mp = {};
-  rows.forEach(function(r) {
-    var c = r.cliente || '—';
-    if (!mp[c]) mp[c] = { fat:0, pedidos:new Set() };
-    mp[c].fat += dcValorLinha(r);
-    mp[c].pedidos.add(dcPedidoChave(r));
-  });
-  var arr = Object.entries(mp).map(function(e){ return { nome:e[0], fat:e[1].fat, ped:e[1].pedidos.size, tick:e[1].pedidos.size ? e[1].fat/e[1].pedidos.size : 0 }; })
-    .filter(function(e){ return e.ped >= 2; }).sort(function(a,b){return b.tick-a.tick;}).slice(0,10);
-  var el = document.getElementById('dc-tab-ticket');
-  if (!el) return;
-  if (!arr.length) { el.innerHTML = '<div style="color:#5A7A74;font-size:13px;padding:20px;text-align:center">Sem dados suficientes.</div>'; return; }
-  var h = '<table class="dc-tabela"><thead><tr><th>#</th><th>Cliente</th><th>Pedidos</th><th class="num">Ticket</th></tr></thead><tbody>';
-  arr.forEach(function(e,i){
-    h+='<tr><td class="pos">'+(i+1)+'</td><td>'+escapeHtml(e.nome)+'</td><td>'+e.ped+'</td><td class="num">'+dcMoedaLimpa(e.tick)+'</td></tr>';
-  });
-  el.innerHTML = h+'</tbody></table>';
-}
-
 function _dcOpts(horizontal) {
   return {
     responsive: true, maintainAspectRatio: false,
@@ -2190,34 +2072,6 @@ function _dcChartProd(rows) {
 
 function _dcChartGrupo(rows) {
   if (typeof dcChartGrupos === 'function') dcChartGrupos(rows);
-}
-
-function _dcTabela(id, campo, rows, fatTotal, label) {
-  var map = {};
-  rows.forEach(function(r) {
-    var key = dcTextoValor(r[campo]).trim() || 'Sem ' + dcTextoValor(label || 'dado').toLowerCase();
-    if (!map[key]) map[key] = { fat: 0, pedidos: new Set() };
-    map[key].fat += dcValorLinha(r);
-    map[key].pedidos.add(dcPedidoChave(r));
-  });
-  var lista = Object.entries(map)
-    .map(function(e) { return { nome: e[0], fat: e[1].fat, pedidos: e[1].pedidos.size }; })
-    .sort(function(a, b) { return b.fat - a.fat; });
-  dcOrdenarItensRelatorio(lista, id);
-  lista = lista.slice(0, 12);
-  var max = lista.length ? lista[0].fat : 1;
-  var html = '<table class="dc-tabela"><thead><tr><th>#</th><th>' + (label || 'Item') + '</th><th>Pedidos</th><th class="num">Faturamento</th><th>%</th></tr></thead><tbody>';
-  lista.forEach(function(item, idx) {
-    var pct = fatTotal ? (item.fat / fatTotal * 100) : 0;
-    var bar = max ? (item.fat / max * 100) : 0;
-    html += '<tr><td class="pos">' + (idx + 1) + '</td><td>' + escapeHtml(item.nome) + '</td><td>' + item.pedidos + '</td>'
-      + '<td class="num">' + dcMoedaLimpa(item.fat) + '</td>'
-      + '<td><div style="font-size:10px;color:#7f8ba3;margin-bottom:3px">' + dcNumeroLimpo(pct, 1) + '%</div>'
-      + '<div class="dc-bar-wrap"><div class="dc-bar" style="width:' + bar.toFixed(0) + '%"></div></div></td></tr>';
-  });
-  html += '</tbody></table>';
-  var el = document.getElementById(id);
-  if (el) el.innerHTML = lista.length ? html : '<div class="dc-empty">Sem dados para este recorte.</div>';
 }
 
 function _dcTabelaInativos(rows) {
@@ -2280,136 +2134,6 @@ function dcChartTrimestre(rows) {
     options: _dcOpts(false),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
-}
-
-// ── TOP PRODUTOS ──────────────────────────────────────────────────────────────
-function dcChartProdutos(rows) {
-  var map = {};
-  rows.forEach(function(r){ var k=r.produto||'—'; map[k]=(map[k]||0)+dcValorLinha(r); });
-  var sorted = Object.entries(map).sort(function(a,b){return b[1]-a[1];}).slice(0,10);
-  var labels = sorted.map(function(e){ return dcTextoCurto(e[0], 36); });
-  var data   = sorted.map(function(e){ return e[1]; });
-
-  dcDestroyChart('dc-chart-produtos');
-  var ctx = document.getElementById('dc-chart-produtos');
-  if (!ctx) return;
-  DC_CHARTS['produtos'] = new Chart(ctx, {
-    type: 'bar',
-    data: { labels:labels, datasets:[{label:'Faturamento',data:data,backgroundColor:'rgba(20,116,111,0.82)',borderRadius:4}] },
-    options: Object.assign(dcChartOpts('R$ '),{indexAxis:'y'}),
-    plugins: [DC_VALUE_LABEL_PLUGIN]
-  });
-}
-
-// ── GRUPOS ────────────────────────────────────────────────────────────────────
-function dcChartGrupos(rows) {
-  var map = {};
-  rows.forEach(function(r){ var k=r.grupo||r.grupo_produto||'Sem grupo'; if(k&&k.trim()) map[k]=(map[k]||0)+dcValorLinha(r); });
-  var sorted = Object.entries(map).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
-  var cores = ['#14746F','#2DD4BF','#059669','#0D4F4F','#D97706','#7C3AED','#DC2626','#5A7A74'];
-
-  dcDestroyChart('dc-chart-grupos');
-  var ctx = document.getElementById('dc-chart-grupos');
-  if (!ctx) return;
-  DC_CHARTS['grupos'] = new Chart(ctx, {
-    type: 'bar',
-    data: { labels:sorted.map(function(e){return dcTextoCurto(e[0], 22);}), datasets:[{data:sorted.map(function(e){return e[1];}),backgroundColor:cores,borderWidth:0,borderRadius:8}] },
-    options: Object.assign(_dcOpts(false), { indexAxis: 'y' }),
-    plugins: [DC_VALUE_LABEL_PLUGIN]
-  });
-}
-
-// ── TABELA REPRESENTANTES ─────────────────────────────────────────────────────
-function dcTabelaReps(rows, fatTotal) {
-  var map = {};
-  rows.forEach(function(r){ var k=r.vendedor||'—'; if(!map[k]) map[k]={fat:0,ped:0}; map[k].fat+=dcValorLinha(r); map[k].ped++; });
-  var sorted = Object.entries(map).sort(function(a,b){return b[1].fat-a[1].fat;});
-  var max = sorted.length ? sorted[0][1].fat : 1;
-
-  var html = '<table class="dc-tabela"><thead><tr><th>#</th><th>Representante</th><th>Pedidos</th><th style="text-align:right">Faturamento</th><th>%</th></tr></thead><tbody>';
-  sorted.forEach(function(e,i){
-    var pct = (e[1].fat/fatTotal*100).toFixed(1);
-    var bar = (e[1].fat/max*100).toFixed(0);
-    html += '<tr><td class="pos">'+(i+1)+'</td><td>'+e[0]+'</td><td>'+e[1].ped+'</td>'
-          + '<td class="num">'+dcMoedaLimpa(e[1].fat)+'</td>'
-          + '<td style="min-width:80px"><div style="font-size:10px;color:#5A7A74;margin-bottom:2px">'+pct+'%</div>'
-          + '<div class="dc-bar-wrap"><div class="dc-bar" style="width:'+bar+'%"></div></div></td></tr>';
-  });
-  html += '</tbody></table>';
-  var el = document.getElementById('dc-tabela-reps');
-  if (el) el.innerHTML = html;
-}
-
-// ── TABELA UFs ────────────────────────────────────────────────────────────────
-function dcTabelaUFs(rows, fatTotal) {
-  var map = {};
-  rows.forEach(function(r){ var k=(r.uf||'—').trim()||'—'; map[k]=(map[k]||0)+dcValorLinha(r); });
-  var sorted = Object.entries(map).sort(function(a,b){return b[1]-a[1];});
-  var max = sorted.length ? sorted[0][1] : 1;
-
-  var html = '<table class="dc-tabela"><thead><tr><th>#</th><th>Estado</th><th style="text-align:right">Faturamento</th><th>Participação</th></tr></thead><tbody>';
-  sorted.forEach(function(e,i){
-    var pct = (e[1]/fatTotal*100).toFixed(1);
-    var bar = (e[1]/max*100).toFixed(0);
-    html += '<tr><td class="pos">'+(i+1)+'</td><td>'+e[0]+'</td>'
-          + '<td class="num">'+dcMoedaLimpa(e[1])+'</td>'
-          + '<td style="min-width:80px"><div style="font-size:10px;color:#5A7A74;margin-bottom:2px">'+pct+'%</div>'
-          + '<div class="dc-bar-wrap"><div class="dc-bar" style="width:'+bar+'%;background:#059669"></div></div></td></tr>';
-  });
-  html += '</tbody></table>';
-  var el = document.getElementById('dc-tabela-ufs');
-  if (el) el.innerHTML = html;
-}
-
-// ── TOP CLIENTES ──────────────────────────────────────────────────────────────
-function dcTabelaClientes(rows, fatTotal) {
-  var map = {};
-  rows.forEach(function(r){ var k=r.cliente||'—'; if(!map[k]) map[k]={fat:0,ped:0}; map[k].fat+=dcValorLinha(r); map[k].ped++; });
-  var sorted = Object.entries(map).sort(function(a,b){return b[1].fat-a[1].fat;}).slice(0,10);
-
-  var html = '<table class="dc-tabela"><thead><tr><th>#</th><th>Cliente</th><th>Pedidos</th><th style="text-align:right">Faturamento</th></tr></thead><tbody>';
-  sorted.forEach(function(e,i){
-    html += '<tr><td class="pos">'+(i+1)+'</td><td>'+e[0]+'</td><td>'+e[1].ped+'</td>'
-          + '<td class="num">'+dcMoedaLimpa(e[1].fat)+'</td></tr>';
-  });
-  html += '</tbody></table>';
-  var el = document.getElementById('dc-tabela-clientes');
-  if (el) el.innerHTML = html;
-}
-
-// ── CLIENTES INATIVOS ─────────────────────────────────────────────────────────
-function dcTabelaInativos(rows) {
-  // Pega a data mais recente de compra por cliente
-  var mapa = {};
-  rows.forEach(function(r){
-    var k = r.cliente||'—';
-    var d = r.dt_saida ? new Date(r.dt_saida) : null;
-    if (d && (!mapa[k] || d > mapa[k].ultima)) {
-      mapa[k] = { ultima: d, fat: (mapa[k]?mapa[k].fat:0)+dcValorLinha(r) };
-    }
-  });
-  var hoje = new Date();
-  var inativos = Object.entries(mapa).map(function(e){
-    var dias = Math.floor((hoje - e[1].ultima) / 86400000);
-    return { nome: e[0], dias: dias, ultima: e[1].ultima.toLocaleDateString('pt-BR'), fat: e[1].fat };
-  }).filter(function(e){ return e.dias >= 30; }).sort(function(a,b){ return b.dias-a.dias; }).slice(0,10);
-
-  if (!inativos.length) {
-    var el = document.getElementById('dc-tabela-inativos');
-    if (el) el.innerHTML = '<div style="color:#5A7A74;font-size:13px;padding:20px;text-align:center">Nenhum cliente inativo no período ✓</div>';
-    return;
-  }
-
-  var html = '<table class="dc-tabela"><thead><tr><th>Cliente</th><th style="text-align:right">Dias sem compra</th><th>Última compra</th></tr></thead><tbody>';
-  inativos.forEach(function(e){
-    var cor = e.dias > 90 ? '#DC2626' : e.dias > 60 ? '#D97706' : '#5A7A74';
-    html += '<tr><td>'+e.nome+'</td>'
-          + '<td style="text-align:right;font-weight:800;color:'+cor+'">'+e.dias+' dias</td>'
-          + '<td style="color:#5A7A74">'+e.ultima+'</td></tr>';
-  });
-  html += '</tbody></table>';
-  var el = document.getElementById('dc-tabela-inativos');
-  if (el) el.innerHTML = html;
 }
 
 // ── UTILITÁRIOS ───────────────────────────────────────────────────────────────
@@ -2902,11 +2626,6 @@ function _adminRenderSyncEmpresaSelect() {
 function _adminSyncAtualizarSelect(empresaId) {
   var sel = document.getElementById('adm-sync-empresa-select');
   if (sel && empresaId) sel.value = empresaId;
-}
-
-function adminSyncSelecionarEmpresa(empresaId) {
-  if (!empresaId) return;
-  adminSelecionarEmpresa(empresaId);
 }
 
 function admSyncAba(aba) {
@@ -3575,205 +3294,6 @@ async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
   return summary;
 }
 
-// ── SYNC VISUAL SAEF — via proxy seguro ───────────────────────────────────────
-async function adminSincronizar() {
-  if (!EMPRESA_ATIVA || !EMPRESA_ATIVA.tem_api) return;
-  var btn = document.getElementById('admin-btn-sync');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="auth-spin">⟳</span> Sincronizando...'; }
-
-  try {
-    // Data de início: último sync ou 01/01/2025
-    var logR = await fetch(
-      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&select=ultima_data',
-      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
-    );
-    var logD = await logR.json();
-    var ultimaData = logD && logD[0] && logD[0].ultima_data ? logD[0].ultima_data : null;
-
-    var dataInicio = ultimaData ? new Date(ultimaData) : new Date('2025-01-01');
-    if (ultimaData) dataInicio.setDate(dataInicio.getDate() + 1);
-    var dataFim = new Date();
-
-    var fmt = function(d) {
-      return String(d.getDate()).padStart(2,'0')
-           + String(d.getMonth()+1).padStart(2,'0')
-           + String(d.getFullYear());
-    };
-    var DI = fmt(dataInicio), DF = fmt(dataFim);
-    _adminSetStatus('⏳ Conectando API ' + (EMPRESA_ATIVA ? EMPRESA_ATIVA.nome : '') + ' — período: ' + DI + ' a ' + DF);
-
-    // 1. Login na Visual Saef via proxy seguro
-    var lR = await _fetchVisualSaefProxy('/login', null, { Accept: 'application/json' });
-    if (!lR.ok) throw new Error('Login API falhou: HTTP ' + lR.status);
-    var lD = await lR.json();
-    var token = lD.token || lD.Token || lD.access_token || lD.accessToken;
-    if (!token) throw new Error('Token não retornado. Campos: ' + Object.keys(lD).join(','));
-    _adminSetStatus('⏳ Login OK — buscando dados...');
-
-    // 2. Busca vendas
-    var dR = await _fetchVisualSaefProxy('/relacaovendaitem?DataInicio=' + DI + '&DataTermino=' + DF, token, { Accept: 'application/json' });
-    if (!dR.ok) throw new Error('Busca dados falhou: HTTP ' + dR.status);
-    var raw = await dR.json();
-    var lista = Array.isArray(raw) ? raw
-      : (raw.data || raw.itens || raw.items || raw.result || raw.dados || raw.registros || []);
-
-    _adminSetStatus('⏳ API retornou ' + lista.length + ' registros — processando...');
-
-    if (!lista.length) {
-      _adminSetStatus('✓ Nenhum dado novo no período ' + DI + ' a ' + DF, true);
-      _atualizarSyncLog(EMPRESA_ATIVA.empresa_id, dataFim, 0, 'Sem dados no período');
-      return;
-    }
-
-    // 3. Mapeamento case-insensitive
-    var get = function(item, keys) {
-      var lw = {};
-      Object.keys(item).forEach(function(k) { lw[k.toLowerCase().replace(/[\s_]/g,'')] = item[k]; });
-      for (var i=0; i<keys.length; i++) {
-        var v = lw[keys[i].toLowerCase().replace(/[\s_]/g,'')];
-        if (v !== undefined && v !== null && v !== '') return v;
-      }
-      return null;
-    };
-
-    // Converte data DD/MM/YYYY ou qualquer formato → YYYY-MM-DD para o Supabase
-    var cvData = function(v) {
-      if (!v) return null;
-      var s = String(v).trim();
-      // Já em YYYY-MM-DD
-      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
-      // DD/MM/YYYY ou DD-MM-YYYY
-      var m = s.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
-      if (m) return m[3] + '-' + m[2] + '-' + m[1];
-      // Tenta via Date
-      var d = new Date(s);
-      return isNaN(d.getTime()) ? null : d.toISOString().slice(0,10);
-    };
-
-    var idsSync = {};
-    function montarIdExternoSync(item, idx) {
-      var pedidoBase = String(get(item,['numeropedido','numpedido','pedido','cdpedido','nrpedido','idvenda','codigo']) || '').trim();
-      var itemBase = String(get(item,['iditem','codigoitem','seq','cditem','nritem','item']) || '').trim();
-      var altBase = String(get(item,['id','chave']) || '').trim();
-      var produtoBase = String(get(item,['descricaoitem','descricaoItem','descitem','produto','descricao','descricaoproduto','nmproduto']) || '').trim();
-      var dataBase = String(cvData(get(item,['datafaturamento','dataFaturamento','dataatendimento','datasaida','dtsaida','datavenda'])) || '').trim();
-      var baseId = [pedidoBase || altBase || 'api', itemBase, dataBase, produtoBase || String(idx + 1)]
-        .filter(Boolean)
-        .join('_')
-        .replace(/[^\w.-]+/g, '_');
-      if (!baseId) baseId = 'api_' + idx;
-      var finalId = baseId;
-      var n = 1;
-      while (idsSync[finalId]) {
-        n += 1;
-        finalId = baseId + '__' + n;
-      }
-      idsSync[finalId] = true;
-      return finalId;
-    }
-
-    var regs = lista.map(function(item, idx) {
-      return {
-        empresa_id:   EMPRESA_ATIVA.empresa_id,
-        id_externo:   montarIdExternoSync(item, idx),
-        num_pedido:   String(get(item,['numeropedido','numpedido','pedido','cdpedido','nrpedido']) || ''),
-        produto:      String(get(item,['produto','descricao','descricaoproduto','descproduto','nmproduto','dsproduto','descitem']) || ''),
-        qtd:          Number(get(item,['quantidadevenda','quantidadeVenda','quantidade','qtd','qtde']) || 0),
-        dt_emissao:   cvData(get(item,['dataemissao','dtemissao','emissao'])),
-        dt_saida:     cvData(get(item,['datafaturamento','dataFaturamento','dataatendimento','datasaida','dtsaida','datavenda'])),
-        valor:        Number(get(item,['valortotal','valor','vltotal','totalitem','vlitem','valoritem','vlvenda']) || 0),
-        vendedor:     String(get(item,['nomevendedor','nomeVendedor','vendedor','representante','nomerepresentante']) || ''),
-        industria:    String(get(item,['industria','fabricante','fornecedor','marca']) || ''),
-        cliente:      String(get(item,['nomecliente','nomeCliente','cliente','razaosocial']) || ''),
-        grupo:        String(get(item,['nomadacategoria','nomeDaCategoria','grupocategoria','grupo','categoria']) || ''),
-        uf:           String(get(item,['uf','estado','ufcliente','siglaestado']) || ''),
-        cidade:       String(get(item,['cidade','municipio','nomecidade']) || ''),
-        empresa_nome: EMPRESA_ATIVA ? EMPRESA_ATIVA.nome : ''
-      };
-    });
-
-    // 4. Salva no Supabase em lotes de 500
-    var inseridos = 0;
-    // Limpa manuais antigos desta empresa (API sobrescreve)
-    // Apaga TODOS os registros desta empresa antes de reinserir
-    // Evita qualquer conflito de chave duplicada
-    _adminSetStatus('⏳ Limpando registros anteriores...');
-    var delR = await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id,
-      { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } });
-    if (!delR.ok) {
-      var delErr = await delR.text();
-      throw new Error('Falha ao limpar dados antigos: HTTP ' + delR.status + ' ' + delErr.slice(0, 200));
-    }
-
-    // Loga o primeiro registro para debug
-    if (regs.length > 0) {
-      console.log('[SYNC] Primeiro registro a inserir:', JSON.stringify(regs[0]));
-    }
-
-    for (var i = 0; i < regs.length; i += 500) {
-      var batch = regs.slice(i, i+500);
-      var sR = await fetch(SUPA_URL + '/rest/v1/vendas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPA_KEY,
-          'Authorization': 'Bearer ' + SVC_KEY,
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify(batch)
-      });
-      var respBody = await sR.text();
-      console.log('[SYNC] Lote', i, 'status:', sR.status, 'body:', respBody.slice(0,200));
-      if (!sR.ok) {
-        throw new Error('Erro HTTP ' + sR.status + ': ' + respBody.slice(0,300));
-      }
-      inseridos += batch.length;
-      _adminSetStatus('⏳ Inserindo... ' + inseridos + '/' + regs.length);
-    }
-
-    // 5. Atualiza sync_log
-    await _atualizarSyncLog(EMPRESA_ATIVA.empresa_id, dataFim, inseridos, inseridos + ' registros de ' + DI + ' a ' + DF);
-
-    // 6. Recarrega dados e processa relatórios
-    _adminSetStatus('✓ ' + inseridos + ' registros importados' + (EMPRESA_ATIVA ? ' de ' + EMPRESA_ATIVA.nome : '') + '!', true);
-    await _adminCarregar(EMPRESA_ATIVA.empresa_id);
-    try { bdMapColumns(); } catch(e) { console.error(e); }
-    try { bdAutoFill(); }   catch(e) { console.error(e); }
-    try { bdUpdateAllTabs(); } catch(e) { console.error(e); }
-    if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
-      GRIDS.bd.allData = BD_DATA.rows; GRIDS.bd.filtered = null;
-      GRIDS.bd.page = 0; GRIDS.bd._render();
-    }
-    adminProcessar();
-
-  } catch(e) {
-    _adminSetStatus('✗ ' + e.message);
-    console.error('Sync error:', e);
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg> Sincronizar, Salvar e Gerar Relatórios';
-    }
-  }
-}
-
-async function _atualizarSyncLog(empresa_id, dataFim, total, mensagem) {
-  try {
-    await fetch(SUPA_URL + '/rest/v1/sync_log', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY,
-                 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'resolution=merge-duplicates' },
-      body: JSON.stringify({
-        empresa_id:      empresa_id,
-        ultima_sync:     new Date().toISOString(),
-        ultima_data:     dataFim.toISOString().split('T')[0],
-        total_registros: total,
-        status:          'ok',
-        mensagem:        mensagem
-      })
-    });
-  } catch(e) { console.error('sync_log error:', e); }
-}
 
 function adminProcessar() {
   if (!EMPRESA_ATIVA) { alert('Selecione uma empresa.'); return; }
@@ -4156,8 +3676,6 @@ function _syncLog(msg, type) {
 }
 
 // ── SYNC API — salva + gera relatórios ────────────────────────────────────────
-// Substitui adminSincronizar com versão que gera relatórios após sync
-var _syncOriginalFn = adminSincronizar;
 adminSincronizar = async function() {
   if (!EMPRESA_ATIVA || !EMPRESA_ATIVA.tem_api) return;
   var btn = document.getElementById('admin-btn-sync');
@@ -4278,7 +3796,6 @@ adminSincronizar = async function() {
       SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id,
       { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal', 'Content-Type': 'application/json' } }
     );
-    console.log('[SYNC] DELETE status:', delAll.status);
     if (!delAll.ok) {
       var delBody = await delAll.text();
       throw new Error('Falha ao limpar dados antigos: HTTP ' + delAll.status + ': ' + delBody.slice(0,300));
@@ -4296,7 +3813,6 @@ adminSincronizar = async function() {
         body: JSON.stringify(batch)
       });
       var body = await sR.text();
-      console.log('[SYNC] Lote', i, 'status:', sR.status, body.slice(0,100));
       if (!sR.ok) throw new Error('HTTP ' + sR.status + ': ' + body.slice(0,300));
       inseridos += batch.length;
       var loteNum = Math.floor(i/300) + 1;
