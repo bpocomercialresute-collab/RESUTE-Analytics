@@ -695,7 +695,8 @@ async function _carregarEmpresasComAPI() {
         empresa_id: emp.id || emp.empresa_id,
         nome: emp.nome,
         slug: emp.slug,
-        sistema: api.sistema || 'api'
+        sistema: api.sistema || 'api',
+        api_url: api.api_url || ''
       });
     }).filter(Boolean);
 
@@ -2456,6 +2457,7 @@ async function _adminCarregarEmpresasMeta() {
         slug: empresaDb.slug || null,
         tem_api: !!apiCfg && origem === 'api',
         sistema: apiCfg && apiCfg.sistema ? apiCfg.sistema : (empresaDb.sistema || null),
+        api_url: apiCfg && apiCfg.api_url ? apiCfg.api_url : (empresaDb.api_url || ''),
         empresa_codigo: empresaDb.codigo_empresa
           || empresaDb.codigo_cliente
           || empresaDb.codigo_cliente_id
