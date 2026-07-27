@@ -8,11 +8,11 @@ function parseBody(body) {
 
 function setCorsHeaders(req, res) {
   const allowed = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+    ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
     : [];
   const origin = req.headers.origin || '';
-  const corsOrigin = allowed.length === 0 || allowed.includes(origin) ? origin : '';
-  res.setHeader('Access-Control-Allow-Origin', corsOrigin || '*');
+  const corsOrigin = allowed.length === 0 ? origin : (allowed.includes(origin) ? origin : '');
+  if (corsOrigin) res.setHeader('Access-Control-Allow-Origin', corsOrigin);
   res.setHeader('Vary', 'Origin');
 }
 
@@ -51,7 +51,8 @@ export default async function handler(req, res) {
 
     const authData = await authResp.json();
     if (!authResp.ok || !authData.access_token) {
-      return res.status(401).json({ erro: authData.error_description || 'Email ou senha incorretos.' });
+      // Não expor error_description do Supabase — pode conter PII ou detalhes internos
+      return res.status(401).json({ erro: 'Email ou senha incorretos.' });
     }
 
     const emailNormalizado = String(email).toLowerCase();
@@ -78,23 +79,24 @@ export default async function handler(req, res) {
         })[0]
       : null;
 
+    // Todas as falhas pós-auth retornam 401 com mensagem genérica
+    // para evitar user enumeration (não revelar se o problema é conta, papel ou empresa)
+    const MSG_ACESSO_NEGADO = 'Acesso nao autorizado. Verifique suas credenciais ou contate o administrador.';
+
     if (!user) {
-      return res.status(403).json({
-        erro: 'Usuário autenticado, mas sem cadastro válido na tabela usuarios. Verifique email e papel do acesso no painel.'
-      });
+      console.warn('[LOGIN] Auth OK mas sem registro em usuarios:', emailNormalizado);
+      return res.status(401).json({ erro: MSG_ACESSO_NEGADO });
     }
 
     if (user.ativo === false) {
-      return res.status(403).json({
-        erro: 'Este usuario esta inativo. Solicite a liberacao ao administrador RESUTE.'
-      });
+      console.warn('[LOGIN] Usuario inativo tentou login:', emailNormalizado);
+      return res.status(401).json({ erro: MSG_ACESSO_NEGADO });
     }
 
     var empresaRelacion = Array.isArray(user.empresas) ? (user.empresas[0] || {}) : (user.empresas || {});
     if (user.papel !== 'super_admin' && empresaRelacion.ativo === false) {
-      return res.status(403).json({
-        erro: 'Esta empresa nao esta mais ativa na plataforma RESUTE.'
-      });
+      console.warn('[LOGIN] Empresa inativa para usuario:', emailNormalizado);
+      return res.status(401).json({ erro: MSG_ACESSO_NEGADO });
     }
 
     // O registro de acesso e informativo e nao deve impedir um login valido.
@@ -145,6 +147,7 @@ export default async function handler(req, res) {
         || null
     });
   } catch (e) {
-    return res.status(500).json({ erro: 'Erro interno: ' + e.message });
+    console.error('[LOGIN] Erro interno:', e.message);
+    return res.status(500).json({ erro: 'Erro interno no servidor. Tente novamente.' });
   }
 }

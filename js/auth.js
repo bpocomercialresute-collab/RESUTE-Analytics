@@ -1200,7 +1200,7 @@ async function dcCarregarDados(empresa_id_param) {
     dcStatus('⏳ Carregando dados...');
     var vendas = await dcComTimeout(
       _fetchAll(
-        SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid + '&origem=eq.' + exibir + '&select=*&order=dt_saida.asc',
+        SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + encodeURIComponent(eid) + '&origem=eq.' + encodeURIComponent(exibir) + '&select=*&order=dt_saida.asc',
         { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY },
         currentSignal
       ),

@@ -1,20 +1,25 @@
-function setCorsHeaders(req, res) {
-  const allowed = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+function _getAllowedOrigins() {
+  return process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
     : [];
+}
+
+function setCorsHeaders(req, res) {
+  const allowed = _getAllowedOrigins();
   const origin = req.headers.origin || '';
-  const corsOrigin = allowed.length === 0 || allowed.includes(origin) ? origin : '';
-  res.setHeader('Access-Control-Allow-Origin', corsOrigin || '*');
+  // Quando ALLOWED_ORIGINS vazio (dev/preview): reflete o origin recebido
+  // Quando configurado: só reflete se origin estiver na lista — NUNCA wildcard
+  const corsOrigin = allowed.length === 0 ? origin : (allowed.includes(origin) ? origin : '');
+  if (corsOrigin) res.setHeader('Access-Control-Allow-Origin', corsOrigin);
   res.setHeader('Vary', 'Origin');
 }
 
 function isOriginAllowed(req) {
-  const allowed = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
-    : [];
-  if (!allowed.length) return true; // sem restrição configurada (dev/preview)
-  const origin = req.headers.origin || req.headers.referer || '';
-  return allowed.some(o => origin === o || origin.startsWith(o + '/'));
+  const allowed = _getAllowedOrigins();
+  if (!allowed.length) return true;
+  const origin = req.headers.origin || '';
+  // Comparação exata — sem startsWith para evitar bypass de subdomínio
+  return allowed.includes(origin);
 }
 
 const ALLOWED_SUPABASE_PATHS = [
@@ -627,9 +632,9 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env
     );
 
     if (!cadastroAuth.ok || !cadastroAuth.token) {
+      console.error('[proxy] Visual Saef auth falhou:', cadastroAuth.status, String(cadastroAuth.text || '').slice(0, 200));
       return res.status(cadastroAuth.status || 500).json({
-        erro: cadastroAuth.message || 'Falha ao autenticar na API Visual Saef para os cadastros.',
-        detalhe: cadastroAuth.text || null
+        erro: cadastroAuth.message || 'Falha ao autenticar na API Visual Saef para os cadastros.'
       });
     }
 
@@ -1169,8 +1174,15 @@ export default async function handler(req, res) {
     return res.status(403).json({ erro: 'Requisicao nao autorizada.' });
   }
 
+  const contentLength = parseInt(req.headers['content-length'] || '0', 10);
+  if (contentLength > 2 * 1024 * 1024) {
+    return res.status(413).json({ erro: 'Payload excede o limite de 2MB.' });
+  }
+
+  // x-real-ip é injetado pelo Vercel/proxy — não pode ser forjado pelo cliente
+  // x-session-token como chave primária garante limite por usuário autenticado
   const rateLimitKey = req.headers['x-session-token']
-    || (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+    || req.headers['x-real-ip']
     || req.socket?.remoteAddress
     || 'unknown';
   if (!checkRateLimit(rateLimitKey)) {
@@ -1226,6 +1238,7 @@ export default async function handler(req, res) {
     // Valida contra a api_url configurada para a empresa antes de proxiar
     return await proxyExternalGeneric(req, res, targetUrl, httpMethod, incomingHeaders, body, empresa_id || null, env);
   } catch (e) {
-    return res.status(500).json({ erro: e.message });
+    console.error('[proxy] Erro interno:', e.message);
+    return res.status(500).json({ erro: 'Erro interno no servidor.' });
   }
 }

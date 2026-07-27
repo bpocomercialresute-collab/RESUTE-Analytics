@@ -166,13 +166,12 @@ async function adminConsoleAction(action, payload) {
   return data;
 }
 
-function adminConsoleAviso(message, type, isHtml) {
+function adminConsoleAviso(message, type) {
   var notice = document.getElementById('admin-console-notice');
   if (!notice) return;
   notice.hidden = false;
   notice.className = 'admin-console-notice ' + (type || 'info');
-  if (isHtml) notice.innerHTML = message;
-  else notice.textContent = message;
+  notice.textContent = message; // sempre textContent — nunca innerHTML com dados externos
   window.clearTimeout(adminConsoleAviso._timer);
   adminConsoleAviso._timer = window.setTimeout(function() {
     notice.hidden = true;
