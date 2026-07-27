@@ -1355,6 +1355,7 @@ function _adminConsoleSyncSelecionarEmpresa(empresaId) {
       slug: empresa.slug || null,
       tem_api: hasApi,
       sistema: integration ? integration.sistema : null,
+      api_url: integration ? (integration.api_url || '') : '',
       exibir_origem: empresa.exibir_origem || 'manual'
     };
   }
@@ -1433,6 +1434,7 @@ async function adminConsoleDispararSyncEmpresa(empresaId) {
     slug: empresa.slug || null,
     tem_api: true,
     sistema: integration ? integration.sistema : null,
+    api_url: integration ? (integration.api_url || '') : '',
     exibir_origem: 'api'
   };
 
