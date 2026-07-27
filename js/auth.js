@@ -3752,7 +3752,7 @@ async function adminSincronizar() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg> Sincronizar API';
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg> Sincronizar, Salvar e Gerar Relatórios';
     }
   }
 }
@@ -4329,7 +4329,7 @@ adminSincronizar = async function() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg> Sincronizar API';
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg> Sincronizar, Salvar e Gerar Relatórios';
     }
   }
 };
