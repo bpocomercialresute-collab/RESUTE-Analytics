@@ -4127,6 +4127,34 @@ function _adminMostrarModo(temApi) {
   if (togLbl) togLbl.style.display = temApi ? '' : 'none';
 }
 
+// ── LOG DE OPERAÇÕES DE SYNC ──────────────────────────────────────────────────
+function _syncLog(msg, type) {
+  // type: 'info' | 'ok' | 'erro' | 'warn'  (default: 'info')
+  var t = type || 'info';
+  var panel = document.getElementById('adm-sync-log');
+  var body  = document.getElementById('adm-sync-log-body');
+  if (panel) panel.style.display = '';
+  if (body) {
+    var now = new Date();
+    var ts = String(now.getHours()).padStart(2,'0') + ':' +
+             String(now.getMinutes()).padStart(2,'0') + ':' +
+             String(now.getSeconds()).padStart(2,'0');
+    var icons = { ok: '✔', erro: '✘', warn: '⚠', info: '•' };
+    var line = document.createElement('div');
+    line.className = 'adm-log-line log-' + t;
+    line.innerHTML =
+      '<span class="adm-log-time">' + ts + '</span>' +
+      '<span class="adm-log-icon">' + (icons[t] || '•') + '</span>' +
+      '<span class="adm-log-msg">' + String(msg).replace(/</g,'&lt;') + '</span>';
+    body.appendChild(line);
+    body.scrollTop = body.scrollHeight;
+  }
+  // Mantém status bar também
+  if (t === 'ok')   _adminSetStatus('✓ ' + msg, true);
+  else if (t === 'erro') _adminSetStatus('✗ ' + msg);
+  else              _adminSetStatus('⏳ ' + msg);
+}
+
 // ── SYNC API — salva + gera relatórios ────────────────────────────────────────
 // Substitui adminSincronizar com versão que gera relatórios após sync
 var _syncOriginalFn = adminSincronizar;
@@ -4141,6 +4169,12 @@ adminSincronizar = async function() {
     representantes: { pending: true, count: 0, message: 'Preparando busca da equipe comercial.' }
   });
 
+  // Limpa log anterior e mostra painel
+  var _logBody = document.getElementById('adm-sync-log-body');
+  if (_logBody) _logBody.innerHTML = '';
+  var _logPanel = document.getElementById('adm-sync-log');
+  if (_logPanel) _logPanel.style.display = '';
+
   try {
     var periodo = _adminObterPeriodoSync();
     var dataInicio = periodo.dataInicio;
@@ -4150,7 +4184,7 @@ adminSincronizar = async function() {
       return String(d.getDate()).padStart(2,'0') + String(d.getMonth()+1).padStart(2,'0') + String(d.getFullYear());
     };
     var DI = fmt(dataInicio), DF = fmt(dataFim);
-    _adminSetStatus('⏳ Conectando à API — período: ' + DI + ' → ' + DF);
+    _syncLog('Iniciando sincronização — período: ' + DI + ' a ' + DF);
 
     // Login Visual Saef via proxy seguro
     var lR = await _fetchVisualSaefProxy('/login', null, { Accept: 'application/json' });
@@ -4158,17 +4192,17 @@ adminSincronizar = async function() {
     var lD = await lR.json();
     var token = lD.token || lD.Token || lD.access_token || lD.accessToken;
     if (!token) throw new Error('Token não retornado. Campos: ' + Object.keys(lD).join(','));
-    _adminSetStatus('⏳ Login OK — buscando dados...');
+    _syncLog('Login na API OK — buscando dados...');
 
     // Busca dados
     var dR = await _fetchVisualSaefProxy('/relacaovendaitem?DataInicio=' + DI + '&DataTermino=' + DF, token, { Accept: 'application/json' });
     if (!dR.ok) throw new Error('Busca falhou: HTTP ' + dR.status);
     var raw = await dR.json();
     var lista = Array.isArray(raw) ? raw : (raw.data || raw.itens || raw.items || raw.result || raw.dados || []);
-    _adminSetStatus('⏳ ' + lista.length + ' registros recebidos — salvando...');
+    _syncLog(lista.length + ' registros recebidos da API');
 
     if (!lista.length) {
-      _adminSetStatus('✓ Nenhum dado novo no período.', true);
+      _syncLog('Nenhum dado novo no período. Sync encerrado.', 'warn');
       _adminAtualizarUltimSync(dataFim, 0);
       return;
     }
@@ -4253,7 +4287,7 @@ adminSincronizar = async function() {
 
     // Apaga TODOS os registros desta empresa (origem=api, manual ou NULL)
     // para evitar conflito de chave duplicada
-    _adminSetStatus('⏳ Limpando dados anteriores...');
+    _syncLog('Limpando dados anteriores do banco...');
     var delAll = await fetch(
       SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id,
       { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal', 'Content-Type': 'application/json' } }
@@ -4263,9 +4297,11 @@ adminSincronizar = async function() {
       var delBody = await delAll.text();
       throw new Error('Falha ao limpar dados antigos: HTTP ' + delAll.status + ': ' + delBody.slice(0,300));
     }
+    _syncLog('Dados anteriores removidos com sucesso');
 
     // Insere
     var inseridos = 0;
+    var totalLotes = Math.ceil(regs.length / 300);
     for (var i = 0; i < regs.length; i += 300) {
       var batch = regs.slice(i, i+300);
       var sR = await fetch(SUPA_URL + '/rest/v1/vendas', {
@@ -4277,7 +4313,8 @@ adminSincronizar = async function() {
       console.log('[SYNC] Lote', i, 'status:', sR.status, body.slice(0,100));
       if (!sR.ok) throw new Error('HTTP ' + sR.status + ': ' + body.slice(0,300));
       inseridos += batch.length;
-      _adminSetStatus('⏳ Inserindo... ' + inseridos + '/' + regs.length);
+      var loteNum = Math.floor(i/300) + 1;
+      _syncLog('Lote ' + loteNum + '/' + totalLotes + ' inserido — ' + inseridos + ' de ' + regs.length + ' registros');
     }
 
     // Atualiza sync_log
@@ -4290,7 +4327,7 @@ adminSincronizar = async function() {
     EMPRESA_ATIVA.exibir_origem = 'api';
 
     // Enriquecer a base com cadastros auxiliares vindos da API dedicada
-    _adminSetStatus('⏳ Enriquecendo cadastros dedicados da API...');
+    _syncLog('Sincronizando cadastros auxiliares (clientes, produtos, representantes)...');
     await _adminLimparCadastrosApiSync();
     var cadastrosResumo = await _adminSincronizarCadastrosApi(token, dataInicio, dataFim);
 
@@ -4305,8 +4342,9 @@ adminSincronizar = async function() {
       }
     }, cadastrosResumo || {}));
 
+    _syncLog('Cadastros auxiliares sincronizados');
     // Gera relatórios automaticamente
-    _adminSetStatus('⏳ Gerando relatórios...');
+    _syncLog('Carregando dados do banco e gerando relatórios...');
     await _adminCarregar(EMPRESA_ATIVA.empresa_id);
 
     try { bdMapColumns(); } catch(e) { console.error(e); }
@@ -4321,10 +4359,10 @@ adminSincronizar = async function() {
     if (relAviso) relAviso.style.display = 'block';
 
     await _adminAtualizarContagens();
-    _adminSetStatus('✓ ' + inseridos.toLocaleString('pt-BR') + ' registros sincronizados — relatórios gerados!', true);
+    _syncLog(inseridos.toLocaleString('pt-BR') + ' registros salvos no banco — relatórios atualizados!', 'ok');
 
   } catch(e) {
-    _adminSetStatus('✗ ' + e.message);
+    _syncLog('ERRO: ' + e.message, 'erro');
     console.error('[SYNC]', e);
   } finally {
     if (btn) {

@@ -9602,3 +9602,66 @@ body.lp-about-open .lp-process-step span {
     display: none;
   }
 }
+
+/* ── LOG DE SYNC ─────────────────────────────────────────────────────────── */
+.adm-sync-log {
+  margin-top: 20px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 12px;
+}
+.adm-sync-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.adm-sync-log-clear {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.adm-sync-log-clear:hover { color: #f87171; }
+.adm-sync-log-body {
+  max-height: 320px;
+  overflow-y: auto;
+  background: #0f172a;
+  padding: 8px 0;
+}
+.adm-log-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 12px;
+  line-height: 1.45;
+  border-bottom: 1px solid #1e293b;
+  font-family: 'Menlo','Consolas','monospace',monospace;
+}
+.adm-log-line:last-child { border-bottom: none; }
+.adm-log-time {
+  color: #475569;
+  flex-shrink: 0;
+  font-size: 11px;
+  padding-top: 1px;
+}
+.adm-log-icon { flex-shrink: 0; font-size: 13px; padding-top: 1px; }
+.adm-log-msg  { color: #cbd5e1; flex: 1; word-break: break-word; }
+.adm-log-line.log-ok   .adm-log-msg { color: #4ade80; }
+.adm-log-line.log-erro .adm-log-msg { color: #f87171; }
+.adm-log-line.log-warn .adm-log-msg { color: #fbbf24; }
+.adm-log-line.log-info .adm-log-msg { color: #93c5fd; }
+
+body.bpo-admin-mode .adm-sync-log { border-color: #374151; }
+body.bpo-admin-mode .adm-sync-log-header { background: #1f2937; }
+body.bpo-admin-mode .adm-sync-log-body   { background: #111827; }
