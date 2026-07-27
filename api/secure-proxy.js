@@ -1,3 +1,13 @@
+function setCorsHeaders(req, res) {
+  const allowed = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+    : [];
+  const origin = req.headers.origin || '';
+  const corsOrigin = allowed.length === 0 || allowed.includes(origin) ? origin : '';
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin || '*');
+  res.setHeader('Vary', 'Origin');
+}
+
 const ALLOWED_SUPABASE_PATHS = [
   '/rest/v1/vendas',
   '/rest/v1/usuarios',
@@ -43,6 +53,14 @@ const VISUAL_CADASTRO_PATHS = new Set([
 
 const VISUAL_LOGIN_TOKEN_CACHE = new Map();
 const VISUAL_AUTH_CACHE = new Map();
+const CACHE_MAX_SIZE = 200;
+
+function cacheSet(map, key, value) {
+  if (map.size >= CACHE_MAX_SIZE) {
+    map.delete(map.keys().next().value);
+  }
+  map.set(key, value);
+}
 
 function getSessionEmpresaIds(appUser) {
   if (Array.isArray(appUser.empresa_ids)) return appUser.empresa_ids;
@@ -209,7 +227,7 @@ async function getVisualLoginToken(env, clientId, clientSecret) {
     (readJwtExpiry(token) || (Date.now() + 1000 * 60 * 30)) - 1000 * 30
   );
   const value = { ok: true, token, payload, text, status: upstream.status };
-  VISUAL_LOGIN_TOKEN_CACHE.set(cacheKey, { expiresAt, value });
+  cacheSet(VISUAL_LOGIN_TOKEN_CACHE, cacheKey, { expiresAt, value });
   return value;
 }
 
@@ -498,7 +516,7 @@ async function ensureVisualSaefAuthorization(env, visualToken, codigoEmpresa) {
   };
 
   if (usable) {
-    VISUAL_AUTH_CACHE.set(cacheKey, {
+    cacheSet(VISUAL_AUTH_CACHE, cacheKey, {
       expiresAt: Date.now() + 1000 * 60 * 10,
       value
     });
@@ -869,34 +887,27 @@ async function handleAdminCompanyDelete(res, appUser, payload, env) {
   );
   const companyUsers = await adminActionReadJson(usersResponse);
 
-  // Delete operational tables (errors tolerated — table may be empty or not exist yet)
-  for (const table of ['vendas', 'clientes_cad', 'produtos', 'representantes', 'grupos']) {
-    await fetch(
-      `${env.supaUrl}/rest/v1/${table}?empresa_id=eq.${encodeURIComponent(companyId)}`,
-      { method: 'DELETE', headers: { ...adminActionHeaders(env), 'Prefer': 'return=minimal' } }
-    ).catch(() => null);
-  }
+  // Delete operational tables and config in parallel (errors tolerated)
+  const deleteHeaders = { ...adminActionHeaders(env), 'Prefer': 'return=minimal' };
+  await Promise.all([
+    ...['vendas', 'clientes_cad', 'produtos', 'representantes', 'grupos'].map(table =>
+      fetch(`${env.supaUrl}/rest/v1/${table}?empresa_id=eq.${encodeURIComponent(companyId)}`,
+        { method: 'DELETE', headers: deleteHeaders }).catch(() => null)
+    ),
+    fetch(`${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(companyId)}`,
+      { method: 'DELETE', headers: deleteHeaders }).catch(() => null),
+    fetch(`${env.supaUrl}/rest/v1/sync_log?empresa_id=eq.${encodeURIComponent(companyId)}`,
+      { method: 'DELETE', headers: deleteHeaders }).catch(() => null)
+  ]);
 
-  // Delete api_config and sync_log
-  await fetch(
-    `${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(companyId)}`,
-    { method: 'DELETE', headers: { ...adminActionHeaders(env), 'Prefer': 'return=minimal' } }
-  ).catch(() => null);
-  await fetch(
-    `${env.supaUrl}/rest/v1/sync_log?empresa_id=eq.${encodeURIComponent(companyId)}`,
-    { method: 'DELETE', headers: { ...adminActionHeaders(env), 'Prefer': 'return=minimal' } }
-  ).catch(() => null);
-
-  // Delete users: Auth first, then profile rows
+  // Delete user Auth records in parallel
   if (Array.isArray(companyUsers)) {
-    for (const u of companyUsers) {
-      if (u.id) {
-        await fetch(
-          `${env.supaUrl}/auth/v1/admin/users/${encodeURIComponent(u.id)}`,
-          { method: 'DELETE', headers: adminActionHeaders(env) }
-        ).catch(() => null);
-      }
-    }
+    await Promise.all(
+      companyUsers.filter(u => u.id).map(u =>
+        fetch(`${env.supaUrl}/auth/v1/admin/users/${encodeURIComponent(u.id)}`,
+          { method: 'DELETE', headers: adminActionHeaders(env) }).catch(() => null)
+      )
+    );
   }
   await fetch(
     `${env.supaUrl}/rest/v1/usuarios?empresa_id=eq.${encodeURIComponent(companyId)}`,
@@ -948,44 +959,21 @@ async function handleAdminCompanyArchive(res, appUser, payload, env) {
     const company = Array.isArray(companyRows) ? companyRows[0] : null;
     if (!company) continue;
 
-    const companyUpdate = await fetch(
-      `${env.supaUrl}/rest/v1/empresas?id=eq.${encodeURIComponent(companyId)}`,
-      {
-        method: 'PATCH',
-        headers: {
-          ...adminActionHeaders(env, 'application/json'),
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({ ativo: false })
-      }
-    );
-    await adminActionReadJson(companyUpdate);
-
-    const integrationUpdate = await fetch(
-      `${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(companyId)}`,
-      {
-        method: 'PATCH',
-        headers: {
-          ...adminActionHeaders(env, 'application/json'),
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({ ativo: false })
-      }
-    );
-    await adminActionReadJson(integrationUpdate);
-
-    const userUpdate = await fetch(
-      `${env.supaUrl}/rest/v1/usuarios?empresa_id=eq.${encodeURIComponent(companyId)}`,
-      {
-        method: 'PATCH',
-        headers: {
-          ...adminActionHeaders(env, 'application/json'),
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({ ativo: false })
-      }
-    );
-    await adminActionReadJson(userUpdate);
+    const patchHeaders = { ...adminActionHeaders(env, 'application/json'), 'Prefer': 'return=minimal' };
+    const inactiveBody = JSON.stringify({ ativo: false });
+    const [companyUpdate, integrationUpdate, userUpdate] = await Promise.all([
+      fetch(`${env.supaUrl}/rest/v1/empresas?id=eq.${encodeURIComponent(companyId)}`,
+        { method: 'PATCH', headers: patchHeaders, body: inactiveBody }),
+      fetch(`${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(companyId)}`,
+        { method: 'PATCH', headers: patchHeaders, body: inactiveBody }),
+      fetch(`${env.supaUrl}/rest/v1/usuarios?empresa_id=eq.${encodeURIComponent(companyId)}`,
+        { method: 'PATCH', headers: patchHeaders, body: inactiveBody })
+    ]);
+    await Promise.all([
+      adminActionReadJson(companyUpdate),
+      adminActionReadJson(integrationUpdate),
+      adminActionReadJson(userUpdate)
+    ]);
 
     archived.push({ id: companyId, nome: company.nome || company.slug || companyId });
     await writeAdminAudit(env, appUser, {
@@ -1089,7 +1077,7 @@ async function handleAdminAction(req, res, action, payload, env) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  setCorsHeaders(req, res);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-session-token, x-visual-codigo-empresa');
 

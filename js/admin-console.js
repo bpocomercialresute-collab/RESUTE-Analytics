@@ -1377,23 +1377,23 @@ function _adminConsoleSyncSelecionarEmpresa(empresaId) {
 }
 
 function _adminConsoleSalvarNoBD() {
-  if (typeof _adminCarregarCadastrosApiSalvos !== 'function') {
-    adminConsoleAviso('Função indisponível.', 'error'); return;
+  if (typeof adminSalvarBanco !== 'function') {
+    adminConsoleAviso('Função de salvar não disponível.', 'error'); return;
   }
-  adminConsoleAviso('Salvando dados no banco de dados...', 'info');
-  _adminCarregarCadastrosApiSalvos()
-    .then(function() { adminConsoleAviso('Dados salvos com sucesso.', 'success'); })
-    .catch(function(e) { adminConsoleAviso('Falha ao salvar: ' + (e.message || e), 'error'); });
+  if (!window.EMPRESA_ATIVA) {
+    adminConsoleAviso('Selecione uma empresa no painel de sincronização primeiro.', 'error'); return;
+  }
+  adminSalvarBanco();
 }
 
 function _adminConsoleProcessarRelatorios() {
-  if (typeof _adminCarregarCadastrosApiSalvos !== 'function') {
-    adminConsoleAviso('Função indisponível.', 'error'); return;
+  if (typeof adminProcessar !== 'function') {
+    adminConsoleAviso('Função de processar não disponível.', 'error'); return;
   }
-  adminConsoleAviso('Processando relatórios...', 'info');
-  _adminCarregarCadastrosApiSalvos()
-    .then(function() { adminConsoleAviso('Relatórios processados.', 'success'); })
-    .catch(function(e) { adminConsoleAviso('Falha ao processar: ' + (e.message || e), 'error'); });
+  if (!window.EMPRESA_ATIVA) {
+    adminConsoleAviso('Selecione uma empresa no painel de sincronização primeiro.', 'error'); return;
+  }
+  adminProcessar();
 }
 
 function adminConsoleAbrirSyncEmpresa(empresaId) {

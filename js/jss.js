@@ -503,6 +503,17 @@ document.addEventListener('click',function(e){
   if(key&&!GRIDS[key]) setTimeout(function(){jssCreateGrid(key);},80);
 });
 
+function jssColorAutoHeaders(key) {
+  var grd = GRIDS[key];
+  if (!grd || !grd.container) return;
+  var ths = grd.container.querySelectorAll('thead th.lg-auto');
+  ths.forEach(function(th) {
+    th.style.transition = 'background 0.4s';
+    th.style.background = '#D5EDE8';
+    setTimeout(function() { th.style.background = ''; }, 1200);
+  });
+}
+
 function jssGetProdutoGrupos(){
   var src=(FULL_DATA.produto&&FULL_DATA.produto.length>0)?FULL_DATA.produto:(GRID_DATA_STORE.produto||[]);
   var seenG={},seenS={},grupos=[],subgrupos=[];

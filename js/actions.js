@@ -55,8 +55,16 @@ function exportarCSV() {
     return obj;
   });
 
-  // Usa PapaParse para gerar o arquivo CSV limpo
-  const csv  = Papa.unparse(rows, { delimiter: ';' });
+  const escCsv = v => {
+    const s = String(v === null || v === undefined ? '' : v);
+    return s.includes(';') || s.includes('"') || s.includes('\n')
+      ? '"' + s.replace(/"/g, '""') + '"'
+      : s;
+  };
+  const csv = [
+    headers.map(escCsv).join(';'),
+    ...rows.map(r => headers.map(h => escCsv(r[h])).join(';'))
+  ].join('\r\n');
   const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href     = URL.createObjectURL(blob);

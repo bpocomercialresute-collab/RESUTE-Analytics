@@ -6,8 +6,18 @@ function parseBody(body) {
   return body;
 }
 
+function setCorsHeaders(req, res) {
+  const allowed = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+    : [];
+  const origin = req.headers.origin || '';
+  const corsOrigin = allowed.length === 0 || allowed.includes(origin) ? origin : '';
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin || '*');
+  res.setHeader('Vary', 'Origin');
+}
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  setCorsHeaders(req, res);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
