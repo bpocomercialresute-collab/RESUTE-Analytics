@@ -8,6 +8,15 @@ function setCorsHeaders(req, res) {
   res.setHeader('Vary', 'Origin');
 }
 
+function isOriginAllowed(req) {
+  const allowed = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+    : [];
+  if (!allowed.length) return true; // sem restrição configurada (dev/preview)
+  const origin = req.headers.origin || req.headers.referer || '';
+  return allowed.some(o => origin === o || origin.startsWith(o + '/'));
+}
+
 const ALLOWED_SUPABASE_PATHS = [
   '/rest/v1/vendas',
   '/rest/v1/usuarios',
@@ -54,6 +63,28 @@ const VISUAL_CADASTRO_PATHS = new Set([
 const VISUAL_LOGIN_TOKEN_CACHE = new Map();
 const VISUAL_AUTH_CACHE = new Map();
 const CACHE_MAX_SIZE = 200;
+
+const RATE_LIMIT_MAP = new Map();
+const RATE_LIMIT_MAX = 120;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+
+function checkRateLimit(key) {
+  const now = Date.now();
+  const entry = RATE_LIMIT_MAP.get(key) || { count: 0, windowStart: now };
+  if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+    entry.count = 1;
+    entry.windowStart = now;
+  } else {
+    entry.count += 1;
+  }
+  RATE_LIMIT_MAP.set(key, entry);
+  if (RATE_LIMIT_MAP.size > 2000) {
+    for (const [k, v] of RATE_LIMIT_MAP.entries()) {
+      if (now - v.windowStart > RATE_LIMIT_WINDOW_MS) RATE_LIMIT_MAP.delete(k);
+    }
+  }
+  return entry.count <= RATE_LIMIT_MAX;
+}
 
 function cacheSet(map, key, value) {
   if (map.size >= CACHE_MAX_SIZE) {
@@ -647,17 +678,20 @@ async function writeAdminAudit(env, appUser, event) {
     resumo: String(event.summary || 'Acao administrativa executada'),
     metadados: event.metadata && typeof event.metadata === 'object' ? event.metadata : {}
   };
-  try {
-    await fetch(`${env.supaUrl}/rest/v1/admin_audit_log`, {
-      method: 'POST',
-      headers: {
-        ...adminActionHeaders(env, 'application/json'),
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify(payload)
-    });
-  } catch (error) {
-    // Audit is optional until docs/supabase-admin-audit.sql is reviewed and run.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const r = await fetch(`${env.supaUrl}/rest/v1/admin_audit_log`, {
+        method: 'POST',
+        headers: {
+          ...adminActionHeaders(env, 'application/json'),
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(payload)
+      });
+      if (r.ok || r.status < 500) return;
+    } catch (error) {
+      if (attempt === 1) console.error('[audit] Falha definitiva ao registrar:', event.action, error && error.message);
+    }
   }
 }
 
@@ -1125,6 +1159,23 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Metodo nao permitido' });
+
+  if (!isOriginAllowed(req)) {
+    return res.status(403).json({ erro: 'Origem nao autorizada.' });
+  }
+
+  const xrw = req.headers['x-requested-with'] || '';
+  if (xrw.toLowerCase() !== 'xmlhttprequest') {
+    return res.status(403).json({ erro: 'Requisicao nao autorizada.' });
+  }
+
+  const rateLimitKey = req.headers['x-session-token']
+    || (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+    || req.socket?.remoteAddress
+    || 'unknown';
+  if (!checkRateLimit(rateLimitKey)) {
+    return res.status(429).json({ erro: 'Muitas requisições. Aguarde um momento e tente novamente.' });
+  }
 
   const env = {
     supaUrl: process.env.SUPABASE_URL,

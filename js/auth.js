@@ -67,7 +67,8 @@ async function _fetchApiProxy(apiUrl, path, token, extraHeaders) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-session-token': _getSessionToken()
+      'x-session-token': _getSessionToken(),
+      'X-Requested-With': 'XMLHttpRequest'
     },
     body: JSON.stringify({
       url: apiUrl + path,
@@ -117,11 +118,12 @@ window.fetch = function(input, init) {
     (_activeApiUrl && url.indexOf(_activeApiUrl + '/') === 0)
   ) {
     _touchSession();
-    return NATIVE_FETCH('/api/secure-proxy', {
+    var proxyOpts = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-session-token': _getSessionToken()
+        'x-session-token': _getSessionToken(),
+        'X-Requested-With': 'XMLHttpRequest'
       },
       body: JSON.stringify({
         url: url,
@@ -129,7 +131,9 @@ window.fetch = function(input, init) {
         headers: _normalizeFetchHeaders(opts.headers),
         body: opts.body || null
       })
-    });
+    };
+    if (opts.signal) proxyOpts.signal = opts.signal;
+    return NATIVE_FETCH('/api/secure-proxy', proxyOpts);
   }
 
   return NATIVE_FETCH(input, init);
@@ -354,6 +358,11 @@ function abrirPainelClienteAdmin(empresaId) {
   DC_IS_LOADING = false;
   DC_RAW = [];
   DC_DATA = [];
+  Object.keys(DC_CHARTS || {}).forEach(function(key) {
+    try { if (DC_CHARTS[key] && typeof DC_CHARTS[key].destroy === 'function') DC_CHARTS[key].destroy(); } catch (e) {}
+    delete DC_CHARTS[key];
+  });
+  if (DC_ABORT_CONTROLLER) { try { DC_ABORT_CONTROLLER.abort(); } catch (e) {} DC_ABORT_CONTROLLER = null; }
   dcLoading(false);
   _abrirDashCliente(empresaId);
 }
@@ -574,6 +583,7 @@ async function fazerLogin() {
 function fazerLogout() {
   SESSION = null; EMPRESAS = [];
   _clearStoredSession();
+  if (DC_ABORT_CONTROLLER) { try { DC_ABORT_CONTROLLER.abort(); } catch (e) {} DC_ABORT_CONTROLLER = null; }
   DC_LOAD_SEQUENCE += 1;
   DC_ACTIVE_COMPANY = '';
   DC_IS_LOADING = false;
@@ -943,6 +953,7 @@ var DC_LOADING_TIMER = null;
 var DC_IS_LOADING = false;
 var DC_ADMIN_PREVIEW = false;
 var DC_ADMIN_PREVIEW_COMPANY = null;
+var DC_ABORT_CONTROLLER = null; // cancela fetches obsoletos ao trocar empresa
 
 var MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 var MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -1084,7 +1095,7 @@ function cliAba(btn, id) {
 // =============================================================================
 // PAGINAÇÃO — busca TODOS os registros do Supabase em lotes de 1000
 // =============================================================================
-async function _fetchAll(baseUrl, headers) {
+async function _fetchAll(baseUrl, headers, signal) {
   var all = [];
   var from = 0;
   var pageSize = 1000;
@@ -1092,12 +1103,15 @@ async function _fetchAll(baseUrl, headers) {
   var maxPaginas = 200; // limite de segurança: 200k registros
 
   while (tentativas < maxPaginas) {
-    var r = await fetch(baseUrl, {
+    var fetchOpts = {
       headers: Object.assign({}, headers, {
         'Range': from + '-' + (from + pageSize - 1),
         'Range-Unit': 'items'
       })
-    });
+    };
+    if (signal) fetchOpts.signal = signal;
+
+    var r = await fetch(baseUrl, fetchOpts);
 
     if (!r.ok && r.status !== 206) {
       console.error('[fetchAll] Erro HTTP', r.status, 'na página', tentativas);
@@ -1113,6 +1127,13 @@ async function _fetchAll(baseUrl, headers) {
     // Se veio menos que pageSize, chegou ao fim
     if (batch.length < pageSize) break;
     from += pageSize;
+  }
+
+  if (tentativas >= maxPaginas) {
+    console.warn('[fetchAll] Limite de ' + maxPaginas + ' páginas atingido (' + all.length + ' registros). Empresa pode ter mais de 200k registros — dados parciais.');
+    if (typeof toast === 'function') {
+      toast('⚠ Carregamento parcial: mais de 200k registros. Entre em contato com o suporte.', 'warn', 8000);
+    }
   }
 
   return all;
@@ -1145,6 +1166,14 @@ async function dcCarregarDados(empresa_id_param) {
     DC_RAW = [];
     DC_DATA = [];
   }
+
+  // Cancela fetch anterior ao trocar de empresa
+  if (DC_ABORT_CONTROLLER) {
+    try { DC_ABORT_CONTROLLER.abort(); } catch (e) {}
+  }
+  DC_ABORT_CONTROLLER = new AbortController();
+  var currentSignal = DC_ABORT_CONTROLLER.signal;
+
   var loadSequence = ++DC_LOAD_SEQUENCE;
   DC_ACTIVE_COMPANY = eid;
   DC_IS_LOADING = true;
@@ -1155,7 +1184,7 @@ async function dcCarregarDados(empresa_id_param) {
     // Busca qual origem o admin configurou para este cliente ver
     var origemR = await dcComTimeout(
       fetch(SUPA_URL + '/rest/v1/empresas?id=eq.' + eid + '&select=exibir_origem',
-        { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }),
+        { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }, signal: currentSignal }),
       20000,
       'A consulta da empresa demorou mais que o esperado.'
     );
@@ -1172,7 +1201,8 @@ async function dcCarregarDados(empresa_id_param) {
     var vendas = await dcComTimeout(
       _fetchAll(
         SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid + '&origem=eq.' + exibir + '&select=*&order=dt_saida.asc',
-        { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
+        { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY },
+        currentSignal
       ),
       60000,
       'O carregamento dos registros demorou mais de 60 segundos.'
@@ -1210,6 +1240,7 @@ async function dcCarregarDados(empresa_id_param) {
     dcStatus('✓ ' + vendas.length.toLocaleString('pt-BR') + ' registros carregados', true);
 
   } catch(e) {
+    if (e && e.name === 'AbortError') return; // fetch cancelado por nova requisição — silencioso
     dcStatus('✗ ' + e.message);
     console.error(e);
   } finally {

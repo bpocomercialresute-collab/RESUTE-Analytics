@@ -150,7 +150,8 @@ async function adminConsoleAction(action, payload) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-session-token': _getSessionToken()
+        'x-session-token': _getSessionToken(),
+        'X-Requested-With': 'XMLHttpRequest'
       },
       body: JSON.stringify({
         action: action,
