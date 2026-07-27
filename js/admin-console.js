@@ -1376,26 +1376,6 @@ function _adminConsoleSyncSelecionarEmpresa(empresaId) {
   }
 }
 
-function _adminConsoleSalvarNoBD() {
-  if (typeof adminSalvarBanco !== 'function') {
-    adminConsoleAviso('Função de salvar não disponível.', 'error'); return;
-  }
-  if (!window.EMPRESA_ATIVA) {
-    adminConsoleAviso('Selecione uma empresa no painel de sincronização primeiro.', 'error'); return;
-  }
-  adminSalvarBanco();
-}
-
-function _adminConsoleProcessarRelatorios() {
-  if (typeof adminProcessar !== 'function') {
-    adminConsoleAviso('Função de processar não disponível.', 'error'); return;
-  }
-  if (!window.EMPRESA_ATIVA) {
-    adminConsoleAviso('Selecione uma empresa no painel de sincronização primeiro.', 'error'); return;
-  }
-  adminProcessar();
-}
-
 function adminConsoleAbrirSyncEmpresa(empresaId) {
   adminConsoleAbrir('sync');
   _adminConsoleSyncPopularEmpresas();
