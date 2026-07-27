@@ -145,9 +145,8 @@ function _clearStoredSession() {
 function _sessionTick() {
   if (!SESSION || !SESSION.token) return;
   if (!SESSION.expires_at || SESSION.expires_at < Date.now()) {
-    alert('Sua sessão expirou. Faça login novamente.');
+    toast('Sessão expirada. Faça login novamente.', 'warn', 5000);
     fazerLogout();
-    _mostrarLogin();
     return;
   }
 }
@@ -517,7 +516,7 @@ async function fazerLogin() {
   var erro  = _loginCampo('login-erro', 'login-modal-erro');
   var btn   = _loginCampo('login-btn', 'login-modal-btn');
   var email = emailEl ? emailEl.value.trim() : '';
-  var senha = senhaEl ? senhaEl.value.trim() : '';
+  var senha = senhaEl ? senhaEl.value : '';
 
   if (erro) erro.textContent = '';
   if (!email || !senha) {
