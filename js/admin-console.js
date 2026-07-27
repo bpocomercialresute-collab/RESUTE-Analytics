@@ -1295,54 +1295,124 @@ document.addEventListener('keydown', function(event) {
 
 // ── SYNC DIRETO DO ADMIN CONSOLE ─────────────────────────────────────────────
 
-function adminConsoleAbrirSyncEmpresa(empresaId) {
-  var eid = empresaId
-    || (function(){ var s = document.getElementById('admin-sync-company'); return s && s.value; }())
-    || '';
-  if (!eid) {
-    var first = (ADMIN_CONSOLE.companies || []).find(function(c){ return c.ativo !== false && c.exibir_origem === 'api'; });
-    eid = first ? (first.id || first.empresa_id) : '';
+function _adminConsoleSyncPopularEmpresas() {
+  var host = document.getElementById('adm-sync-empresa-btns');
+  if (!host) return;
+  var companies = (ADMIN_CONSOLE.companies || []).filter(function(c) { return c.ativo !== false; });
+  if (!companies.length) {
+    host.innerHTML = '<div class="adm-sync-no-companies">Nenhuma empresa cadastrada.</div>';
+    return;
   }
-  if (!eid) { adminConsoleAviso('Selecione uma empresa com API configurada.', 'error'); return; }
+  host.innerHTML = companies.map(function(c) {
+    var id = String(c.id || c.empresa_id || '');
+    var hasApi = String(c.exibir_origem || '').toLowerCase() === 'api';
+    return '<button class="adm-sync-empresa-btn' + (hasApi ? ' tem-api' : '') + '" '
+      + 'onclick="_adminConsoleSyncSelecionarEmpresa(\'' + adminConsoleEscape(id) + '\')" '
+      + 'data-empresa-id="' + adminConsoleEscape(id) + '">'
+      + '<span class="adm-sync-btn-nome">' + adminConsoleEscape(c.nome || id) + '</span>'
+      + (hasApi
+          ? '<span class="adm-sync-api-badge">API</span>'
+          : '<span class="adm-sync-sem-api-badge">Sem API</span>')
+      + '</button>';
+  }).join('');
+}
 
+function _adminConsoleSyncSelecionarEmpresa(empresaId) {
+  var eid = String(empresaId || '');
   var empresa = (ADMIN_CONSOLE.companies || []).find(function(c) {
-    return String(c.id || c.empresa_id) === String(eid);
+    return String(c.id || c.empresa_id) === eid;
   });
+  if (!empresa) return;
+
+  // Destaca botão ativo
+  var btns = document.querySelectorAll('#adm-sync-empresa-btns .adm-sync-empresa-btn');
+  btns.forEach(function(b) {
+    b.classList.toggle('ativo', b.getAttribute('data-empresa-id') === eid);
+  });
+
+  var hasApi = String(empresa.exibir_origem || '').toLowerCase() === 'api';
   var integration = (ADMIN_CONSOLE.integrations || []).find(function(a) {
-    return String(a.empresa_id) === String(eid) && a.ativo !== false;
+    return String(a.empresa_id) === eid && a.ativo !== false;
   });
-  if (empresa) {
-    if (typeof EMPRESA_ATIVA !== 'undefined') {
-      EMPRESA_ATIVA = {
-        empresa_id: eid,
-        nome: empresa.nome || 'Empresa',
-        slug: empresa.slug || null,
-        tem_api: true,
-        sistema: integration ? integration.sistema : null,
-        exibir_origem: 'api'
-      };
+
+  // Atualiza EMPRESA_ATIVA para que adminSincronizar funcione corretamente
+  if (typeof EMPRESA_ATIVA !== 'undefined') {
+    EMPRESA_ATIVA = {
+      empresa_id: eid,
+      nome: empresa.nome || 'Empresa',
+      slug: empresa.slug || null,
+      tem_api: hasApi,
+      sistema: integration ? integration.sistema : null,
+      exibir_origem: empresa.exibir_origem || 'manual'
+    };
+  }
+
+  var panel = document.getElementById('adm-sync-empresa-panel');
+  var noApi = document.getElementById('adm-sync-no-api');
+  var nomeDisplay = document.getElementById('adm-sync-empresa-nome-display');
+  if (nomeDisplay) nomeDisplay.textContent = empresa.nome || eid;
+
+  if (hasApi) {
+    if (panel) panel.style.display = '';
+    if (noApi) noApi.style.display = 'none';
+    // Módulos em estado pendente imediato
+    if (typeof _adminRenderApiModules === 'function') {
+      _adminRenderApiModules({
+        vendas:          { pending: true, count: 0, message: 'Histórico de vendas por período selecionado.' },
+        clientes:        { pending: true, count: 0, message: 'Cadastros para enriquecer cidade, setor e ciclo.' },
+        produtos:        { pending: true, count: 0, message: 'Cadastros para enriquecer grupo, marca e mix.' },
+        representantes:  { pending: true, count: 0, message: 'Equipe comercial para cobertura regional.' }
+      });
     }
+    if (typeof _adminPreencherPeriodoSync === 'function') _adminPreencherPeriodoSync(eid);
+    if (typeof _adminAutoSyncCarregarConfig === 'function') _adminAutoSyncCarregarConfig(eid);
+    // Contagens reais do banco em background
+    setTimeout(function() {
+      if (typeof _adminCarregarCadastrosApiSalvos === 'function') _adminCarregarCadastrosApiSalvos();
+    }, 400);
+  } else {
+    if (panel) panel.style.display = 'none';
+    if (noApi) noApi.style.display = '';
   }
+}
 
+function _adminConsoleSalvarNoBD() {
+  if (typeof _adminCarregarCadastrosApiSalvos !== 'function') {
+    adminConsoleAviso('Função indisponível.', 'error'); return;
+  }
+  adminConsoleAviso('Salvando dados no banco de dados...', 'info');
+  _adminCarregarCadastrosApiSalvos()
+    .then(function() { adminConsoleAviso('Dados salvos com sucesso.', 'success'); })
+    .catch(function(e) { adminConsoleAviso('Falha ao salvar: ' + (e.message || e), 'error'); });
+}
+
+function _adminConsoleProcessarRelatorios() {
+  if (typeof _adminCarregarCadastrosApiSalvos !== 'function') {
+    adminConsoleAviso('Função indisponível.', 'error'); return;
+  }
+  adminConsoleAviso('Processando relatórios...', 'info');
+  _adminCarregarCadastrosApiSalvos()
+    .then(function() { adminConsoleAviso('Relatórios processados.', 'success'); })
+    .catch(function(e) { adminConsoleAviso('Falha ao processar: ' + (e.message || e), 'error'); });
+}
+
+function adminConsoleAbrirSyncEmpresa(empresaId) {
   adminConsoleAbrir('sync');
-  if (typeof _adminRenderSyncEmpresaSelect === 'function') _adminRenderSyncEmpresaSelect();
-  if (typeof _adminSyncAtualizarSelect === 'function') _adminSyncAtualizarSelect(eid);
-  if (typeof _adminAutoSyncCarregarConfig === 'function') _adminAutoSyncCarregarConfig(eid);
-  if (typeof _adminPreencherPeriodoSync === 'function') _adminPreencherPeriodoSync();
+  _adminConsoleSyncPopularEmpresas();
 
-  // Mostra cards de módulos em estado "aguardando" antes do primeiro sync
-  if (typeof _adminRenderApiModules === 'function') {
-    _adminRenderApiModules({
-      vendas: { pending: true, count: 0, message: 'Base principal de vendas — itens, clientes e representantes por data.' },
-      clientes: { pending: true, count: 0, message: 'Cadastros de clientes para enriquecer cidade, setor e ciclo.' },
-      produtos: { pending: true, count: 0, message: 'Cadastros de produtos para enriquecer grupo, marca e mix.' },
-      representantes: { pending: true, count: 0, message: 'Equipe comercial para cobertura e relatórios regionais.' }
+  // Auto-seleciona empresa: parâmetro > primeira API > primeira qualquer
+  var eid = String(empresaId || '');
+  if (!eid) {
+    var firstApi = (ADMIN_CONSOLE.companies || []).find(function(c) {
+      return c.ativo !== false && String(c.exibir_origem || '').toLowerCase() === 'api';
     });
+    eid = firstApi ? String(firstApi.id || firstApi.empresa_id) : '';
   }
-  // Carrega contagens reais salvas em background
-  if (typeof _adminCarregarCadastrosApiSalvos === 'function') {
-    setTimeout(function() { _adminCarregarCadastrosApiSalvos(); }, 300);
+  if (!eid) {
+    var firstAny = (ADMIN_CONSOLE.companies || []).find(function(c) { return c.ativo !== false; });
+    eid = firstAny ? String(firstAny.id || firstAny.empresa_id) : '';
   }
+  if (eid) setTimeout(function() { _adminConsoleSyncSelecionarEmpresa(eid); }, 50);
 }
 
 async function adminConsoleDispararSyncEmpresa(empresaId) {
