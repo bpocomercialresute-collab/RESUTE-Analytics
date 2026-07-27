@@ -4207,20 +4207,6 @@ adminSincronizar = async function() {
       return;
     }
 
-    // Log dos campos do primeiro item (diagnóstico)
-    console.log('[SYNC] Campos:', JSON.stringify(Object.keys(lista[0])));
-    console.log('[SYNC] 1o item raw:', JSON.stringify(lista[0]));
-    console.log('[SYNC] 2o item raw:', lista.length > 1 ? JSON.stringify(lista[1]) : 'N/A');
-    // Salva amostra no banco para debug (consulte sync_log.mensagem)
-    try {
-      await fetch(SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ mensagem: 'CAMPOS_API:' + JSON.stringify(Object.keys(lista[0])) + ' | 1o:' + JSON.stringify(lista[0]).slice(0,500) })
-      });
-    } catch(e) { console.warn('debug log fail:', e); }
-    console.log('[SYNC] 1º item:', JSON.stringify(lista[0]));
-
     // Mapeamento
     var get = function(item, keys) {
       var lw = {};
@@ -4317,8 +4303,9 @@ adminSincronizar = async function() {
       _syncLog('Lote ' + loteNum + '/' + totalLotes + ' inserido — ' + inseridos + ' de ' + regs.length + ' registros');
     }
 
-    // Atualiza sync_log
-    await _adminAtualizarUltimSync(dataFim, inseridos);
+    // Atualiza sync_log com resumo útil
+    var periodoTexto = dataInicio.toLocaleDateString('pt-BR') + ' a ' + dataFim.toLocaleDateString('pt-BR');
+    await _adminAtualizarUltimSync(dataFim, inseridos, inseridos + ' registros inseridos — período: ' + periodoTexto + '.');
     await fetch(SUPA_URL + '/rest/v1/empresas?id=eq.' + EMPRESA_ATIVA.empresa_id, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' },
@@ -4360,10 +4347,22 @@ adminSincronizar = async function() {
 
     await _adminAtualizarContagens();
     _syncLog(inseridos.toLocaleString('pt-BR') + ' registros salvos no banco — relatórios atualizados!', 'ok');
+    _adminConsoleRecarregarSyncLog();
 
   } catch(e) {
     _syncLog('ERRO: ' + e.message, 'erro');
     console.error('[SYNC]', e);
+    // Registra erro no sync_log para aparecer no histórico
+    if (EMPRESA_ATIVA) {
+      try {
+        await fetch(SUPA_URL + '/rest/v1/sync_log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+          body: JSON.stringify({ empresa_id: EMPRESA_ATIVA.empresa_id, ultima_sync: new Date().toISOString(), total_registros: 0, status: 'erro', mensagem: e.message })
+        });
+      } catch(_) {}
+      _adminConsoleRecarregarSyncLog();
+    }
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -4394,14 +4393,33 @@ function _adminMostrarKpisSync(regs) {
   el.style.display = 'grid';
 }
 
-async function _adminAtualizarUltimSync(dataFim, total) {
+function _adminConsoleRecarregarSyncLog() {
+  // Re-busca sync_log e atualiza a tabela do histórico sem recarregar a página
+  if (typeof adminConsoleFetch !== 'function' || typeof adminConsoleFiltrarSync !== 'function') return;
+  adminConsoleFetch('/rest/v1/sync_log?select=*&order=ultima_sync.desc.nullslast')
+    .then(function(res) {
+      if (res && res.data) {
+        if (typeof ADMIN_CONSOLE !== 'undefined') {
+          ADMIN_CONSOLE.syncLogs = res.data;
+          adminConsoleFiltrarSync();
+        }
+      }
+    })
+    .catch(function(e) { console.warn('Reload sync_log:', e); });
+}
+
+async function _adminAtualizarUltimSync(dataFim, total, mensagemExtra, statusVal) {
   try {
+    var agora = new Date();
+    var status = statusVal || 'ok';
+    var dataFimStr = dataFim instanceof Date ? dataFim.toISOString().split('T')[0] : String(dataFim || '');
+    var msg = mensagemExtra || (total + ' registros inseridos em ' + agora.toLocaleString('pt-BR') + '.');
     await fetch(SUPA_URL + '/rest/v1/sync_log', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({ empresa_id: EMPRESA_ATIVA.empresa_id, ultima_sync: new Date().toISOString(), ultima_data: dataFim.toISOString().split('T')[0], total_registros: total, status: 'ok' })
+      body: JSON.stringify({ empresa_id: EMPRESA_ATIVA.empresa_id, ultima_sync: agora.toISOString(), ultima_data: dataFimStr, total_registros: total, status: status, mensagem: msg })
     });
     var el = document.getElementById('adm-api-ultima');
-    if (el) el.textContent = 'Último sync: ' + new Date().toLocaleString('pt-BR') + ' — ' + total.toLocaleString('pt-BR') + ' registros';
+    if (el) el.textContent = 'Último sync: ' + agora.toLocaleString('pt-BR') + ' — ' + total.toLocaleString('pt-BR') + ' registros';
   } catch(e) { console.error(e); }
 }
