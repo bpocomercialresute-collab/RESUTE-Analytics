@@ -13,6 +13,8 @@ export default async function handler(req, res) {
 
   const SUPA_URL      = process.env.SUPABASE_URL;
   const SERVICE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  // TODO: dispatcher por sistema — quando outros ERPs forem integrados, buscar sistema
+  // da api_config e rotear para edge function correspondente (sync-bling, sync-winthor, etc.)
   const EDGE_SYNC_URL = `${SUPA_URL}/functions/v1/sync-visual-saef`;
 
   try {

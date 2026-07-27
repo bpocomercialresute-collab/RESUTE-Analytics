@@ -525,6 +525,48 @@ async function ensureVisualSaefAuthorization(env, visualToken, codigoEmpresa) {
   return value;
 }
 
+async function proxyExternalGeneric(req, res, targetUrl, method, incomingHeaders, body, empresaId, env) {
+  const sessionToken = req.headers['x-session-token']
+    || String(incomingHeaders['authorization'] || '').replace(/^Bearer\s+/i, '');
+  const appUser = await getAppUser(sessionToken, env.supaUrl, env.anonKey, env.serviceKey);
+  if (!appUser) return res.status(401).json({ erro: 'Sessao invalida.' });
+  if (appUser.papel !== 'super_admin') {
+    return res.status(403).json({ erro: 'Apenas super_admin pode acessar APIs externas.' });
+  }
+  if (!empresaId) return res.status(400).json({ erro: 'empresa_id obrigatorio para proxying externo.' });
+
+  // Busca api_url autorizada para esta empresa
+  const cfgResp = await fetch(
+    `${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(empresaId)}&ativo=eq.true&select=api_url,sistema&limit=1`,
+    { headers: { 'apikey': env.serviceKey, 'Authorization': `Bearer ${env.serviceKey}` } }
+  );
+  const cfgData = cfgResp.ok ? await cfgResp.json() : [];
+  const authorizedUrl = cfgData && cfgData[0] && cfgData[0].api_url ? cfgData[0].api_url.replace(/\/$/, '') : null;
+  if (!authorizedUrl) {
+    return res.status(403).json({ erro: 'Nenhuma API configurada e ativa para esta empresa.' });
+  }
+  if (!targetUrl.href.startsWith(authorizedUrl + '/') && targetUrl.href !== authorizedUrl) {
+    return res.status(403).json({ erro: 'URL nao autorizada para esta empresa.' });
+  }
+
+  const forwardHeaders = {
+    'Accept': incomingHeaders['accept'] || 'application/json'
+  };
+  if (incomingHeaders['authorization']) forwardHeaders['Authorization'] = incomingHeaders['authorization'];
+  if (incomingHeaders['x-visual-codigo-empresa']) forwardHeaders['x-visual-codigo-empresa'] = incomingHeaders['x-visual-codigo-empresa'];
+  if (incomingHeaders['content-type']) forwardHeaders['Content-Type'] = incomingHeaders['content-type'];
+
+  const upstream = await fetch(targetUrl.href, {
+    method,
+    headers: forwardHeaders,
+    ...(body && method !== 'GET' && method !== 'HEAD' ? { body } : {})
+  });
+  const text = await upstream.text();
+  res.status(upstream.status);
+  res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json; charset=utf-8');
+  return res.send(text);
+}
+
 async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env) {
   const sessionToken = req.headers['x-session-token']
     || String(incomingHeaders['authorization'] || '').replace(/^Bearer\s+/i, '');
@@ -1100,7 +1142,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ erro: 'Variaveis seguras do Supabase nao configuradas na Vercel.' });
   }
 
-  const { action, payload, url, method, headers, body } = req.body || {};
+  const { action, payload, url, method, headers, body, empresa_id } = req.body || {};
   if (action) {
     try {
       return await handleAdminAction(req, res, String(action), payload, env);
@@ -1124,12 +1166,14 @@ export default async function handler(req, res) {
 
     if (targetUrl.origin === visualOrigin) {
       if (!env.visualClientId || !env.visualClientSecret) {
-        return res.status(500).json({ erro: 'Credenciais da API externa nao configuradas na Vercel.' });
+        return res.status(500).json({ erro: 'Credenciais da API Visual Saef nao configuradas na Vercel.' });
       }
       return await proxyVisualSaef(req, res, targetUrl, httpMethod, incomingHeaders, env);
     }
 
-    return res.status(403).json({ erro: 'Origem nao permitida.' });
+    // API externa de outro sistema (Bling, Winthor, Omie, TOTVS, etc.)
+    // Valida contra a api_url configurada para a empresa antes de proxiar
+    return await proxyExternalGeneric(req, res, targetUrl, httpMethod, incomingHeaders, body, empresa_id || null, env);
   } catch (e) {
     return res.status(500).json({ erro: e.message });
   }

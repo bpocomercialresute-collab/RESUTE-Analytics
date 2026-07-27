@@ -5,7 +5,7 @@
 const SUPA_URL = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
 const SUPA_KEY = '__SERVER_ONLY__';
 const SVC_KEY  = '__SERVER_ONLY__';
-const VISUAL_SAEF_API_URL = 'https://api-plastrio.visualsaef.com';
+// API URL vem de EMPRESA_ATIVA.api_url (configurada por empresa no admin)
 
 const NATIVE_FETCH = window.fetch.bind(window);
 
@@ -50,7 +50,7 @@ function _normalizeFetchHeaders(headers) {
   return headers;
 }
 
-async function _fetchVisualSaefProxy(path, token, extraHeaders) {
+async function _fetchApiProxy(apiUrl, path, token, extraHeaders) {
   var headers = { Accept: 'application/json' };
   if (token) headers.Authorization = 'Bearer ' + token;
   var codigoEmpresa = _getVisualCodigoEmpresa();
@@ -70,15 +70,16 @@ async function _fetchVisualSaefProxy(path, token, extraHeaders) {
       'x-session-token': _getSessionToken()
     },
     body: JSON.stringify({
-      url: VISUAL_SAEF_API_URL + path,
+      url: apiUrl + path,
       method: 'GET',
       headers: headers,
-      body: null
+      body: null,
+      empresa_id: EMPRESA_ATIVA ? EMPRESA_ATIVA.empresa_id : null
     })
   });
 }
 
-async function _fetchVisualSaefDirect(path, token, extraHeaders) {
+async function _fetchApiDirect(apiUrl, path, token, extraHeaders) {
   var headers = { Accept: 'application/json' };
   if (token) headers.Authorization = 'Bearer ' + token;
   var codigoEmpresa = _getVisualCodigoEmpresa();
@@ -91,7 +92,7 @@ async function _fetchVisualSaefDirect(path, token, extraHeaders) {
     }
   });
 
-  return NATIVE_FETCH(VISUAL_SAEF_API_URL + path, {
+  return NATIVE_FETCH(apiUrl + path, {
     method: 'GET',
     headers: headers
   });
@@ -109,10 +110,11 @@ window.fetch = function(input, init) {
     });
   }
 
+  var _activeApiUrl = EMPRESA_ATIVA && EMPRESA_ATIVA.api_url ? EMPRESA_ATIVA.api_url : null;
   if (
     url.indexOf(SUPA_URL + '/rest/v1/') === 0 ||
     url.indexOf(SUPA_URL + '/functions/v1/') === 0 ||
-    url.indexOf(VISUAL_SAEF_API_URL + '/') === 0
+    (_activeApiUrl && url.indexOf(_activeApiUrl + '/') === 0)
   ) {
     _touchSession();
     return NATIVE_FETCH('/api/secure-proxy', {
@@ -757,6 +759,7 @@ async function sincronizarAPI() {
       ? new Date(logD[0].ultima_data).toLocaleDateString('pt-BR') : 'nunca';
     _setStatus('⏳ ' + emp.nome + ' — último sync: ' + ultima, '');
 
+    // TODO: substituir edge function por dispatcher genérico quando outros sistemas forem integrados
     var r = await fetch(SUPA_URL + '/functions/v1/sync-visual-saef', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SVC_KEY },
@@ -2770,15 +2773,16 @@ async function _vsFetchCandidate(token, endpoint, params) {
   // e o corpo ainda vem em JSON serializado. Mantemos esse formato aqui
   // para replicar exatamente a chamada validada manualmente.
   var codigoEmpresa = _getVisualCodigoEmpresa();
+  var _vsApiUrl = (EMPRESA_ATIVA && EMPRESA_ATIVA.api_url || '').replace(/\/$/, '');
   var useProxyFirst = !!codigoEmpresa;
   var firstResp = null;
   var firstText = '';
   var firstPayload = null;
-  var firstRunner = useProxyFirst ? _fetchVisualSaefProxy : _fetchVisualSaefDirect;
-  var secondRunner = useProxyFirst ? _fetchVisualSaefDirect : _fetchVisualSaefProxy;
+  var firstRunner = useProxyFirst ? _fetchApiProxy : _fetchApiDirect;
+  var secondRunner = useProxyFirst ? _fetchApiDirect : _fetchApiProxy;
 
   try {
-    firstResp = await firstRunner(path, token, { Accept: 'text/plain' });
+    firstResp = await firstRunner(_vsApiUrl, path, token, { Accept: 'text/plain' });
     firstText = await firstResp.text();
     try { firstPayload = firstText ? JSON.parse(firstText) : []; } catch (e) { firstPayload = firstText; }
     if (firstResp.ok) {
@@ -2788,7 +2792,7 @@ async function _vsFetchCandidate(token, endpoint, params) {
     firstResp = null;
   }
 
-  var resp = await secondRunner(path, token, { Accept: 'text/plain' });
+  var resp = await secondRunner(_vsApiUrl, path, token, { Accept: 'text/plain' });
   var text = await resp.text();
   var payload = null;
   try { payload = text ? JSON.parse(text) : []; } catch (e) { payload = text; }
@@ -3675,6 +3679,68 @@ function _syncLog(msg, type) {
   else              _adminSetStatus('⏳ ' + msg);
 }
 
+// ── ADAPTERS DE INTEGRAÇÃO ─────────────────────────────────────────────────
+// Para adicionar novo sistema: copie o bloco visual_saef, implemente login e fetchVendas.
+var SYNC_ADAPTERS = {};
+
+SYNC_ADAPTERS.visual_saef = {
+  nome: 'Visual Saef',
+  login: async function(apiUrl) {
+    var r = await _fetchApiProxy(apiUrl, '/login', null, { Accept: 'application/json' });
+    if (!r.ok) throw new Error('Login Visual Saef falhou: HTTP ' + r.status);
+    var d = await r.json();
+    var token = d.token || d.Token || d.access_token || d.accessToken;
+    if (!token) throw new Error('Token não retornado. Campos: ' + Object.keys(d).join(','));
+    return token;
+  },
+  fetchVendas: async function(apiUrl, token, DI, DF) {
+    var r = await _fetchApiProxy(apiUrl, '/relacaovendaitem?DataInicio=' + DI + '&DataTermino=' + DF, token, { Accept: 'application/json' });
+    if (!r.ok) throw new Error('Busca de vendas falhou: HTTP ' + r.status);
+    var raw = await r.json();
+    return Array.isArray(raw) ? raw : (raw.data || raw.itens || raw.items || raw.result || raw.dados || []);
+  }
+};
+
+SYNC_ADAPTERS.bling = {
+  nome: 'Bling',
+  login: async function(apiUrl) {
+    throw new Error('Bling: autenticação não implementada. Implemente SYNC_ADAPTERS.bling.login quando o cliente for integrado.');
+  },
+  fetchVendas: async function(apiUrl, token, DI, DF) {
+    throw new Error('Bling: busca de vendas não implementada.');
+  }
+};
+
+SYNC_ADAPTERS.winthor = {
+  nome: 'Winthor',
+  login: async function(apiUrl) {
+    throw new Error('Winthor: autenticação não implementada.');
+  },
+  fetchVendas: async function(apiUrl, token, DI, DF) {
+    throw new Error('Winthor: busca de vendas não implementada.');
+  }
+};
+
+SYNC_ADAPTERS.omie = {
+  nome: 'Omie',
+  login: async function(apiUrl) {
+    throw new Error('Omie: autenticação não implementada.');
+  },
+  fetchVendas: async function(apiUrl, token, DI, DF) {
+    throw new Error('Omie: busca de vendas não implementada.');
+  }
+};
+
+SYNC_ADAPTERS.totvs = {
+  nome: 'TOTVS',
+  login: async function(apiUrl) {
+    throw new Error('TOTVS: autenticação não implementada.');
+  },
+  fetchVendas: async function(apiUrl, token, DI, DF) {
+    throw new Error('TOTVS: busca de vendas não implementada.');
+  }
+};
+
 // ── SYNC API — salva + gera relatórios ────────────────────────────────────────
 adminSincronizar = async function() {
   if (!EMPRESA_ATIVA || !EMPRESA_ATIVA.tem_api) return;
@@ -3702,21 +3768,19 @@ adminSincronizar = async function() {
       return String(d.getDate()).padStart(2,'0') + String(d.getMonth()+1).padStart(2,'0') + String(d.getFullYear());
     };
     var DI = fmt(dataInicio), DF = fmt(dataFim);
-    _syncLog('Iniciando sincronização — período: ' + DI + ' a ' + DF);
+    var sistema = ((EMPRESA_ATIVA.sistema || 'visual_saef') + '').toLowerCase();
+    var apiUrl  = (EMPRESA_ATIVA.api_url || '').replace(/\/$/, '');
+    var adapter = SYNC_ADAPTERS[sistema];
+    if (!adapter) throw new Error('Sistema "' + sistema + '" não tem adapter configurado. Adicione em SYNC_ADAPTERS.');
+    if (!apiUrl) throw new Error('URL da API não configurada para esta empresa. Configure em Integrações.');
 
-    // Login Visual Saef via proxy seguro
-    var lR = await _fetchVisualSaefProxy('/login', null, { Accept: 'application/json' });
-    if (!lR.ok) throw new Error('Login API falhou: HTTP ' + lR.status);
-    var lD = await lR.json();
-    var token = lD.token || lD.Token || lD.access_token || lD.accessToken;
-    if (!token) throw new Error('Token não retornado. Campos: ' + Object.keys(lD).join(','));
+    _syncLog('Iniciando sincronização — ' + (adapter.nome || sistema) + ' — período: ' + DI + ' a ' + DF);
+    _syncLog('API: ' + apiUrl);
+
+    var token = await adapter.login(apiUrl);
     _syncLog('Login na API OK — buscando dados...');
 
-    // Busca dados
-    var dR = await _fetchVisualSaefProxy('/relacaovendaitem?DataInicio=' + DI + '&DataTermino=' + DF, token, { Accept: 'application/json' });
-    if (!dR.ok) throw new Error('Busca falhou: HTTP ' + dR.status);
-    var raw = await dR.json();
-    var lista = Array.isArray(raw) ? raw : (raw.data || raw.itens || raw.items || raw.result || raw.dados || []);
+    var lista = await adapter.fetchVendas(apiUrl, token, DI, DF);
     _syncLog(lista.length + ' registros recebidos da API');
 
     if (!lista.length) {
@@ -3829,10 +3893,15 @@ adminSincronizar = async function() {
     });
     EMPRESA_ATIVA.exibir_origem = 'api';
 
-    // Enriquecer a base com cadastros auxiliares vindos da API dedicada
-    _syncLog('Sincronizando cadastros auxiliares (clientes, produtos, representantes)...');
-    await _adminLimparCadastrosApiSync();
-    var cadastrosResumo = await _adminSincronizarCadastrosApi(token, dataInicio, dataFim);
+    // Enriquecer a base com cadastros auxiliares (somente Visual Saef por enquanto)
+    var cadastrosResumo = {};
+    if (sistema === 'visual_saef') {
+      _syncLog('Sincronizando cadastros auxiliares (clientes, produtos, representantes)...');
+      await _adminLimparCadastrosApiSync();
+      cadastrosResumo = await _adminSincronizarCadastrosApi(token, dataInicio, dataFim);
+    } else {
+      _syncLog('Cadastros auxiliares disponíveis apenas para Visual Saef por enquanto.', 'warn');
+    }
 
     // Mostra KPIs e módulos do sync
     _adminMostrarKpisSync(regs, cadastrosResumo);

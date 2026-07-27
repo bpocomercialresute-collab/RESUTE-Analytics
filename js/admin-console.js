@@ -1227,8 +1227,20 @@ function adminConsoleIntegracaoModal(api, companyId) {
     : '<label class="admin-field"><span>Empresa</span><select name="empresa_id" required>' + adminConsoleCompanyOptions(selectedCompany, false) + '</select></label>';
   var html = '<div class="admin-form-grid">'
     + companyField
-    + '<label class="admin-field"><span>Sistema</span><input name="sistema" required value="' + adminConsoleEscape(api && api.sistema || 'visual_saef') + '"></label>'
-    + '<label class="admin-field admin-field-full"><span>URL da API</span><input name="api_url" type="url" required value="' + adminConsoleEscape(api && api.api_url || 'https://api-plastrio.visualsaef.com') + '"></label>'
+    + (function() {
+        var cur = api && api.sistema || 'visual_saef';
+        var opts = [
+          ['visual_saef', 'Visual Saef'],
+          ['bling',       'Bling'],
+          ['winthor',     'Winthor'],
+          ['omie',        'Omie'],
+          ['totvs',       'TOTVS']
+        ].map(function(o) {
+          return '<option value="' + o[0] + '"' + (cur === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+        }).join('');
+        return '<label class="admin-field"><span>Sistema</span><select name="sistema" required>' + opts + '</select></label>';
+      }())
+    + '<label class="admin-field admin-field-full"><span>URL da API</span><input name="api_url" type="url" required placeholder="https://api.seuservidor.com" value="' + adminConsoleEscape(api && api.api_url || '') + '"></label>'
     + '<label class="admin-field admin-field-switch"><input name="ativo" type="checkbox"' + (!api || api.ativo !== false ? ' checked' : '') + '><span>Integracao ativa</span></label>'
     + '</div><div class="admin-form-help">Client ID e Client Secret ficam protegidos nas variaveis de ambiente da Vercel. Este formulario nao recupera nem revela esses valores.</div>'
     + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Cancelar</button><button class="admin-btn-primary" type="submit">' + (editing ? 'Salvar configuracao' : 'Criar integracao') + '</button></div>';
@@ -1272,11 +1284,11 @@ async function adminConsoleTestarIntegracao(companyId, button) {
     button.disabled = true;
     button.textContent = 'Testando...';
   }
-  var companyName = companyId ? adminConsoleCompanyName(companyId) : 'Visual Saef';
+  var companyName = companyId ? adminConsoleCompanyName(companyId) : 'empresa';
   adminConsoleAviso('Testando comunicacao segura com ' + companyName + '...', 'info');
   try {
     var result = await adminConsoleAction('admin-integration-test', { empresa_id: companyId || null });
-    adminConsoleTrackActivity('integracao', 'Teste de API concluido', result.mensagem || 'Visual Saef respondeu corretamente');
+    adminConsoleTrackActivity('integracao', 'Teste de API concluido', result.mensagem || 'API respondeu corretamente');
     adminConsoleAviso(result.mensagem || 'Conexao validada com sucesso.', 'success');
   } catch (error) {
     adminConsoleTrackActivity('integracao', 'Falha no teste de API', error.message);
