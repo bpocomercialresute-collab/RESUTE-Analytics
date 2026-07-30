@@ -208,10 +208,20 @@ function abrirAnaliseVendas() {
     return;
   }
   if (SESSION.papel === 'cliente') {
-    _abrirDashCliente();
+    _abrirModuloPadrao();
     return;
   }
   abrirSeletorEmpresasCliente();
+}
+
+/** Abre o painel do cliente no módulo contratado (comercial e/ou financeiro). */
+function _abrirModuloPadrao(empresaIdPreview) {
+  if (typeof abrirModulo === 'function' && typeof moduloPadrao === 'function') {
+    abrirModulo(moduloPadrao(), { empresaIdPreview: empresaIdPreview || null });
+    return;
+  }
+  // Fallback defensivo: se js/modulos.js não carregou, mantém o comportamento antigo.
+  _abrirDashCliente(empresaIdPreview);
 }
 
 function _adminPreviewEscape(value) {
@@ -231,7 +241,7 @@ async function abrirSeletorEmpresasCliente(force) {
     return;
   }
   if (SESSION.papel !== 'super_admin') {
-    _abrirDashCliente();
+    _abrirModuloPadrao();
     return;
   }
 
@@ -240,8 +250,12 @@ async function abrirSeletorEmpresasCliente(force) {
   document.body.classList.remove('client-report-mode');
   document.body.classList.add('bpo-admin-mode');
 
-  var dashboard = document.getElementById('view-dash-cliente');
-  if (dashboard) dashboard.style.display = 'none';
+  if (typeof financeiroDestruir === 'function') financeiroDestruir();
+  if (typeof MODULO_ATIVO !== 'undefined') MODULO_ATIVO = null;
+  ['view-dash-cliente', 'view-dash-financeiro'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
   var sidebar = document.getElementById('sidebar');
   var wrapper = document.getElementById('cui-wrapper');
   if (sidebar) sidebar.style.display = 'flex';
@@ -364,7 +378,7 @@ function abrirPainelClienteAdmin(empresaId) {
   });
   if (DC_ABORT_CONTROLLER) { try { DC_ABORT_CONTROLLER.abort(); } catch (e) {} DC_ABORT_CONTROLLER = null; }
   dcLoading(false);
-  _abrirDashCliente(empresaId);
+  _abrirModuloPadrao(empresaId);
 }
 
 function dcVoltarAoAdmin() {
@@ -562,7 +576,11 @@ async function fazerLogin() {
       empresa_ids: empresaIds || (d.empresa_id ? [d.empresa_id] : null),
       empresa_nome:d.empresa_nome || 'RESUTE',
       empresa_slug:d.empresa_slug || null,
-      empresa_codigo:d.empresa_codigo || null
+      empresa_codigo:d.empresa_codigo || null,
+      // Módulos SaaS contratados. Só orientam a UI — o gate real é a RLS +
+      // o secure-proxy. Ver o aviso no topo de js/modulos.js.
+      modulos:     Array.isArray(d.modulos) && d.modulos.length ? d.modulos : ['comercial'],
+      modulo_padrao: d.modulo_padrao || 'comercial'
     };
     _saveSession(SESSION);
     fecharLogin();
@@ -598,15 +616,20 @@ function fazerLogout() {
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
-  var vc = document.getElementById('view-dash-cliente');
-  if (vc) vc.style.display = 'none';
+  if (typeof resetarModulos === 'function') resetarModulos();
+  ['view-dash-cliente', 'view-dash-financeiro'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
   _mostrarLogin();
 }
 
 function _abrirApp() {
   _touchSession();
-  var vc = document.getElementById('view-dash-cliente');
-  if (vc) vc.style.display = 'none';
+  ['view-dash-cliente', 'view-dash-financeiro'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
   var ov = document.getElementById('sidebar-overlay');
   if (ov) ov.classList.remove('active');
   document.body.classList.remove('client-report-mode');
@@ -616,9 +639,9 @@ function _abrirApp() {
   var lp = document.getElementById('view-login-page');
   if (lp) lp.style.display = 'none';
 
-  // Cliente → dashboard executivo
+  // Cliente → painel executivo do módulo contratado
   if (SESSION.papel === 'cliente') {
-    _abrirDashCliente();
+    _abrirModuloPadrao();
     return;
   }
 
@@ -966,6 +989,9 @@ function _abrirDashCliente(empresaIdPreview) {
     : null;
   DC_ADMIN_PREVIEW = previewAdmin;
   DC_ADMIN_PREVIEW_COMPANY = empresaPreview || null;
+  if (typeof MODULOS !== 'undefined') MODULO_ATIVO = MODULOS.COMERCIAL;
+  var vf = document.getElementById('view-dash-financeiro');
+  if (vf) vf.style.display = 'none';
   document.body.classList.remove('bpo-admin-mode');
   // Esconde login page e layout admin
   var lp = document.getElementById('view-login-page');
@@ -980,6 +1006,9 @@ function _abrirDashCliente(empresaIdPreview) {
   // Mostra dashboard
   var vc = document.getElementById('view-dash-cliente');
   if (vc) vc.style.display = 'flex';
+
+  // Seletor de módulos (só aparece quando a empresa contratou mais de um)
+  if (typeof renderizarSeletorModulos === 'function') renderizarSeletorModulos();
 
   // Multi-loja: monta seletor se houver mais de uma empresa
   var ids = previewAdmin ? [empresaIdPreview] : SESSION.empresa_ids;
@@ -2476,6 +2505,26 @@ async function _adminCarregarEmpresasMeta() {
     });
     var apiConfigs = await apiResp.json();
 
+    // Contratos de módulo — falha aqui não pode derrubar o painel admin
+    var modulosPorEmpresa = {};
+    try {
+      var modResp = await fetch(SUPA_URL + '/rest/v1/empresa_modulos?select=empresa_id,modulo,ativo,expira_em', {
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
+      });
+      var modRows = await modResp.json();
+      if (Array.isArray(modRows)) {
+        var agora = Date.now();
+        modRows.forEach(function(row) {
+          if (!row || row.ativo !== true) return;
+          if (row.expira_em && new Date(row.expira_em).getTime() <= agora) return;
+          if (!modulosPorEmpresa[row.empresa_id]) modulosPorEmpresa[row.empresa_id] = [];
+          modulosPorEmpresa[row.empresa_id].push(row.modulo);
+        });
+      }
+    } catch (e) {
+      console.warn('[ADMIN] Contratos de módulo indisponíveis:', e && e.message);
+    }
+
     if (!Array.isArray(empresas)) throw new Error('Resposta invalida ao carregar empresas.');
     EMPRESAS_ADMIN = empresas.map(function(empresaDb) {
       var apiCfg = (apiConfigs || []).find(function(cfg) {
@@ -2489,6 +2538,7 @@ async function _adminCarregarEmpresasMeta() {
         tem_api: !!apiCfg && origem === 'api',
         sistema: apiCfg && apiCfg.sistema ? apiCfg.sistema : (empresaDb.sistema || null),
         api_url: apiCfg && apiCfg.api_url ? apiCfg.api_url : (empresaDb.api_url || ''),
+        modulos: modulosPorEmpresa[empresaDb.id || empresaDb.empresa_id] || [],
         empresa_codigo: empresaDb.codigo_empresa
           || empresaDb.codigo_cliente
           || empresaDb.codigo_cliente_id
@@ -2526,7 +2576,10 @@ function _adminRenderAbas(lista) {
   var items = Array.isArray(lista) ? lista : EMPRESAS_ADMIN;
   c.innerHTML = items.map(function(e) {
     var tag = e.tem_api ? '<span class="emp-tag tag-api">API</span>' : '<span class="emp-tag tag-manual">Manual</span>';
-    return '<button class="admin-emp-tab" data-id="' + e.empresa_id + '">' + e.nome + tag + '</button>';
+    var mods = (e.modulos || []).map(function(slug) {
+      return '<span class="emp-tag tag-mod-' + slug + '">' + (slug === 'financeiro' ? 'FIN' : 'COM') + '</span>';
+    }).join('');
+    return '<button class="admin-emp-tab" data-id="' + e.empresa_id + '">' + e.nome + tag + mods + '</button>';
   }).join('');
   c.querySelectorAll('.admin-emp-tab').forEach(function(btn) {
     btn.addEventListener('click', function() { adminSelecionarEmpresa(this.dataset.id); });

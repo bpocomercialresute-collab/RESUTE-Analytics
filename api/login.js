@@ -6,6 +6,47 @@ function parseBody(body) {
   return body;
 }
 
+// Modulos SaaS conhecidos, em ordem de prioridade (define o modulo_padrao).
+const MODULOS_PRIORIDADE = ['comercial', 'financeiro'];
+
+/**
+ * Modulos contratados e vigentes da empresa.
+ * Um modulo esta ativo quando ativo = true E (expira_em null OU expira_em > agora).
+ *
+ * Nunca lanca: qualquer falha (tabela inexistente, rede, resposta invalida)
+ * cai no fallback ['comercial'] para nao quebrar logins existentes.
+ * Retorna null quando a empresa nao tem nenhuma linha cadastrada — o chamador
+ * distingue "sem contrato registrado" (fallback) de "contratos todos vencidos"
+ * (acesso negado).
+ */
+async function buscarModulosEmpresa(supaUrl, serviceKey, empresaId) {
+  if (!empresaId) return null;
+  try {
+    const resp = await fetch(
+      `${supaUrl}/rest/v1/empresa_modulos?empresa_id=eq.${encodeURIComponent(empresaId)}&select=modulo,ativo,expira_em`,
+      { headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` } }
+    );
+    if (!resp.ok) {
+      console.warn('[LOGIN] empresa_modulos indisponivel (HTTP ' + resp.status + ') — fallback comercial.');
+      return null;
+    }
+    const rows = await resp.json();
+    if (!Array.isArray(rows) || !rows.length) return null;
+
+    const agora = Date.now();
+    const ativos = rows
+      .filter((row) => row && row.ativo === true)
+      .filter((row) => !row.expira_em || new Date(row.expira_em).getTime() > agora)
+      .map((row) => String(row.modulo || '').toLowerCase())
+      .filter((slug) => MODULOS_PRIORIDADE.includes(slug));
+
+    return MODULOS_PRIORIDADE.filter((slug) => ativos.includes(slug));
+  } catch (e) {
+    console.warn('[LOGIN] Falha ao ler empresa_modulos:', e.message, '— fallback comercial.');
+    return null;
+  }
+}
+
 function setCorsHeaders(req, res) {
   const allowed = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
@@ -124,7 +165,30 @@ export default async function handler(req, res) {
       try { empresaIds = JSON.parse(user.empresa_ids); } catch (e) { empresaIds = null; }
     }
 
+    // ── Modulos SaaS contratados ────────────────────────────────────────────
+    // O gate real de dado esta na RLS + no secure-proxy. Isto aqui so diz ao
+    // frontend o que ele deve desenhar.
+    let modulos;
+    if (user.papel === 'super_admin') {
+      modulos = MODULOS_PRIORIDADE.slice();
+    } else {
+      const contratados = await buscarModulosEmpresa(supaUrl, serviceKey, user.empresa_id);
+      if (contratados === null) {
+        // Sem registro de contrato (ou consulta indisponivel): preserva o
+        // comportamento historico do sistema.
+        modulos = ['comercial'];
+      } else if (!contratados.length) {
+        // Ha contrato cadastrado, mas nenhum modulo vigente.
+        console.warn('[LOGIN] Empresa sem modulo vigente:', emailNormalizado);
+        return res.status(401).json({ erro: MSG_ACESSO_NEGADO });
+      } else {
+        modulos = contratados;
+      }
+    }
+
     return res.status(200).json({
+      modulos: modulos,
+      modulo_padrao: modulos[0],
       token: authData.access_token,
       access_token: authData.access_token,
       nome: user.nome || email,

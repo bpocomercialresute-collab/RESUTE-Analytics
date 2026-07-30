@@ -6,6 +6,8 @@ var ADMIN_CONSOLE = {
   loading: false,
   activeSection: 'overview',
   companies: [],
+  modules: [],
+  modulesLoaded: false,
   users: [],
   integrations: [],
   syncLogs: [],
@@ -28,6 +30,10 @@ var ADMIN_SECTION_META = {
   companies: {
     title: 'Empresas',
     subtitle: 'Cadastre operacoes, ajuste a origem dos dados e acompanhe cada empresa.'
+  },
+  modules: {
+    title: 'Modulos e contratos',
+    subtitle: 'Defina quais modulos cada empresa contratou. Desativar bloqueia o acesso sem apagar dados.'
   },
   users: {
     title: 'Usuarios e acessos',
@@ -351,6 +357,7 @@ function adminConsoleAbrir(section, navItem) {
   if (breadcrumb) breadcrumb.textContent = meta.title;
 
   if (!ADMIN_CONSOLE.loaded) adminConsoleInicializar();
+  if (target === 'modules') adminConsoleCarregarModulos();
   if (window.innerWidth <= 900) {
     var sidebar = document.getElementById('sidebar');
     var overlay = document.getElementById('sidebar-overlay');
@@ -369,6 +376,7 @@ async function adminConsoleAtualizar(silent) {
 
 function adminConsoleRenderTudo() {
   adminConsoleRenderResumo();
+  adminConsoleRenderModulos();
   adminConsoleFiltrarEmpresas();
   adminConsoleFiltrarUsuarios();
   adminConsoleRenderIntegracoes();
@@ -795,6 +803,146 @@ function adminConsoleLimparFiltroAuditoria() {
   if (search) search.value = '';
   if (type) type.value = '';
   adminConsoleRenderAuditoria();
+}
+
+// ── MODULOS E CONTRATOS ──────────────────────────────────────────────────────
+// Liga/desliga o Comercial e o Financeiro por empresa. A escrita sempre passa
+// pela acao 'admin-module-toggle' no secure-proxy (service role no servidor);
+// o navegador nunca escreve direto em empresa_modulos.
+
+var ADMIN_MODULOS = [
+  { slug: 'comercial',  nome: 'Comercial',  descricao: 'Relatorios de vendas, produtos e representantes.' },
+  { slug: 'financeiro', nome: 'Financeiro', descricao: 'Relatorios financeiros (modulo em construcao).' }
+];
+
+async function adminConsoleCarregarModulos(force) {
+  if (!SESSION || SESSION.papel !== 'super_admin') return;
+  if (ADMIN_CONSOLE.modulesLoaded && !force) {
+    adminConsoleRenderModulos();
+    return;
+  }
+  try {
+    var resultado = await adminConsoleFetch('/rest/v1/empresa_modulos?select=empresa_id,modulo,ativo,expira_em');
+    ADMIN_CONSOLE.modules = Array.isArray(resultado.data) ? resultado.data : [];
+    ADMIN_CONSOLE.modulesLoaded = true;
+  } catch (e) {
+    ADMIN_CONSOLE.modules = [];
+    ADMIN_CONSOLE.modulesLoaded = false;
+    adminConsoleAviso('Nao foi possivel carregar os contratos de modulo: ' + e.message
+      + ' Rode docs/supabase-modulos.sql no Supabase.', 'warn');
+  }
+  adminConsoleRenderModulos();
+}
+
+/** Contrato vigente de um modulo para uma empresa (ou null). */
+function adminConsoleContratoModulo(companyId, slug) {
+  return (ADMIN_CONSOLE.modules || []).find(function(item) {
+    return String(item.empresa_id) === String(companyId) && String(item.modulo) === slug;
+  }) || null;
+}
+
+/** Regra unica: ativo = true E (expira_em null OU expira_em > agora). */
+function adminConsoleModuloVigente(contrato) {
+  if (!contrato || contrato.ativo !== true) return false;
+  if (!contrato.expira_em) return true;
+  return new Date(contrato.expira_em).getTime() > Date.now();
+}
+
+function adminConsoleRenderModulos() {
+  var grid = document.getElementById('admin-modules-grid');
+  if (!grid) return;
+
+  var termo = String((document.getElementById('admin-module-search') || {}).value || '').trim().toLowerCase();
+  var filtro = String((document.getElementById('admin-module-filter') || {}).value || '');
+
+  var empresas = (ADMIN_CONSOLE.companies || []).filter(function(empresa) {
+    var nome = String(empresa.nome || '').toLowerCase();
+    if (termo && nome.indexOf(termo) === -1) return false;
+
+    var id = empresa.id || empresa.empresa_id;
+    var vigentes = ADMIN_MODULOS.filter(function(mod) {
+      return adminConsoleModuloVigente(adminConsoleContratoModulo(id, mod.slug));
+    }).map(function(mod) { return mod.slug; });
+
+    if (filtro === 'nenhum') return vigentes.length === 0;
+    if (filtro) return vigentes.indexOf(filtro) !== -1;
+    return true;
+  });
+
+  var contador = document.getElementById('admin-module-result');
+  if (contador) contador.textContent = empresas.length + ' empresa(s)';
+
+  if (!empresas.length) {
+    grid.innerHTML = adminConsoleEmpty('Nenhuma empresa corresponde ao filtro.');
+    return;
+  }
+
+  grid.innerHTML = empresas.map(function(empresa) {
+    var id = String(empresa.id || empresa.empresa_id || '');
+    var linhas = ADMIN_MODULOS.map(function(mod) {
+      var contrato = adminConsoleContratoModulo(id, mod.slug);
+      var vigente = adminConsoleModuloVigente(contrato);
+      var expira = contrato && contrato.expira_em
+        ? String(contrato.expira_em).slice(0, 10)
+        : '';
+      var statusBadge = vigente
+        ? adminConsoleBadge('Contratado', 'success')
+        : (contrato && contrato.ativo === true
+            ? adminConsoleBadge('Expirado', 'warn')
+            : adminConsoleBadge('Nao contratado', 'neutral'));
+
+      return '<div class="admin-module-row">'
+        + '<div class="admin-module-info"><strong>' + adminConsoleEscape(mod.nome) + '</strong>'
+        + '<small>' + adminConsoleEscape(mod.descricao) + '</small></div>'
+        + statusBadge
+        + '<label class="admin-module-expira">Expira em'
+        + '<input type="date" value="' + adminConsoleEscape(expira) + '"'
+        + ' data-module-expira="' + adminConsoleEscape(id) + '|' + mod.slug + '"></label>'
+        + '<button type="button" class="' + (vigente ? 'admin-btn-secondary' : 'admin-btn-primary') + '"'
+        + ' onclick="adminConsoleAlternarModulo(\'' + adminConsoleEscape(id) + '\', \'' + mod.slug + '\', ' + (!vigente) + ')">'
+        + (vigente ? 'Desativar' : 'Ativar') + '</button>'
+        + '</div>';
+    }).join('');
+
+    return '<article class="admin-panel-card admin-module-card">'
+      + '<div class="admin-card-heading"><div><span>EMPRESA</span>'
+      + '<h2>' + adminConsoleEscape(empresa.nome || 'Empresa') + '</h2></div>'
+      + (empresa.ativo === false ? adminConsoleBadge('Empresa inativa', 'danger') : '')
+      + '</div>' + linhas + '</article>';
+  }).join('');
+}
+
+/**
+ * Ativa ou desativa um modulo. Desativar nunca apaga dado — o backend so
+ * marca ativo = false.
+ */
+async function adminConsoleAlternarModulo(companyId, modulo, ativar) {
+  if (!SESSION || SESSION.papel !== 'super_admin') return;
+
+  var campoExpira = document.querySelector('[data-module-expira="' + companyId + '|' + modulo + '"]');
+  var expiraEm = campoExpira && campoExpira.value ? campoExpira.value : null;
+
+  var empresaNome = adminConsoleCompanyName(companyId);
+  var acao = ativar ? 'ativar' : 'desativar';
+  if (!window.confirm('Confirma ' + acao + ' o modulo ' + modulo + ' para ' + empresaNome + '?')) return;
+
+  try {
+    await adminConsoleAction('admin-module-toggle', {
+      empresa_id: companyId,
+      modulo: modulo,
+      ativo: !!ativar,
+      expira_em: ativar ? expiraEm : null
+    });
+    adminConsoleTrackActivity(
+      'administracao',
+      'Modulo ' + (ativar ? 'ativado' : 'desativado'),
+      modulo + ' - ' + empresaNome
+    );
+    adminConsoleAviso('Modulo ' + modulo + ' ' + (ativar ? 'ativado' : 'desativado') + ' para ' + empresaNome + '.', 'success');
+    await adminConsoleCarregarModulos(true);
+  } catch (e) {
+    adminConsoleAviso('Falha ao atualizar o modulo: ' + e.message, 'error');
+  }
 }
 
 function adminConsoleRenderSeguranca() {

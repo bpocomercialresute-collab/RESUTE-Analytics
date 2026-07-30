@@ -1,6 +1,24 @@
 # RESUTE Analytics
 
-Plataforma de analise comercial multiempresa da RESUTE, com login, painel administrativo, dashboard de cliente, integracao com Supabase e sincronizacao via API para empresas configuradas.
+Plataforma SaaS multiempresa e multimodulo da RESUTE, com login, painel administrativo, dashboard de cliente, integracao com Supabase e sincronizacao via API para empresas configuradas.
+
+## Modulos contratados (SaaS)
+
+Cada empresa contrata um ou mais modulos. O contrato fica na tabela `empresa_modulos`
+e e gerido no console do super_admin, secao "Modulos e contratos".
+
+| Modulo | Slug | Estado |
+|---|---|---|
+| Comercial | `comercial` | Em producao — relatorios de vendas, produtos e representantes |
+| Financeiro | `financeiro` | Espaco reservado — estrutura pronta, ferramenta a construir |
+
+Combinacoes suportadas: so comercial, so financeiro, ou os dois (nesse caso o
+cliente troca de painel pelo seletor no header).
+
+Regra de vigencia: `ativo = true` E (`expira_em` nulo OU `expira_em > now()`).
+Desativar um modulo bloqueia o acesso e nunca apaga dados.
+
+Detalhes em [docs/MODULO-FINANCEIRO.md](docs/MODULO-FINANCEIRO.md).
 
 ## Stack atual
 
@@ -28,30 +46,46 @@ Plataforma de analise comercial multiempresa da RESUTE, com login, painel admini
 
 ## Estrutura principal
 
+Apenas os arquivos carregados pelo `index.html` estao listados — e essa a ordem
+real de carga dos scripts.
+
 ```text
 resute-analytics/
 |-- index.html
+|-- roleta.html
 |-- css/
 |   `-- style.css
 |-- js/
-|   |-- actions.js
-|   |-- auth.js
-|   |-- bd.js
-|   |-- charts.js
+|   |-- utils.js
 |   |-- constants.js
-|   |-- dashboard.js
-|   |-- dados.js
-|   |-- jss.js
-|   |-- nav.js
-|   |-- relatatorios.js
-|   |-- relatrep.js
 |   |-- state.js
-|   `-- utils.js
+|   |-- nav.js
+|   |-- charts.js
+|   |-- actions.js
+|   |-- modulos.js          # camada de modulos SaaS (gate de UI)
+|   |-- auth.js             # login, sessao, dashboard cliente, painel admin
+|   |-- admin-console.js    # console do super_admin
+|   |-- financeiro/         # espaco reservado do modulo financeiro
+|   |   |-- financeiro-core.js
+|   |   |-- financeiro-ui.js
+|   |   `-- financeiro-charts.js
+|   |-- jss.js
+|   |-- bd.js
+|   |-- relatorios.js
+|   `-- relatrep.js
 |-- api/
 |   |-- login.js
 |   `-- secure-proxy.js
+|-- docs/
+|   |-- MODULO-FINANCEIRO.md
+|   |-- supabase-admin-audit.sql
+|   |-- supabase-modulos.sql
+|   `-- supabase-financeiro.sql
 `-- README.md
 ```
+
+Toda alteracao em JS exige bump do `?v=` correspondente no `index.html`,
+senao o navegador serve a versao antiga em cache.
 
 ## Arquivos mais importantes
 
@@ -59,8 +93,12 @@ resute-analytics/
   - Estrutura principal da interface
 - [css/style.css](C:\Users\varremaster\Desktop\resute-analytics\resute-analytics\css\style.css)
   - Visual do sistema, login, dashboard e relatorios
+- [js/modulos.js](C:\Users\varremaster\Desktop\resute-analytics\resute-analytics\js\modulos.js)
+  - Quais modulos a sessao pode usar e troca de painel. Gate de UI, nao de seguranca
 - [js/auth.js](C:\Users\varremaster\Desktop\resute-analytics\resute-analytics\js\auth.js)
   - Login, sessao, dashboard do cliente, painel admin e sincronizacao
+- [js/admin-console.js](C:\Users\varremaster\Desktop\resute-analytics\resute-analytics\js\admin-console.js)
+  - Console do super_admin, incluindo "Modulos e contratos"
 - [js/bd.js](C:\Users\varremaster\Desktop\resute-analytics\resute-analytics\js\bd.js)
   - Tratamento do BD, preenchimento automatico e relatorios de produtos
 - [js/relatorios.js](C:\Users\varremaster\Desktop\resute-analytics\resute-analytics\js\relatorios.js)
@@ -116,8 +154,17 @@ Quando houver alteracao no codigo:
 - A API externa integrada hoje puxa vendas e cadastros dedicados de clientes, produtos e representantes
 - Empresas sem API continuam podendo operar por fluxo manual
 
+## Scripts SQL
+
+Rodar no SQL Editor do Supabase. Todos idempotentes.
+
+- `docs/supabase-admin-audit.sql` — auditoria administrativa (`admin_audit_log`). Aplicado
+- `docs/supabase-modulos.sql` — contratos de modulo (`empresa_modulos`). Aplicado
+- `docs/supabase-financeiro.sql` — tabelas `fin_*`. Ainda nao aplicado (arquivo so com esqueleto comentado)
+
 ## Proximo foco do projeto
 
+- Construir o modulo financeiro no espaco ja reservado (Fase 2)
 - Evoluir a integracao de API para trazer mais dados cadastrais
 - Melhorar filtros e dashboards por empresa
 - Refinar ainda mais a experiencia dos clientes nos relatorios

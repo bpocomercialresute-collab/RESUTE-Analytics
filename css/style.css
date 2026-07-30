@@ -9665,3 +9665,141 @@ body.lp-about-open .lp-process-step span {
 body.bpo-admin-mode .adm-sync-log { border-color: #374151; }
 body.bpo-admin-mode .adm-sync-log-header { background: #1f2937; }
 body.bpo-admin-mode .adm-sync-log-body   { background: #111827; }
+
+/* =============================================================================
+   MODULOS SAAS — seletor no painel do cliente + gestao no console admin
+   ========================================================================== */
+
+/* ── Seletor de modulos no header do cliente/financeiro ──────────────────── */
+.dc-modulos {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+}
+.dc-modulos-btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 6px;
+  letter-spacing: .01em;
+  padding: 6px 12px;
+  transition: background .18s ease, border-color .18s ease, color .18s ease;
+  white-space: nowrap;
+}
+.dc-modulos-btn:hover { border-color: var(--admin-teal, #14746F); color: var(--text); }
+.dc-modulos-btn.active {
+  background: var(--admin-teal, #14746F);
+  border-color: var(--admin-teal, #14746F);
+  color: #fff;
+}
+.dc-modulos-btn svg { flex-shrink: 0; }
+.dc-modulos-wip {
+  background: rgba(217,119,6,.16);
+  border-radius: 8px;
+  color: #b45309;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: 1px 5px;
+  text-transform: uppercase;
+}
+.dc-modulos-btn.active .dc-modulos-wip { background: rgba(255,255,255,.22); color: #fff; }
+
+@media (max-width: 900px) {
+  .dc-modulos { margin-left: 0; width: 100%; }
+  .dc-modulos-btn span { display: none; }
+  .dc-modulos-btn { padding: 6px 10px; }
+}
+
+/* ── Painel financeiro (espaco reservado) ────────────────────────────────── */
+.fin-main { padding-bottom: 40px; }
+.fin-empty {
+  align-items: center;
+  background: var(--card-bg, #fff);
+  border: 1px dashed var(--border, #D5EDE8);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 auto;
+  max-width: 560px;
+  padding: 44px 28px;
+  text-align: center;
+}
+.fin-empty-icon {
+  align-items: center;
+  background: rgba(45,212,191,.14);
+  border-radius: 50%;
+  color: var(--admin-teal, #14746F);
+  display: flex;
+  height: 60px;
+  justify-content: center;
+  width: 60px;
+}
+.fin-empty strong { color: var(--text, #0A2F2F); font-size: 16px; }
+.fin-empty p {
+  color: var(--text-muted, #5A7A74);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── Tags de modulo nas abas de empresa do admin ─────────────────────────── */
+.emp-tag.tag-mod-comercial  { background: rgba(20,116,111,.16); color: #14746F; }
+.emp-tag.tag-mod-financeiro { background: rgba(124,58,237,.16); color: #7C3AED; }
+
+/* ── Console admin: modulos e contratos ──────────────────────────────────── */
+.admin-modules-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+}
+.admin-module-card { display: flex; flex-direction: column; gap: 10px; }
+.admin-module-row {
+  align-items: center;
+  border-top: 1px solid var(--admin-line, #CBE4DF);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 12px;
+}
+.admin-module-info { flex: 1 1 180px; min-width: 0; }
+.admin-module-info strong { display: block; font-size: 13px; }
+.admin-module-info small {
+  color: var(--text-muted, #5A7A74);
+  display: block;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.admin-module-expira {
+  color: var(--text-muted, #5A7A74);
+  display: flex;
+  flex-direction: column;
+  font-size: 10px;
+  font-weight: 600;
+  gap: 3px;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+.admin-module-expira input {
+  border: 1px solid var(--admin-line, #CBE4DF);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 8px;
+}
+.admin-module-row button { flex-shrink: 0; }
+
+@media (max-width: 620px) {
+  .admin-modules-grid { grid-template-columns: 1fr; }
+  .admin-module-row { align-items: flex-start; flex-direction: column; }
+}

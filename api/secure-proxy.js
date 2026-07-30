@@ -33,8 +33,17 @@ const ALLOWED_SUPABASE_PATHS = [
   '/rest/v1/produtos',
   '/rest/v1/representantes',
   '/rest/v1/grupos',
+  '/rest/v1/empresa_modulos',
   '/functions/v1/sync-visual-saef'
 ];
+
+// Tabelas do modulo financeiro. O prefixo fin_ e o allowlist: qualquer tabela
+// fora desse padrao continua recusada. Toda leitura exige filtro por empresa_id.
+const FIN_TABLE_REGEX = /^\/rest\/v1\/fin_[a-z0-9_]{1,60}$/;
+
+function isFinanceiroPath(pathname) {
+  return FIN_TABLE_REGEX.test(pathname);
+}
 
 const ALLOWED_VISUAL_PATHS = [
   '/login',
@@ -402,6 +411,38 @@ function assertAuthorized(appUser, targetUrl, method, body) {
     return;
   }
 
+  if (targetUrl.pathname === '/rest/v1/empresa_modulos') {
+    // Escrita nunca vem do navegador — so pela acao admin-module-toggle,
+    // que roda no servidor com service role.
+    if (isWrite) {
+      throw new Error('Contratos de modulo nao podem ser alterados pelo navegador.');
+    }
+    if (appUser.papel !== 'super_admin') {
+      const empresaIdsMod = extractEmpresaIdsFromUrl(targetUrl);
+      if (!empresaIdsMod.length || !empresaIdsMod.every(function(id) { return canAccessEmpresa(appUser, id); })) {
+        throw new Error('Filtro de empresa obrigatorio.');
+      }
+    }
+    return;
+  }
+
+  if (isFinanceiroPath(targetUrl.pathname)) {
+    const empresaIdsFin = [
+      ...extractEmpresaIdsFromUrl(targetUrl),
+      ...extractEmpresaIdsFromBody(body)
+    ];
+    if (!empresaIdsFin.length) {
+      throw new Error('Empresa obrigatoria para consultar dados financeiros.');
+    }
+    if (!empresaIdsFin.every((empresaId) => canAccessEmpresa(appUser, empresaId))) {
+      throw new Error('Acesso negado para esta empresa.');
+    }
+    if (isWrite && appUser.papel !== 'super_admin') {
+      throw new Error('Apenas super_admin pode alterar dados financeiros.');
+    }
+    return;
+  }
+
   if (targetUrl.pathname === '/functions/v1/sync-visual-saef') {
     if (appUser.papel !== 'super_admin') {
       throw new Error('Apenas super_admin pode sincronizar.');
@@ -413,7 +454,7 @@ function assertAuthorized(appUser, targetUrl, method, body) {
 }
 
 async function proxySupabase(req, res, targetUrl, method, incomingHeaders, body, env) {
-  if (!ALLOWED_SUPABASE_PATHS.includes(targetUrl.pathname)) {
+  if (!ALLOWED_SUPABASE_PATHS.includes(targetUrl.pathname) && !isFinanceiroPath(targetUrl.pathname)) {
     return res.status(403).json({ erro: 'Rota do Supabase nao permitida.' });
   }
 
@@ -1123,6 +1164,76 @@ async function handleAdminIntegrationTest(res, env, appUser, payload) {
   });
 }
 
+const MODULOS_VALIDOS = ['comercial', 'financeiro'];
+
+/**
+ * Liga/desliga o contrato de um modulo para uma empresa.
+ * Desligar NUNCA apaga dado: apenas marca ativo = false.
+ */
+async function handleAdminModuleToggle(res, appUser, payload, env) {
+  const input = payload || {};
+  const empresaId = String(input.empresa_id || '').trim();
+  const modulo = String(input.modulo || '').trim().toLowerCase();
+  const ativo = input.ativo === true;
+
+  if (!/^[a-zA-Z0-9-]{8,80}$/.test(empresaId)) {
+    throw new Error('Empresa invalida.');
+  }
+  if (!MODULOS_VALIDOS.includes(modulo)) {
+    throw new Error('Modulo invalido.');
+  }
+
+  let expiraEm = null;
+  if (input.expira_em) {
+    const parsed = new Date(String(input.expira_em));
+    if (Number.isNaN(parsed.getTime())) throw new Error('Data de expiracao invalida.');
+    expiraEm = parsed.toISOString();
+  }
+
+  const companyResponse = await fetch(
+    `${env.supaUrl}/rest/v1/empresas?id=eq.${encodeURIComponent(empresaId)}&select=id,nome,slug&limit=1`,
+    { headers: adminActionHeaders(env) }
+  );
+  const companyRows = await adminActionReadJson(companyResponse);
+  const company = Array.isArray(companyRows) ? companyRows[0] : null;
+  if (!company) throw new Error('Empresa nao encontrada.');
+
+  const upsertResponse = await fetch(
+    `${env.supaUrl}/rest/v1/empresa_modulos?on_conflict=empresa_id,modulo`,
+    {
+      method: 'POST',
+      headers: {
+        ...adminActionHeaders(env, 'application/json'),
+        'Prefer': 'resolution=merge-duplicates,return=representation'
+      },
+      body: JSON.stringify({
+        empresa_id: empresaId,
+        modulo: modulo,
+        ativo: ativo,
+        expira_em: expiraEm,
+        criado_por: String(appUser.email || 'super_admin'),
+        atualizado_em: new Date().toISOString()
+      })
+    }
+  );
+  const saved = await adminActionReadJson(upsertResponse);
+
+  await writeAdminAudit(env, appUser, {
+    action: ativo ? 'modulo.ativado' : 'modulo.desativado',
+    entity: 'empresa_modulos',
+    entityId: empresaId,
+    empresaId,
+    summary: `Modulo ${modulo} ${ativo ? 'ativado' : 'desativado'} para ${company.nome || company.slug || empresaId}`,
+    metadata: { modulo, ativo, expira_em: expiraEm }
+  });
+
+  return res.status(200).json({
+    ok: true,
+    registro: Array.isArray(saved) ? saved[0] : saved,
+    mensagem: `Modulo ${modulo} ${ativo ? 'ativado' : 'desativado'} para ${company.nome || empresaId}.`
+  });
+}
+
 async function handleAdminAction(req, res, action, payload, env) {
   const sessionToken = req.headers['x-session-token'] || '';
   const appUser = await getAppUser(
@@ -1153,6 +1264,9 @@ async function handleAdminAction(req, res, action, payload, env) {
   }
   if (action === 'admin-integration-test') {
     return handleAdminIntegrationTest(res, env, appUser, payload);
+  }
+  if (action === 'admin-module-toggle') {
+    return handleAdminModuleToggle(res, appUser, payload, env);
   }
   return res.status(400).json({ erro: 'Acao administrativa invalida.' });
 }
