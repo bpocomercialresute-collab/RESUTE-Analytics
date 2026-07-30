@@ -10,7 +10,7 @@ e e gerido no console do super_admin, secao "Modulos e contratos".
 | Modulo | Slug | Estado |
 |---|---|---|
 | Comercial | `comercial` | Em producao — relatorios de vendas, produtos e representantes |
-| Financeiro | `financeiro` | Espaco reservado — estrutura pronta, ferramenta a construir |
+| Financeiro | `financeiro` | Em producao — contas a receber e pagar, fluxo de caixa e resultado |
 
 Combinacoes suportadas: so comercial, so financeiro, ou os dois (nesse caso o
 cliente troca de painel pelo seletor no header).
@@ -65,10 +65,11 @@ resute-analytics/
 |   |-- modulos.js          # camada de modulos SaaS (gate de UI)
 |   |-- auth.js             # login, sessao, dashboard cliente, painel admin
 |   |-- admin-console.js    # console do super_admin
-|   |-- financeiro/         # espaco reservado do modulo financeiro
-|   |   |-- financeiro-core.js
-|   |   |-- financeiro-ui.js
-|   |   `-- financeiro-charts.js
+|   |-- financeiro/         # modulo financeiro
+|   |   |-- financeiro-core.js    # carga, filtros e calculos
+|   |   |-- financeiro-ui.js      # KPIs, abas e tabelas
+|   |   |-- financeiro-charts.js  # graficos
+|   |   `-- financeiro-admin.js   # importacao manual de lancamentos
 |   |-- jss.js
 |   |-- bd.js
 |   |-- relatorios.js
@@ -160,11 +161,11 @@ Rodar no SQL Editor do Supabase. Todos idempotentes.
 
 - `docs/supabase-admin-audit.sql` — auditoria administrativa (`admin_audit_log`). Aplicado
 - `docs/supabase-modulos.sql` — contratos de modulo (`empresa_modulos`). Aplicado
-- `docs/supabase-financeiro.sql` — tabelas `fin_*`. Ainda nao aplicado (arquivo so com esqueleto comentado)
+- `docs/supabase-financeiro.sql` — tabela `fin_lancamentos` do modulo financeiro
 
 ## Proximo foco do projeto
 
-- Construir o modulo financeiro no espaco ja reservado (Fase 2)
+- Integracao automatica do financeiro (API contabil/ERP), dispensando a colagem manual
 - Evoluir a integracao de API para trazer mais dados cadastrais
 - Melhorar filtros e dashboards por empresa
 - Refinar ainda mais a experiencia dos clientes nos relatorios

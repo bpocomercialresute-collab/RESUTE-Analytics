@@ -11,7 +11,7 @@ Uma empresa contrata um ou mais módulos. Tabela `empresa_modulos`
 | Módulo | Slug | Estado |
 |---|---|---|
 | Comercial | `comercial` | Em produção |
-| Financeiro | `financeiro` | Espaço reservado (Fase 1) |
+| Financeiro | `financeiro` | Em produção (entrada manual) |
 
 Regra única de vigência, replicada em backend, frontend e console admin:
 
@@ -60,6 +60,7 @@ Só dois, por decisão de produto:
 | Frontend | `js/financeiro/financeiro-core.js` | Boot, estado, carga de dados |
 | Frontend | `js/financeiro/financeiro-ui.js` | KPIs, seções, estado vazio |
 | Frontend | `js/financeiro/financeiro-charts.js` | Gráficos (registrar em `FIN_CHARTS`) |
+| Frontend | `js/financeiro/financeiro-admin.js` | Importação manual de lançamentos |
 | Markup | `index.html` `#view-dash-financeiro` | Painel do financeiro |
 | Admin | `js/admin-console.js` seção `modules` | Liga/desliga contrato por empresa |
 
@@ -113,18 +114,56 @@ Gráficos previstos (canvas já no HTML): `fin-chart-receita-despesa`,
 `fin-chart-saldo`, `fin-chart-aging-receber`, `fin-chart-aging-pagar`,
 `fin-chart-fluxo`.
 
-## Fase 2 — o que falta para ligar de verdade
+## Modelo de dados
 
-1. Completar `docs/supabase-financeiro.sql` e rodar no Supabase.
-2. Trocar o stub de `finCarregarDados()` pela leitura real via
-   `/api/secure-proxy`, filtrando `empresa_id`.
-3. Implementar o filtro de período em `finFiltrarPeriodo()` (intervalo
-   explícito tem prioridade sobre ano/mês) e `finMontarFiltroAno()`.
-4. Preencher `finCalcularKpi()`, `finLinhasTabela()`, `finCalcularAlertas()` e
-   `finRenderizarGraficos()`.
-5. `MODULO_META.financeiro.disponivel = true` em `js/modulos.js` — o banner de
-   construção some sozinho.
-6. Bump de `?v=` nos arquivos alterados.
+Uma tabela só: `fin_lancamentos`. O que separa contas a receber de contas a
+pagar é a coluna `tipo` (`receita` / `despesa`). Fluxo de caixa e resultado
+leem tudo junto, então duas tabelas gêmeas só atrapalhariam.
+
+| Coluna | Uso |
+|---|---|
+| `tipo` | `receita` ou `despesa` |
+| `parceiro` | cliente (receita) ou fornecedor (despesa) |
+| `documento` | NF, boleto, contrato |
+| `categoria` | texto livre — agrupa o relatório de categorias |
+| `valor` | `numeric(14,2)` |
+| `data_competencia` | base de todos os filtros de período |
+| `data_vencimento` | base do aging; cai para a competência se vazia |
+| `data_pagamento` | preenchida na baixa |
+| `status` | `previsto`, `pago` ou `cancelado` |
+| `origem` | `manual` hoje; `api` reservado para integração futura |
+
+**Vencido não é status.** É derivado: `previsto` com `data_vencimento` no
+passado. Guardar "atrasado" no banco exigiria um job diário para envelhecer os
+títulos, e qualquer falha desse job mostraria número errado ao cliente.
+`finEstaVencido()` calcula na hora.
+
+## Entrada de dados
+
+Hoje é manual, pelo super_admin: aba **Financeiro** → card da empresa →
+**Importar lançamentos**. Cola-se a planilha, uma linha por lançamento,
+colunas separadas por tabulação ou ponto e vírgula, nesta ordem:
+
+```
+tipo  competência  vencimento  parceiro  documento  categoria  valor  status  pagamento
+```
+
+- Datas em `dd/mm/aaaa` ou `aaaa-mm-dd`
+- Valor aceita `1.234,56`, `1234.56` ou `R$ 1.234,56`
+- `tipo` aceita receita/despesa, entrada/saída, e/s
+- Linha de cabeçalho é ignorada
+- Marcar "Substituir" apaga os lançamentos anteriores da empresa antes de gravar
+- Erro em qualquer linha aborta a importação inteira e mostra o número da linha
+
+Para integração automática, o caminho é gravar com `origem = 'api'` e deixar a
+importação manual intacta — as duas convivem sem conflito.
+
+## Fase 3 — o que ainda não existe
+
+- Integração automática (API contábil / ERP) para dispensar a colagem manual
+- Baixa de título pela tela do cliente (hoje o status vem da importação)
+- Conciliação bancária
+- Exportação dos relatórios em PDF/Excel
 
 Se na Fase 2 aparecer necessidade de estrutura nova, a Fase 1 está errada —
 corrija a Fase 1.

@@ -39,7 +39,7 @@ var MODULO_META = {
     nome:       'Relatórios Financeiro',
     curto:      'Financeiro',
     view:       'view-dash-financeiro',
-    disponivel: false, // FASE 1: placeholder. Vira true quando o modulo existir.
+    disponivel: true,
     icone:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'
   }
 };

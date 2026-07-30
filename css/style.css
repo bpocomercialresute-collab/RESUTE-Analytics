@@ -9904,3 +9904,34 @@ body.bpo-admin-mode .adm-sync-log-body   { background: #111827; }
   margin: 0;
   padding: 8px 0;
 }
+
+/* Importação de lançamentos financeiros (modal do admin) */
+.fin-import-exemplo {
+  background: #FFFFFF;
+  border: 1px solid #CBE4DF;
+  border-radius: 8px;
+  font-family: 'Menlo','Consolas',monospace;
+  font-size: 10px;
+  line-height: 1.6;
+  margin: 8px 0;
+  overflow-x: auto;
+  padding: 10px 12px;
+  white-space: pre;
+}
+.admin-modal-form textarea {
+  border: 1px solid #CBE4DF;
+  border-radius: 12px;
+  font-family: 'Menlo','Consolas',monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  resize: vertical;
+  width: 100%;
+}
+.admin-btn-danger {
+  border-color: rgba(220,38,38,.35) !important;
+  color: #DC2626 !important;
+}
+.admin-btn-danger:hover {
+  background: rgba(220,38,38,.08) !important;
+}
