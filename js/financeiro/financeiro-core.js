@@ -22,6 +22,12 @@ var FIN_ABORT_CONTROLLER = null;
 var FIN_ADMIN_PREVIEW = false;
 var FIN_ADMIN_PREVIEW_COMPANY = null;
 
+/** Recorte de período em uso. Lido dos filtros do header. */
+var FIN_FILTROS = { ano: 0, mes: 0, inicio: '', fim: '' };
+
+var FIN_MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                      'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
 // ── ABRE O PAINEL FINANCEIRO ─────────────────────────────────────────────────
 
 /**
@@ -157,13 +163,82 @@ async function finCarregarDados(empresaId) {
   FIN_RAW = [];
   FIN_DATA = [];
   finStatus('');
+  finMontarFiltroAno();
+  finFiltrarPeriodo();
+}
+
+// ── FILTROS DE PERIODO ───────────────────────────────────────────────────────
+
+/** Lê os filtros do header e reprocessa o recorte. */
+function finFiltrarPeriodo() {
+  FIN_FILTROS = {
+    ano:    parseInt((document.getElementById('fin-filtro-ano') || {}).value || '0', 10) || 0,
+    mes:    parseInt((document.getElementById('fin-filtro-mes') || {}).value || '0', 10) || 0,
+    inicio: String((document.getElementById('fin-filtro-inicio') || {}).value || ''),
+    fim:    String((document.getElementById('fin-filtro-fim') || {}).value || '')
+  };
+
+  // FASE 2: filtrar FIN_RAW por data_competencia / vencimento usando FIN_FILTROS.
+  // O intervalo explícito (inicio/fim) tem prioridade sobre ano/mês, igual ao
+  // comportamento do painel comercial.
+  FIN_DATA = FIN_RAW.slice();
+
   if (typeof finRenderizar === 'function') finRenderizar();
 }
 
-/** Reprocessa o recorte atual. FASE 2: aplicar filtros de periodo. */
-function finFiltrarPeriodo() {
-  FIN_DATA = FIN_RAW.slice();
-  if (typeof finRenderizar === 'function') finRenderizar();
+/** Texto legível do recorte, mostrado abaixo do título. */
+function finPeriodoDescricao() {
+  if (FIN_FILTROS.inicio && FIN_FILTROS.fim) {
+    return 'Período: ' + finFormatarData(FIN_FILTROS.inicio) + ' até ' + finFormatarData(FIN_FILTROS.fim);
+  }
+  if (!FIN_FILTROS.ano) return 'Todos os períodos';
+  if (FIN_FILTROS.mes) return FIN_MESES_FULL[FIN_FILTROS.mes - 1] + ' de ' + FIN_FILTROS.ano;
+  return 'Ano de ' + FIN_FILTROS.ano;
+}
+
+function finFormatarData(iso) {
+  if (!iso) return '';
+  var partes = String(iso).slice(0, 10).split('-');
+  if (partes.length !== 3) return String(iso);
+  return partes[2] + '/' + partes[1] + '/' + partes[0];
+}
+
+/** Popula o seletor de ano a partir dos dados carregados. */
+function finMontarFiltroAno() {
+  var sel = document.getElementById('fin-filtro-ano');
+  if (!sel) return;
+  var anos = [];
+  // FASE 2: extrair os anos distintos de FIN_RAW.
+  sel.innerHTML = '<option value="0">Todos os anos</option>'
+    + anos.map(function(ano) { return '<option value="' + ano + '">' + ano + '</option>'; }).join('');
+}
+
+// ── CALCULOS (FASE 2) ────────────────────────────────────────────────────────
+// A UI ja esta pronta e chama estas funcoes. Devolver null/[] mantem o painel
+// em estado vazio sem quebrar nada.
+
+/**
+ * @param {object} kpi item de FIN_KPIS
+ * @returns {{valor:number, detalhe:string}|null}
+ */
+function finCalcularKpi(kpi) {
+  if (!FIN_DATA.length) return null;
+  return null; // FASE 2: somar FIN_DATA conforme kpi.id
+}
+
+/**
+ * @param {string} tabelaId id do container (ver FIN_TABELAS)
+ * @returns {Array<Array<string|number>>} linhas na ordem das colunas
+ */
+function finLinhasTabela(tabelaId) {
+  if (!FIN_DATA.length) return [];
+  return []; // FASE 2: montar as linhas de cada tabela
+}
+
+/** @returns {Array<{tipo:string, titulo:string, detalhe:string}>} */
+function finCalcularAlertas() {
+  if (!FIN_DATA.length) return [];
+  return []; // FASE 2: vencidos, saldo negativo, concentração de cliente
 }
 
 /** Botao "Atualizar" do header. */

@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=13" />
+  <link rel="stylesheet" href="css/style.css?v=14" />
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
 </head>
 <body class="cui-body">
@@ -176,6 +176,7 @@
         <div class="cui-nav-title">ADMINISTRACAO</div>
         <a class="cui-nav-item admin-console-link" data-admin-target="overview" onclick="adminConsoleAbrir('overview', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span>Vis&atilde;o geral</span></a>
         <a class="cui-nav-item admin-console-link" data-admin-target="companies" onclick="adminConsoleAbrir('companies', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 9h1M14 9h1M9 13h1M14 13h1M9 17h1M14 17h1"/></svg><span>Empresas</span></a>
+        <a class="cui-nav-item admin-console-link" data-admin-target="financeiro" onclick="adminConsoleAbrir('financeiro', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Financeiro</span></a>
         <a class="cui-nav-item admin-console-link" data-admin-target="modules" onclick="adminConsoleAbrir('modules', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><path d="M17 13v8M13 17h8"/></svg><span>M&oacute;dulos e contratos</span></a>
         <a class="cui-nav-item admin-console-link" data-admin-target="users" onclick="adminConsoleAbrir('users', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg><span>Usu&aacute;rios e acessos</span></a>
         <a class="cui-nav-item admin-console-link" data-admin-target="integrations" onclick="adminConsoleAbrir('integrations', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M8 12h8M12 8v8"/><path d="M7 3h10v4H7zM7 17h10v4H7z"/></svg><span>Integra&ccedil;&otilde;es e APIs</span></a>
@@ -360,6 +361,37 @@
               <button class="admin-btn-primary" onclick="adminConsoleNovaEmpresa()">Adicionar empresa</button>
             </div>
             <div id="admin-companies-grid" class="admin-company-grid"></div>
+          </section>
+
+          <section id="admin-section-financeiro" class="admin-console-section">
+            <div class="admin-section-intro">
+              <div><span>PRODUTO FINANCEIRO</span><h2>Gest&atilde;o do Financeiro</h2><p>Quem contratou, quem tem acesso e como cada empresa enxerga o produto. O plano define o que o cliente v&ecirc; ao entrar.</p></div>
+              <div class="admin-inline-actions">
+                <button class="admin-btn-secondary" onclick="adminConsoleCarregarModulos(true)">Atualizar</button>
+                <button class="admin-btn-primary" onclick="adminConsoleNovoUsuario()">Novo acesso</button>
+              </div>
+            </div>
+
+            <div class="admin-overview-kpis">
+              <div class="admin-kpi-card"><span>Empresas com Financeiro</span><strong id="admin-fin-kpi-empresas">--</strong><small>contrato vigente</small></div>
+              <div class="admin-kpi-card"><span>Somente Financeiro</span><strong id="admin-fin-kpi-somente">--</strong><small>sem o m&oacute;dulo comercial</small></div>
+              <div class="admin-kpi-card"><span>Acessos liberados</span><strong id="admin-fin-kpi-usuarios">--</strong><small>usu&aacute;rios dessas empresas</small></div>
+              <div class="admin-kpi-card"><span>Contratos vencendo</span><strong id="admin-fin-kpi-vencendo">--</strong><small>pr&oacute;ximos 30 dias</small></div>
+            </div>
+
+            <div class="admin-section-toolbar">
+              <div class="admin-search-wrap"><input id="admin-fin-search" type="search" placeholder="Buscar empresa..." oninput="adminConsoleRenderFinanceiro()"></div>
+              <select id="admin-fin-plano" onchange="adminConsoleRenderFinanceiro()">
+                <option value="">Todos os planos</option>
+                <option value="completo">Comercial + Financeiro</option>
+                <option value="financeiro">Somente Financeiro</option>
+                <option value="comercial">Somente Comercial</option>
+                <option value="nenhum">Sem acesso</option>
+              </select>
+              <span id="admin-fin-result" class="admin-result-count">0 empresas</span>
+            </div>
+
+            <div id="admin-financeiro-grid" class="admin-modules-grid"></div>
           </section>
 
           <section id="admin-section-modules" class="admin-console-section">
@@ -1312,18 +1344,113 @@
     </header>
 
     <main class="dc-main fin-main">
+
       <section class="dc-hero">
         <div class="dc-hero-copy">
           <div class="dc-hero-kicker">Painel financeiro</div>
-          <h1 class="dc-hero-title">Relatórios financeiros da sua operação.</h1>
-          <p class="dc-hero-sub">Contas, fluxo de caixa e resultado consolidado — em construção.</p>
+          <h1 class="dc-hero-title">Caixa, contas e resultado em um só lugar.</h1>
+          <p class="dc-hero-sub">Acompanhe o que entra, o que sai e o que sobra — por período, categoria e vencimento.</p>
+          <div id="fin-periodo-label" class="dc-periodo-label"></div>
+          <div id="fin-executive-summary" class="dc-executive-summary"></div>
+        </div>
+        <div class="dc-hero-actions">
+          <button class="dc-action-btn" onclick="finAbrirAba('fin-pane-receber')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span>CONTAS A RECEBER</span>
+          </button>
+          <button class="dc-action-btn" onclick="finAbrirAba('fin-pane-pagar')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+            <span>CONTAS A PAGAR</span>
+          </button>
         </div>
       </section>
 
-      <!-- FASE 2: preenchido por js/financeiro/financeiro-ui.js -->
-      <section class="dc-section"><div id="fin-kpis" class="dc-kpis-grid"></div></section>
+      <!-- Aviso de módulo em construção (removido na Fase 2) -->
       <section class="dc-section"><div id="fin-conteudo"></div></section>
-      <section class="dc-section"><div id="fin-secoes"></div></section>
+
+      <!-- KPIs -->
+      <section class="dc-section">
+        <div id="fin-kpis" class="dc-kpis-grid"></div>
+      </section>
+
+      <section class="dc-section">
+        <div id="fin-alertas" class="dc-alert-grid"></div>
+      </section>
+
+      <!-- Abas de relatório -->
+      <section class="dc-section">
+        <div class="fin-tabs">
+          <button class="fin-tab active" data-fin-pane="fin-pane-visao"   onclick="finAbrirAba('fin-pane-visao', this)">Visão geral</button>
+          <button class="fin-tab"        data-fin-pane="fin-pane-receber" onclick="finAbrirAba('fin-pane-receber', this)">Contas a receber</button>
+          <button class="fin-tab"        data-fin-pane="fin-pane-pagar"   onclick="finAbrirAba('fin-pane-pagar', this)">Contas a pagar</button>
+          <button class="fin-tab"        data-fin-pane="fin-pane-fluxo"   onclick="finAbrirAba('fin-pane-fluxo', this)">Fluxo de caixa</button>
+          <button class="fin-tab"        data-fin-pane="fin-pane-dre"     onclick="finAbrirAba('fin-pane-dre', this)">Resultado</button>
+        </div>
+
+        <div id="fin-pane-visao" class="fin-pane active">
+          <div class="dc-grid-2">
+            <div class="dc-card">
+              <div class="dc-card-title">Receitas x Despesas</div>
+              <div class="dc-card-note">Compara entradas e saídas mês a mês no período selecionado.</div>
+              <div class="dc-chart-box"><canvas id="fin-chart-receita-despesa"></canvas></div>
+            </div>
+            <div class="dc-card">
+              <div class="dc-card-title">Evolução do Saldo</div>
+              <div class="dc-card-note">Saldo acumulado ao longo do período.</div>
+              <div class="dc-chart-box"><canvas id="fin-chart-saldo"></canvas></div>
+            </div>
+          </div>
+          <div class="dc-card">
+            <div class="dc-card-title">Maiores Categorias de Despesa</div>
+            <div class="dc-card-note">Onde o dinheiro está saindo.</div>
+            <div id="fin-tab-categorias" class="dc-tabela-wrap"></div>
+          </div>
+        </div>
+
+        <div id="fin-pane-receber" class="fin-pane">
+          <div class="dc-card">
+            <div class="dc-card-title">Vencimentos a Receber</div>
+            <div class="dc-card-note">Distribuição por faixa de vencimento — a vencer, vencido e recebido.</div>
+            <div class="dc-chart-box"><canvas id="fin-chart-aging-receber"></canvas></div>
+          </div>
+          <div class="dc-card">
+            <div class="dc-card-title">Títulos a Receber</div>
+            <div id="fin-tab-receber" class="dc-tabela-wrap"></div>
+          </div>
+        </div>
+
+        <div id="fin-pane-pagar" class="fin-pane">
+          <div class="dc-card">
+            <div class="dc-card-title">Vencimentos a Pagar</div>
+            <div class="dc-card-note">Compromissos por faixa de vencimento.</div>
+            <div class="dc-chart-box"><canvas id="fin-chart-aging-pagar"></canvas></div>
+          </div>
+          <div class="dc-card">
+            <div class="dc-card-title">Títulos a Pagar</div>
+            <div id="fin-tab-pagar" class="dc-tabela-wrap"></div>
+          </div>
+        </div>
+
+        <div id="fin-pane-fluxo" class="fin-pane">
+          <div class="dc-card">
+            <div class="dc-card-title">Fluxo de Caixa</div>
+            <div class="dc-card-note">Entradas, saídas e saldo por período.</div>
+            <div class="dc-chart-box"><canvas id="fin-chart-fluxo"></canvas></div>
+          </div>
+          <div class="dc-card">
+            <div class="dc-card-title">Movimentações</div>
+            <div id="fin-tab-fluxo" class="dc-tabela-wrap"></div>
+          </div>
+        </div>
+
+        <div id="fin-pane-dre" class="fin-pane">
+          <div class="dc-card">
+            <div class="dc-card-title">Resultado do Período</div>
+            <div class="dc-card-note">Receita, custo, despesa e margem consolidados.</div>
+            <div id="fin-tab-dre" class="dc-tabela-wrap"></div>
+          </div>
+        </div>
+      </section>
 
       <div class="dc-footer">
         <span>RESUTE Analytics — Financeiro</span>
@@ -1352,10 +1479,10 @@
   <script src="js/actions.js?v=2"></script>
   <script src="js/modulos.js?v=1"></script>
   <script src="js/auth.js?v=30"></script>
-  <script src="js/admin-console.js?v=21"></script>
-  <script src="js/financeiro/financeiro-core.js?v=1"></script>
-  <script src="js/financeiro/financeiro-ui.js?v=1"></script>
-  <script src="js/financeiro/financeiro-charts.js?v=1"></script>
+  <script src="js/admin-console.js?v=22"></script>
+  <script src="js/financeiro/financeiro-core.js?v=2"></script>
+  <script src="js/financeiro/financeiro-ui.js?v=2"></script>
+  <script src="js/financeiro/financeiro-charts.js?v=2"></script>
   <script src="js/jss.js?v=3"></script>
   <script src="js/bd.js?v=2"></script>
   <script src="js/relatorios.js?v=3"></script>

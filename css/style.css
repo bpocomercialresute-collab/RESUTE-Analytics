@@ -9803,3 +9803,104 @@ body.bpo-admin-mode .adm-sync-log-body   { background: #111827; }
   .admin-modules-grid { grid-template-columns: 1fr; }
   .admin-module-row { align-items: flex-start; flex-direction: column; }
 }
+
+/* =============================================================================
+   PAINEL FINANCEIRO — abas, tabelas e estados vazios
+   ========================================================================== */
+
+.fin-tabs {
+  border-bottom: 1px solid var(--border, #D5EDE8);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 18px;
+}
+.fin-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted, #5A7A74);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 10px 14px;
+  transition: color .18s ease, border-color .18s ease;
+  white-space: nowrap;
+}
+.fin-tab:hover { color: var(--text, #0A2F2F); }
+.fin-tab.active {
+  border-bottom-color: var(--admin-teal, #14746F);
+  color: var(--admin-teal, #14746F);
+}
+
+.fin-pane { display: none; }
+.fin-pane.active { display: block; }
+.fin-pane .dc-card { margin-bottom: 16px; }
+
+.fin-tabela-vazia {
+  color: var(--text-muted, #5A7A74);
+  font-size: 12px;
+  padding: 28px 16px;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .fin-tabs { flex-wrap: nowrap; overflow-x: auto; }
+  .fin-tab { font-size: 11px; padding: 9px 10px; }
+}
+
+/* =============================================================================
+   CONSOLE ADMIN — aba Financeiro
+   ========================================================================== */
+
+.admin-module-row select {
+  border: 1px solid var(--admin-line, #CBE4DF);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+.admin-fin-acessos { flex-wrap: wrap; }
+
+.admin-fin-users {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.admin-fin-users li {
+  align-items: center;
+  background: var(--admin-soft, #F0FAF8);
+  border-radius: 10px;
+  display: flex;
+  gap: 10px;
+  padding: 8px 12px;
+}
+.admin-fin-users li > span {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.admin-fin-users strong {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-fin-users small {
+  color: var(--text-muted, #5A7A74);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-fin-sem-acesso {
+  color: var(--text-muted, #5A7A74);
+  font-size: 12px;
+  margin: 0;
+  padding: 8px 0;
+}

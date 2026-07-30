@@ -31,6 +31,10 @@ var ADMIN_SECTION_META = {
     title: 'Empresas',
     subtitle: 'Cadastre operacoes, ajuste a origem dos dados e acompanhe cada empresa.'
   },
+  financeiro: {
+    title: 'Financeiro',
+    subtitle: 'Contratos, planos e acessos do produto financeiro.'
+  },
   modules: {
     title: 'Modulos e contratos',
     subtitle: 'Defina quais modulos cada empresa contratou. Desativar bloqueia o acesso sem apagar dados.'
@@ -357,7 +361,7 @@ function adminConsoleAbrir(section, navItem) {
   if (breadcrumb) breadcrumb.textContent = meta.title;
 
   if (!ADMIN_CONSOLE.loaded) adminConsoleInicializar();
-  if (target === 'modules') adminConsoleCarregarModulos();
+  if (target === 'modules' || target === 'financeiro') adminConsoleCarregarModulos();
   if (window.innerWidth <= 900) {
     var sidebar = document.getElementById('sidebar');
     var overlay = document.getElementById('sidebar-overlay');
@@ -377,6 +381,7 @@ async function adminConsoleAtualizar(silent) {
 function adminConsoleRenderTudo() {
   adminConsoleRenderResumo();
   adminConsoleRenderModulos();
+  adminConsoleRenderFinanceiro();
   adminConsoleFiltrarEmpresas();
   adminConsoleFiltrarUsuarios();
   adminConsoleRenderIntegracoes();
@@ -832,6 +837,7 @@ async function adminConsoleCarregarModulos(force) {
       + ' Rode docs/supabase-modulos.sql no Supabase.', 'warn');
   }
   adminConsoleRenderModulos();
+  adminConsoleRenderFinanceiro();
 }
 
 /** Contrato vigente de um modulo para uma empresa (ou null). */
@@ -942,6 +948,193 @@ async function adminConsoleAlternarModulo(companyId, modulo, ativar) {
     await adminConsoleCarregarModulos(true);
   } catch (e) {
     adminConsoleAviso('Falha ao atualizar o modulo: ' + e.message, 'error');
+  }
+}
+
+// ── ABA FINANCEIRO ───────────────────────────────────────────────────────────
+// Visao por produto: quem contratou o financeiro, em que plano, e quem tem
+// acesso. O plano e o jeito rapido de decidir o que a empresa enxerga;
+// a secao "Modulos e contratos" continua servindo para o ajuste fino.
+
+var ADMIN_PLANOS = [
+  { id: 'comercial',  nome: 'Somente Comercial',      modulos: ['comercial'] },
+  { id: 'financeiro', nome: 'Somente Financeiro',     modulos: ['financeiro'] },
+  { id: 'completo',   nome: 'Comercial + Financeiro', modulos: ['comercial', 'financeiro'] },
+  { id: 'nenhum',     nome: 'Sem acesso',             modulos: [] }
+];
+
+/** Plano vigente de uma empresa, derivado dos modulos ativos. */
+function adminConsolePlanoDaEmpresa(companyId) {
+  var temComercial  = adminConsoleModuloVigente(adminConsoleContratoModulo(companyId, 'comercial'));
+  var temFinanceiro = adminConsoleModuloVigente(adminConsoleContratoModulo(companyId, 'financeiro'));
+  if (temComercial && temFinanceiro) return 'completo';
+  if (temFinanceiro) return 'financeiro';
+  if (temComercial) return 'comercial';
+  return 'nenhum';
+}
+
+function adminConsolePlanoNome(planoId) {
+  var plano = ADMIN_PLANOS.find(function(item) { return item.id === planoId; });
+  return plano ? plano.nome : 'Sem acesso';
+}
+
+/** Usuarios vinculados a uma empresa. */
+function adminConsoleUsuariosDaEmpresa(companyId) {
+  return (ADMIN_CONSOLE.users || []).filter(function(user) {
+    return String(user.empresa_id || '') === String(companyId);
+  });
+}
+
+function adminConsoleRenderFinanceiro() {
+  var grid = document.getElementById('admin-financeiro-grid');
+  if (!grid) return;
+
+  var empresas = (ADMIN_CONSOLE.companies || []).map(function(empresa) {
+    var id = String(empresa.id || empresa.empresa_id || '');
+    return { dados: empresa, id: id, plano: adminConsolePlanoDaEmpresa(id) };
+  });
+
+  // KPIs do topo — sempre sobre o total, não sobre o filtro
+  var comFinanceiro = empresas.filter(function(e) { return e.plano === 'financeiro' || e.plano === 'completo'; });
+  var somenteFin = empresas.filter(function(e) { return e.plano === 'financeiro'; });
+  var acessos = comFinanceiro.reduce(function(total, e) {
+    return total + adminConsoleUsuariosDaEmpresa(e.id).length;
+  }, 0);
+  var limite = Date.now() + (30 * 24 * 60 * 60 * 1000);
+  var vencendo = (ADMIN_CONSOLE.modules || []).filter(function(item) {
+    if (item.modulo !== 'financeiro' || item.ativo !== true || !item.expira_em) return false;
+    var quando = new Date(item.expira_em).getTime();
+    return quando > Date.now() && quando <= limite;
+  }).length;
+
+  var kpis = {
+    'admin-fin-kpi-empresas': comFinanceiro.length,
+    'admin-fin-kpi-somente': somenteFin.length,
+    'admin-fin-kpi-usuarios': acessos,
+    'admin-fin-kpi-vencendo': vencendo
+  };
+  Object.keys(kpis).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = String(kpis[id]);
+  });
+
+  // Filtros
+  var termo = String((document.getElementById('admin-fin-search') || {}).value || '').trim().toLowerCase();
+  var planoFiltro = String((document.getElementById('admin-fin-plano') || {}).value || '');
+  var lista = empresas.filter(function(item) {
+    if (termo && String(item.dados.nome || '').toLowerCase().indexOf(termo) === -1) return false;
+    if (planoFiltro && item.plano !== planoFiltro) return false;
+    return true;
+  });
+
+  var contador = document.getElementById('admin-fin-result');
+  if (contador) contador.textContent = lista.length + ' empresa(s)';
+
+  if (!lista.length) {
+    grid.innerHTML = adminConsoleEmpty('Nenhuma empresa corresponde ao filtro.');
+    return;
+  }
+
+  grid.innerHTML = lista.map(function(item) {
+    var id = item.id;
+    var usuarios = adminConsoleUsuariosDaEmpresa(id);
+    var temFinanceiro = item.plano === 'financeiro' || item.plano === 'completo';
+
+    var opcoes = ADMIN_PLANOS.map(function(plano) {
+      return '<option value="' + plano.id + '"' + (plano.id === item.plano ? ' selected' : '') + '>'
+        + adminConsoleEscape(plano.nome) + '</option>';
+    }).join('');
+
+    var contrato = adminConsoleContratoModulo(id, 'financeiro');
+    var expira = contrato && contrato.expira_em ? String(contrato.expira_em).slice(0, 10) : '';
+
+    var listaUsuarios = usuarios.length
+      ? '<ul class="admin-fin-users">' + usuarios.map(function(user) {
+          return '<li><span><strong>' + adminConsoleEscape(user.nome || user.email || 'Acesso')
+            + '</strong><small>' + adminConsoleEscape(user.email || '') + '</small></span>'
+            + adminConsoleBadge(user.ativo === false ? 'Inativo' : (user.papel || 'cliente'),
+                                user.ativo === false ? 'danger' : 'neutral')
+            + '<button type="button" class="admin-btn-secondary" onclick="adminConsoleEditarUsuario(\''
+            + adminConsoleEscape(String(user.id)) + '\')">Editar</button></li>';
+        }).join('') + '</ul>'
+      : '<p class="admin-fin-sem-acesso">Nenhum acesso criado para esta empresa.</p>';
+
+    return '<article class="admin-panel-card admin-module-card">'
+      + '<div class="admin-card-heading"><div><span>EMPRESA</span>'
+      + '<h2>' + adminConsoleEscape(item.dados.nome || 'Empresa') + '</h2></div>'
+      + adminConsoleBadge(adminConsolePlanoNome(item.plano), temFinanceiro ? 'success' : 'neutral')
+      + '</div>'
+
+      + '<div class="admin-module-row">'
+      +   '<div class="admin-module-info"><strong>Plano contratado</strong>'
+      +   '<small>Define o que o cliente enxerga ao entrar no sistema.</small></div>'
+      +   '<select data-fin-plano="' + adminConsoleEscape(id) + '">' + opcoes + '</select>'
+      +   '<label class="admin-module-expira">Expira em'
+      +   '<input type="date" value="' + adminConsoleEscape(expira) + '" data-fin-expira="' + adminConsoleEscape(id) + '"></label>'
+      +   '<button type="button" class="admin-btn-primary" onclick="adminConsoleAplicarPlano(\'' + adminConsoleEscape(id) + '\')">Aplicar</button>'
+      + '</div>'
+
+      + '<div class="admin-module-row admin-fin-acessos">'
+      +   '<div class="admin-module-info"><strong>Acessos (' + usuarios.length + ')</strong>'
+      +   '<small>Login de cliente. O super_admin gerencia tudo por aqui.</small></div>'
+      +   '<button type="button" class="admin-btn-secondary" onclick="adminConsoleNovoUsuarioPara(\'' + adminConsoleEscape(id) + '\')">Adicionar acesso</button>'
+      +   (temFinanceiro
+            ? '<button type="button" class="admin-btn-secondary" onclick="adminConsoleAbrirFinanceiroEmpresa(\'' + adminConsoleEscape(id) + '\')">Ver painel do cliente</button>'
+            : '')
+      + '</div>'
+      + listaUsuarios
+      + '</article>';
+  }).join('');
+}
+
+/** Aplica o plano escolhido no card. Nunca apaga dado — só desliga módulo. */
+async function adminConsoleAplicarPlano(companyId) {
+  if (!SESSION || SESSION.papel !== 'super_admin') return;
+
+  var seletor = document.querySelector('[data-fin-plano="' + companyId + '"]');
+  var campoExpira = document.querySelector('[data-fin-expira="' + companyId + '"]');
+  if (!seletor) return;
+
+  var plano = seletor.value;
+  var empresaNome = adminConsoleCompanyName(companyId);
+  if (!window.confirm('Aplicar o plano "' + adminConsolePlanoNome(plano) + '" para ' + empresaNome + '?')) return;
+
+  try {
+    await adminConsoleAction('admin-plan-set', {
+      empresa_id: companyId,
+      plano: plano,
+      expira_em: campoExpira && campoExpira.value ? campoExpira.value : null
+    });
+    adminConsoleTrackActivity('administracao', 'Plano alterado', adminConsolePlanoNome(plano) + ' - ' + empresaNome);
+    adminConsoleAviso('Plano de ' + empresaNome + ' atualizado para "' + adminConsolePlanoNome(plano) + '".', 'success');
+    await adminConsoleCarregarModulos(true);
+  } catch (e) {
+    adminConsoleAviso('Falha ao aplicar o plano: ' + e.message, 'error');
+  }
+}
+
+/** Abre o painel financeiro da empresa em modo de visualizacao supervisionada. */
+async function adminConsoleAbrirFinanceiroEmpresa(companyId) {
+  if (!companyId || typeof abrirPainelClienteAdmin !== 'function') return;
+
+  // Garante que a lista de preview exista mesmo sem passar pelo seletor de empresas
+  if (typeof ADMIN_PREVIEW_COMPANIES !== 'undefined'
+      && (!ADMIN_PREVIEW_COMPANIES || !ADMIN_PREVIEW_COMPANIES.length)) {
+    ADMIN_PREVIEW_COMPANIES = (ADMIN_CONSOLE.companies || []).map(function(company) {
+      return {
+        empresa_id: company.id || company.empresa_id,
+        nome: company.nome || 'Empresa',
+        slug: company.slug || null,
+        logo_url: company.logo_url || null,
+        ativo: company.ativo !== false,
+        tem_api: false
+      };
+    });
+  }
+
+  abrirPainelClienteAdmin(companyId);
+  if (typeof abrirModulo === 'function' && typeof MODULOS !== 'undefined') {
+    abrirModulo(MODULOS.FINANCEIRO, { empresaIdPreview: companyId });
   }
 }
 

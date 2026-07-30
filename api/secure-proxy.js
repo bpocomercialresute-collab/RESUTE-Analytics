@@ -1234,6 +1234,84 @@ async function handleAdminModuleToggle(res, appUser, payload, env) {
   });
 }
 
+// Planos comerciais = combinacao de modulos. E assim que o super_admin decide
+// o que cada empresa enxerga, sem precisar ligar modulo por modulo.
+const PLANOS = {
+  comercial:  ['comercial'],
+  financeiro: ['financeiro'],
+  completo:   ['comercial', 'financeiro'],
+  nenhum:     []
+};
+
+/**
+ * Aplica um plano inteiro a uma empresa numa unica operacao.
+ * Modulos fora do plano ficam ativo = false — nunca sao apagados, entao o
+ * historico de contratacao e o expira_em anterior continuam no banco.
+ */
+async function handleAdminPlanSet(res, appUser, payload, env) {
+  const input = payload || {};
+  const empresaId = String(input.empresa_id || '').trim();
+  const plano = String(input.plano || '').trim().toLowerCase();
+
+  if (!/^[a-zA-Z0-9-]{8,80}$/.test(empresaId)) throw new Error('Empresa invalida.');
+  if (!Object.prototype.hasOwnProperty.call(PLANOS, plano)) throw new Error('Plano invalido.');
+
+  let expiraEm = null;
+  if (input.expira_em) {
+    const parsed = new Date(String(input.expira_em));
+    if (Number.isNaN(parsed.getTime())) throw new Error('Data de expiracao invalida.');
+    expiraEm = parsed.toISOString();
+  }
+
+  const companyResponse = await fetch(
+    `${env.supaUrl}/rest/v1/empresas?id=eq.${encodeURIComponent(empresaId)}&select=id,nome,slug&limit=1`,
+    { headers: adminActionHeaders(env) }
+  );
+  const companyRows = await adminActionReadJson(companyResponse);
+  const company = Array.isArray(companyRows) ? companyRows[0] : null;
+  if (!company) throw new Error('Empresa nao encontrada.');
+
+  const agora = new Date().toISOString();
+  const ativos = PLANOS[plano];
+  const linhas = MODULOS_VALIDOS.map((modulo) => ({
+    empresa_id: empresaId,
+    modulo,
+    ativo: ativos.includes(modulo),
+    expira_em: ativos.includes(modulo) ? expiraEm : null,
+    criado_por: String(appUser.email || 'super_admin'),
+    atualizado_em: agora
+  }));
+
+  const upsertResponse = await fetch(
+    `${env.supaUrl}/rest/v1/empresa_modulos?on_conflict=empresa_id,modulo`,
+    {
+      method: 'POST',
+      headers: {
+        ...adminActionHeaders(env, 'application/json'),
+        'Prefer': 'resolution=merge-duplicates,return=representation'
+      },
+      body: JSON.stringify(linhas)
+    }
+  );
+  const saved = await adminActionReadJson(upsertResponse);
+
+  await writeAdminAudit(env, appUser, {
+    action: 'plano.alterado',
+    entity: 'empresa_modulos',
+    entityId: empresaId,
+    empresaId,
+    summary: `Plano definido como "${plano}" para ${company.nome || company.slug || empresaId}`,
+    metadata: { plano, modulos_ativos: ativos, expira_em: expiraEm }
+  });
+
+  return res.status(200).json({
+    ok: true,
+    plano,
+    registros: Array.isArray(saved) ? saved : [saved],
+    mensagem: `Plano de ${company.nome || empresaId} atualizado para "${plano}".`
+  });
+}
+
 async function handleAdminAction(req, res, action, payload, env) {
   const sessionToken = req.headers['x-session-token'] || '';
   const appUser = await getAppUser(
@@ -1264,6 +1342,9 @@ async function handleAdminAction(req, res, action, payload, env) {
   }
   if (action === 'admin-integration-test') {
     return handleAdminIntegrationTest(res, env, appUser, payload);
+  }
+  if (action === 'admin-plan-set') {
+    return handleAdminPlanSet(res, appUser, payload, env);
   }
   if (action === 'admin-module-toggle') {
     return handleAdminModuleToggle(res, appUser, payload, env);
