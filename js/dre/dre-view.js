@@ -27,19 +27,19 @@
 //      que ficam sem aba ativa. _dreRestaurarAbasFinanceiro() reverte isso na
 //      desmontagem.
 //
-// FONTE DE DADOS — hoje sao os JSON de exemplo da entrega (assets/dre/). Para
-// ligar no banco basta trocar _dreCarregarDados(): o motor so precisa receber
-// { plano, lancamentos } com a forma documentada em docs/MODULO-DRE.md.
+// FONTE DE DADOS — fin_dre_plano_contas e fin_dre_lancamentos no Supabase,
+// sempre filtradas por empresa_id (docs/supabase-dre.sql). Sem dado fictício:
+// empresa sem plano/lançamentos cadastrados abre o painel vazio, com os
+// estados vazios que a própria ferramenta já desenha. A digitação (importar
+// planilha, marcar F_V/D_I) acontece no console admin — ver js/dre/dre-admin.js.
 // =============================================================================
 
 var DRE_MONTADO = false;
 var DRE_ADMIN_PREVIEW = false;
 var DRE_ADMIN_PREVIEW_COMPANY = null;
 
-var DRE_HTML_URL  = 'views/dre-painel.html?v=1';
-var DRE_CSS_URL   = 'css/dre-painel.css?v=1';
-var DRE_PLANO_URL = 'assets/dre/plano_contas.json?v=1';
-var DRE_BD_URL    = 'assets/dre/bd_lancamentos.json?v=1';
+var DRE_HTML_URL = 'views/dre-painel.html?v=1';
+var DRE_CSS_URL  = 'css/dre-painel.css?v=1';
 
 // ── CSS ESCOPADO ─────────────────────────────────────────────────────────────
 
@@ -87,28 +87,51 @@ function _dreEscoparRegras(regras) {
 // ── CARGA DE DADOS ───────────────────────────────────────────────────────────
 
 /**
- * Entrega { plano, lancamentos } para o motor.
+ * Le fin_dre_plano_contas e fin_dre_lancamentos da empresa e entrega
+ * { plano, lancamentos } no formato que o motor espera.
  *
- * FASE ATUAL: JSON de exemplo da entrega, iguais para toda empresa.
- * FASE BANCO: trocar por leitura de fin_plano_contas e fin_lancamentos via
- * /api/secure-proxy, sempre com filtro empresa_id — ver docs/MODULO-DRE.md.
+ * Mesmo mecanismo do painel financeiro (js/financeiro/financeiro-core.js):
+ * SUPA_URL/SVC_KEY aqui são placeholders — o fetch monkey-patched em
+ * auth.js redireciona para /api/secure-proxy, que valida a sessão e exige
+ * o filtro empresa_id=eq.<id> em qualquer tabela fin_*.
  */
-async function _dreCarregarDados() {
+async function _dreCarregarDados(empresaId) {
+  if (!empresaId) return { plano: [], lancamentos: [] };
+
+  var qs = '?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=*&limit=100000';
+
   var respostas = await Promise.all([
-    fetch(DRE_PLANO_URL),
-    fetch(DRE_BD_URL)
+    fetch(SUPA_URL + '/rest/v1/fin_dre_plano_contas' + qs, {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
+    }),
+    fetch(SUPA_URL + '/rest/v1/fin_dre_lancamentos' + qs + '&order=dt_caixa.desc', {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
+    })
   ]);
 
-  respostas.forEach(function(r) {
-    if (!r.ok) throw new Error('Falha ao carregar os dados do DRE (HTTP ' + r.status + ').');
-  });
+  for (var i = 0; i < respostas.length; i++) {
+    if (!respostas[i].ok) throw new Error(respostas[i].status === 403
+      ? 'Acesso negado aos dados do DRE desta empresa.'
+      : 'Falha ao carregar os dados do DRE (HTTP ' + respostas[i].status + ').');
+  }
 
   var dados = await Promise.all(respostas.map(function(r) { return r.json(); }));
+  var plano = Array.isArray(dados[0]) ? dados[0] : [];
+  var lancamentos = Array.isArray(dados[1]) ? dados[1] : [];
 
-  return {
-    plano:       Array.isArray(dados[0]) ? dados[0] : [],
-    lancamentos: Array.isArray(dados[1]) ? dados[1] : []
-  };
+  // O motor filtra lançamento por cnpj (estado.cnpj). Aqui a multiempresa já é
+  // feita por empresa_id, então todo lançamento entra sob o mesmo cnpj fixo —
+  // ver DRE.init() logo abaixo, que abre sempre com cnpj: 1.
+  lancamentos = lancamentos.map(function(l) { return Object.assign({}, l, { cnpj: 1 }); });
+
+  return { plano: plano, lancamentos: lancamentos };
+}
+
+/** Empresa da sessão atual, ou a do preview supervisionado do super_admin. */
+function _dreResolverEmpresaId(empresaIdPreview) {
+  if (empresaIdPreview) return empresaIdPreview;
+  if (typeof SESSION === 'undefined' || !SESSION) return null;
+  return (SESSION.empresa_ids && SESSION.empresa_ids[0]) || SESSION.empresa_id || null;
 }
 
 // ── ABERTURA ─────────────────────────────────────────────────────────────────
@@ -150,7 +173,13 @@ async function dreAbrir(opts) {
     await _dreInjetarCSS();
     await _dreMontarHTML(view);
 
-    var dados = await _dreCarregarDados();
+    var eid = _dreResolverEmpresaId(empresaIdPreview);
+    if (!eid) {
+      var status = document.getElementById('fin-status');
+      if (status) status.textContent = '⚠ Empresa não configurada.';
+    }
+
+    var dados = await _dreCarregarDados(eid);
 
     DRE.init({
       plano:       dados.plano,
@@ -214,16 +243,32 @@ function _dreAplicarHeader() {
 }
 
 /**
- * Atalho do menu do console admin ("Resultado (DRE)").
- *
- * O super_admin cai no console apos o login, nao no painel do cliente, e o
- * seletor de modulos so existe dentro do painel do cliente. Sem esta porta o
- * DRE so seria alcancavel entrando no preview de alguma empresa.
+ * Botão "Abrir DRE" do card de cada empresa, na aba Financeiro do console
+ * admin (js/admin-console.js, adminConsoleRenderFinanceiro). O DRE é por
+ * empresa — não existe uma abertura "genérica" sem saber de qual empresa são
+ * os dados, por isso este atalho sempre exige um companyId.
  */
-function dreAbrirDoAdmin() {
+function dreAbrirDoAdmin(companyId) {
   if (typeof SESSION === 'undefined' || !SESSION || SESSION.papel !== 'super_admin') return;
-  if (typeof abrirModulo === 'function') { abrirModulo('dre'); return; }
-  dreAbrir({});
+  if (!companyId) return;
+
+  // Garante a lista de preview mesmo sem passar pelo seletor de empresas cliente.
+  if (typeof ADMIN_PREVIEW_COMPANIES !== 'undefined'
+      && (!ADMIN_PREVIEW_COMPANIES || !ADMIN_PREVIEW_COMPANIES.length)
+      && typeof ADMIN_CONSOLE !== 'undefined') {
+    ADMIN_PREVIEW_COMPANIES = (ADMIN_CONSOLE.companies || []).map(function(company) {
+      return {
+        empresa_id: company.id || company.empresa_id,
+        nome: company.nome || 'Empresa',
+        slug: company.slug || null,
+        logo_url: company.logo_url || null,
+        ativo: company.ativo !== false,
+        tem_api: false
+      };
+    });
+  }
+
+  if (typeof abrirModulo === 'function') abrirModulo('dre', { empresaIdPreview: companyId });
 }
 
 /** Volta ao console do super_admin, encerrando o preview supervisionado. */

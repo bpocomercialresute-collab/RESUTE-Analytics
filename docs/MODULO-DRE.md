@@ -14,7 +14,7 @@ Não substitui o painel financeiro. São visões diferentes do mesmo dinheiro:
 
 ## A ferramenta é intocada
 
-Os quatro arquivos abaixo vieram prontos e estão **byte a byte idênticos** à
+Os três arquivos abaixo vieram prontos e estão **byte a byte idênticos** à
 entrega original guardada em `docs/ferramenta/`. Nenhuma linha foi alterada para
 encaixá-los no sistema.
 
@@ -23,8 +23,6 @@ encaixá-los no sistema.
 | `views/dre-painel.html` | `docs/ferramenta/dre_painel.html` | bloco do painel, 6 abas |
 | `css/dre-painel.css` | `docs/ferramenta/dre_painel.css` | estilos |
 | `js/dre/dre-engine.js` | `docs/ferramenta/dre_engine.js` | motor, expõe `DRE` |
-| `assets/dre/plano_contas.json` | `docs/ferramenta/plano_contas.json` | plano de contas |
-| `assets/dre/bd_lancamentos.json` | `docs/ferramenta/bd_lancamentos.json` | lançamentos de exemplo |
 
 Conferir a qualquer momento:
 
@@ -32,13 +30,15 @@ Conferir a qualquer momento:
 cmp docs/ferramenta/dre_painel.html  views/dre-painel.html
 cmp docs/ferramenta/dre_painel.css   css/dre-painel.css
 cmp docs/ferramenta/dre_engine.js    js/dre/dre-engine.js
-cmp docs/ferramenta/plano_contas.json    assets/dre/plano_contas.json
-cmp docs/ferramenta/bd_lancamentos.json  assets/dre/bd_lancamentos.json
 ```
 
 Ao evoluir o painel, edite os arquivos de produção e **sincronize a cópia em
 `docs/ferramenta/`** — ou o `cmp` acima passa a acusar diferença e o rastro da
 entrega original se perde.
+
+`docs/ferramenta/plano_contas.json` e `docs/ferramenta/bd_lancamentos.json`
+continuam ali como **registro do formato de dados da entrega original** — não
+são mais servidos pelo app. Ver "Dados reais" abaixo.
 
 ---
 
@@ -104,55 +104,74 @@ para quem tem `'dre'` na lista. `super_admin` enxerga todos os módulos.
 
 ---
 
-## Dados: o que falta para sair do exemplo
+## Dados reais — admin calcula, cliente só vê o resultado
 
-Hoje `_dreCarregarDados()` lê os dois JSON de `assets/dre/`, iguais para toda
-empresa. Para ligar no banco, só essa função muda — o motor recebe
-`{ plano, lancamentos }` e não sabe de onde veio.
+Sem dado fictício: `_dreCarregarDados()` (`js/dre/dre-view.js`) lê direto de
+`fin_dre_plano_contas` e `fin_dre_lancamentos` (schema em
+`docs/supabase-dre.sql`), sempre filtrado por `empresa_id`. Empresa sem nada
+cadastrado abre o painel vazio — os estados vazios (`fin-tabela-vazia`) já são
+da ferramenta, nenhum precisou ser inventado aqui.
 
-### Forma esperada pelo motor
+A entrada de dados é **só no console admin**, na aba **Financeiro**
+(`js/admin-console.js`, `adminConsoleRenderFinanceiro`): cada card de empresa
+ganhou a linha "Dados do DRE" com cinco botões, implementados em
+`js/dre/dre-admin.js` (mesmo padrão de `financeiro-admin.js` — colar
+planilha, parser converte, grava por lote):
 
-`plano` — uma linha por conta:
+| Botão | Faz |
+|---|---|
+| Importar plano de contas | cola `cod\|conta\|grupo\|fv\|di`, grava em `fin_dre_plano_contas` |
+| Importar lançamentos | cola `conta\|dt_caixa\|dt_venc\|dt_pag\|valor\|parceiro\|documento\|banco\|forma`, grava em `fin_dre_lancamentos` |
+| Abrir DRE | abre o painel da ferramenta para aquela empresa (preview supervisionado) |
+| Limpar plano / Limpar lançamentos | apaga tudo daquela empresa e tabela, com dupla confirmação |
+
+O painel do cliente (seletor de módulos → Resultado (DRE)) usa a mesma
+`dreAbrir()`, mas sem nenhum desses botões — o cliente só lê o que o admin já
+calculou.
+
+### Validações do import
+
+- **Grupo** precisa bater com um dos 15 nomes que o motor conhece
+  (`DRE.SE_POR_GRUPO`, lido direto do motor — não duplicado aqui, então não
+  desalinha se a ferramenta ganhar/mudar grupos). Grupo não reconhecido barra
+  a linha, com erro apontando o número da linha.
+- **Conta duplicada** no mesmo arquivo colado barra a segunda ocorrência —
+  o PROCV do motor é por nome de conta; duas linhas iguais tornam o resultado
+  ambíguo.
+- **Conta do lançamento fora do plano** não bloqueia o import (mensagem de
+  confirmação avisa quantas), porque o motor já tem o comportamento certo
+  para isso: mostra `#N/A` e soma no alerta "contas fora do plano".
+- **`cod` em branco** vira o próprio nome da conta — só importa para a aba
+  "Plano de Contas" identificar a linha ao clicar nos toggles F_V/D_I.
+
+### Forma que chega ao motor
+
+`plano`:
 
 ```json
 { "cod": "MP02", "conta": "Aviamento", "grupo": "CUSTO. MP OU REVENDA", "fv": "V", "di": "" }
 ```
 
-`lancamentos` — livro-razão:
+`lancamentos` (o `cnpj: 1` é fixo, adicionado em `_dreCarregarDados` — a
+multiempresa já é feita por `empresa_id`, não por `cnpj`):
 
 ```json
-{ "id": 1283, "dt_caixa": "2024-09-06", "dt_pag": "2024-09-06",
+{ "id": "...", "dt_caixa": "2024-09-06", "dt_pag": "2024-09-06",
   "conta": "Vendas", "valor": 170, "cnpj": 1 }
 ```
 
-O PROCV é por **nome da conta** (`lancamento.conta` → `plano.conta`), comparado
-sem diferenciar maiúsculas. Conta ausente do plano vira `#N/A` e **não entra no
-DRE** — o painel já alerta quantos lançamentos caíram nesse caso.
+### Persistência das marcações F_V / D_I pelo próprio painel
 
-### Lacunas contra o schema atual
-
-`fin_lancamentos` (`docs/supabase-financeiro.sql`) não cobre o modelo:
-
-| Motor precisa | Hoje existe | Ação |
-|---|---|---|
-| plano de contas (`cod`, `conta`, `grupo`, `fv`, `di`) | — | criar `fin_plano_contas` com RLS |
-| `conta` (chave do PROCV) | `categoria`, texto livre | normalizar contra o plano, senão vira `#N/A` em massa |
-| `dt_caixa` | `data_competencia` | mapear |
-| `dt_pag` | `data_pagamento` | mapear |
-| `cnpj` | `empresa_id` (uuid) | `estado.cnpj` aceita qualquer valor; passar o uuid |
-| sinal entrada/saída | coluna `tipo` | o DRE **deriva do grupo**, ignora `tipo` — o plano vira a fonte da verdade |
-
-A tabela nova precisa do prefixo `fin_`: `FIN_TABLE_REGEX` em
-`api/secure-proxy.js` recusa qualquer outra.
-
-### Persistência das marcações F_V / D_I
-
-A aba "Plano de Contas" é a única de digitação do painel. Hoje `salvar()` no
-motor (`js/dre/dre-engine.js`, seção 11) só faz `console.log`. Gravar exige
-`PATCH` via `api/secure-proxy.js` — escrita não passa por RLS, só `super_admin`.
-
-Sem essas marcações, margem de contribuição, índice MC e ponto de equilíbrio
-saem incompletos; o painel já emite alerta contando as contas sem marcação.
+A aba "Plano de Contas" tem toggle F/V e D/I clicável na tela — mas isso é a
+ferramenta original, e `salvar()` dentro dela (`js/dre/dre-engine.js`, seção
+11) continua sendo só `console.log`: clicar no toggle muda a tela na hora,
+mas não grava no banco. Hoje a gravação real do F_V/D_I é **só pelo import**
+(reimportar o plano com a coluna atualizada). Ligar o toggle da tela direto no
+`PATCH fin_dre_plano_contas` exigiria expor uma função do motor para
+sobrescrever ou chamar depois de `salvar()` — que é interna ao IIFE, não faz
+parte da API pública (`DRE.init`, `DRE.recalcular`, ...). Não fiz essa mudança
+porque envolveria tocar em `dre-engine.js`, e esse arquivo é para ficar como
+veio. Se quiser esse fio depois, é uma conversa separada.
 
 ---
 
@@ -182,8 +201,9 @@ direto unitário sobre o VALOR PRODUZIDO (via D_I).
 
 - O motor é ES2020 (`const`, arrow, `?.`, `??`); o resto de `js/` é ES5
   (`var`, `function`). Proposital — não "padronize" reescrevendo a ferramenta.
-- Ao mexer em `views/dre-painel.html`, `css/dre-painel.css` ou
-  `js/dre/dre-engine.js`, suba o `?v=` correspondente em `js/dre/dre-view.js`
-  (HTML, CSS e JSON) e em `index.html` (os dois `<script>`).
+- Ao mexer em `views/dre-painel.html` ou `css/dre-painel.css`, suba o `?v=`
+  correspondente nas constantes `DRE_HTML_URL`/`DRE_CSS_URL` de
+  `js/dre/dre-view.js`. Ao mexer em `js/dre/dre-engine.js`, `dre-view.js` ou
+  `dre-admin.js`, suba o `?v=` do `<script>` correspondente em `index.html`.
 - `dreDestruir()` destrói os Chart.js via `DRE.estado.charts`. Sem isso o
   Chart.js vaza memória a cada troca de módulo.

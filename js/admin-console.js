@@ -363,6 +363,7 @@ function adminConsoleAbrir(section, navItem) {
   if (!ADMIN_CONSOLE.loaded) adminConsoleInicializar();
   if (target === 'modules' || target === 'financeiro') adminConsoleCarregarModulos();
   if (target === 'financeiro' && typeof finAdminCarregarResumo === 'function') finAdminCarregarResumo();
+  if (target === 'financeiro' && typeof dreAdminCarregarResumo === 'function') dreAdminCarregarResumo();
   if (window.innerWidth <= 900) {
     var sidebar = document.getElementById('sidebar');
     var overlay = document.getElementById('sidebar-overlay');
@@ -1082,6 +1083,21 @@ function adminConsoleRenderFinanceiro() {
             ) + '</small></div>'
       +   '<button type="button" class="admin-btn-secondary" onclick="finAdminAbrirImportacao(\'' + adminConsoleEscape(id) + '\')">Importar lançamentos</button>'
       +   '<button type="button" class="admin-btn-secondary admin-btn-danger" onclick="finAdminLimpar(\'' + adminConsoleEscape(id) + '\')">Limpar</button>'
+      + '</div>'
+
+      // DRE: quem calcula é o admin, aqui — plano de contas e lançamentos entram
+      // por colar planilha, igual ao financeiro acima. O cliente só lê o resultado
+      // pronto (seletor de módulos no painel dele, sem nenhum destes botões).
+      + '<div class="admin-module-row">'
+      +   '<div class="admin-module-info"><strong>Dados do DRE</strong>'
+      +   '<small>' + adminConsoleEscape(
+              typeof dreAdminResumoTexto === 'function' ? dreAdminResumoTexto(id) : ''
+            ) + '</small></div>'
+      +   '<button type="button" class="admin-btn-secondary" onclick="dreAdminAbrirImportacaoPlano(\'' + adminConsoleEscape(id) + '\')">Importar plano de contas</button>'
+      +   '<button type="button" class="admin-btn-secondary" onclick="dreAdminAbrirImportacaoLancamentos(\'' + adminConsoleEscape(id) + '\')">Importar lançamentos</button>'
+      +   '<button type="button" class="admin-btn-secondary" onclick="dreAbrirDoAdmin(\'' + adminConsoleEscape(id) + '\')">Abrir DRE</button>'
+      +   '<button type="button" class="admin-btn-secondary admin-btn-danger" onclick="dreAdminLimparPlano(\'' + adminConsoleEscape(id) + '\')">Limpar plano</button>'
+      +   '<button type="button" class="admin-btn-secondary admin-btn-danger" onclick="dreAdminLimparLancamentos(\'' + adminConsoleEscape(id) + '\')">Limpar lançamentos</button>'
       + '</div>'
 
       + '<div class="admin-module-row admin-fin-acessos">'
