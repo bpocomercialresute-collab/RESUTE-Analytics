@@ -195,9 +195,15 @@ function _dreNomeEmpresa() {
  * e o seletor de modulos. Roda depois do DRE.init, que escreve em #fin-empresa.
  */
 function _dreAplicarHeader() {
+  // O botao aparece para todo super_admin, nao so no preview: quando ele abre o
+  // DRE pelo menu do console, e a unica saida da tela — o painel ocupa o viewport
+  // inteiro e esconde a sidebar.
+  var ehSuperAdmin = !!(typeof SESSION !== 'undefined' && SESSION
+    && SESSION.papel === 'super_admin');
+
   var voltar = document.getElementById('fin-admin-back');
   if (voltar) {
-    voltar.style.display = DRE_ADMIN_PREVIEW ? 'inline-flex' : 'none';
+    voltar.style.display = ehSuperAdmin ? 'inline-flex' : 'none';
     voltar.onclick = dreVoltarAoAdmin;
   }
 
@@ -205,6 +211,19 @@ function _dreAplicarHeader() {
   if (selo) selo.classList.toggle('visivel', DRE_ADMIN_PREVIEW);
 
   if (typeof renderizarSeletorModulos === 'function') renderizarSeletorModulos();
+}
+
+/**
+ * Atalho do menu do console admin ("Resultado (DRE)").
+ *
+ * O super_admin cai no console apos o login, nao no painel do cliente, e o
+ * seletor de modulos so existe dentro do painel do cliente. Sem esta porta o
+ * DRE so seria alcancavel entrando no preview de alguma empresa.
+ */
+function dreAbrirDoAdmin() {
+  if (typeof SESSION === 'undefined' || !SESSION || SESSION.papel !== 'super_admin') return;
+  if (typeof abrirModulo === 'function') { abrirModulo('dre'); return; }
+  dreAbrir({});
 }
 
 /** Volta ao console do super_admin, encerrando o preview supervisionado. */
