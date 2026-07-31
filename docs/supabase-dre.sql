@@ -72,6 +72,7 @@ create table if not exists public.fin_dre_lancamentos (
 
   conta text not null,           -- precisa bater com fin_dre_plano_contas.conta
   valor numeric(14,2) not null,
+  tot_pago numeric(14,2) null,   -- valor ja pago; aberto = valor - tot_pago. Nao usado pelo motor hoje, guardado para inadimplencia futura.
 
   dt_caixa date not null,        -- define ano/mes da coluna no BD_DRE
   dt_venc date null,

@@ -121,7 +121,7 @@ planilha, parser converte, grava por lote):
 | Botão | Faz |
 |---|---|
 | Importar plano de contas | cola `cod\|conta\|grupo\|fv\|di`, grava em `fin_dre_plano_contas` |
-| Importar lançamentos | cola `conta\|dt_caixa\|dt_venc\|dt_pag\|valor\|parceiro\|documento\|banco\|forma`, grava em `fin_dre_lancamentos` |
+| Importar lançamentos | cola `conta\|dt_caixa\|dt_venc\|dt_pag\|valor\|tot_pago\|parceiro\|documento\|banco\|forma`, grava em `fin_dre_lancamentos` |
 | Editar plano (grade) / Editar lançamentos (grade) | grade estilo Excel — ver abaixo |
 | Abrir DRE | abre o painel da ferramenta para aquela empresa (preview supervisionado) |
 | Limpar plano / Limpar lançamentos | apaga tudo daquela empresa e tabela, com dupla confirmação |

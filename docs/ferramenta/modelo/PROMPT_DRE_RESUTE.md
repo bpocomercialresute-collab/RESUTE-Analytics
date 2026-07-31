@@ -1,75 +1,176 @@
-## PROMPT — FERRAMENTA DRE RESUTE (Integração no Sistema de Relatórios)
+# DRE RESUTE — Documentação da lógica (revisada)
 
-Tenho uma planilha Excel chamada `Modelo_DRE_Matheus.xlsx` com 4 abas encadeadas. Quero que você leia o arquivo inteiro, entenda 100% da lógica, e construa uma ferramenta web que replique tudo — visual, fórmulas, comportamento e estrutura — para integrar no meu sistema de Relatórios.
-
----
-
-### ENTRADA DE DADOS — COLA DO EXCEL
-
-**Por enquanto todos os dados serão colados manualmente direto do Excel.** A ferramenta precisa se comportar como uma planilha real:
-
-- Cada aba que recebe dados (`PLANO_CONTAS` e `BD`) deve ter uma **grid editável estilo Excel** — células clicáveis, navegação por Tab e Enter, seleção de intervalo com Shift+clique
-- **Colar (Ctrl+V) funciona direto na grid** — o usuário copia um bloco de células do Excel e cola na ferramenta. A ferramenta detecta o `\t` entre colunas e `\n` entre linhas e distribui os valores corretamente nas células
-- **Copiar (Ctrl+C)** exporta o bloco selecionado no mesmo formato tab-separado, compatível com Excel
-- Cabeçalho de coluna fixo (sticky) com **filtro por clique** em cada coluna — dropdown com os valores distintos, igual ao AutoFiltro do Excel
-- **Ordenação** por clique no cabeçalho — seta indica ascendente/descendente
-- **Busca global** na grid (Ctrl+F ou campo de busca) que destaca as células encontradas
-- Linha de **totais no rodapé** para colunas numéricas (soma, contagem)
-- **Validação inline**: célula com erro (conta inexistente no plano, data inválida, valor não numérico) fica com borda vermelha e tooltip explicando o problema
-- Botão **"Limpar tudo"** e botão **"Desfazer última colagem"** (Ctrl+Z)
-- Indicador de **quantas linhas foram coladas** na última operação
-- As colunas derivadas (`GRUPO`, `S_E`, `ANO`, `MÊS`, `STATUS`, `VENC`) são **somente leitura e calculadas automaticamente** após cada colagem — destacadas visualmente com fundo levemente diferente para o usuário saber que não deve editá-las
+Réplica em JavaScript da planilha `Modelo_DRE_Matheus.xlsx`
+(`docs/ferramenta/modelo/`). Este documento explica a cadeia de cálculo, as
+fórmulas, a ordem de execução obrigatória e onde cada peça vive no código hoje.
+Para "onde a ferramenta se encaixa no sistema" (ids, rotas, RLS), ver
+`docs/MODULO-DRE.md` — este arquivo é sobre a **lógica do DRE em si**, não
+sobre a integração.
 
 ---
 
-### AS 4 ABAS E A CADEIA DE DEPENDÊNCIA
-
-A cadeia é linear e obrigatória — cada aba só existe por causa da anterior:
+## A cadeia — 4 estágios, cada um só existe por causa do anterior
 
 ```
-PLANO_CONTAS → BD → BD_DRE → DESIGN
+PLANO_CONTAS  →  BD (lançamentos)  →  BD_DRE (matriz SUMIFS)  →  DESIGN (DRE visual)
 ```
 
-**ABA 1 — `PLANO_CONTAS` (100% manual, entrada de dados)**
-- É o dicionário de todas as contas da empresa
-- Colunas: `COD` (código único por família), `CONTA` (nome — é a chave de ligação com todas as outras abas), `GRUPO` (um dos 15 grupos do DRE), `F_V`, `D_I`
-- `F_V` = Fixo ou Variável. Na ferramenta precisa ter um botão de marcação por conta, igual à planilha — clicar alterna entre F, V e não marcado
-- `D_I` = Direto ou Indireto. Mesmo comportamento de botão que o `F_V`, independente dele
-- Os dois campos são independentes entre si: uma conta pode ser `F + D`, `V + I`, `F + I`, `V + D`
-- Precisa ter filtros por grupo, por `F_V` e por `D_I`, e busca por código ou nome de conta
-
-**ABA 2 — `BD` (lançamentos financeiros)**
-- É o livro-razão. Parte dos campos é digitada/colada manualmente, parte é derivada por `PROCV`/`PROCX` no `PLANO_CONTAS`
-- Campos principais: `ID`, `DT_CAIXA` (data de competência — é esta que o DRE usa), `DT_VENC`, `DT_PAG`, `CONTA`, `TIPO`, `VALOR`, `TOT_PAGO`, `FORNECEDOR/CLIENTE`, `N_DOC`, `BANCO`, `FORMA`, `CNPJ`
-- Campos derivados automaticamente: `GRUPO` e `S_E` (via PROCV na conta), `ANO`, `MÊS` (por extenso: Jan, Fev… — atenção: o mês precisa ser normalizado para case-insensitive antes de qualquer comparação), `STATUS` (PG se `DT_PAG` preenchida, senão N), `VENC` (VP = vencido/pago, VA = a vencer)
-- `S_E` = Saída ou Entrada, derivado do grupo. Receita = E, Despesa/Custo = S, Faturamento e Valor Produzido = 0 (extracontábil — não somam no resultado)
-- Conta ausente no plano gera `#N/A` — a ferramenta deve alertar esses casos
-
-**ABA 3 — `BD_DRE` (matriz SUMIFS — 100% calculada)**
-- Produto cartesiano completo: todas as contas × todos os anos × CNPJ
-- Para cada linha: 12 colunas de mês (Jan a Dez), cada uma é um `SUMIFS` cruzando conta, ano, mês e CNPJ contra o BD
-- Fórmula base: `SUMIFS(BD.VALOR; BD.CONTA; esta_conta; BD.ANO; este_ano; BD.MÊS; este_mês; BD.CNPJ; este_cnpj)`
-- Colunas calculadas: `TOTAL` (soma do recorte de meses), `MÉD` (TOTAL ÷ número de meses do recorte — não divide por 12 fixo), `%` (TOTAL ÷ receita total do período)
-- O `%` só pode ser calculado depois que a receita total estiver somada — respeitar a ordem de execução
-
-**ABA 4 — `DESIGN` (resultado visual — última aba, 100% derivada do BD_DRE)**
-- É a apresentação final do DRE. Nada é digitado aqui — tudo puxa do `BD_DRE`
-- Para cada grupo do DRE, existe um bloco com: cabeçalho do grupo + uma linha por conta + linha de total do grupo
-- Abaixo de cada conjunto de grupos, existe uma linha de resultado (Receita Líquida, Lucro Bruto, EBITDA, Lucro Líquido, Geração de Caixa)
-- **Esta é a aba que o usuário vê como o DRE final**
+Inverter a ordem produz número errado sem erro visível — é por isso que
+`recalcular()` em `js/dre/dre-engine.js` (seção 16) chama as etapas sempre na
+mesma sequência: `montarBDDRE()` primeiro, o resto depois.
 
 ---
 
-### ESTRUTURA DO DRE (ordem obrigatória dos blocos)
+## Estágio 1 — PLANO_CONTAS (dicionário de contas, 100% manual)
+
+Colunas: `COD`, `CONTA`, `GRUPO`, `F_V`, `D_I`.
+
+- **`CONTA` é a chave de tudo.** Todo lançamento do BD casa com o plano pelo
+  nome da conta (comparação sem diferenciar maiúsculas). Duas linhas com o
+  mesmo nome de conta tornam o PROCV ambíguo — a grade de edição
+  (`js/dre/dre-grid.js`) e o schema (`docs/supabase-dre.sql`, `unique
+  (empresa_id, conta)`) recusam duplicata.
+- **`GRUPO`** precisa ser um dos 15 nomes que o motor conhece
+  (`DRE.SE_POR_GRUPO` em `dre_engine.js`, seção 1). Grupo fora dessa lista
+  vira "S" (saída) por padrão — ou seja, um erro de digitação no grupo não
+  quebra visivelmente, só distorce o resultado. A grade de edição valida isso
+  antes de salvar.
+- **`F_V`** (Fixo/Variável) e **`D_I`** (Direto/Indireto) são independentes
+  entre si — uma conta pode ser `F+D`, `F+I`, `V+D` ou `V+I`. Alimentam só a
+  aba de análise (margem de contribuição, ponto de equilíbrio, custo direto
+  unitário), não a cascata do DRE.
+
+### ⚠️ Estado real do arquivo original
+
+- **`F_V`**: 74 contas marcadas como `F`, 49 como `V`, **198 em branco**.
+- **`D_I`**: **100% em branco** nas 321 contas — nenhuma conta possui marcação
+  de Direto/Indireto no arquivo original.
+
+Consequência direta: os indicadores de **Custo Direto Unitário** e **peso do
+direto** vão aparecer zerados até o usuário marcar o `D_I` manualmente conta
+a conta. O painel deve exibir dois alertas separados:
+- Um para contas de saída sem `F_V` → "Margem de contribuição incompleta"
+- Outro para contas de saída sem `D_I` → "Custo direto por produto incompleto"
+
+Misturar os dois em um único alerta esconde a gravidade do `D_I`, que está
+completamente vazio.
+
+---
+
+## Estágio 2 — BD (livro-razão, entrada parcialmente manual)
+
+Campos digitados: `DT_CAIXA` (data de competência — é esta que o DRE usa,
+não `DT_VENC`), `DT_VENC`, `DT_PAG`, `CONTA`, `VALOR`, `PARCEIRO`,
+`DOCUMENTO`, `BANCO`, `FORMA`.
+
+Campos derivados automaticamente (`enriquecerBD()`, seção 5):
+
+| Campo | Como é calculado |
+|---|---|
+| `GRUPO` | PROCV em `PLANO_CONTAS` pelo nome da conta |
+| `S_E` | `SE_POR_GRUPO[grupo]` — `E` entrada, `S` saída, `0` extracontábil |
+| `ANO`, `MÊS` | de `DT_CAIXA` |
+| `STATUS` | `PG` se `DT_PAG` preenchida, senão `N` |
+
+Conta sem correspondência no plano vira **`#N/A`** e fica de fora da soma do
+resultado. O painel mostra um alerta contando quantos lançamentos caíram nesse
+caso (`renderAlertas`, seção 14).
+
+### Como corrigir um lançamento `#N/A`
+
+Há dois caminhos — o usuário precisa saber qual usar:
+
+1. **O nome da conta no BD está errado** (erro de digitação, espaço extra,
+   capitalização diferente): corrigir no BD, na coluna `CONTA`.
+2. **A conta existe no BD mas não foi cadastrada no Plano de Contas**: ir à
+   aba Plano de Contas e adicionar a conta com grupo, `F_V` e `D_I`.
+
+Sem essa correção o lançamento continua invisível para o DRE — não entra em
+nenhum grupo, não afeta nenhum resultado.
+
+`S_E = '0'` (extracontábil) é o caso de `FATURAMENTO` e `VALOR PRODUZIDO`:
+aparecem no DRE como blocos informativos, mas nunca entram na cascata de
+resultado — servem só para o cálculo de custo direto unitário.
+
+### Campos presentes no Excel original mas fora do schema atual
+
+| Campo | Situação | Observação |
+|---|---|---|
+| `TOT_PAGO` | Não persistido | Útil para inadimplência: valor em aberto = `VALOR − TOT_PAGO`. Manter no schema mesmo sem uso imediato evita migração futura. |
+| `VENC` | Não persistido | VP = vencido/pago, VA = a vencer. Útil para aging. Mesmo caso do `TOT_PAGO`. |
+| `CNPJ` | Fixado em `1` | Ver seção abaixo. |
+
+**Recomendação:** incluir `TOT_PAGO` e `VENC` no schema de `fin_dre_lancamentos`
+desde já, mesmo que nenhum cálculo atual os consuma. Custo zero agora, migração
+evitada depois.
+
+---
+
+## Estágio 3 — BD_DRE (matriz calculada, o "SUMIFS" da planilha)
+
+Fórmula original do Excel, célula a célula:
 
 ```
-FATURAMENTO                     ← extracontábil, não soma
-VALOR PRODUZIDO                 ← extracontábil, não soma
+SUMIFS(BD.VALOR; BD.CONTA; esta_conta; BD.ANO; este_ano; BD.MÊS; este_mês; BD.CNPJ; este_cnpj)
+```
+
+O motor não repete essa varredura por célula (321 contas × 12 meses = 3.852
+varreduras do BD a cada recálculo). Em vez disso, `montarBDDRE()` (seção 6)
+indexa o BD **uma vez** numa chave composta `conta|ano|mês|cnpj` e depois
+monta o produto cartesiano lendo dessa tabela hash — mesmo resultado, uma
+passada só.
+
+### ⚠️ Armadilha crítica: normalização do mês (case-insensitive)
+
+O BD original grava o mês em **minúsculo** (`set`, `jan`, `fev`…) enquanto o
+cabeçalho do BD_DRE usa **capitalizado** (`Set`, `Jan`, `Fev`…). No Excel o
+SUMIFS é case-insensitive e casa normalmente. **Em JavaScript a comparação de
+strings é case-sensitive** — sem normalização, toda a matriz do BD_DRE zera
+silenciosamente, sem lançar nenhum erro.
+
+Regra obrigatória no motor: **sempre converter os dois lados para minúsculo**
+antes de montar a chave de comparação:
+
+```js
+// ERRADO — zera a matriz inteira sem aviso
+chave = `${conta}|${ano}|${mes}|${cnpj}`
+
+// CORRETO
+chave = `${conta.toLowerCase()}|${ano}|${mes.toLowerCase()}|${cnpj}`
+```
+
+Qualquer refatoração no motor deve preservar essa normalização. É a falha mais
+silenciosa de toda a implementação.
+
+### Colunas calculadas por linha
+
+- **`TOTAL`** = soma de `Jan..Dez` restrita ao recorte de meses ativo (não é
+  sempre o ano inteiro — o filtro de mês do painel corta o intervalo).
+- **`MÉD`** = `TOTAL ÷ número de meses do recorte` — **não** divide por 12
+  fixo. Um recorte de 3 meses divide por 3.
+- **`%`** = `TOTAL da linha ÷ receita total do período`. Calculado em **dois
+  passes**: primeiro soma tudo, depois calcula o `%` — o `%` só existe depois
+  que a receita total estiver disponível.
+
+---
+
+## Estágio 4 — DESIGN (o DRE visual, 100% derivado do BD_DRE)
+
+Nada é digitado aqui. `ESTRUTURA` (seção 1) descreve a ordem fixa dos blocos;
+`renderBloco()`/`renderResultado()` (seção 9) desenham a partir do BD_DRE.
+
+---
+
+## Estrutura obrigatória do DRE (ordem dos blocos)
+
+```
+FATURAMENTO                     ← extracontábil (S_E=0), não soma
+VALOR PRODUZIDO                 ← extracontábil (S_E=0), não soma
 (+) RECEITA OPERACIONAL
 (-) DESP. TRIBUTÁRIA
 ════ RECEITA LÍQUIDA            ← base de todas as margens
 (-) CUSTO. MP OU REVENDA
-════ LUCRO BRUTO                ← margem bruta = ÷ receita líquida
+════ LUCRO BRUTO
 (-) DESP. OPERACIONAL
 (-) DESP. COMERCIAL
 (-) DESP. LOGÍSTICA
@@ -88,42 +189,76 @@ VALOR PRODUZIDO                 ← extracontábil, não soma
 
 ---
 
-### VISUAL — REPLICAR EXATAMENTE O DA PLANILHA
+## Indicadores
 
-| Elemento | Especificação |
+| Indicador | Fórmula | Depende de |
+|---|---|---|
+| Margem Bruta / EBITDA / Líquida | linha de resultado ÷ Receita Líquida | BD_DRE calculado |
+| Margem de Contribuição | Receita − custos/despesas com `F_V = V` | `F_V` marcado nas contas |
+| Índice MC | Margem de Contribuição ÷ Receita | idem |
+| Ponto de Equilíbrio | Total com `F_V = F` ÷ Índice MC | idem |
+| Custo Direto Unitário | Total com `D_I = D` ÷ VALOR PRODUZIDO | `D_I` marcado nas contas |
+| Peso de cada grupo | total do grupo ÷ receita total | BD_DRE calculado |
+
+**Atenção:** Margem de Contribuição e Ponto de Equilíbrio ficam incorretos
+enquanto `F_V` estiver em branco. Custo Direto Unitário fica zerado enquanto
+`D_I` estiver em branco — que é o estado atual do arquivo original (100% vazio).
+
+---
+
+## Visual (paleta da aba DESIGN original)
+
+| Elemento | Cor |
 |---|---|
+| Cabeçalho de grupo | `#002060` (azul-marinho), texto branco |
+| Coluna TOT | `#00B050` (verde) |
+| Valores de saída | `#FF0000` (vermelho) |
+| Linha de total do grupo | `#FFFF00` (amarelo) |
 | Fonte | Calibri 10 |
-| Cabeçalho de grupo | fundo `#002060` (azul-marinho), texto branco |
-| Coluna TOT | fundo `#00B050` (verde), texto branco |
-| Valores de saída (despesas) | texto `#FF0000` (vermelho) |
-| Linha de total do grupo | fundo `#FFFF00` (amarelo), prefixo `(-)` ou `(+)` |
-| Linhas de resultado | fundo `#002060`, texto branco, destaque de margem |
-| Blocos extracontábeis | borda tracejada, cabeçalho `#3d4a5c` |
-| Formato numérico | `#.##0` sem centavos |
-| Formato percentual | `0,00%` |
-| Valor zero | cinza claro, exibe `-` |
+| Zero | cinza, exibe `-` |
 
 ---
 
-### INDICADORES QUE DEVEM SER CALCULADOS
+## As 6 abas da ferramenta
 
-- Margem Bruta, Margem EBITDA, Margem Líquida (todas ÷ Receita Líquida)
-- Margem de Contribuição = (Receita − Custos e Despesas Variáveis) ÷ Receita
-- Ponto de Equilíbrio = Total Fixo ÷ Índice de Margem de Contribuição
-- Custo Direto Unitário = Total Diretos ÷ Valor Produzido
-- Peso de cada grupo sobre a receita
-
----
-
-### ABAS DA FERRAMENTA (todas obrigatórias)
-
-1. **DRE** — os blocos visuais da aba DESIGN, com KPIs e alertas no topo
-2. **BD_DRE** — a matriz conta × mês com todos os SUMIFS calculados
-3. **Plano de Contas** — grid editável com cola do Excel + botões de `F_V` e `D_I` por linha
-4. **Lançamentos (BD)** — grid editável com cola do Excel, colunas derivadas somente leitura
-5. **Fixo/Variável · Direto/Indireto** — análise gráfica + indicadores de MC e PE
+1. **DRE** — cascata visual + KPIs + alertas no topo
+2. **BD_DRE** — a matriz conta × mês com os SUMIFS calculados
+3. **Plano de Contas** — tabela com busca/filtro por grupo/F_V/D_I e toggle de marcação
+4. **Lançamentos** — livro-razão com GRUPO/S_E já resolvidos
+5. **Fixo/Variável · Direto/Indireto** — barras + indicadores de MC e PE
 6. **Gráficos** — receita × resultado por mês, peso dos grupos, evolução das margens
 
 ---
 
-Crie também um `DRE_RESUTE_DOCUMENTACAO.md` completo explicando toda a lógica, cadeia de dependência, fórmulas, ordem de execução e estrutura dos arquivos.
+## Como os dados entram
+
+1. **Colar planilha inteira** — modal com textarea, para a primeira carga em massa
+2. **Grade estilo Excel** — célula clicável, colar/copiar do Excel, navegação
+   por Tab/Enter/setas, ordenar por coluna, filtro por coluna (estilo
+   AutoFiltro), busca, desfazer última colagem, validação inline (borda
+   vermelha + tooltip) e totais no rodapé. Só grava quando o admin aperta
+   "Salvar no banco".
+
+---
+
+## CNPJ — multiempresa
+
+O sistema separa empresas por `empresa_id` (RLS), então hoje `cnpj` é fixado
+em `1` em todos os lançamentos. O campo existe no motor porque a fórmula
+original do Excel o usa como chave de SUMIFS.
+
+**Atenção futura:** se uma mesma empresa vier a ter múltiplos CNPJs (ex:
+Varremaster indústria + Varremaster comercial), o campo `cnpj` no schema
+precisará receber valores reais e o motor já está preparado para isso — basta
+parar de fixar `cnpj: 1` na carga dos dados.
+
+---
+
+## Diferenças conscientes entre o Excel original e a implementação
+
+| Diferença | Motivo |
+|---|---|
+| `CNPJ` fixado em `1` | Multiempresa já resolvida por `empresa_id` + RLS |
+| `TOT_PAGO` fora do schema | Sem uso no DRE; recomenda-se incluir no schema para uso futuro |
+| `VENC` fora do schema | Idem |
+| `D_I` 100% vazio | Estado original da planilha — usuário precisa marcar manualmente |

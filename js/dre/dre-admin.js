@@ -228,12 +228,21 @@ async function dreAdminLimparPlano(empresaId) {
 // ── LANÇAMENTOS ──────────────────────────────────────────────────────────────
 //
 // Colunas esperadas, nesta ordem (tab ou ponto-e-vírgula como separador):
-//   conta | dt_caixa | dt_venc | dt_pag | valor | parceiro | documento | banco | forma
+//   conta | dt_caixa | dt_venc | dt_pag | valor | tot_pago | parceiro | documento | banco | forma
 // 'conta' precisa bater com um nome cadastrado no plano de contas — se não
 // bater, o motor mostra a linha como #N/A e ela fica fora do DRE (o painel já
 // alerta quantos lançamentos caem nesse caso; o import aqui só avisa, não bloqueia).
+//
+// 'tot_pago' existe no schema (docs/supabase-dre.sql) mas NENHUM cálculo do
+// motor (dre_engine.js) o lê hoje — é guardado para um relatório de
+// inadimplência futuro (aberto = valor − tot_pago), não altera o DRE.
+// 'VENC' (vencido/a vencer) do Excel original NÃO virou coluna do banco: é
+// derivado de dt_venc/dt_pag contra a data de hoje, e guardar um valor fixo
+// no import ficaria errado no dia seguinte. A grade de edição calcula isso
+// ao vivo (ver _dreGradeCalcularDerivadasLancamento) — aqui no import em
+// texto ele nem aparece, porque não é dado a digitar.
 
-var DRE_ADMIN_COLUNAS_LANC = ['conta', 'dt_caixa', 'dt_venc', 'dt_pag', 'valor', 'parceiro', 'documento', 'banco', 'forma'];
+var DRE_ADMIN_COLUNAS_LANC = ['conta', 'dt_caixa', 'dt_venc', 'dt_pag', 'valor', 'tot_pago', 'parceiro', 'documento', 'banco', 'forma'];
 
 function dreAdminAbrirImportacaoLancamentos(empresaId) {
   if (!SESSION || SESSION.papel !== 'super_admin') return;
@@ -254,10 +263,11 @@ function dreAdminAbrirImportacaoLancamentos(empresaId) {
     + '</div>'
     + '<div class="admin-form-help">'
     +   'Uma linha por lançamento, colunas separadas por tabulação ou ponto e vírgula, nesta ordem:'
-    +   '<pre class="fin-import-exemplo">conta\tdt_caixa\tdt_venc\tdt_pag\tvalor\tparceiro\tdocumento\tbanco\tforma\n'
-    +     'Vendas\t06/09/2024\t06/09/2024\t06/09/2024\t170,00\tCliente X\tP3937/1\tBANCO DO BRASIL\tPIX BB\n'
-    +     'Aviamento\t07/09/2024\t20/09/2024\t\t350,50\tFornecedor Y\t45658\t\t</pre>'
+    +   '<pre class="fin-import-exemplo">conta\tdt_caixa\tdt_venc\tdt_pag\tvalor\ttot_pago\tparceiro\tdocumento\tbanco\tforma\n'
+    +     'Vendas\t06/09/2024\t06/09/2024\t06/09/2024\t170,00\t170,00\tCliente X\tP3937/1\tBANCO DO BRASIL\tPIX BB\n'
+    +     'Aviamento\t07/09/2024\t20/09/2024\t\t350,50\t150,00\tFornecedor Y\t45658\t\t</pre>'
     +   'Datas em dd/mm/aaaa ou aaaa-mm-dd. <code>dt_pag</code> em branco = ainda não pago. '
+    +   '<code>tot_pago</code> em branco = nada pago ainda (não afeta o DRE, só relatórios de inadimplência futuros). '
     +   '<code>conta</code> precisa existir no plano de contas desta empresa, senão fica fora do DRE. '
     +   'Linha de cabeçalho é ignorada automaticamente.'
     + '</div>'
@@ -332,10 +342,15 @@ function dreAdminParsearLancamentos(texto, empresaId, contasConhecidas) {
       foraDoPlano[conta] = true;
     }
 
+    var totPagoTexto = String(campo.tot_pago || '').trim();
+    var totPago = totPagoTexto ? dreAdminValor(totPagoTexto) : null;
+    if (totPagoTexto && totPago === null) { erros.push('Linha ' + numeroLinha + ': tot_pago inválido.'); return; }
+
     registros.push({
       empresa_id: empresaId,
       conta:      conta,
       valor:      valor,
+      tot_pago:   totPago,
       dt_caixa:   dtCaixa,
       dt_venc:    dreAdminData(campo.dt_venc) || dtCaixa,
       dt_pag:     dreAdminData(campo.dt_pag),
@@ -685,6 +700,10 @@ function _dreGradeColunasLancamentos(planoIndex) {
     { key: 'dt_pag', titulo: 'DT_PAG', tipo: 'data' },
     { key: 'valor', titulo: 'VALOR', tipo: 'numero', obrigatorio: true, soma: true,
       validar: function(valor) { return valor !== '' && isNaN(Number(valor)) ? 'Valor não numérico.' : null; } },
+    // Sem uso no motor (dre_engine.js não lê tot_pago) — guardado para um
+    // relatório de inadimplência futuro (aberto = valor − tot_pago).
+    { key: 'tot_pago', titulo: 'TOT_PAGO', tipo: 'numero', soma: true,
+      validar: function(valor) { return valor !== '' && isNaN(Number(valor)) ? 'Valor não numérico.' : null; } },
     { key: 'parceiro', titulo: 'PARCEIRO', tipo: 'texto' },
     { key: 'documento', titulo: 'DOCUMENTO', tipo: 'texto' },
     { key: 'banco', titulo: 'BANCO', tipo: 'texto' },
@@ -693,11 +712,14 @@ function _dreGradeColunasLancamentos(planoIndex) {
     { key: 's_e', titulo: 'S_E', tipo: 'derivada' },
     { key: 'ano', titulo: 'ANO', tipo: 'derivada' },
     { key: 'mes', titulo: 'MÊS', tipo: 'derivada' },
-    { key: 'status', titulo: 'STATUS', tipo: 'derivada' }
+    { key: 'status', titulo: 'STATUS', tipo: 'derivada' },
+    // VENC não é coluna do banco (ver comentário na seção LANÇAMENTOS acima) —
+    // calculado ao vivo contra a data de hoje, nunca persistido.
+    { key: 'venc', titulo: 'VENC', tipo: 'derivada' }
   ];
 }
 
-/** GRUPO/S_E via PROCV no plano; ANO/MÊS/STATUS a partir das datas — mesma lógica do motor. */
+/** GRUPO/S_E via PROCV no plano; ANO/MÊS/STATUS/VENC a partir das datas — mesma lógica do motor (VENC é só visual, o motor não lê). */
 function _dreGradeCalcularDerivadasLancamento(planoIndex) {
   var meses = (typeof DRE !== 'undefined' && DRE.MESES) ? DRE.MESES : [];
   return function(linha) {
@@ -710,6 +732,16 @@ function _dreGradeCalcularDerivadasLancamento(planoIndex) {
     linha.ano = valido ? d.getFullYear() : '';
     linha.mes = valido ? (meses[d.getMonth()] || '') : '';
     linha.status = linha.dt_pag ? 'PG' : 'N';
+
+    // VP = pago. Sem pagamento: VENCIDO se dt_venc já passou, senão A VENCER.
+    // O Excel original só tinha VP/VA (2 estados) — "vencido e ainda não
+    // pago" caía dentro de VA, escondendo justamente o caso de inadimplência
+    // que essa coluna deveria sinalizar. Aqui os dois casos ficam separados.
+    if (linha.dt_pag) { linha.venc = 'VP'; }
+    else {
+      var venc = new Date(linha.dt_venc || linha.dt_caixa);
+      linha.venc = (!isNaN(venc) && venc < new Date(new Date().toDateString())) ? 'VENCIDO' : 'A VENCER';
+    }
   };
 }
 
@@ -726,7 +758,7 @@ async function dreAdminAbrirGradeLancamentos(empresaId) {
   try {
     var respostas = await Promise.all([
       fetch(SUPA_URL + '/rest/v1/fin_dre_lancamentos?empresa_id=eq.' + encodeURIComponent(empresaId)
-        + '&select=conta,valor,dt_caixa,dt_venc,dt_pag,parceiro,documento,banco,forma&order=dt_caixa.desc&limit=20000',
+        + '&select=conta,valor,tot_pago,dt_caixa,dt_venc,dt_pag,parceiro,documento,banco,forma&order=dt_caixa.desc&limit=20000',
         { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }),
       fetch(SUPA_URL + '/rest/v1/fin_dre_plano_contas?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=conta,grupo',
         { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } })
@@ -762,6 +794,7 @@ async function dreAdminAbrirGradeLancamentos(empresaId) {
           empresa_id: empresaId,
           conta: l.conta,
           valor: Number(l.valor) || 0,
+          tot_pago: l.tot_pago === '' || l.tot_pago == null ? null : Number(l.tot_pago),
           dt_caixa: l.dt_caixa,
           dt_venc: l.dt_venc || l.dt_caixa,
           dt_pag: l.dt_pag || null,
