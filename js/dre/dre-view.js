@@ -399,8 +399,29 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
     var gridPlano = new LiteGrid(alvoPlano, 'dre_plano');
     GRIDS['dre_plano'] = gridPlano;
 
+    var _origRenderRowPlano = gridPlano._renderRow.bind(gridPlano);
+    gridPlano._renderRow = function(ri) {
+      _origRenderRowPlano(ri);
+      var from = gridPlano.page * gridPlano.pageSize;
+      var tr = gridPlano._tbody && gridPlano._tbody.rows ? gridPlano._tbody.rows[ri - from] : null;
+      if (!tr) return;
+      [3, 4].forEach(function(ci) {
+        var td = tr.cells[ci + 1]; // +1 por causa da coluna #
+        if (!td) return;
+        var val = (gridPlano.allData[ri] && gridPlano.allData[ri][ci]) || '';
+        var isF = ci === 3;
+        var opts = isF ? ['F','V'] : ['D','I'];
+        var cls = isF ? ['dre-tb-f','dre-tb-v'] : ['dre-tb-d','dre-tb-i'];
+        td.innerHTML = '<span class="dre-tb-wrap">'
+          + '<span class="dre-tb ' + cls[0] + (val === opts[0] ? ' on' : '') + '">' + opts[0] + '</span>'
+          + '<span class="dre-tb ' + cls[1] + (val === opts[1] ? ' on' : '') + '">' + opts[1] + '</span>'
+          + '</span>';
+      });
+    };
+
     gridPlano.setData(_drePlanoToRows(plano));
     FULL_DATA['dre_plano'] = gridPlano.allData.slice();
+    for (var pr = 0; pr < gridPlano.allData.length; pr++) gridPlano._renderRow(pr);
 
     _drePatchGrid(gridPlano, function() {
       FULL_DATA['dre_plano'] = gridPlano.allData.slice();
