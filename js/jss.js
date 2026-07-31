@@ -375,7 +375,7 @@ LiteGrid.prototype._render = function() {
   if (this._tbody) {
     this._tbody.innerHTML = html;
     var trs = this._tbody.querySelectorAll('tr');
-    for (var rix = 0; rix < rows.length; rix++) {
+    for (var rix = 0; rix < total; rix++) {
       var tr = trs[rix];
       var row = rows[rix] || [];
       if (!tr) continue;

@@ -342,17 +342,21 @@ function _dreLigarSalvarGrades(empresaId) {
 function _dreIniciarGradesLiteGrid(plano, lancamentos) {
   if (typeof LiteGrid === 'undefined' || typeof GRID_DEFS === 'undefined') return;
 
-  window._dreRenderToggle = function(key, ci, val, td) {
-    if (key !== 'dre_plano') return false;
-    if (ci !== 3 && ci !== 4) return false;
+  window._dreRenderToggleHtml = function(ci, val) {
     val = String(val || '').trim().toUpperCase();
     var isF = ci === 3;
     var opts = isF ? ['F','V'] : ['D','I'];
     var cls  = isF ? ['dre-tb-f','dre-tb-v'] : ['dre-tb-d','dre-tb-i'];
-    td.innerHTML = '<span class="dre-tb-wrap">'
+    return '<span class="dre-tb-wrap">'
       + '<span class="dre-tb ' + cls[0] + (val === opts[0] ? ' on' : '') + '">' + opts[0] + '</span>'
       + '<span class="dre-tb ' + cls[1] + (val === opts[1] ? ' on' : '') + '">' + opts[1] + '</span>'
       + '</span>';
+  };
+
+  window._dreRenderToggle = function(key, ci, val, td) {
+    if (key !== 'dre_plano') return false;
+    if (ci !== 3 && ci !== 4) return false;
+    td.innerHTML = window._dreRenderToggleHtml(ci, val);
     return true;
   };
 
@@ -413,17 +417,81 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
     var gridPlano = new LiteGrid(alvoPlano, 'dre_plano');
     GRIDS['dre_plano'] = gridPlano;
 
-    gridPlano.setData(_drePlanoToRows(plano));
-    FULL_DATA['dre_plano'] = gridPlano.allData.slice();
-    for (var ri = 0; ri < gridPlano.allData.length; ri++) {
-      gridPlano._renderRow(ri);
-    }
-
-    _drePatchGrid(gridPlano, function() {
+    var atualizarPlano = function() {
       FULL_DATA['dre_plano'] = gridPlano.allData.slice();
       DRE.estado.plano = _drePlanoDeRows(gridPlano.getData());
       if (GRIDS['dre_bd']) _dreAtualizarDerivadasBD(GRIDS['dre_bd']);
       DRE.recalcular();
+    };
+    var renderOriginalPlano = gridPlano._render.bind(gridPlano);
+    gridPlano._render = function() {
+      renderOriginalPlano();
+      _dreAtualizarTodosTogles(gridPlano);
+    };
+
+    gridPlano.setData(_drePlanoToRows(plano));
+    FULL_DATA['dre_plano'] = gridPlano.allData.slice();
+    _dreAtualizarTodosTogles(gridPlano);
+
+    gridPlano._tbody.addEventListener('mousedown', function(e) {
+      var td = e.target.closest('td');
+      if (!td || td.classList.contains('lg-rn')) return;
+      var tr = td.closest('tr');
+      if (!tr) return;
+      var ci = Array.from(tr.cells).indexOf(td) - 1;
+      if (ci !== 3 && ci !== 4) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var rn = tr.querySelector('.lg-rn');
+      var ri = rn ? parseInt(rn.textContent, 10) - 1 : -1;
+      if (ri < 0) return;
+
+      var ncols = gridPlano.def.cols.length;
+      while (gridPlano.allData.length <= ri) {
+        var vazia = [];
+        for (var j = 0; j < ncols; j++) vazia.push('');
+        gridPlano.allData.push(vazia);
+      }
+      while (gridPlano.allData[ri].length < ncols) gridPlano.allData[ri].push('');
+
+      if (ci === 3) {
+        var atualFV = gridPlano.allData[ri][3] || '';
+        if (atualFV === '') gridPlano.allData[ri][3] = 'F';
+        else if (atualFV === 'F') gridPlano.allData[ri][3] = 'V';
+        else gridPlano.allData[ri][3] = '';
+      } else {
+        var atualDI = gridPlano.allData[ri][4] || '';
+        if (atualDI === '') gridPlano.allData[ri][4] = 'D';
+        else if (atualDI === 'D') gridPlano.allData[ri][4] = 'I';
+        else gridPlano.allData[ri][4] = '';
+      }
+
+      if (gridPlano._inp) gridPlano._inp.style.display = 'none';
+      gridPlano._renderRow(ri);
+      _dreAtualizarTodosTogles(gridPlano);
+      atualizarPlano();
+    }, true);
+
+    _drePatchGrid(gridPlano, function() {
+      _dreAtualizarTodosTogles(gridPlano);
+      atualizarPlano();
+    });
+  }
+}
+
+function _dreAtualizarTodosTogles(gridPlano) {
+  if (!gridPlano || !gridPlano._tbody || !window._dreRenderToggleHtml) return;
+  var rows = gridPlano._tbody.rows;
+  var from = (gridPlano.page || 0) * (gridPlano.pageSize || 100);
+  var src = gridPlano.filtered !== null ? gridPlano.filtered : gridPlano.allData;
+  for (var ri = 0; ri < rows.length; ri++) {
+    var tr = rows[ri];
+    var dados = (src && src[from + ri]) || [];
+    [3, 4].forEach(function(ci) {
+      var td = tr.cells[ci + 1];
+      if (!td) return;
+      var val = dados[ci] || '';
+      td.innerHTML = window._dreRenderToggleHtml(ci, val);
     });
   }
 }
