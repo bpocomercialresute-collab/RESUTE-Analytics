@@ -196,6 +196,7 @@ async function dreAbrir(opts) {
 
     _dreAplicarHeader();
     _dreLigarSalvarGrades(eid);
+    _dreIniciarGradesLiteGrid(dados.plano, dados.lancamentos);
 
   } catch (e) {
     console.error('[DRE] Erro ao abrir:', e);
@@ -328,6 +329,169 @@ function _dreLigarSalvarGrades(empresaId) {
       }
     };
   }
+}
+
+// ── GRADES LITEGRID (abas BD e Plano de Contas) ───────────────────────────────
+//
+// Usa o LiteGrid de js/jss.js — o mesmo componente do módulo de análise de
+// vendas. Inicializado após DRE.init(), que já carregou plano e lançamentos em
+// DRE.estado. Callbacks interceptados na instância (não no protótipo) para
+// disparar recalcular() após cada edição ou colagem.
+
+/** Inicializa as duas grades LiteGrid e carrega os dados vindos do Supabase. */
+function _dreIniciarGradesLiteGrid(plano, lancamentos) {
+  if (typeof LiteGrid === 'undefined' || typeof GRID_DEFS === 'undefined') return;
+
+  if (!GRID_DEFS['dre_bd']) {
+    GRID_DEFS['dre_bd'] = { cols: [
+      {t:'CONTA',     w:200, auto:false},
+      {t:'DT_CAIXA',  w:100, auto:false},
+      {t:'DT_VENC',   w:100, auto:false},
+      {t:'DT_PAG',    w:100, auto:false},
+      {t:'VALOR',     w:90,  auto:false},
+      {t:'TOT_PAGO',  w:90,  auto:false},
+      {t:'PARCEIRO',  w:150, auto:false},
+      {t:'DOCUMENTO', w:110, auto:false},
+      {t:'BANCO',     w:90,  auto:false},
+      {t:'FORMA',     w:90,  auto:false},
+      {t:'GRUPO',     w:160, auto:true},
+      {t:'S_E',       w:50,  auto:true},
+      {t:'ANO',       w:60,  auto:true},
+      {t:'MÊS',       w:60,  auto:true},
+      {t:'STATUS',    w:60,  auto:true}
+    ]};
+  }
+  if (!GRID_DEFS['dre_plano']) {
+    GRID_DEFS['dre_plano'] = { cols: [
+      {t:'COD',   w:80,  auto:false},
+      {t:'CONTA', w:220, auto:false},
+      {t:'GRUPO', w:200, auto:false},
+      {t:'F_V',   w:60,  auto:false},
+      {t:'D_I',   w:60,  auto:false}
+    ]};
+  }
+
+  // Fecha instâncias antigas (troca de empresa, reabertura)
+  delete GRIDS['dre_bd'];
+  delete GRIDS['dre_plano'];
+
+  // ── Grade BD (livro-razão editável) ──────────────────────────────────────────
+  var alvoBD = document.getElementById('fin-dre-tab-bd');
+  if (alvoBD) {
+    var gridBD = new LiteGrid(alvoBD, 'dre_bd');
+    GRIDS['dre_bd'] = gridBD;
+
+    gridBD.setData(_dreRowsBD(lancamentos));
+    FULL_DATA['dre_bd'] = gridBD.allData.slice();
+    _dreAtualizarDerivadasBD(gridBD);
+
+    _drePatchGrid(gridBD, function() {
+      _dreAtualizarDerivadasBD(gridBD);
+      FULL_DATA['dre_bd'] = gridBD.allData.slice();
+      DRE.estado.lancamentos = _dreLancDeRows(gridBD.getData());
+      DRE.recalcular();
+    });
+  }
+
+  // ── Grade Plano de Contas ─────────────────────────────────────────────────────
+  var alvoPlano = document.getElementById('fin-dre-tab-plano');
+  if (alvoPlano) {
+    var gridPlano = new LiteGrid(alvoPlano, 'dre_plano');
+    GRIDS['dre_plano'] = gridPlano;
+
+    gridPlano.setData(_drePlanoToRows(plano));
+    FULL_DATA['dre_plano'] = gridPlano.allData.slice();
+
+    _drePatchGrid(gridPlano, function() {
+      FULL_DATA['dre_plano'] = gridPlano.allData.slice();
+      DRE.estado.plano = _drePlanoDeRows(gridPlano.getData());
+      if (GRIDS['dre_bd']) _dreAtualizarDerivadasBD(GRIDS['dre_bd']);
+      DRE.recalcular();
+    });
+  }
+}
+
+/** Recalcula colunas auto (GRUPO, S_E, ANO, MÊS, STATUS) na grade BD. */
+function _dreAtualizarDerivadasBD(gridBD) {
+  var SE_MAP = DRE.SE_POR_GRUPO;
+  var MESES  = DRE.MESES;
+  var idx = new Map();
+  DRE.estado.plano.forEach(function(c) {
+    idx.set(String(c.conta || '').trim().toLowerCase(), c);
+  });
+
+  var data = gridBD.allData;
+  for (var i = 0; i < data.length; i++) {
+    var r = data[i];
+    if (!r) continue;
+    var conta = String(r[0] || '').trim().toLowerCase();
+    var pc = conta ? idx.get(conta) : null;
+
+    r[10] = pc ? (pc.grupo || '') : (conta ? '#N/A' : '');
+    r[11] = pc ? (SE_MAP[pc.grupo] || 'S') : (conta ? '#N/A' : '');
+
+    var dt = String(r[1] || '');
+    var d  = dt ? new Date(dt) : null;
+    var ok = d && !isNaN(d);
+    r[12] = ok ? d.getFullYear() : '';
+    r[13] = ok ? (MESES[d.getMonth()] || '') : '';
+    r[14] = r[0] ? (r[3] ? 'PG' : 'N') : '';
+  }
+  gridBD._render();
+}
+
+/** Intercepta _commit, _pasteAt e _paste para disparar callback após cada mudança. */
+function _drePatchGrid(grid, cb) {
+  var origCommit  = grid._commit.bind(grid);
+  var origPasteAt = grid._pasteAt.bind(grid);
+  var origPaste   = grid._paste.bind(grid);
+
+  grid._commit = function() { origCommit(); cb(); };
+  grid._pasteAt = function(txt, r, c) { origPasteAt(txt, r, c); cb(); };
+  grid._paste   = function(txt)       { origPaste(txt); cb(); };
+}
+
+/** Objeto plano -> array de células (mesma ordem de GRID_DEFS dre_plano). */
+function _drePlanoToRows(plano) {
+  return (plano || []).map(function(p) {
+    return [p.cod || '', p.conta || '', p.grupo || '', p.fv || '', p.di || ''];
+  });
+}
+
+/** Array de linhas da grade -> array de objetos plano. */
+function _drePlanoDeRows(rows) {
+  return rows.map(function(r) {
+    return { cod: r[0] || '', conta: r[1] || '', grupo: r[2] || '', fv: r[3] || '', di: r[4] || '' };
+  });
+}
+
+/** Objeto lançamento -> array (10 colunas editáveis + 5 derivadas vazias). */
+function _dreRowsBD(lancs) {
+  return (lancs || []).map(function(l) {
+    return [
+      l.conta || '', l.dt_caixa || '', l.dt_venc || '', l.dt_pag || '',
+      l.valor != null ? l.valor : '', l.tot_pago != null ? l.tot_pago : '',
+      l.parceiro || '', l.documento || '', l.banco || '', l.forma || '',
+      '', '', '', '', ''
+    ];
+  });
+}
+
+/** Array de linhas da grade -> array de objetos lançamento (filtra sem CONTA+DT_CAIXA). */
+function _dreLancDeRows(rows) {
+  var cnpj = DRE.estado.cnpj;
+  return rows
+    .filter(function(r) { return r[0] && r[1]; })
+    .map(function(r) {
+      return {
+        conta: r[0] || '', dt_caixa: r[1] || '',
+        dt_venc:  r[2] || null, dt_pag: r[3] || null,
+        valor:    (r[4] !== '' && r[4] !== null) ? Number(r[4]) : null,
+        tot_pago: (r[5] !== '' && r[5] !== null) ? Number(r[5]) : null,
+        parceiro: r[6] || null, documento: r[7] || null,
+        banco: r[8] || null, forma: r[9] || null, cnpj: cnpj
+      };
+    });
 }
 
 /**

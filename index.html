@@ -1502,15 +1502,13 @@
   <script src="js/financeiro/financeiro-ui.js?v=3"></script>
   <script src="js/financeiro/financeiro-charts.js?v=3"></script>
   <script src="js/financeiro/financeiro-admin.js?v=1"></script>
-  <!-- DRE: dre-engine.js e o motor, ja liga a grade nas abas Plano de Contas e
-       Lancamentos (criarGridDRE + aoMudar -> estado -> recalcular()).
-       dre-view.js e a camada de encaixe (monta HTML, escopa CSS, carrega dados,
-       liga os botoes "Salvar no banco" ao fetch).
-       dre-grid.js e o motor de grade estilo Excel (colar/copiar/ordenar/filtrar/desfazer).
-       dre-admin.js so abre o DRE de uma empresa e cuida das configuracoes dela. -->
+  <!-- DRE: dre-engine.js e o motor de calculo. dre-view.js e a camada de encaixe
+       (monta HTML, escopa CSS, carrega dados, inicializa grades LiteGrid nas abas
+       BD e Plano de Contas usando js/jss.js). dre-admin.js so abre o DRE de uma
+       empresa. dre-grid.js mantido como arquivo morto (substituido pelo LiteGrid). -->
   <script src="js/dre/dre-grid.js?v=1"></script>
-  <script src="js/dre/dre-engine.js?v=4"></script>
-  <script src="js/dre/dre-view.js?v=5"></script>
+  <script src="js/dre/dre-engine.js?v=5"></script>
+  <script src="js/dre/dre-view.js?v=6"></script>
   <script src="js/dre/dre-admin.js?v=4"></script>
   <script src="js/jss.js?v=3"></script>
   <script src="js/bd.js?v=2"></script>

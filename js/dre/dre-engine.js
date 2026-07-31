@@ -384,83 +384,16 @@ const DRE = (() => {
     alvo.innerHTML = `<table class="dc-tabela"><thead><tr>${th}</tr></thead><tbody>${tb}</tbody></table>`;
   }
 
-  /* ---------- 11. GRADE ESTILO EXCEL: PLANO DE CONTAS E BD ---------- */
+  /* ---------- 11. DADOS PARA AS GRADES E PARA SALVAR ---------- */
   //
-  // A digitação vive aqui dentro das abas do painel (js/dre/dre-grid.js monta
-  // a grade nos containers #fin-dre-tab-plano / #fin-dre-tab-bd). A cada
-  // colagem/edição (aoMudar) o estado do motor é atualizado e recalcular()
-  // repropaga PLANO_CONTAS/BD -> BD_DRE -> DRE visual -> Gráficos. O botão
-  // "Salvar no banco" de cada aba é ligado por fora (js/dre/dre-view.js), que
-  // sabe o empresa_id e faz o fetch — aqui só existem os dados prontos pra ele.
-  //
-  // A aba Lançamentos (seção 12) é só leitura: mostra estado.lancamentos já
-  // filtrado pelo ano do topo — quem edita/cola é a aba BD, aqui.
-
-  let gradePlano = null;
-  let gradeBD = null;
+  // As grades Excel vivem em dre-view.js (LiteGrid de js/jss.js). Este módulo
+  // expõe só o que a view precisa: grupoCanonico() para validar o GRUPO ao salvar
+  // e as duas funções que entregam registros prontos para POST no Supabase.
 
   function grupoCanonico(valor) {
     const alvo = norm(valor);
     if (!alvo) return null;
     return Object.keys(SE_POR_GRUPO).find(g => g.toLowerCase() === alvo) || null;
-  }
-
-  function colunasGradePlano() {
-    return [
-      { key: 'cod', titulo: 'COD', tipo: 'texto' },
-      { key: 'conta', titulo: 'CONTA', tipo: 'texto', obrigatorio: true,
-        validar: (valor, linha, todasLinhas) => {
-          if (!valor) return null;
-          const repetida = todasLinhas.some(l => l !== linha && norm(l.conta) === norm(valor));
-          return repetida ? 'Conta repetida na grade — o PROCV do motor fica ambíguo.' : null;
-        } },
-      { key: 'grupo', titulo: 'GRUPO', tipo: 'texto', obrigatorio: true,
-        validar: valor => (!valor || grupoCanonico(valor)) ? null : 'Grupo não reconhecido pelo motor.' },
-      { key: 'fv', titulo: 'F_V', tipo: 'toggle', opcoes: ['F', 'V'] },
-      { key: 'di', titulo: 'D_I', tipo: 'toggle', opcoes: ['D', 'I'] }
-    ];
-  }
-
-  function colunasGradeBD(planoIndex) {
-    return [
-      { key: 'conta', titulo: 'CONTA', tipo: 'texto', obrigatorio: true,
-        aviso: valor => (!valor || !planoIndex.size || planoIndex.has(norm(valor)))
-          ? null : 'Conta fora do plano — vira #N/A no DRE.' },
-      { key: 'dt_caixa', titulo: 'DT_CAIXA', tipo: 'data', obrigatorio: true,
-        validar: valor => (valor && !/^\d{4}-\d{2}-\d{2}$/.test(valor)) ? 'Data inválida.' : null },
-      { key: 'dt_venc', titulo: 'DT_VENC', tipo: 'data' },
-      { key: 'dt_pag', titulo: 'DT_PAG', tipo: 'data' },
-      { key: 'valor', titulo: 'VALOR', tipo: 'numero', obrigatorio: true, soma: true,
-        validar: valor => (valor !== '' && isNaN(Number(valor))) ? 'Valor não numérico.' : null },
-      // Sem uso no motor (nenhum cálculo lê tot_pago) — guardado para um
-      // relatório de inadimplência futuro (aberto = valor − tot_pago).
-      { key: 'tot_pago', titulo: 'TOT_PAGO', tipo: 'numero', soma: true,
-        validar: valor => (valor !== '' && isNaN(Number(valor))) ? 'Valor não numérico.' : null },
-      { key: 'parceiro', titulo: 'PARCEIRO', tipo: 'texto' },
-      { key: 'documento', titulo: 'DOCUMENTO', tipo: 'texto' },
-      { key: 'banco', titulo: 'BANCO', tipo: 'texto' },
-      { key: 'forma', titulo: 'FORMA', tipo: 'texto' },
-      { key: 'grupo', titulo: 'GRUPO', tipo: 'derivada' },
-      { key: 's_e', titulo: 'S_E', tipo: 'derivada' },
-      { key: 'ano', titulo: 'ANO', tipo: 'derivada' },
-      { key: 'mes', titulo: 'MÊS', tipo: 'derivada' },
-      { key: 'status', titulo: 'STATUS', tipo: 'derivada' }
-    ];
-  }
-
-  /** GRUPO/S_E via PROCV no plano; ANO/MÊS/STATUS a partir das datas — mesma lógica do motor. */
-  function calcularDerivadasBD(planoIndex) {
-    return linha => {
-      const conta = planoIndex.get(norm(linha.conta));
-      linha.grupo = conta ? conta.grupo : '#N/A';
-      linha.s_e = conta ? seDoGrupo(conta.grupo) : '#N/A';
-
-      const d = new Date(linha.dt_caixa);
-      const valido = linha.dt_caixa && !isNaN(d);
-      linha.ano = valido ? d.getFullYear() : '';
-      linha.mes = valido ? (MESES[d.getMonth()] || '') : '';
-      linha.status = linha.dt_pag ? 'PG' : 'N';
-    };
   }
 
   function indexarPlanoPorNome() {
@@ -469,43 +402,7 @@ const DRE = (() => {
     return idx;
   }
 
-  function montarGradePlano() {
-    const alvo = document.getElementById('fin-dre-tab-plano');
-    if (!alvo || typeof criarGridDRE !== 'function') return;
-
-    if (gradePlano) return; // uma instância só: recalcular() não remonta a grade
-
-    gradePlano = criarGridDRE({
-      container: alvo,
-      colunas: colunasGradePlano(),
-      linhas: estado.plano,
-      aoMudar: linhas => {
-        estado.plano = linhas.map(l => ({ ...l, grupo: grupoCanonico(l.grupo) || l.grupo }));
-        recalcular();
-      }
-    });
-  }
-
-  function montarGradeBD() {
-    const alvo = document.getElementById('fin-dre-tab-bd');
-    if (!alvo || typeof criarGridDRE !== 'function') return;
-
-    if (gradeBD) return; // uma instância só: recalcular() não remonta a grade
-
-    const planoIndex = indexarPlanoPorNome();
-    gradeBD = criarGridDRE({
-      container: alvo,
-      colunas: colunasGradeBD(planoIndex),
-      linhas: estado.lancamentos,
-      calcularDerivadas: calcularDerivadasBD(planoIndex),
-      aoMudar: linhas => {
-        estado.lancamentos = linhas.map(l => ({ ...l, cnpj: estado.cnpj }));
-        recalcular();
-      }
-    });
-  }
-
-  /** Linhas prontas para POST em fin_dre_plano_contas (sem empresa_id — quem chama sabe qual empresa). */
+  /** Linhas prontas para POST em fin_dre_plano_contas (sem empresa_id). */
   function registrosPlanoParaSalvar() {
     return estado.plano
       .filter(l => l.conta)
@@ -518,7 +415,7 @@ const DRE = (() => {
       }));
   }
 
-  /** Linhas prontas para POST em fin_dre_lancamentos (sem empresa_id — quem chama sabe qual empresa). */
+  /** Linhas prontas para POST em fin_dre_lancamentos (sem empresa_id). */
   function registrosBDParaSalvar() {
     return estado.lancamentos
       .filter(l => l.conta && l.dt_caixa)
@@ -854,19 +751,11 @@ const DRE = (() => {
     const el = document.getElementById('fin-empresa');
     if (el) el.textContent = empresa || 'RESUTE';
 
-    // Toda chamada a init() vem com o HTML remontado do zero (js/dre/dre-view.js
-    // recria #fin-dre-tab-plano/#fin-dre-tab-bd a cada abertura). Sem isto, ao
-    // fechar e reabrir o DRE (ou trocar de empresa), gradePlano/gradeBD
-    // continuavam apontando pro container antigo — já fora do documento — e a
-    // grade nova nunca era montada (guarda "if (gradePlano) return").
-    gradePlano = null;
-    gradeBD = null;
-
     ligarAbas();
     montarFiltros();
     recalcular();
-    montarGradePlano();
-    montarGradeBD();
+    // As grades LiteGrid (BD e Plano de Contas) são inicializadas por dre-view.js
+    // depois deste init(), que já carregou os dados em estado.plano / estado.lancamentos.
   }
 
   return { init, recalcular, estado, MESES, SE_POR_GRUPO, ESTRUTURA,
