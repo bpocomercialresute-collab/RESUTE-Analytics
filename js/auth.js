@@ -1130,6 +1130,8 @@ async function _fetchAll(baseUrl, headers, signal) {
   var pageSize = 1000;
   var tentativas = 0;
   var maxPaginas = 200; // limite de segurança: 200k registros
+  var esperas = 0;
+  var maxEsperas = 3;   // repetições após 429 antes de desistir
 
   while (tentativas < maxPaginas) {
     var fetchOpts = {
@@ -1142,9 +1144,30 @@ async function _fetchAll(baseUrl, headers, signal) {
 
     var r = await fetch(baseUrl, fetchOpts);
 
+    // 429 = rate limit do secure-proxy. Carregar 50k+ registros gasta dezenas
+    // de requisições; se o usuário recarregar o painel duas vezes no mesmo
+    // minuto, o teto estoura no meio da paginação. Espera e repete a mesma
+    // página em vez de devolver dado pela metade.
+    if (r.status === 429) {
+      if (esperas >= maxEsperas) {
+        throw new Error('O servidor limitou as requisições. Aguarde 1 minuto e atualize a página.');
+      }
+      esperas++;
+      var segundos = parseInt(r.headers.get('retry-after') || '0', 10) || (5 * esperas);
+      console.warn('[fetchAll] 429 na página ' + tentativas + ' — repetindo em ' + segundos + 's');
+      if (typeof dcStatus === 'function') {
+        dcStatus('⏳ Limite de requisições atingido. Retomando em ' + segundos + 's...');
+      }
+      await new Promise(function(resolve) { setTimeout(resolve, segundos * 1000); });
+      continue; // repete a MESMA página, sem avançar o offset
+    }
+
     if (!r.ok && r.status !== 206) {
+      // Antes isto era um `break` silencioso: o painel mostrava os registros
+      // já baixados como se fossem o total, ou nada, sem explicar o motivo.
       console.error('[fetchAll] Erro HTTP', r.status, 'na página', tentativas);
-      break;
+      throw new Error('Falha ao carregar os registros (HTTP ' + r.status + ')'
+        + (all.length ? ' após ' + all.length.toLocaleString('pt-BR') + ' registros.' : '.'));
     }
 
     var batch = await r.json();
