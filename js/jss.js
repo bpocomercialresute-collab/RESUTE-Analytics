@@ -64,6 +64,11 @@ var GRIDS = {}, GRID_DATA_STORE = {}, FULL_DATA = {}, JSS_FILTERS = {};
 // =============================================================================
 // LITEGRID
 // =============================================================================
+function liteGridRenderCell(key, ci, val, td) {
+  if (typeof _dreRenderToggle === 'function' && _dreRenderToggle(key, ci, val, td)) return;
+  td.textContent = val;
+}
+
 function LiteGrid(container, key) {
   this.container = container;
   this.key       = key;
@@ -262,7 +267,8 @@ LiteGrid.prototype._renderRow = function(ri) {
   var tds = tr.querySelectorAll('td');
   for (var ci = 0; ci < def.cols.length; ci++) {
     var td = tds[ci+1];
-    if (td) td.textContent = (r[ci] !== undefined && r[ci] !== null) ? r[ci] : '';
+    var _val = (r[ci] !== undefined && r[ci] !== null) ? r[ci] : '';
+    if (td) liteGridRenderCell(this.key, ci, _val, td);
   }
 };
 
@@ -366,7 +372,21 @@ LiteGrid.prototype._render = function() {
     html += '</tr>';
   }
 
-  if (this._tbody) this._tbody.innerHTML = html;
+  if (this._tbody) {
+    this._tbody.innerHTML = html;
+    var trs = this._tbody.querySelectorAll('tr');
+    for (var rix = 0; rix < rows.length; rix++) {
+      var tr = trs[rix];
+      var row = rows[rix] || [];
+      if (!tr) continue;
+      var tds = tr.querySelectorAll('td');
+      for (var cix = 0; cix < def.cols.length; cix++) {
+        var td = tds[cix+1];
+        var val = (row[cix]!==undefined&&row[cix]!==null) ? row[cix] : '';
+        if (td && typeof _dreRenderToggle === 'function') _dreRenderToggle(this.key, cix, val, td);
+      }
+    }
+  }
   this._renderPag(src.length);
 };
 
