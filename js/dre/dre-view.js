@@ -43,8 +43,8 @@ var DRE_MONTADO = false;
 var DRE_ADMIN_PREVIEW = false;
 var DRE_ADMIN_PREVIEW_COMPANY = null;
 
-var DRE_HTML_URL = 'views/dre-painel.html?v=4';
-var DRE_CSS_URL  = 'css/dre-painel.css?v=2';
+var DRE_HTML_URL = 'views/dre-painel.html?v=3';
+var DRE_CSS_URL  = 'css/dre-painel.css?v=1';
 
 // ── CSS ESCOPADO ─────────────────────────────────────────────────────────────
 
@@ -334,76 +334,48 @@ function _dreLigarSalvarGrades(empresaId) {
 // ── GRADES LITEGRID (abas BD e Plano de Contas) ───────────────────────────────
 //
 // Usa o LiteGrid de js/jss.js — o mesmo componente do módulo de análise de
-// vendas. Colunas conforme Modelo_DRE_Matheus.xlsx. Callbacks interceptados na
-// instância para disparar recalcular() após cada edição ou colagem.
-//
-// Mapeamento BD (0-indexed):
-//  0=ID  1=DT_CAIXA  2=DT_VENC  3=DT_PAG  4=CONTA  5=TIPO  6=VALOR
-//  7=TOT_PAGO  8=FORNECEDOR CLIENTE  9=N_DOC  10=BANCO  11=FORMA
-//  12=PARCELA  13=TOT_PARCELAS  14=OBS  15=CNPJ  16=DT CUSTORIA  17=Histórico
-//  [derivadas] 18=S_E  19=GRUPO  20=STATUS  21=DIA  22=MÊS  23=DIA_SEM
-//              24=ANO  25=VENC  26=SEMANA_ANO
+// vendas. Inicializado após DRE.init(), que já carregou plano e lançamentos em
+// DRE.estado. Callbacks interceptados na instância (não no protótipo) para
+// disparar recalcular() após cada edição ou colagem.
 
 /** Inicializa as duas grades LiteGrid e carrega os dados vindos do Supabase. */
 function _dreIniciarGradesLiteGrid(plano, lancamentos) {
   if (typeof LiteGrid === 'undefined' || typeof GRID_DEFS === 'undefined') return;
 
-  // Sempre redefine: garante coluna certa mesmo após hot-reload
-  GRID_DEFS['dre_bd'] = { cols: [
-    {t:'ID',                 w:55,  auto:false},
-    {t:'DT_CAIXA',           w:100, auto:false},
-    {t:'DT_VENC',            w:100, auto:false},
-    {t:'DT_PAG',             w:100, auto:false},
-    {t:'CONTA',              w:200, auto:false},
-    {t:'TIPO',               w:90,  auto:false},
-    {t:'VALOR',              w:90,  auto:false},
-    {t:'TOT_PAGO',           w:90,  auto:false},
-    {t:'FORNECEDOR CLIENTE', w:170, auto:false},
-    {t:'N_DOC',              w:100, auto:false},
-    {t:'BANCO',              w:90,  auto:false},
-    {t:'FORMA',              w:90,  auto:false},
-    {t:'PARCELA',            w:70,  auto:false},
-    {t:'TOT_PARCELAS',       w:100, auto:false},
-    {t:'OBS',                w:140, auto:false},
-    {t:'CNPJ',               w:120, auto:false},
-    {t:'DT CUSTORIA',        w:100, auto:false},
-    {t:'Histórico',          w:150, auto:false},
-    {t:'S_E',       w:50,  auto:true},
-    {t:'GRUPO',     w:160, auto:true},
-    {t:'STATUS',    w:60,  auto:true},
-    {t:'DIA',       w:40,  auto:true},
-    {t:'MÊS',       w:60,  auto:true},
-    {t:'DIA_SEM',   w:60,  auto:true},
-    {t:'ANO',       w:60,  auto:true},
-    {t:'VENC',      w:70,  auto:true},
-    {t:'SEMANA_ANO',w:90,  auto:true}
-  ]};
-
-  GRID_DEFS['dre_plano'] = { cols: [
-    {t:'COD',   w:80,  auto:false},
-    {t:'CONTA', w:220, auto:false},
-    {t:'GRUPO', w:200, auto:false},
-    {t:'F_V',   w:60,  auto:false},
-    {t:'D_I',   w:60,  auto:false}
-  ]};
+  if (!GRID_DEFS['dre_bd']) {
+    GRID_DEFS['dre_bd'] = { cols: [
+      {t:'CONTA',     w:200, auto:false},
+      {t:'DT_CAIXA',  w:100, auto:false},
+      {t:'DT_VENC',   w:100, auto:false},
+      {t:'DT_PAG',    w:100, auto:false},
+      {t:'VALOR',     w:90,  auto:false},
+      {t:'TOT_PAGO',  w:90,  auto:false},
+      {t:'PARCEIRO',  w:150, auto:false},
+      {t:'DOCUMENTO', w:110, auto:false},
+      {t:'BANCO',     w:90,  auto:false},
+      {t:'FORMA',     w:90,  auto:false},
+      {t:'GRUPO',     w:160, auto:true},
+      {t:'S_E',       w:50,  auto:true},
+      {t:'ANO',       w:60,  auto:true},
+      {t:'MÊS',       w:60,  auto:true},
+      {t:'STATUS',    w:60,  auto:true}
+    ]};
+  }
+  if (!GRID_DEFS['dre_plano']) {
+    GRID_DEFS['dre_plano'] = { cols: [
+      {t:'COD',   w:80,  auto:false},
+      {t:'CONTA', w:220, auto:false},
+      {t:'GRUPO', w:200, auto:false},
+      {t:'F_V',   w:60,  auto:false},
+      {t:'D_I',   w:60,  auto:false}
+    ]};
+  }
 
   // Fecha instâncias antigas (troca de empresa, reabertura)
   delete GRIDS['dre_bd'];
   delete GRIDS['dre_plano'];
-  delete JSS_FILTERS['dre_bd'];
-  delete JSS_FILTERS['dre_plano'];
 
-  // Instala override do filtro uma única vez
-  if (!window._dreFilterHooked) {
-    window._dreFilterHooked = true;
-    var _orig = lgShowFilter;
-    window.lgShowFilter = function(key, ci, anchor) {
-      if (key === 'dre_bd' || key === 'dre_plano') { _dreShowFilter(key, ci, anchor); }
-      else { _orig(key, ci, anchor); }
-    };
-  }
-
-  // ── Grade BD ──────────────────────────────────────────────────────────────────
+  // ── Grade BD (livro-razão editável) ──────────────────────────────────────────
   var alvoBD = document.getElementById('fin-dre-tab-bd');
   if (alvoBD) {
     var gridBD = new LiteGrid(alvoBD, 'dre_bd');
@@ -429,101 +401,41 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
 
     gridPlano.setData(_drePlanoToRows(plano));
     FULL_DATA['dre_plano'] = gridPlano.allData.slice();
-    _drePatchPlanoToggles(gridPlano);
-    for (var pr = 0; pr < gridPlano.allData.length; pr++) gridPlano._renderRow(pr);
 
-    var planoCallback = function() {
+    _drePatchGrid(gridPlano, function() {
       FULL_DATA['dre_plano'] = gridPlano.allData.slice();
       DRE.estado.plano = _drePlanoDeRows(gridPlano.getData());
       if (GRIDS['dre_bd']) _dreAtualizarDerivadasBD(GRIDS['dre_bd']);
       DRE.recalcular();
-    };
-    _drePatchGrid(gridPlano, planoCallback);
-
-    // Toggle F_V (col 3) e D_I (col 4) em capture — intercepta antes do LiteGrid
-    alvoPlano.addEventListener('mousedown', function(e) {
-      var td = e.target.closest('td');
-      if (!td) return;
-      var tr = td.parentElement;
-      if (!tr || !tr.parentElement || tr.parentElement.tagName !== 'TBODY') return;
-      var ci = Array.from(tr.cells).indexOf(td) - 1;
-      if (ci !== 3 && ci !== 4) return;
-      e.stopPropagation();
-      e.preventDefault();
-      var rn = tr.querySelector('.lg-rn');
-      var ri = rn ? parseInt(rn.textContent) - 1 : -1;
-      if (ri < 0) return;
-      var ncols = GRID_DEFS['dre_plano'].cols.length;
-      while (gridPlano.allData.length <= ri) {
-        var er = []; for (var j = 0; j < ncols; j++) er.push(''); gridPlano.allData.push(er);
-      }
-      while (gridPlano.allData[ri].length < ncols) gridPlano.allData[ri].push('');
-      var cur = String(gridPlano.allData[ri][ci] || '').trim().toUpperCase();
-      gridPlano.allData[ri][ci] = ci === 3
-        ? (cur === 'F' ? 'V' : cur === 'V' ? '' : 'F')
-        : (cur === 'D' ? 'I' : cur === 'I' ? '' : 'D');
-      gridPlano._renderRow(ri);
-      planoCallback();
-    }, true);
+    });
   }
-
-  // ── Filtros da aba Lançamentos ────────────────────────────────────────────────
-  // Popular o select de GRUPO com os 15 grupos canônicos
-  var selLancGrupo = document.getElementById('fin-lanc-filtro-grupo');
-  if (selLancGrupo && typeof DRE !== 'undefined') {
-    selLancGrupo.innerHTML = '<option value="">Grupo: todos</option>' +
-      Object.keys(DRE.SE_POR_GRUPO).map(function(g) {
-        return '<option value="'+g.replace(/"/g,'&quot;')+'">'+g+'</option>';
-      }).join('');
-  }
-  ['fin-lanc-filtro-grupo','fin-lanc-filtro-se','fin-lanc-filtro-mes'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.addEventListener('change', function() { DRE.recalcular(); });
-  });
 }
 
-/** 9 colunas derivadas no BD (índices 18-26). CONTA está no índice 4. */
+/** Recalcula colunas auto (GRUPO, S_E, ANO, MÊS, STATUS) na grade BD. */
 function _dreAtualizarDerivadasBD(gridBD) {
-  var SE_MAP  = DRE.SE_POR_GRUPO;
-  var MESES   = DRE.MESES;
-  var DIAS_SEM = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  var SE_MAP = DRE.SE_POR_GRUPO;
+  var MESES  = DRE.MESES;
   var idx = new Map();
   DRE.estado.plano.forEach(function(c) {
     idx.set(String(c.conta || '').trim().toLowerCase(), c);
   });
-  var hoje = new Date(); hoje.setHours(0,0,0,0);
+
   var data = gridBD.allData;
   for (var i = 0; i < data.length; i++) {
-    var r = data[i]; if (!r) continue;
-    var conta  = String(r[4] || '').trim().toLowerCase();   // CONTA at [4]
-    var pc     = conta ? idx.get(conta) : null;
-    var temLinha = r[4] || r[1];
+    var r = data[i];
+    if (!r) continue;
+    var conta = String(r[0] || '').trim().toLowerCase();
+    var pc = conta ? idx.get(conta) : null;
 
-    r[18] = pc ? (SE_MAP[pc.grupo] || 'S') : (conta ? '#N/A' : ''); // S_E
-    r[19] = pc ? (pc.grupo || '') : (conta ? '#N/A' : '');           // GRUPO
+    r[10] = pc ? (pc.grupo || '') : (conta ? '#N/A' : '');
+    r[11] = pc ? (SE_MAP[pc.grupo] || 'S') : (conta ? '#N/A' : '');
 
-    var dt = String(r[1] || '');   // DT_CAIXA at [1]
+    var dt = String(r[1] || '');
     var d  = dt ? new Date(dt) : null;
     var ok = d && !isNaN(d);
-    r[20] = temLinha ? (r[3] ? 'PG' : 'N') : '';           // STATUS (DT_PAG at [3])
-    r[21] = ok ? d.getDate() : '';                          // DIA
-    r[22] = ok ? (MESES[d.getMonth()] || '') : '';          // MÊS
-    r[23] = ok ? (DIAS_SEM[d.getDay()] || '') : '';         // DIA_SEM
-    r[24] = ok ? d.getFullYear() : '';                      // ANO
-
-    // VENC: VP=pago, VENCIDO=vencido sem pag, VA=a vencer
-    if (!temLinha)       { r[25] = ''; }
-    else if (r[3])       { r[25] = 'VP'; }
-    else {
-      var dv = r[2] ? new Date(String(r[2])) : null;       // DT_VENC at [2]
-      r[25] = (dv && !isNaN(dv)) ? (dv < hoje ? 'VENCIDO' : 'VA') : '';
-    }
-
-    // SEMANA_ANO
-    if (ok) {
-      var soy = new Date(d.getFullYear(), 0, 1);
-      r[26] = Math.ceil(((d - soy) / 86400000 + soy.getDay() + 1) / 7);
-    } else { r[26] = ''; }
+    r[12] = ok ? d.getFullYear() : '';
+    r[13] = ok ? (MESES[d.getMonth()] || '') : '';
+    r[14] = r[0] ? (r[3] ? 'PG' : 'N') : '';
   }
   gridBD._render();
 }
@@ -533,212 +445,53 @@ function _drePatchGrid(grid, cb) {
   var origCommit  = grid._commit.bind(grid);
   var origPasteAt = grid._pasteAt.bind(grid);
   var origPaste   = grid._paste.bind(grid);
-  grid._commit  = function()         { origCommit(); cb(); };
-  grid._pasteAt = function(txt,r,c)  { origPasteAt(txt,r,c); cb(); };
-  grid._paste   = function(txt)      { origPaste(txt); cb(); };
+
+  grid._commit = function() { origCommit(); cb(); };
+  grid._pasteAt = function(txt, r, c) { origPasteAt(txt, r, c); cb(); };
+  grid._paste   = function(txt)       { origPaste(txt); cb(); };
 }
 
-/** Aplica o visual de botoes nas colunas F_V e D_I sem alterar a logica do grid. */
-function _drePatchPlanoToggles(gridPlano) {
-  if (!gridPlano || gridPlano._dreTogglesPatched) return;
-  gridPlano._dreTogglesPatched = true;
-
-  var origRender = gridPlano._render.bind(gridPlano);
-  var origRenderRow = gridPlano._renderRow.bind(gridPlano);
-
-  gridPlano._render = function() {
-    origRender();
-    _dreRenderPlanoToggles(gridPlano);
-  };
-
-  gridPlano._renderRow = function(ri) {
-    origRenderRow(ri);
-    _dreRenderPlanoToggleRow(gridPlano, ri);
-  };
-}
-
-function _dreRenderPlanoToggles(gridPlano) {
-  if (!gridPlano || !gridPlano._tbody) return;
-  var from = gridPlano.page * gridPlano.pageSize;
-  var rows = gridPlano._tbody.querySelectorAll('tr');
-  rows.forEach(function(_tr, rowIdx) {
-    _dreRenderPlanoToggleRow(gridPlano, from + rowIdx);
-  });
-}
-
-function _dreRenderPlanoToggleRow(gridPlano, ri) {
-  if (!gridPlano || !gridPlano._tbody) return;
-  var from = gridPlano.page * gridPlano.pageSize;
-  var rowIdx = ri - from;
-  var rows = gridPlano._tbody.querySelectorAll('tr');
-  if (rowIdx < 0 || rowIdx >= rows.length) return;
-
-  var tr = rows[rowIdx];
-  var r = gridPlano.allData[ri] || [];
-  var tds = tr.querySelectorAll('td');
-  _dreRenderPlanoToggleCell(tds[4], r[3], 'F', 'V');
-  _dreRenderPlanoToggleCell(tds[5], r[4], 'D', 'I');
-}
-
-function _dreRenderPlanoToggleCell(td, valor, a, b) {
-  if (!td) return;
-  var v = String(valor || '').trim().toUpperCase();
-  td.innerHTML =
-    '<span class="dre-toggle-cell">' +
-      '<span class="dre-tb dre-tb-' + a.toLowerCase() + (v === a ? ' ativo' : '') + '">' + a + '</span>' +
-      '<span class="dre-tb dre-tb-' + b.toLowerCase() + (v === b ? ' ativo' : '') + '">' + b + '</span>' +
-    '</span>';
-}
-
-/** Objeto plano -> array de células (COD, CONTA, GRUPO, F_V, D_I). */
+/** Objeto plano -> array de células (mesma ordem de GRID_DEFS dre_plano). */
 function _drePlanoToRows(plano) {
   return (plano || []).map(function(p) {
-    return [p.cod||'', p.conta||'', p.grupo||'', p.fv||'', p.di||''];
+    return [p.cod || '', p.conta || '', p.grupo || '', p.fv || '', p.di || ''];
   });
 }
 
-/** Array de linhas da grade Plano -> array de objetos plano. */
+/** Array de linhas da grade -> array de objetos plano. */
 function _drePlanoDeRows(rows) {
   return rows.map(function(r) {
-    return { cod: r[0]||'', conta: r[1]||'', grupo: r[2]||'', fv: r[3]||'', di: r[4]||'' };
+    return { cod: r[0] || '', conta: r[1] || '', grupo: r[2] || '', fv: r[3] || '', di: r[4] || '' };
   });
 }
 
-/** Objeto lançamento -> array de 27 células (18 editáveis + 9 derivadas). */
+/** Objeto lançamento -> array (10 colunas editáveis + 5 derivadas vazias). */
 function _dreRowsBD(lancs) {
   return (lancs || []).map(function(l) {
     return [
-      '',                                           // 0  ID
-      l.dt_caixa  || '',                            // 1  DT_CAIXA
-      l.dt_venc   || '',                            // 2  DT_VENC
-      l.dt_pag    || '',                            // 3  DT_PAG
-      l.conta     || '',                            // 4  CONTA
-      '',                                           // 5  TIPO
-      l.valor     != null ? l.valor    : '',        // 6  VALOR
-      l.tot_pago  != null ? l.tot_pago : '',        // 7  TOT_PAGO
-      l.parceiro  || '',                            // 8  FORNECEDOR CLIENTE
-      l.documento || '',                            // 9  N_DOC
-      l.banco     || '',                            // 10 BANCO
-      l.forma     || '',                            // 11 FORMA
-      '', '', '', '', '', '',                       // 12-17 PARCELA…Histórico
-      '', '', '', '', '', '', '', '', ''            // 18-26 derivadas
+      l.conta || '', l.dt_caixa || '', l.dt_venc || '', l.dt_pag || '',
+      l.valor != null ? l.valor : '', l.tot_pago != null ? l.tot_pago : '',
+      l.parceiro || '', l.documento || '', l.banco || '', l.forma || '',
+      '', '', '', '', ''
     ];
   });
 }
 
-/** Array de linhas da grade BD -> objetos lançamento para o motor. */
+/** Array de linhas da grade -> array de objetos lançamento (filtra sem CONTA+DT_CAIXA). */
 function _dreLancDeRows(rows) {
   var cnpj = DRE.estado.cnpj;
   return rows
-    .filter(function(r) { return r[4] && r[1]; })  // precisa CONTA[4] e DT_CAIXA[1]
+    .filter(function(r) { return r[0] && r[1]; })
     .map(function(r) {
       return {
-        conta:     r[4]  || '',
-        dt_caixa:  r[1]  || '',
-        dt_venc:   r[2]  || null,
-        dt_pag:    r[3]  || null,
-        valor:     (r[6]  !== '' && r[6]  !== null) ? Number(r[6])  : null,
-        tot_pago:  (r[7]  !== '' && r[7]  !== null) ? Number(r[7])  : null,
-        parceiro:  r[8]  || null,
-        documento: r[9]  || null,
-        banco:     r[10] || null,
-        forma:     r[11] || null,
-        cnpj:      cnpj
+        conta: r[0] || '', dt_caixa: r[1] || '',
+        dt_venc:  r[2] || null, dt_pag: r[3] || null,
+        valor:    (r[4] !== '' && r[4] !== null) ? Number(r[4]) : null,
+        tot_pago: (r[5] !== '' && r[5] !== null) ? Number(r[5]) : null,
+        parceiro: r[6] || null, documento: r[7] || null,
+        banco: r[8] || null, forma: r[9] || null, cnpj: cnpj
       };
     });
-}
-
-// ── FILTRO MULTI-SELECT PARA GRADES DRE ──────────────────────────────────────
-// Substitui lgShowFilter() para as keys 'dre_bd' e 'dre_plano'.
-// Usa checkboxes + busca em vez do radio-button simples do jss.js.
-
-function _dreShowFilter(key, colIdx, anchor) {
-  document.querySelectorAll('.col-filter-dropdown').forEach(function(d){ d.remove(); });
-  var grd = GRIDS[key]; if (!grd) return;
-  var colDef = (GRID_DEFS[key]||{cols:[]}).cols[colIdx] || {};
-  var colName = colDef.t || ('Col '+(colIdx+1));
-  var src = FULL_DATA[key] || grd.allData;
-  var seen = {}, vals = [];
-  src.forEach(function(r){ var v=String(r[colIdx]||'').trim(); if(v&&!seen[v]){seen[v]=1;vals.push(v);} });
-  vals.sort(function(a,b){ var na=parseFloat(a),nb=parseFloat(b); return(!isNaN(na)&&!isNaN(nb))?na-nb:a.localeCompare(b,'pt-BR'); });
-  // Valores fixos para colunas bem definidas
-  var presets = { 'GRUPO':Object.keys(DRE.SE_POR_GRUPO), 'S_E':['E','S','0'],
-    'STATUS':['PG','N'], 'VENC':['VP','VA','VENCIDO'], 'MÊS':DRE.MESES };
-  if (presets[colName]) presets[colName].forEach(function(v){ if(!seen[v]){seen[v]=1;vals.push(v);} });
-  var active = (JSS_FILTERS[key]||{})[colIdx] || [];
-  if (!Array.isArray(active)) active = active ? [active] : [];
-  var rect = anchor.getBoundingClientRect();
-  var drop = document.createElement('div');
-  drop.className = 'col-filter-dropdown';
-  drop.style.cssText = 'position:fixed;top:'+(rect.bottom+2)+'px;left:'+Math.min(rect.left,window.innerWidth-260)+'px;z-index:9999;min-width:240px;background:#fff;border:1px solid #ccd5de;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.18);font-size:12px;';
-  var items = vals.slice(0,300).map(function(v){
-    var ch = active.indexOf(v)>=0?'checked':'';
-    var ve = v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-    return '<label style="display:flex;align-items:center;gap:6px;padding:3px 10px;cursor:pointer;" class="dre-fi"><input type="checkbox" value="'+ve+'" '+ch+' style="cursor:pointer;"><span>'+ve+'</span></label>';
-  }).join('');
-  drop.innerHTML =
-    '<div style="padding:7px 10px;background:#f0f3f7;border-bottom:1px solid #dde3eb;display:flex;justify-content:space-between;align-items:center;">'
-    +'<strong style="font-size:11px;">'+colName+'</strong>'
-    +'<button onclick="dreClearFilter(\''+key+'\','+colIdx+')" style="font-size:10px;border:none;background:none;cursor:pointer;color:#666;">✕ Limpar</button></div>'
-    +'<div style="padding:5px 8px;border-bottom:1px solid #eee;">'
-    +'<input placeholder="Buscar…" style="width:100%;box-sizing:border-box;border:1px solid #ccd5de;border-radius:4px;padding:3px 6px;font-size:11px;"></div>'
-    +'<label style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-bottom:1px solid #f0f3f7;font-weight:600;cursor:pointer;">'
-    +'<input type="checkbox" class="dre-sel-all" '+(active.length===0?'checked':'')+' style="cursor:pointer;"><span>Selecionar tudo</span></label>'
-    +'<div style="max-height:210px;overflow-y:auto;padding:3px 0;">'+items+'</div>'
-    +'<div style="padding:6px 10px;border-top:1px solid #eee;display:flex;gap:6px;justify-content:flex-end;">'
-    +'<button onclick="dreClearFilter(\''+key+'\','+colIdx+')" style="padding:3px 10px;border:1px solid #ccd5de;border-radius:4px;cursor:pointer;font-size:11px;">Limpar</button>'
-    +'<button class="dre-fa" style="padding:3px 10px;background:#002060;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;">Aplicar</button>'
-    +'</div>';
-  document.body.appendChild(drop);
-  var searchEl = drop.querySelector('input[placeholder]');
-  var listEl   = drop.querySelector('div[style*="max-height"]');
-  var selAll   = drop.querySelector('.dre-sel-all');
-  if (searchEl) searchEl.addEventListener('input', function(){
-    var q=searchEl.value.toLowerCase();
-    listEl.querySelectorAll('.dre-fi').forEach(function(el){
-      el.style.display = el.textContent.toLowerCase().indexOf(q)>=0 ? '' : 'none';
-    });
-  });
-  if (selAll) selAll.addEventListener('change', function(){
-    listEl.querySelectorAll('input[type=checkbox]').forEach(function(cb){ cb.checked=selAll.checked; });
-  });
-  drop.querySelector('.dre-fa').addEventListener('click', function(){
-    var sel=[]; listEl.querySelectorAll('input[type=checkbox]:checked').forEach(function(cb){ sel.push(cb.value); });
-    dreApplyFilterMulti(key, colIdx, sel); drop.remove();
-  });
-  setTimeout(function(){ document.addEventListener('click', function cl(e){ if(!drop.contains(e.target)){drop.remove();document.removeEventListener('click',cl);} }); }, 0);
-}
-
-function dreApplyFilterMulti(key, colIdx, values) {
-  if (!JSS_FILTERS[key]) JSS_FILTERS[key] = {};
-  if (!values || !values.length) delete JSS_FILTERS[key][colIdx]; else JSS_FILTERS[key][colIdx] = values;
-  dreApplyFilter(key);
-}
-
-function dreApplyFilter(key) {
-  var grd = GRIDS[key]; if (!grd) return;
-  var filters = JSS_FILTERS[key] || {};
-  var src = FULL_DATA[key] || grd.allData;
-  var fks = Object.keys(filters);
-  grd.filtered = fks.length === 0 ? null : src.filter(function(r){
-    return fks.every(function(ci){
-      var v = String(r[parseInt(ci)]||'').trim();
-      var f = filters[ci];
-      return Array.isArray(f) ? f.indexOf(v)>=0 : v===f;
-    });
-  });
-  grd.page = 0; grd._render();
-  grd.container.querySelectorAll('.col-filter-btn').forEach(function(b){
-    var ci = parseInt(b.dataset.col);
-    var f = filters[ci]; var on = f && (Array.isArray(f)?f.length>0:true);
-    b.innerHTML = on ? '▾●' : '▾'; b.style.color = on ? '#e07b00' : '';
-  });
-}
-
-function dreClearFilter(key, colIdx) {
-  if (JSS_FILTERS[key]) delete JSS_FILTERS[key][colIdx];
-  dreApplyFilter(key);
-  document.querySelectorAll('.col-filter-dropdown').forEach(function(d){ d.remove(); });
 }
 
 /**
