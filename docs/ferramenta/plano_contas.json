@@ -1,0 +1,2249 @@
+[
+{
+"cod": "DOP02",
+"conta": "Acabamento Externo",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DOP13",
+"conta": "Facção",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DOP15",
+"conta": "Lavanderia",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DOP16",
+"conta": "Modelista",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP18",
+"conta": "Pilotista",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP25",
+"conta": "Travete (Pilotagem)",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "MP01",
+"conta": "Adiantamentos a Fornecedores",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "MP02",
+"conta": "Aviamento",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "MP03",
+"conta": "Bordado Industrial",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "MP04",
+"conta": "Cartuchos e Tonners Plotter",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "MP05",
+"conta": "Caseado",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "MP06",
+"conta": "Embalagens",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "MP07",
+"conta": "Estamparia, Silk, Serigrafia",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "MP08",
+"conta": "Etiquetas e Tags",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "MP09",
+"conta": "Material Para Corte",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "MP10",
+"conta": "Mercadorias para Revendas - cintos",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "MP11",
+"conta": "Outros Insumos",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "MP12",
+"conta": "Tecidos",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "MP13",
+"conta": "Aviamento (Pilotagem)",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP14",
+"conta": "Amostra de Tecidos",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP15",
+"conta": "Acabamento Jeans",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP16",
+"conta": "Acabamento Modinha",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP17",
+"conta": "Faccao Jeans",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP18",
+"conta": "Faccao Modinha",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP19",
+"conta": "Modelista Jeans",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP20",
+"conta": "Modelista Modinha",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP21",
+"conta": "Pilotista Jeans",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP22",
+"conta": "Tecidos Jeans",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP23",
+"conta": "Tecidos Modinha",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP24",
+"conta": "Pilotista Modinha",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP25",
+"conta": "MP CALÇA",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP26",
+"conta": "MP SHORT",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP27",
+"conta": "MP COLETE",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP28",
+"conta": "MP SAIA",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP29",
+"conta": "MP BERMUDA",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP30",
+"conta": "MP VESTIDO",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP31",
+"conta": "MP MACACAO",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP32",
+"conta": "MP SHORT SAIA",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP33",
+"conta": "MP MACACÃO",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP34",
+"conta": "MP BERMUDAS",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP35",
+"conta": "MP JAQUETA",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP36",
+"conta": "MP CONJUNTO",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP37",
+"conta": "MP VESTIDO JEANS",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP38",
+"conta": "MP CAMISA JEANS",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP39",
+"conta": "MP TOP JEANS",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP40",
+"conta": "MP CROPPED JEANS",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP41",
+"conta": "MP CROPPED",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP42",
+"conta": "MP CROPPED MALHA",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP43",
+"conta": "MP BLUSA",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP44",
+"conta": "MP CAMISA",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP45",
+"conta": "TSHIRT",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP46",
+"conta": "MP BODY",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP47",
+"conta": "MP REGATA",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP48",
+"conta": "MP BIQUINI",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP49",
+"conta": "MP CONJUNTO JEANS",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP50",
+"conta": "MP CONJUNTO MODINHA",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP51",
+"conta": "MP VESTIDO MODINHA",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP52",
+"conta": "MP BIQUINIS",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP53",
+"conta": "MP TOP",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP54",
+"conta": "MP TOP MODINHA",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP55",
+"conta": "MP LENÇO",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP56",
+"conta": "MP BONÉ",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP57",
+"conta": "MP CINTOS",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP58",
+"conta": "MP JARDINEIRA",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP59",
+"conta": "MP BRINDE",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP60",
+"conta": "MP ENFEITE",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MP61",
+"conta": "MP GERAL",
+"grupo": "CUSTO. MP OU REVENDA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "ADM01",
+"conta": "Agua",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM02",
+"conta": "Aquisição de sistemas e Softwares",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM03",
+"conta": "Coffe Break",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM04",
+"conta": "Contribuições Sindicais",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM05",
+"conta": "Cursos e Treinamentos",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM06",
+"conta": "Despesas Cartoriais ",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM07",
+"conta": "Exame Adminissional/Demissional",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM09",
+"conta": "Honorários Advocaticios",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM10",
+"conta": "Honorarios Contabeis (Contabilidade)",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM12",
+"conta": "Material de Escritório",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM13",
+"conta": "Outras Despesas Nao Operacionais",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM14",
+"conta": "Sites e Sistemas ",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM16",
+"conta": "Salário e Ordenados ADM",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM17",
+"conta": "Adiantamentos Salariais ADM",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM20",
+"conta": "13º Salário ADM",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM21",
+"conta": "Vale Alimentação Adm",
+"grupo": "DESP. ADM",
+"fv": "",
+"di": ""
+},
+{
+"cod": "ADM22",
+"conta": "Vale Transporte (ADM)",
+"grupo": "DESP. ADM",
+"fv": "",
+"di": ""
+},
+{
+"cod": "ADM23",
+"conta": "Ferias (ADM)",
+"grupo": "DESP. ADM",
+"fv": "",
+"di": ""
+},
+{
+"cod": "ADM24",
+"conta": "Hora Extra ADM",
+"grupo": "DESP. ADM",
+"fv": "",
+"di": ""
+},
+{
+"cod": "ADM25",
+"conta": "Premiações e Abonos Adm",
+"grupo": "DESP. ADM",
+"fv": "",
+"di": ""
+},
+{
+"cod": "ADM26",
+"conta": "Gratificacao",
+"grupo": "DESP. ADM",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DC05",
+"conta": "Confraternização e Eventos",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DF01",
+"conta": "Assessorias e Consultorias",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "MAN08",
+"conta": "Seguro de vida",
+"grupo": "DESP. ADM",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM27",
+"conta": "Acordos Judiciais",
+"grupo": "DESP. ADM",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DC01",
+"conta": "AÇÃO LLAMAQUINA DE VENDAS",
+"grupo": "DESP. COMERCIAL",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DC02",
+"conta": "Associacoes e doacoes",
+"grupo": "DESP. COMERCIAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DC04",
+"conta": "Comissão de vendedores",
+"grupo": "DESP. COMERCIAL",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DC06",
+"conta": "Consulta de Crédito Cliente",
+"grupo": "DESP. COMERCIAL",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DC11",
+"conta": "Telefonia e Internet",
+"grupo": "DESP. COMERCIAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DC12",
+"conta": "Salários COMERCIAL",
+"grupo": "DESP. COMERCIAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DC13",
+"conta": "Adiantamentos Salariais COMERCIAL",
+"grupo": "DESP. COMERCIAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DC16",
+"conta": "13º Salário COMERCIAL",
+"grupo": "DESP. COMERCIAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DC17",
+"conta": "Salário e Ordenados (Comercial)",
+"grupo": "DESP. COMERCIAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DC20",
+"conta": "Assessorias Comerciais",
+"grupo": "DESP. COMERCIAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DC21",
+"conta": "Vale Alimentação (Comercial)",
+"grupo": "DESP. COMERCIAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DC22",
+"conta": "Vale Transporte (Comercial)",
+"grupo": "DESP. COMERCIAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DC23",
+"conta": "Férias Comercial",
+"grupo": "DESP. COMERCIAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DC24",
+"conta": "Hora Extra Comercial",
+"grupo": "DESP. COMERCIAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DC25",
+"conta": "Premiações e Abonos (Comercial)",
+"grupo": "DESP. COMERCIAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DC26",
+"conta": "Sites e Sistemas (Comercial)",
+"grupo": "DESP. COMERCIAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DC27",
+"conta": "Combustível (Marketing)",
+"grupo": "DESP. COMERCIAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DF03",
+"conta": "Empréstimos Bancários ",
+"grupo": "DESP. FINANCEIRA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DF04",
+"conta": "ERRO CONCILIAÇÃO AUTOMATICA",
+"grupo": "DESP. FINANCEIRA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DF05",
+"conta": "Estornos",
+"grupo": "DESP. FINANCEIRA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DF06",
+"conta": "Juros de Empréstimos",
+"grupo": "DESP. FINANCEIRA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DF07",
+"conta": "Juros por atraso de pagamento",
+"grupo": "DESP. FINANCEIRA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DF08",
+"conta": "Outras Multas",
+"grupo": "DESP. FINANCEIRA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DF09",
+"conta": "Tarifas Bancárias",
+"grupo": "DESP. FINANCEIRA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DF10",
+"conta": "Tarifas de Pix",
+"grupo": "DESP. FINANCEIRA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DF11",
+"conta": "Taxa de Antecipação de Credito",
+"grupo": "DESP. FINANCEIRA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DF02",
+"conta": "Comissão de Assessores",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DL01",
+"conta": "Combustíveis",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DL02",
+"conta": "Combustível Fiorino",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DL03",
+"conta": "Combustível Raimundo",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DL04",
+"conta": "Estacionamentos e Pedagios",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DL05",
+"conta": "Frete de Aquisicao de mercadoria",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DL06",
+"conta": "Frete e Transporte de Mercadorias",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DL07",
+"conta": "Locação de veículo (Allan)",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DL08",
+"conta": "Motoboy Criacao",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DL09",
+"conta": "Viagens e estadias",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DL10",
+"conta": "Salário e Ordenados LOGISTICA",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DL11",
+"conta": "Adiantamentos Salariais LOGISTICA",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DL14",
+"conta": "13º Salário LOGISTICA",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DL15",
+"conta": "Vale Alimentação Logistica",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DL16",
+"conta": "Vale Transporte (Logistica)",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DL17",
+"conta": "Férias Logistica",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DL18",
+"conta": "Hora Extra Logistica",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DL19",
+"conta": "Premiações e abonos (Logistica)",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DL20",
+"conta": "Locação de veículo ",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DL21",
+"conta": "Transporte de corte",
+"grupo": "DESP. LOGÍSTICA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "ADM08",
+"conta": "Gas e Manutenção de Gas",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM11",
+"conta": "Material de Copa e Cozinha",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "ADM15",
+"conta": "Uniforme e EPIs",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DC03",
+"conta": "Brindes e Lembrancinhas (Funcionarios)",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP01",
+"conta": "13º Salário",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP03",
+"conta": "Acertos e Rescisões",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP04",
+"conta": "Adiantamentos Salariais",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP05",
+"conta": "Alimentação",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP06",
+"conta": "Alugueis e Condominios",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP07",
+"conta": "Complementos de Pagamento (Hora Extra)",
+"grupo": "DESP. OPERACIONAL",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DOP08",
+"conta": "Coordenacao de Estilo",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP09",
+"conta": "Corte",
+"grupo": "DESP. OPERACIONAL",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DOP10",
+"conta": "Desenhista ",
+"grupo": "DESP. OPERACIONAL",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DOP11",
+"conta": "Energia Eletrica",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP12",
+"conta": "Estilista",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP14",
+"conta": "Férias ",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP17",
+"conta": "Multas Operacionais",
+"grupo": "DESP. OPERACIONAL",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DOP19",
+"conta": "Plano Odontologico",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP20",
+"conta": "Premiações e Abonos",
+"grupo": "DESP. OPERACIONAL",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DOP22",
+"conta": "Salários e ordenados (Jaraguá)",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP23",
+"conta": "Salarios Producao",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP24",
+"conta": "Serviços Terceirizados",
+"grupo": "DESP. OPERACIONAL",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DOP26",
+"conta": "Vale Alimentação",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP27",
+"conta": "Vale Transporte",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP28",
+"conta": "Adiantamentos Salariais Produção",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP31",
+"conta": "13º Salário Produção",
+"grupo": "DESP. OPERACIONAL",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DOP33",
+"conta": "Vale Alimentação Produção",
+"grupo": "DESP. OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DOP34",
+"conta": "Vale Transporte (Produção)",
+"grupo": "DESP. OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DOP35",
+"conta": "Ferias (Produção)",
+"grupo": "DESP. OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DOP36",
+"conta": "Hora Extra Produção",
+"grupo": "DESP. OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DOP37",
+"conta": "Premiações e abonos (Produção)",
+"grupo": "DESP. OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DOP38",
+"conta": "Assiduidade",
+"grupo": "DESP. OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DOP39",
+"conta": "Hora Extra Corte",
+"grupo": "DESP. OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DOP40",
+"conta": "Hora Extra Costura",
+"grupo": "DESP. OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DOP41",
+"conta": "Salários e ordenados (Costura)",
+"grupo": "DESP. OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DOP42",
+"conta": "Sites e Sistemas (Criacao)",
+"grupo": "DESP. OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DOP43",
+"conta": "Modelo Criação",
+"grupo": "DESP. OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DOP44",
+"conta": "Confraternizacao e Eventos (Funcionarios)",
+"grupo": "DESP. OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DOP45",
+"conta": "Estilista Jeans",
+"grupo": "DESP. OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DOP46",
+"conta": "Estilista Modinha",
+"grupo": "DESP. OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DOP47",
+"conta": "Multibeneficios (Costura)",
+"grupo": "DESP. OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DOP48",
+"conta": "Travete",
+"grupo": "DESP. OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DT01",
+"conta": "Alvaras, Certificados e Lincencas",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DT02",
+"conta": "Cofins",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DT03",
+"conta": "CSLL",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DT04",
+"conta": "Fgts",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DT05",
+"conta": "Icms",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DT06",
+"conta": "INSS",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DT07",
+"conta": "Iptu",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DT08",
+"conta": "Ipva",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DT09",
+"conta": "IRPJ",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DT10",
+"conta": "IRRF",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DT11",
+"conta": "Outros Tributos",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DT12",
+"conta": "Parcelamentos Tributários",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DT13",
+"conta": "Pis",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DT14",
+"conta": "Simples Nacional",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DT15",
+"conta": "IOF",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DT16",
+"conta": "PROTEGE",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DT17",
+"conta": "Taxa de Limpeza Publica",
+"grupo": "DESP. TRIBUTÁRIA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT01",
+"conta": "FAT BODY",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT02",
+"conta": "FAT CALÇA",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT03",
+"conta": "FAT CROPPED MALHA",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT04",
+"conta": "FAT SAIA",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT05",
+"conta": "FAT VESTIDO MODINHA",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT06",
+"conta": "FAT CINTOS",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT07",
+"conta": "FAT SHORT",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT08",
+"conta": "FAT INDEFINIDO",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT09",
+"conta": "FAT CROPPED JEANS",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT10",
+"conta": "FAT JAQUETA",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT11",
+"conta": "FAT SHORT SAIA",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT12",
+"conta": "FAT CROPPED",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT13",
+"conta": "FAT BERMUDAS",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT14",
+"conta": "FAT TOP JEANS",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT15",
+"conta": "FAT COLETE",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT16",
+"conta": "FAT CAMISA",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT17",
+"conta": "FAT BERMUDA",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT18",
+"conta": "FAT JARDINEIRA",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT19",
+"conta": "FAT BLUSA",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT20",
+"conta": "FAT GERAL",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT21",
+"conta": "FAT VESTIDO",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT22",
+"conta": "FAT BONÉ",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT23",
+"conta": "FAT TOP",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT24",
+"conta": "FAT LENÇO",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT25",
+"conta": "FAT ENFEITE",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT26",
+"conta": "FAT BRINDE",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT27",
+"conta": "FAT PROMOÇÃO",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT28",
+"conta": "FAT CONJUNTO",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT29",
+"conta": "FAT BIQUINI",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT30",
+"conta": "FAT MACACAO",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT31",
+"conta": "FAT CAMISA JEANS",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT32",
+"conta": "FAT CONJUNTO JEANS",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT33",
+"conta": "FAT CONJUNTO MODINHA",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT34",
+"conta": "FAT MACACÃO",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT35",
+"conta": "FAT REGATA",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT36",
+"conta": "FAT VESTIDO JEANS",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT37",
+"conta": "FAT TOP MODINHA",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT38",
+"conta": "FAT BIQUINIS",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT39",
+"conta": "FAT SUPLEX",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT40",
+"conta": "FAT MODELLI LIGHT",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT41",
+"conta": "FAT RENDA ORGANIC",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT42",
+"conta": "FAT VIVA LIGHT",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT43",
+"conta": "FAT SOFT 100",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT44",
+"conta": "FAT ALMOXARIFADO",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "FAT45",
+"conta": "FAT T SHIRT",
+"grupo": "FATURAMENTO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "INV01",
+"conta": "Computadores e Periféricos",
+"grupo": "INVESTIMENTOS",
+"fv": "",
+"di": ""
+},
+{
+"cod": "INV02",
+"conta": "Consórcio",
+"grupo": "INVESTIMENTOS",
+"fv": "",
+"di": ""
+},
+{
+"cod": "INV03",
+"conta": "Máquinas e Equipamentos",
+"grupo": "INVESTIMENTOS",
+"fv": "",
+"di": ""
+},
+{
+"cod": "INV04",
+"conta": "Móveis e utensílios ",
+"grupo": "INVESTIMENTOS",
+"fv": "",
+"di": ""
+},
+{
+"cod": "INV05",
+"conta": "Registro de Patente",
+"grupo": "INVESTIMENTOS",
+"fv": "",
+"di": ""
+},
+{
+"cod": "INV06",
+"conta": "Veículos",
+"grupo": "INVESTIMENTOS",
+"fv": "",
+"di": ""
+},
+{
+"cod": "INV07",
+"conta": "Construção de Imóveis",
+"grupo": "INVESTIMENTOS",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MAN01",
+"conta": "Manutenção de Máquinas e Equipamentos",
+"grupo": "MANUT. E CONSERVAÇÃO",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "MAN02",
+"conta": "Manutenção de Moveis e Utensílios",
+"grupo": "MANUT. E CONSERVAÇÃO",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "MAN03",
+"conta": "Manutenção de Veiculos",
+"grupo": "MANUT. E CONSERVAÇÃO",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "MAN04",
+"conta": "Manutenção Predial",
+"grupo": "MANUT. E CONSERVAÇÃO",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "MAN05",
+"conta": "Material de Limpeza e Higiene",
+"grupo": "MANUT. E CONSERVAÇÃO",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "MAN06",
+"conta": "Reformas Prediais",
+"grupo": "MANUT. E CONSERVAÇÃO",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "MAN07",
+"conta": "Seguro de Veiculos",
+"grupo": "MANUT. E CONSERVAÇÃO",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "MAN10",
+"conta": "Adiantamentos Salariais MANUTENÇÃO",
+"grupo": "MANUT. E CONSERVAÇÃO",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "MAN12",
+"conta": "Salário e Ordenados MANUTENÇÃO",
+"grupo": "MANUT. E CONSERVAÇÃO",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "MAN13",
+"conta": "13º Salário MANUTENÇÃO",
+"grupo": "MANUT. E CONSERVAÇÃO",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "MAN14",
+"conta": "Vale Alimentação Manutenção",
+"grupo": "MANUT. E CONSERVAÇÃO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MAN15",
+"conta": "Vale Transporte Manutenção",
+"grupo": "MANUT. E CONSERVAÇÃO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MAN16",
+"conta": "Férias Manutenção",
+"grupo": "MANUT. E CONSERVAÇÃO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MAN17",
+"conta": "Hora Extra Manutenção",
+"grupo": "MANUT. E CONSERVAÇÃO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MAN18",
+"conta": "Premiações e Abonos Manutenção",
+"grupo": "MANUT. E CONSERVAÇÃO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "DC07",
+"conta": "Fotógrafo",
+"grupo": "MKT",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DC08",
+"conta": "Gestão de Tráfego",
+"grupo": "MKT",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DC09",
+"conta": "Marketing e Publicidade",
+"grupo": "MKT",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "DC10",
+"conta": "Modelos Fotográficas",
+"grupo": "MKT",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "DC18",
+"conta": "Tráfego Pago",
+"grupo": "MKT",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MKT01",
+"conta": "Brindes (Comercial)",
+"grupo": "MKT",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MKT02",
+"conta": "Acervo (Marketing)",
+"grupo": "MKT",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MKT03",
+"conta": "Agencia de Marketing",
+"grupo": "MKT",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MKT04",
+"conta": "Alimentação (Marketing)",
+"grupo": "MKT",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MKT05",
+"conta": "Embalagens (Marketing)",
+"grupo": "MKT",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MKT06",
+"conta": "Influencer ",
+"grupo": "MKT",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MKT07",
+"conta": "Passagens (Marketing)",
+"grupo": "MKT",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MKT08",
+"conta": "Produção - Salão (Marketing)",
+"grupo": "MKT",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MKT09",
+"conta": "Sites e Sistemas (Marketing)",
+"grupo": "MKT",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MKT10",
+"conta": "Studio / Hotel (Marketing)",
+"grupo": "MKT",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MKT11",
+"conta": "Videomaker",
+"grupo": "MKT",
+"fv": "",
+"di": ""
+},
+{
+"cod": "MKT12",
+"conta": "Locação de Veiculos (Marketing)",
+"grupo": "MKT",
+"fv": "",
+"di": ""
+},
+{
+"cod": "PL01",
+"conta": "Distribuições de Lucros e Dividendos",
+"grupo": "PROLABORE E RETIRADA",
+"fv": "V",
+"di": ""
+},
+{
+"cod": "PL02",
+"conta": "Pro Labore (Glauber)",
+"grupo": "PROLABORE E RETIRADA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "PL03",
+"conta": "Pro Labore (Jully)",
+"grupo": "PROLABORE E RETIRADA",
+"fv": "F",
+"di": ""
+},
+{
+"cod": "PL04",
+"conta": "13º Prolabore",
+"grupo": "PROLABORE E RETIRADA",
+"fv": "",
+"di": ""
+},
+{
+"cod": "RNO01",
+"conta": "Juros Recebidos",
+"grupo": "RECEITA NÃO OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "RNO02",
+"conta": "Outras Receitas Nao Operacionais",
+"grupo": "RECEITA NÃO OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "RNO03",
+"conta": "Recebimento de empréstimo",
+"grupo": "RECEITA NÃO OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "RNO04",
+"conta": "Rendimento de Aplicacoes Financeiras",
+"grupo": "RECEITA NÃO OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "RNO05",
+"conta": "Recebimento de frete",
+"grupo": "RECEITA NÃO OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "RO01",
+"conta": "Adiantamentos de clientes",
+"grupo": "RECEITA OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "RO02",
+"conta": "Entrada de Troco",
+"grupo": "RECEITA OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "RO03",
+"conta": "Vendas",
+"grupo": "RECEITA OPERACIONAL",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP01",
+"conta": "QTD BODY",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP02",
+"conta": "QTD VESTIDO MODINHA",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP03",
+"conta": "QTD CALÇA",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP04",
+"conta": "QTD TOP JEANS",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP05",
+"conta": "QTD BLUSA",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP06",
+"conta": "QTD SHORT",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP07",
+"conta": "QTD TOP MODINHA",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP08",
+"conta": "QTD SAIA",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP09",
+"conta": "QTD BERMUDAS",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP10",
+"conta": "QTD COLETE",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP11",
+"conta": "QTD CROPPED MALHA",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP12",
+"conta": "QTD REGATA",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP13",
+"conta": "QTD JAQUETA",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP14",
+"conta": "QTD SHORT SAIA",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP15",
+"conta": "QTD CONJUNTO MODINHA",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP16",
+"conta": "QTD CONJUNTO JEANS",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP17",
+"conta": "QTD CROPPED JEANS",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP18",
+"conta": "QTD CAMISA JEANS",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP19",
+"conta": "QTD CAMISA",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP20",
+"conta": "QTD GERAL",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP21",
+"conta": "QTD CROPPED",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP22",
+"conta": "QTD JARDINEIRA",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP23",
+"conta": "QTD VESTIDO JEANS",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP24",
+"conta": "QTD BIQUINIS",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP25",
+"conta": "QTD LENÇO",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP26",
+"conta": "QTD MACACÃO",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP27",
+"conta": "QTD CAMISETA",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+},
+{
+"cod": "VP28",
+"conta": "QTD T SHIRT",
+"grupo": "VALOR PRODUZIDO",
+"fv": "",
+"di": ""
+}
+]

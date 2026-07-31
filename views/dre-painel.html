@@ -1,0 +1,153 @@
+<!-- ============================================================
+     PAINEL DRE — RESUTE
+     Bloco HTML. Sem <html>/<head>/<body>/<script>.
+     Todo id/classe novo usa prefixo fin- (namespace fin-dre-).
+     ============================================================ -->
+
+<div class="fin-wrap">
+
+  <!-- ===================== CABEÇALHO ===================== -->
+  <header class="fin-topo">
+    <div class="fin-topo-esq">
+      <button id="fin-admin-back" class="fin-btn-voltar" title="Voltar">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </button>
+      <div class="fin-titulo-bloco">
+        <div class="fin-titulo-linha">
+          <h1 id="fin-empresa">—</h1>
+          <span id="fin-admin-preview-badge" class="fin-badge-preview">PREVIEW</span>
+        </div>
+        <p class="fin-subtitulo">Demonstrativo de Resultado do Exercício</p>
+      </div>
+    </div>
+    <div id="fin-modulos" class="fin-modulos"></div>
+  </header>
+
+  <!-- ===================== FILTROS ===================== -->
+  <section class="fin-filtros">
+    <div class="fin-campo">
+      <label for="fin-filtro-ano">Ano</label>
+      <select id="fin-filtro-ano"></select>
+    </div>
+    <div class="fin-campo">
+      <label for="fin-filtro-mes">Mês</label>
+      <select id="fin-filtro-mes"></select>
+    </div>
+    <div class="fin-campo">
+      <label for="fin-filtro-inicio">Início</label>
+      <input type="date" id="fin-filtro-inicio">
+    </div>
+    <div class="fin-campo">
+      <label for="fin-filtro-fim">Fim</label>
+      <input type="date" id="fin-filtro-fim">
+    </div>
+    <button id="fin-btn-atualizar" class="fin-btn-primario">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/>
+      </svg>
+      Atualizar
+    </button>
+    <button id="fin-dre-btn-exportar" class="fin-btn-secundario">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>
+      </svg>
+      Exportar
+    </button>
+    <span id="fin-status" class="fin-status"></span>
+  </section>
+
+  <!-- ===================== RECORTE + RESUMO ===================== -->
+  <div id="fin-periodo-label" class="fin-periodo-label"></div>
+  <div id="fin-executive-summary" class="fin-resumo"></div>
+
+  <!-- ===================== KPIs E ALERTAS ===================== -->
+  <div id="fin-kpis" class="fin-kpis"></div>
+  <div id="fin-alertas" class="fin-alertas"></div>
+  <div id="fin-conteudo" class="fin-avisos"></div>
+
+  <!-- ===================== ABAS ===================== -->
+  <nav class="fin-tabs">
+    <button class="fin-tab active" data-fin-pane="fin-dre-pane-dre">DRE</button>
+    <button class="fin-tab" data-fin-pane="fin-dre-pane-bddre">BD_DRE</button>
+    <button class="fin-tab" data-fin-pane="fin-dre-pane-plano">Plano de Contas</button>
+    <button class="fin-tab" data-fin-pane="fin-dre-pane-lancamentos">Lançamentos</button>
+    <button class="fin-tab" data-fin-pane="fin-dre-pane-fv">Fixo/Variável · Direto/Indireto</button>
+    <button class="fin-tab" data-fin-pane="fin-dre-pane-graficos">Gráficos</button>
+  </nav>
+
+  <!-- ---------- ABA 1: DRE ---------- -->
+  <section class="fin-pane active" id="fin-dre-pane-dre">
+    <div id="fin-dre-corpo" class="fin-dre-corpo"></div>
+  </section>
+
+  <!-- ---------- ABA 2: BD_DRE ---------- -->
+  <section class="fin-pane" id="fin-dre-pane-bddre">
+    <div class="fin-nota">
+      Matriz conta × mês. Cada célula é o SUMIFS do BD por conta, ano, mês e empresa.
+    </div>
+    <div id="fin-dre-tab-bddre" class="fin-tabela-scroll"></div>
+  </section>
+
+  <!-- ---------- ABA 3: PLANO DE CONTAS ---------- -->
+  <section class="fin-pane" id="fin-dre-pane-plano">
+    <div class="fin-barra-filtro">
+      <input type="text" id="fin-dre-busca-plano" placeholder="Buscar por código ou conta…">
+      <select id="fin-dre-filtro-grupo"></select>
+      <select id="fin-dre-filtro-fv">
+        <option value="">F/V: todos</option>
+        <option value="F">Fixo</option>
+        <option value="V">Variável</option>
+        <option value="-">Não marcado</option>
+      </select>
+      <select id="fin-dre-filtro-di">
+        <option value="">D/I: todos</option>
+        <option value="D">Direto</option>
+        <option value="I">Indireto</option>
+        <option value="-">Não marcado</option>
+      </select>
+    </div>
+    <div class="fin-nota">
+      Única aba de digitação. <strong>F_V</strong> = Fixo ou Variável · <strong>D_I</strong> = Direto ou Indireto.
+      As duas marcações são independentes.
+    </div>
+    <div id="fin-dre-tab-plano" class="fin-tabela-scroll"></div>
+  </section>
+
+  <!-- ---------- ABA 4: LANÇAMENTOS ---------- -->
+  <section class="fin-pane" id="fin-dre-pane-lancamentos">
+    <div class="fin-nota">
+      Livro-razão. Grupo e S_E vêm por PROCV no plano de contas; conta ausente no plano aparece como <code>#N/A</code>.
+    </div>
+    <div id="fin-dre-tab-lancamentos" class="fin-tabela-scroll"></div>
+  </section>
+
+  <!-- ---------- ABA 5: FIXO/VARIÁVEL E DIRETO/INDIRETO ---------- -->
+  <section class="fin-pane" id="fin-dre-pane-fv">
+    <div id="fin-dre-tab-fv"></div>
+  </section>
+
+  <!-- ---------- ABA 6: GRÁFICOS ---------- -->
+  <section class="fin-pane" id="fin-dre-pane-graficos">
+    <div class="fin-grid-graficos">
+      <div class="fin-card-grafico">
+        <h3>Receita × Resultado por mês</h3>
+        <canvas id="fin-dre-chart-resultado"></canvas>
+      </div>
+      <div class="fin-card-grafico">
+        <h3>Peso dos grupos sobre a receita</h3>
+        <canvas id="fin-dre-chart-grupos"></canvas>
+      </div>
+      <div class="fin-card-grafico">
+        <h3>Custo Fixo × Variável</h3>
+        <canvas id="fin-dre-chart-fv"></canvas>
+      </div>
+      <div class="fin-card-grafico">
+        <h3>Evolução das margens</h3>
+        <canvas id="fin-dre-chart-margem"></canvas>
+      </div>
+    </div>
+  </section>
+
+</div>

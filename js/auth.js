@@ -251,8 +251,9 @@ async function abrirSeletorEmpresasCliente(force) {
   document.body.classList.add('bpo-admin-mode');
 
   if (typeof financeiroDestruir === 'function') financeiroDestruir();
+  if (typeof dreDestruir === 'function') dreDestruir();
   if (typeof MODULO_ATIVO !== 'undefined') MODULO_ATIVO = null;
-  ['view-dash-cliente', 'view-dash-financeiro'].forEach(function(id) {
+  ['view-dash-cliente', 'view-dash-financeiro', 'view-dash-dre'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -617,7 +618,7 @@ function fazerLogout() {
     if (el) el.style.display = 'none';
   });
   if (typeof resetarModulos === 'function') resetarModulos();
-  ['view-dash-cliente', 'view-dash-financeiro'].forEach(function(id) {
+  ['view-dash-cliente', 'view-dash-financeiro', 'view-dash-dre'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -626,7 +627,8 @@ function fazerLogout() {
 
 function _abrirApp() {
   _touchSession();
-  ['view-dash-cliente', 'view-dash-financeiro'].forEach(function(id) {
+  if (typeof dreFechar === 'function') dreFechar();
+  ['view-dash-cliente', 'view-dash-financeiro', 'view-dash-dre'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -992,6 +994,8 @@ function _abrirDashCliente(empresaIdPreview) {
   if (typeof MODULOS !== 'undefined') MODULO_ATIVO = MODULOS.COMERCIAL;
   var vf = document.getElementById('view-dash-financeiro');
   if (vf) vf.style.display = 'none';
+  // dreFechar desmonta o HTML do DRE: os ids sao os mesmos do painel financeiro.
+  if (typeof dreFechar === 'function') dreFechar();
   document.body.classList.remove('bpo-admin-mode');
   // Esconde login page e layout admin
   var lp = document.getElementById('view-login-page');

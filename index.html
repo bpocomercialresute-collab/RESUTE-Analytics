@@ -1305,6 +1305,15 @@
     </main>
   </div>
 
+  <!-- PAINEL DRE — container vazio de proposito.
+       O bloco fica em views/dre-painel.html e e montado/desmontado por
+       js/dre/dre-view.js. Motivo: a ferramenta usa os mesmos ids do painel
+       financeiro abaixo (fin-empresa, fin-status, fin-kpis...), entao os dois
+       nao podem estar no documento ao mesmo tempo.
+       Precisa vir ANTES de #view-dash-financeiro: enquanto o DRE esta montado,
+       e o primeiro elemento com cada id que o getElementById devolve. -->
+  <div id="view-dash-dre" style="display:none;position:fixed;inset:0;z-index:9000;background:#ffffff;overflow:auto;"></div>
+
   <!-- DASHBOARD FINANCEIRO — espaço reservado do módulo (js/financeiro/*) -->
   <div id="view-dash-financeiro" style="display:none;position:fixed;inset:0;z-index:9000;background:#F0FAF8;flex-direction:column;font-family:'Poppins',system-ui,sans-serif;overflow:hidden;">
 
@@ -1477,13 +1486,17 @@
   <script src="js/nav.js?v=2"></script>
   <script src="js/charts.js?v=3"></script>
   <script src="js/actions.js?v=2"></script>
-  <script src="js/modulos.js?v=2"></script>
-  <script src="js/auth.js?v=30"></script>
+  <script src="js/modulos.js?v=3"></script>
+  <script src="js/auth.js?v=32"></script>
   <script src="js/admin-console.js?v=23"></script>
   <script src="js/financeiro/financeiro-core.js?v=3"></script>
   <script src="js/financeiro/financeiro-ui.js?v=3"></script>
   <script src="js/financeiro/financeiro-charts.js?v=3"></script>
   <script src="js/financeiro/financeiro-admin.js?v=1"></script>
+  <!-- DRE: dre-engine.js e a ferramenta original, nao editar aqui.
+       dre-view.js e a camada de encaixe (monta HTML, escopa CSS, carrega dados). -->
+  <script src="js/dre/dre-engine.js?v=1"></script>
+  <script src="js/dre/dre-view.js?v=1"></script>
   <script src="js/jss.js?v=3"></script>
   <script src="js/bd.js?v=2"></script>
   <script src="js/relatorios.js?v=3"></script>

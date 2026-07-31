@@ -19,11 +19,12 @@
 
 var MODULOS = {
   COMERCIAL:  'comercial',
-  FINANCEIRO: 'financeiro'
+  FINANCEIRO: 'financeiro',
+  DRE:        'dre'
 };
 
 /** Ordem de prioridade quando a empresa contrata mais de um modulo */
-var MODULOS_PRIORIDADE = [MODULOS.COMERCIAL, MODULOS.FINANCEIRO];
+var MODULOS_PRIORIDADE = [MODULOS.COMERCIAL, MODULOS.FINANCEIRO, MODULOS.DRE];
 
 var MODULO_META = {
   comercial: {
@@ -41,6 +42,17 @@ var MODULO_META = {
     view:       'view-dash-financeiro',
     disponivel: true,
     icone:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'
+  },
+  // O painel do DRE e uma view separada da financeira de proposito: as duas
+  // usam os mesmos ids (fin-empresa, fin-kpis...) e nao podem estar montadas
+  // ao mesmo tempo. js/dre/dre-view.js monta e desmonta o bloco na troca.
+  dre: {
+    slug:       'dre',
+    nome:       'Resultado (DRE)',
+    curto:      'DRE',
+    view:       'view-dash-dre',
+    disponivel: true,
+    icone:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="13" y="7" width="3" height="10"/></svg>'
   }
 };
 
@@ -105,7 +117,9 @@ function abrirModulo(slug, opts) {
 
   MODULO_ATIVO = slug;
 
-  if (slug === MODULOS.FINANCEIRO) {
+  if (slug === MODULOS.DRE) {
+    if (typeof dreAbrir === 'function') dreAbrir(opts);
+  } else if (slug === MODULOS.FINANCEIRO) {
     if (typeof financeiroAbrir === 'function') financeiroAbrir(opts);
   } else {
     if (typeof _abrirDashCliente === 'function') _abrirDashCliente(opts.empresaIdPreview);
@@ -116,6 +130,12 @@ function abrirModulo(slug, opts) {
 
 /** Fecha o painel de um modulo (esconde view e libera recursos). */
 function _fecharModulo(slug) {
+  // O DRE desmonta o HTML em vez de so esconder: os ids sao os mesmos do
+  // painel financeiro e nao podem coexistir no documento.
+  if (slug === MODULOS.DRE) {
+    if (typeof dreFechar === 'function') dreFechar();
+    return;
+  }
   if (slug === MODULOS.FINANCEIRO) {
     if (typeof financeiroFechar === 'function') financeiroFechar();
     return;
@@ -128,6 +148,9 @@ function _fecharModulo(slug) {
 function resetarModulos() {
   if (MODULO_ATIVO === MODULOS.FINANCEIRO && typeof financeiroDestruir === 'function') {
     financeiroDestruir();
+  }
+  if (MODULO_ATIVO === MODULOS.DRE && typeof dreDestruir === 'function') {
+    dreDestruir();
   }
   MODULO_ATIVO = null;
   ['dc-modulos', 'fin-modulos'].forEach(function(id) {
