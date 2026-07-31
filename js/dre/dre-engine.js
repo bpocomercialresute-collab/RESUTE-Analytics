@@ -818,6 +818,14 @@ const DRE = (() => {
     const el = document.getElementById('fin-empresa');
     if (el) el.textContent = empresa || 'RESUTE';
 
+    // Toda chamada a init() vem com o HTML remontado do zero (js/dre/dre-view.js
+    // recria #fin-dre-tab-plano/#fin-dre-tab-lancamentos a cada abertura). Sem
+    // isto, ao fechar e reabrir o DRE (ou trocar de empresa), gradePlano/
+    // gradeLancamentos continuavam apontando pro container antigo — já fora do
+    // documento — e a grade nova nunca era montada (guarda "if (gradePlano) return").
+    gradePlano = null;
+    gradeLancamentos = null;
+
     ligarAbas();
     montarFiltros();
     recalcular();
