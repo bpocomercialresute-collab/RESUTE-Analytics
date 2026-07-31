@@ -364,21 +364,27 @@ const DRE = (() => {
       alvo.innerHTML = '<div class="fin-tabela-vazia">Sem dados.</div>';
       return;
     }
-    const th = ['CÓDIGO','CONTA','GRUPO','S_E']
+    // Ordem de colunas conforme BD_DRE da planilha original
+    const th = ['ID','CNPJ','ANO','CODIGO','CONTA']
       .map(h => `<th>${h}</th>`)
       .concat(MESES.map(m => `<th class="num">${m}</th>`))
-      .concat(['<th class="num">TOTAL</th>','<th class="num">MED</th>','<th class="num">%</th>'])
+      .concat(['<th>CAD</th>','<th>GRUPO</th>','<th class="num">TOTAL</th>',
+               '<th class="num">MED</th>','<th class="num">%</th>','<th>s_e</th>'])
       .join('');
 
     const tb = estado.bdDre.map(l => `<tr>
+      <td>${esc(l.id)}</td>
+      <td>${esc(l.cnpj)}</td>
+      <td>${esc(l.ano)}</td>
       <td><span class="fin-dre-cod">${esc(l.codigo)}</span></td>
       <td>${esc(l.conta)}</td>
-      <td><span class="fin-dre-chip-grupo">${esc(l.grupo)}</span></td>
-      <td>${esc(l.s_e)}</td>
       ${l.meses.map(v => `<td class="num${l.s_e==='S'&&v?' neg':''}">${fmt(v)}</td>`).join('')}
+      <td>${esc(l.cad)}</td>
+      <td><span class="fin-dre-chip-grupo">${esc(l.grupo)}</span></td>
       <td class="num"><strong>${fmt(l.total)}</strong></td>
       <td class="num">${fmt(l.med)}</td>
       <td class="num">${fmtPct(l.pct)}</td>
+      <td>${esc(l.s_e)}</td>
     </tr>`).join('');
 
     alvo.innerHTML = `<table class="dc-tabela"><thead><tr>${th}</tr></thead><tbody>${tb}</tbody></table>`;
@@ -444,12 +450,28 @@ const DRE = (() => {
   function renderLancamentos() {
     const alvo = document.getElementById('fin-dre-tab-lancamentos');
     if (!alvo) return;
-    const bd = enriquecerBD().filter(l => l.ano === estado.ano);
+    const filtroGrupo = document.getElementById('fin-lanc-filtro-grupo')?.value || '';
+    const filtroSE    = document.getElementById('fin-lanc-filtro-se')?.value    || '';
+    const filtroMes   = document.getElementById('fin-lanc-filtro-mes')?.value   || '';
+    let bd = enriquecerBD().filter(l => l.ano === estado.ano);
+    if (filtroGrupo) bd = bd.filter(l => l.grupo === filtroGrupo);
+    if (filtroSE)    bd = bd.filter(l => l.s_e   === filtroSE);
+    if (filtroMes)   bd = bd.filter(l => l.mes   === filtroMes);
+
+    const contEl = document.getElementById('fin-lanc-contagem');
+    if (contEl) contEl.textContent = bd.length.toLocaleString('pt-BR') + ' lançamentos';
+
+    const tbody = alvo.querySelector('tbody') || alvo;
     if (!bd.length) {
-      alvo.innerHTML = '<div class="fin-tabela-vazia">Sem lançamentos no período.</div>';
+      if (alvo.querySelector('table')) {
+        alvo.querySelector('tbody').innerHTML =
+          '<tr><td colspan="9" class="fin-tabela-vazia">Sem lançamentos no período.</td></tr>';
+      } else {
+        alvo.innerHTML = '<div class="fin-tabela-vazia">Sem lançamentos no período.</div>';
+      }
       return;
     }
-    const tb = bd.map((l, i) => `<tr>
+    const rows = bd.map((l, i) => `<tr>
       <td>${esc(i + 1)}</td>
       <td>${esc(l.dt_caixa)}</td>
       <td>${esc(l.conta)}</td>
@@ -460,10 +482,15 @@ const DRE = (() => {
       <td>${esc(l.banco)}</td>
       <td>${esc(l.forma)}</td>
     </tr>`).join('');
-    alvo.innerHTML = `<table class="dc-tabela">
-      <thead><tr><th>#</th><th>DT_CAIXA</th><th>CONTA</th><th>GRUPO</th>
-      <th>S_E</th><th class="num">VALOR</th><th>STATUS</th><th>BANCO</th><th>FORMA</th></tr></thead>
-      <tbody>${tb}</tbody></table>`;
+
+    if (alvo.querySelector('table')) {
+      alvo.querySelector('tbody').innerHTML = rows;
+    } else {
+      alvo.innerHTML = `<table class="dc-tabela">
+        <thead><tr><th>#</th><th>DT_CAIXA</th><th>CONTA</th><th>GRUPO</th>
+        <th>S_E</th><th class="num">VALOR</th><th>STATUS</th><th>BANCO</th><th>FORMA</th></tr></thead>
+        <tbody>${rows}</tbody></table>`;
+    }
   }
 
   /* ---------- 13. RENDER: ANÁLISE F/V E D/I ---------- */

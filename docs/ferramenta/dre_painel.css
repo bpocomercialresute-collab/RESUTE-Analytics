@@ -490,3 +490,62 @@
   .fin-pane { display: block !important; }
   .fin-tabela-scroll { max-height: none; overflow: visible; }
 }
+
+/* ============================================================
+   GRADES LITEGRID (abas BD e Plano de Contas)
+   Estilo conforme Modelo_DRE_Matheus.xlsx
+   ============================================================ */
+
+/* Cabeçalho azul-marinho */
+.lg-table thead th {
+  background: #002060 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* Barra de referência */
+.lg-ref-bar {
+  background: var(--fin-bg-soft);
+  border-bottom: 1px solid var(--fin-line);
+  padding: 3px 8px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lg-ref-val { font-size: 11px; border: none; background: transparent; flex: 1; color: var(--fin-ink); }
+
+/* Colunas derivadas (auto) com fundo azul-acinzentado */
+.lg-table td.lg-auto,
+.lg-table th.lg-auto {
+  background: #f0f4fa !important;
+  color: #3a4a6b;
+  font-style: italic;
+}
+
+/* Célula selecionada */
+.lg-table td.lg-sel-cell { outline: 2px solid #002060; outline-offset: -1px; }
+.lg-table td.lg-sel-row  { background: #e8eef8 !important; }
+
+/* F_V e D_I no Plano — cursor pointer + centralizado */
+#fin-dre-tab-plano .lg-table tbody td:nth-child(5),
+#fin-dre-tab-plano .lg-table tbody td:nth-child(6) {
+  cursor: pointer;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: .5px;
+}
+#fin-dre-tab-plano .lg-table tbody td:nth-child(5):hover,
+#fin-dre-tab-plano .lg-table tbody td:nth-child(6):hover {
+  background: #e0eaff !important;
+}
+
+/* Rodapé de paginação */
+.lg-pag { padding: 6px 10px; font-size: 11px; background: var(--fin-bg-soft); border-top: 1px solid var(--fin-line); }
+.lg-pb  { border: 1px solid var(--fin-line); background: #fff; border-radius: 3px; padding: 2px 7px; cursor: pointer; font-size: 11px; }
+.lg-pb:hover { background: #002060; color: #fff; }
+
+/* Filtro dropdown DRE — reutiliza .col-filter-dropdown do jss.js */
+.col-filter-dropdown { font-family: Calibri, "Segoe UI", system-ui, sans-serif; }

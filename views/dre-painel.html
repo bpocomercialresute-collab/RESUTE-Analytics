@@ -137,9 +137,28 @@
   <!-- ---------- ABA 5: LANÇAMENTOS (visualização, somente leitura) ---------- -->
   <section class="fin-pane" id="fin-dre-pane-lancamentos">
     <div class="fin-nota">
-      Visualização somente leitura do livro-razão, filtrada pelo ano selecionado nos filtros do topo.
-      Para editar/colar dados, use a aba <strong>BD</strong>. Grupo e S_E vêm por PROCV no plano de contas;
-      conta ausente no plano aparece como <code>#N/A</code>.
+      Somente leitura — filtrada pelo ano do topo. Para editar/colar, use a aba <strong>BD</strong>.
+    </div>
+    <div class="fin-barra-filtro">
+      <select id="fin-lanc-filtro-grupo">
+        <option value="">Grupo: todos</option>
+      </select>
+      <select id="fin-lanc-filtro-se">
+        <option value="">S_E: todos</option>
+        <option value="E">E — Entrada</option>
+        <option value="S">S — Saída</option>
+        <option value="0">0 — Extracontábil</option>
+      </select>
+      <select id="fin-lanc-filtro-mes">
+        <option value="">Mês: todos</option>
+        <option value="Jan">Jan</option><option value="Fev">Fev</option>
+        <option value="Mar">Mar</option><option value="Abr">Abr</option>
+        <option value="Mai">Mai</option><option value="Jun">Jun</option>
+        <option value="Jul">Jul</option><option value="Ago">Ago</option>
+        <option value="Set">Set</option><option value="Out">Out</option>
+        <option value="Nov">Nov</option><option value="Dez">Dez</option>
+      </select>
+      <span id="fin-lanc-contagem" class="fin-status"></span>
     </div>
     <div id="fin-dre-tab-lancamentos" class="fin-tabela-scroll"></div>
   </section>
