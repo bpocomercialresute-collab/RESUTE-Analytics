@@ -384,108 +384,154 @@ const DRE = (() => {
     alvo.innerHTML = `<table class="dc-tabela"><thead><tr>${th}</tr></thead><tbody>${tb}</tbody></table>`;
   }
 
-  /* ---------- 11. RENDER: PLANO DE CONTAS COM TOGGLES F_V / D_I ---------- */
+  /* ---------- 11. GRADE ESTILO EXCEL: PLANO DE CONTAS E LANÇAMENTOS ---------- */
+  //
+  // A digitação vive aqui dentro das abas do painel (js/dre/dre-grid.js monta
+  // a grade nos containers #fin-dre-tab-plano / #fin-dre-tab-lancamentos). A
+  // cada colagem/edição (aoMudar) o estado do motor é atualizado e recalcular()
+  // repropaga PLANO_CONTAS/BD -> BD_DRE -> DRE visual -> Gráficos. O botão
+  // "Salvar no banco" de cada aba é ligado por fora (js/dre/dre-view.js), que
+  // sabe o empresa_id e faz o fetch — aqui só existem os dados prontos pra ele.
 
-  function toggle(campo, cod, valor, opcoes) {
-    const btns = opcoes.map(o =>
-      `<button class="fin-dre-opt${valor === o ? ' active' : ''}" data-valor="${o}">${o}</button>`
-    ).join('');
-    return `<div class="fin-dre-toggle" data-campo="${campo}" data-cod="${esc(cod)}">${btns}</div>`;
+  let gradePlano = null;
+  let gradeLancamentos = null;
+
+  function grupoCanonico(valor) {
+    const alvo = norm(valor);
+    if (!alvo) return null;
+    return Object.keys(SE_POR_GRUPO).find(g => g.toLowerCase() === alvo) || null;
   }
 
-  function renderPlano() {
+  function colunasGradePlano() {
+    return [
+      { key: 'cod', titulo: 'COD', tipo: 'texto' },
+      { key: 'conta', titulo: 'CONTA', tipo: 'texto', obrigatorio: true,
+        validar: (valor, linha, todasLinhas) => {
+          if (!valor) return null;
+          const repetida = todasLinhas.some(l => l !== linha && norm(l.conta) === norm(valor));
+          return repetida ? 'Conta repetida na grade — o PROCV do motor fica ambíguo.' : null;
+        } },
+      { key: 'grupo', titulo: 'GRUPO', tipo: 'texto', obrigatorio: true,
+        validar: valor => (!valor || grupoCanonico(valor)) ? null : 'Grupo não reconhecido pelo motor.' },
+      { key: 'fv', titulo: 'F_V', tipo: 'toggle', opcoes: ['F', 'V'] },
+      { key: 'di', titulo: 'D_I', tipo: 'toggle', opcoes: ['D', 'I'] }
+    ];
+  }
+
+  function colunasGradeLancamentos(planoIndex) {
+    return [
+      { key: 'conta', titulo: 'CONTA', tipo: 'texto', obrigatorio: true,
+        aviso: valor => (!valor || !planoIndex.size || planoIndex.has(norm(valor)))
+          ? null : 'Conta fora do plano — vira #N/A no DRE.' },
+      { key: 'dt_caixa', titulo: 'DT_CAIXA', tipo: 'data', obrigatorio: true,
+        validar: valor => (valor && !/^\d{4}-\d{2}-\d{2}$/.test(valor)) ? 'Data inválida.' : null },
+      { key: 'dt_venc', titulo: 'DT_VENC', tipo: 'data' },
+      { key: 'dt_pag', titulo: 'DT_PAG', tipo: 'data' },
+      { key: 'valor', titulo: 'VALOR', tipo: 'numero', obrigatorio: true, soma: true,
+        validar: valor => (valor !== '' && isNaN(Number(valor))) ? 'Valor não numérico.' : null },
+      // Sem uso no motor (nenhum cálculo lê tot_pago) — guardado para um
+      // relatório de inadimplência futuro (aberto = valor − tot_pago).
+      { key: 'tot_pago', titulo: 'TOT_PAGO', tipo: 'numero', soma: true,
+        validar: valor => (valor !== '' && isNaN(Number(valor))) ? 'Valor não numérico.' : null },
+      { key: 'parceiro', titulo: 'PARCEIRO', tipo: 'texto' },
+      { key: 'documento', titulo: 'DOCUMENTO', tipo: 'texto' },
+      { key: 'banco', titulo: 'BANCO', tipo: 'texto' },
+      { key: 'forma', titulo: 'FORMA', tipo: 'texto' },
+      { key: 'grupo', titulo: 'GRUPO', tipo: 'derivada' },
+      { key: 's_e', titulo: 'S_E', tipo: 'derivada' },
+      { key: 'ano', titulo: 'ANO', tipo: 'derivada' },
+      { key: 'mes', titulo: 'MÊS', tipo: 'derivada' },
+      { key: 'status', titulo: 'STATUS', tipo: 'derivada' }
+    ];
+  }
+
+  /** GRUPO/S_E via PROCV no plano; ANO/MÊS/STATUS a partir das datas — mesma lógica do motor. */
+  function calcularDerivadasLancamento(planoIndex) {
+    return linha => {
+      const conta = planoIndex.get(norm(linha.conta));
+      linha.grupo = conta ? conta.grupo : '#N/A';
+      linha.s_e = conta ? seDoGrupo(conta.grupo) : '#N/A';
+
+      const d = new Date(linha.dt_caixa);
+      const valido = linha.dt_caixa && !isNaN(d);
+      linha.ano = valido ? d.getFullYear() : '';
+      linha.mes = valido ? (MESES[d.getMonth()] || '') : '';
+      linha.status = linha.dt_pag ? 'PG' : 'N';
+    };
+  }
+
+  function indexarPlanoPorNome() {
+    const idx = new Map();
+    for (const c of estado.plano) idx.set(norm(c.conta), c);
+    return idx;
+  }
+
+  function montarGradePlano() {
     const alvo = document.getElementById('fin-dre-tab-plano');
-    if (!alvo) return;
+    if (!alvo || typeof criarGridDRE !== 'function') return;
 
-    const busca  = norm(document.getElementById('fin-dre-busca-plano')?.value);
-    const fGrupo = document.getElementById('fin-dre-filtro-grupo')?.value || '';
-    const fFV    = document.getElementById('fin-dre-filtro-fv')?.value || '';
-    const fDI    = document.getElementById('fin-dre-filtro-di')?.value || '';
+    if (gradePlano) return; // uma instância só: recalcular() não remonta a grade
 
-    const lista = estado.plano.filter(c => {
-      if (busca && !norm(c.conta).includes(busca) && !norm(c.cod).includes(busca)) return false;
-      if (fGrupo && c.grupo !== fGrupo) return false;
-      if (fFV && (c.fv || '-') !== fFV) return false;
-      if (fDI && (c.di || '-') !== fDI) return false;
-      return true;
-    });
-
-    if (!lista.length) {
-      alvo.innerHTML = '<div class="fin-tabela-vazia">Nenhuma conta com esses filtros.</div>';
-      return;
-    }
-
-    const tb = lista.map(c => `<tr>
-      <td><span class="fin-dre-cod">${esc(c.cod)}</span></td>
-      <td>${esc(c.conta)}</td>
-      <td><span class="fin-dre-chip-grupo">${esc(c.grupo)}</span></td>
-      <td>${esc(seDoGrupo(c.grupo))}</td>
-      <td>${toggle('fv', c.cod, c.fv, ['F','V'])}</td>
-      <td>${toggle('di', c.cod, c.di, ['D','I'])}</td>
-    </tr>`).join('');
-
-    alvo.innerHTML = `<table class="dc-tabela">
-      <thead><tr>
-        <th>COD</th><th>CONTA</th><th>GRUPO</th><th>S_E</th>
-        <th>F_V</th><th>D_I</th>
-      </tr></thead>
-      <tbody>${tb}</tbody></table>`;
-  }
-
-  // Clicar de novo na opção já ativa desmarca — volta para "não marcado".
-  function ligarToggles() {
-    const alvo = document.getElementById('fin-dre-tab-plano');
-    if (!alvo) return;
-    alvo.addEventListener('click', e => {
-      const btn = e.target.closest('.fin-dre-opt');
-      if (!btn) return;
-      const box   = btn.closest('.fin-dre-toggle');
-      const campo = box.dataset.campo;
-      const cod   = box.dataset.cod;
-      const valor = btn.dataset.valor;
-      const conta = estado.plano.find(c => String(c.cod) === cod);
-      if (!conta) return;
-
-      conta[campo] = (conta[campo] === valor) ? '' : valor;
-      box.querySelectorAll('.fin-dre-opt').forEach(b =>
-        b.classList.toggle('active', b.dataset.valor === conta[campo])
-      );
-      montarBDDRE();
-      renderFVDI();
-      salvar(conta, campo);
+    gradePlano = criarGridDRE({
+      container: alvo,
+      colunas: colunasGradePlano(),
+      linhas: estado.plano,
+      aoMudar: linhas => {
+        estado.plano = linhas.map(l => ({ ...l, grupo: grupoCanonico(l.grupo) || l.grupo }));
+        recalcular();
+      }
     });
   }
 
-  // Ponto de integração: trocar por PATCH na API do sistema.
-  function salvar(conta, campo) {
-    console.log('[DRE] gravar', { cod: conta.cod, campo, valor: conta[campo] });
-  }
-
-  /* ---------- 12. RENDER: LANÇAMENTOS ---------- */
-
-  function renderLancamentos() {
+  function montarGradeLancamentos() {
     const alvo = document.getElementById('fin-dre-tab-lancamentos');
-    if (!alvo) return;
-    const bd = enriquecerBD().filter(l => l.ano === estado.ano);
-    if (!bd.length) {
-      alvo.innerHTML = '<div class="fin-tabela-vazia">Sem lançamentos no período.</div>';
-      return;
-    }
-    const tb = bd.map(l => `<tr>
-      <td>${esc(l.id)}</td>
-      <td>${esc(l.dt_caixa)}</td>
-      <td>${esc(l.conta)}</td>
-      <td><span class="fin-dre-chip-grupo">${esc(l.grupo)}</span></td>
-      <td>${esc(l.s_e)}</td>
-      <td class="num${l.s_e === 'S' ? ' neg' : ''}">${fmt(l.valor)}</td>
-      <td>${esc(l.status)}</td>
-      <td>${esc(l.banco)}</td>
-      <td>${esc(l.forma)}</td>
-    </tr>`).join('');
-    alvo.innerHTML = `<table class="dc-tabela">
-      <thead><tr><th>ID</th><th>DT_CAIXA</th><th>CONTA</th><th>GRUPO</th>
-      <th>S_E</th><th class="num">VALOR</th><th>STATUS</th><th>BANCO</th><th>FORMA</th></tr></thead>
-      <tbody>${tb}</tbody></table>`;
+    if (!alvo || typeof criarGridDRE !== 'function') return;
+
+    if (gradeLancamentos) return; // uma instância só: recalcular() não remonta a grade
+
+    const planoIndex = indexarPlanoPorNome();
+    gradeLancamentos = criarGridDRE({
+      container: alvo,
+      colunas: colunasGradeLancamentos(planoIndex),
+      linhas: estado.lancamentos,
+      calcularDerivadas: calcularDerivadasLancamento(planoIndex),
+      aoMudar: linhas => {
+        estado.lancamentos = linhas.map(l => ({ ...l, cnpj: estado.cnpj }));
+        recalcular();
+      }
+    });
+  }
+
+  /** Linhas prontas para POST em fin_dre_plano_contas (sem empresa_id — quem chama sabe qual empresa). */
+  function registrosPlanoParaSalvar() {
+    return estado.plano
+      .filter(l => l.conta)
+      .map(l => ({
+        cod: l.cod || l.conta,
+        conta: l.conta,
+        grupo: grupoCanonico(l.grupo) || l.grupo,
+        fv: (l.fv === 'F' || l.fv === 'V') ? l.fv : '',
+        di: (l.di === 'D' || l.di === 'I') ? l.di : ''
+      }));
+  }
+
+  /** Linhas prontas para POST em fin_dre_lancamentos (sem empresa_id — quem chama sabe qual empresa). */
+  function registrosLancamentosParaSalvar() {
+    return estado.lancamentos
+      .filter(l => l.conta && l.dt_caixa)
+      .map(l => ({
+        conta: l.conta,
+        valor: num(l.valor),
+        tot_pago: (l.tot_pago === '' || l.tot_pago == null) ? null : num(l.tot_pago),
+        dt_caixa: l.dt_caixa,
+        dt_venc: l.dt_venc || l.dt_caixa,
+        dt_pag: l.dt_pag || null,
+        parceiro: l.parceiro || null,
+        documento: l.documento || null,
+        banco: l.banco || null,
+        forma: l.forma || null,
+        origem: 'manual'
+      }));
   }
 
   /* ---------- 13. RENDER: ANÁLISE F/V E D/I ---------- */
@@ -707,8 +753,6 @@ const DRE = (() => {
     renderAlertas(res);
     renderDRE();                   // 6-8
     renderBDDRE();
-    renderPlano();
-    renderLancamentos();
     renderFVDI();
     renderGraficos(res);
 
@@ -760,9 +804,6 @@ const DRE = (() => {
         Object.keys(SE_POR_GRUPO).map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
     }
 
-    ['fin-dre-busca-plano','fin-dre-filtro-grupo','fin-dre-filtro-fv','fin-dre-filtro-di']
-      .forEach(id => document.getElementById(id)?.addEventListener('input', renderPlano));
-
     document.getElementById('fin-btn-atualizar')?.addEventListener('click', recalcular);
   }
 
@@ -778,13 +819,15 @@ const DRE = (() => {
     if (el) el.textContent = empresa || 'RESUTE';
 
     ligarAbas();
-    ligarToggles();
     montarFiltros();
     recalcular();
+    montarGradePlano();
+    montarGradeLancamentos();
   }
 
   return { init, recalcular, estado, MESES, SE_POR_GRUPO, ESTRUTURA,
-           montarBDDRE, calcularResultado, analiseFVDI, totalGrupo };
+           montarBDDRE, calcularResultado, analiseFVDI, totalGrupo,
+           registrosPlanoParaSalvar, registrosLancamentosParaSalvar };
 })();
 
 if (typeof module !== 'undefined') module.exports = DRE;

@@ -193,8 +193,9 @@
     <!-- Sem item de menu para "abrir o DRE" direto: o painel e por empresa,
          entao a porta de entrada e o card da empresa na aba Financeiro do
          console (botao "Abrir DRE" -> dreAbrirDoAdmin(companyId), em
-         js/dre/dre-view.js). Import de plano de contas e lancamentos tambem
-         fica nesses cards, via js/dre/dre-admin.js. -->
+         js/dre/dre-view.js). A digitacao do plano de contas e dos lancamentos
+         acontece dentro do proprio painel (abas Plano de Contas/Lancamentos),
+         nao mais aqui no console. -->
 
     <div class="cui-sidebar-footer">
       <div id="sidebar-user" class="cui-sidebar-user" style="display:none">
@@ -1496,19 +1497,21 @@
   <script src="js/actions.js?v=2"></script>
   <script src="js/modulos.js?v=3"></script>
   <script src="js/auth.js?v=32"></script>
-  <script src="js/admin-console.js?v=24"></script>
+  <script src="js/admin-console.js?v=25"></script>
   <script src="js/financeiro/financeiro-core.js?v=3"></script>
   <script src="js/financeiro/financeiro-ui.js?v=3"></script>
   <script src="js/financeiro/financeiro-charts.js?v=3"></script>
   <script src="js/financeiro/financeiro-admin.js?v=1"></script>
-  <!-- DRE: dre-engine.js e a ferramenta original, nao editar aqui.
-       dre-view.js e a camada de encaixe (monta HTML, escopa CSS, carrega dados).
+  <!-- DRE: dre-engine.js e o motor, ja liga a grade nas abas Plano de Contas e
+       Lancamentos (criarGridDRE + aoMudar -> estado -> recalcular()).
+       dre-view.js e a camada de encaixe (monta HTML, escopa CSS, carrega dados,
+       liga os botoes "Salvar no banco" ao fetch).
        dre-grid.js e o motor de grade estilo Excel (colar/copiar/ordenar/filtrar/desfazer).
-       dre-admin.js e a entrada de dados (colar planilha + grade viva) na aba Financeiro do console. -->
-  <script src="js/dre/dre-engine.js?v=1"></script>
-  <script src="js/dre/dre-view.js?v=3"></script>
+       dre-admin.js so abre o DRE de uma empresa e cuida das configuracoes dela. -->
   <script src="js/dre/dre-grid.js?v=1"></script>
-  <script src="js/dre/dre-admin.js?v=3"></script>
+  <script src="js/dre/dre-engine.js?v=2"></script>
+  <script src="js/dre/dre-view.js?v=4"></script>
+  <script src="js/dre/dre-admin.js?v=4"></script>
   <script src="js/jss.js?v=3"></script>
   <script src="js/bd.js?v=2"></script>
   <script src="js/relatorios.js?v=3"></script>

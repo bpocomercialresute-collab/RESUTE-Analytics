@@ -124,6 +124,11 @@
 .fin-status { margin-left: auto; font-size: 11.5px; color: var(--fin-mute); }
 .fin-status.carregando { color: var(--fin-navy); font-weight: 600; }
 .fin-status.erro { color: var(--fin-red); font-weight: 600; }
+.fin-status.ok { color: var(--fin-green); font-weight: 600; }
+
+.fin-grid-acoes {
+  display: flex; align-items: center; gap: 10px; margin: 10px 0;
+}
 
 /* ===================== RECORTE / RESUMO ===================== */
 .fin-periodo-label {

@@ -109,8 +109,12 @@
       </select>
     </div>
     <div class="fin-nota">
-      Única aba de digitação. <strong>F_V</strong> = Fixo ou Variável · <strong>D_I</strong> = Direto ou Indireto.
-      As duas marcações são independentes.
+      Grade editável. Cole do Excel com Ctrl+V, clique nos botões F_V/D_I para marcar.
+      <strong>F_V</strong> = Fixo ou Variável · <strong>D_I</strong> = Direto ou Indireto. Nada grava até "Salvar no banco".
+    </div>
+    <div class="fin-grid-acoes">
+      <button type="button" id="fin-dre-salvar-plano" class="fin-btn-primario">Salvar no banco</button>
+      <span id="fin-dre-status-plano" class="fin-status"></span>
     </div>
     <div id="fin-dre-tab-plano" class="fin-tabela-scroll"></div>
   </section>
@@ -118,7 +122,12 @@
   <!-- ---------- ABA 4: LANÇAMENTOS ---------- -->
   <section class="fin-pane" id="fin-dre-pane-lancamentos">
     <div class="fin-nota">
-      Livro-razão. Grupo e S_E vêm por PROCV no plano de contas; conta ausente no plano aparece como <code>#N/A</code>.
+      Livro-razão editável. Grupo, S_E, ANO, MÊS e STATUS são calculados sozinhos (colunas somente leitura,
+      fundo diferente) — conta ausente no plano aparece como <code>#N/A</code>. Nada grava até "Salvar no banco".
+    </div>
+    <div class="fin-grid-acoes">
+      <button type="button" id="fin-dre-salvar-lancamentos" class="fin-btn-primario">Salvar no banco</button>
+      <span id="fin-dre-status-lancamentos" class="fin-status"></span>
     </div>
     <div id="fin-dre-tab-lancamentos" class="fin-tabela-scroll"></div>
   </section>

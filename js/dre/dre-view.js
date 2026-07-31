@@ -30,15 +30,19 @@
 // FONTE DE DADOS — fin_dre_plano_contas e fin_dre_lancamentos no Supabase,
 // sempre filtradas por empresa_id (docs/supabase-dre.sql). Sem dado fictício:
 // empresa sem plano/lançamentos cadastrados abre o painel vazio, com os
-// estados vazios que a própria ferramenta já desenha. A digitação (importar
-// planilha, marcar F_V/D_I) acontece no console admin — ver js/dre/dre-admin.js.
+// estados vazios que a própria ferramenta já desenha. A digitação (colar
+// planilha, editar célula a célula, marcar F_V/D_I) acontece dentro das
+// próprias abas Plano de Contas e Lançamentos do painel — ver a grade
+// (js/dre/dre-grid.js) ligada ao motor em js/dre/dre-engine.js e os botões
+// "Salvar no banco" ligados aqui embaixo. O console admin (js/dre/dre-admin.js)
+// mantém só o botão "Abrir DRE" e as configurações da empresa.
 // =============================================================================
 
 var DRE_MONTADO = false;
 var DRE_ADMIN_PREVIEW = false;
 var DRE_ADMIN_PREVIEW_COMPANY = null;
 
-var DRE_HTML_URL = 'views/dre-painel.html?v=1';
+var DRE_HTML_URL = 'views/dre-painel.html?v=2';
 var DRE_CSS_URL  = 'css/dre-painel.css?v=1';
 
 // ── CSS ESCOPADO ─────────────────────────────────────────────────────────────
@@ -190,6 +194,7 @@ async function dreAbrir(opts) {
     });
 
     _dreAplicarHeader();
+    _dreLigarSalvarGrades(eid);
 
   } catch (e) {
     console.error('[DRE] Erro ao abrir:', e);
@@ -240,6 +245,88 @@ function _dreAplicarHeader() {
   if (selo) selo.classList.toggle('visivel', DRE_ADMIN_PREVIEW);
 
   if (typeof renderizarSeletorModulos === 'function') renderizarSeletorModulos();
+}
+
+// ── SALVAR NO BANCO (botões das abas Plano de Contas e Lançamentos) ──────────
+//
+// Mesmo fetch DELETE+POST em lote que antes vivia em js/dre/dre-admin.js
+// (_dreGradeSalvarTabela) — só mudou de lugar. Grava em fin_dre_plano_contas
+// e fin_dre_lancamentos, sempre restrito a empresa_id=eq.<id>.
+
+var DRE_SALVAR_LOTE = 500;
+
+async function _dreSalvarTabela(tabela, empresaId, registros) {
+  var remocao = await fetch(
+    SUPA_URL + '/rest/v1/' + tabela + '?empresa_id=eq.' + encodeURIComponent(empresaId),
+    { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
+  );
+  if (!remocao.ok) throw new Error('Falha ao limpar antes de salvar (HTTP ' + remocao.status + ').');
+  if (!registros.length) return 0;
+
+  var enviados = 0;
+  for (var i = 0; i < registros.length; i += DRE_SALVAR_LOTE) {
+    var lote = registros.slice(i, i + DRE_SALVAR_LOTE);
+    var resposta = await fetch(SUPA_URL + '/rest/v1/' + tabela, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY,
+        'Content-Type': 'application/json', 'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(lote)
+    });
+    if (!resposta.ok) throw new Error('Falha ao gravar o lote ' + (i / DRE_SALVAR_LOTE + 1) + ' (HTTP ' + resposta.status + ').');
+    enviados += lote.length;
+  }
+  return enviados;
+}
+
+function _dreStatusGrade(elId, msg, tipo) {
+  var el = document.getElementById(elId);
+  if (!el) return;
+  el.textContent = msg || '';
+  el.className = 'fin-status' + (tipo ? ' ' + tipo : '');
+}
+
+/** Liga os botões "Salvar no banco" das abas Plano de Contas e Lançamentos ao fetch acima. */
+function _dreLigarSalvarGrades(empresaId) {
+  var btnPlano = document.getElementById('fin-dre-salvar-plano');
+  if (btnPlano) {
+    btnPlano.onclick = async function() {
+      var registros = DRE.registrosPlanoParaSalvar();
+      var semGrupo = registros.filter(function(r) { return !r.grupo || !(DRE.SE_POR_GRUPO && DRE.SE_POR_GRUPO[r.grupo]); });
+      if (semGrupo.length) {
+        _dreStatusGrade('fin-dre-status-plano', semGrupo.length + ' conta(s) com grupo inválido — corrija antes de salvar.', 'erro');
+        return;
+      }
+      if (!window.confirm('Salvar ' + registros.length + ' conta(s)? Substitui todo o plano atual desta empresa.')) return;
+
+      _dreStatusGrade('fin-dre-status-plano', 'Salvando...', '');
+      try {
+        var enviados = await _dreSalvarTabela('fin_dre_plano_contas', empresaId,
+          registros.map(function(r) { return Object.assign({}, r, { empresa_id: empresaId }); }));
+        _dreStatusGrade('fin-dre-status-plano', '✓ ' + enviados.toLocaleString('pt-BR') + ' conta(s) salva(s).', 'ok');
+      } catch (e) {
+        _dreStatusGrade('fin-dre-status-plano', 'Falha ao salvar: ' + e.message, 'erro');
+      }
+    };
+  }
+
+  var btnLanc = document.getElementById('fin-dre-salvar-lancamentos');
+  if (btnLanc) {
+    btnLanc.onclick = async function() {
+      var registros = DRE.registrosLancamentosParaSalvar();
+      if (!window.confirm('Salvar ' + registros.length + ' lançamento(s)? Substitui todos os lançamentos atuais desta empresa.')) return;
+
+      _dreStatusGrade('fin-dre-status-lancamentos', 'Salvando...', '');
+      try {
+        var enviados = await _dreSalvarTabela('fin_dre_lancamentos', empresaId,
+          registros.map(function(r) { return Object.assign({}, r, { empresa_id: empresaId }); }));
+        _dreStatusGrade('fin-dre-status-lancamentos', '✓ ' + enviados.toLocaleString('pt-BR') + ' lançamento(s) salvo(s).', 'ok');
+      } catch (e) {
+        _dreStatusGrade('fin-dre-status-lancamentos', 'Falha ao salvar: ' + e.message, 'erro');
+      }
+    };
+  }
 }
 
 /**
