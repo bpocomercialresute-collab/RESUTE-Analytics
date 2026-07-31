@@ -542,6 +542,14 @@
   background: #e0eaff !important;
 }
 
+/* Botoes visuais F/V e D/I no Plano de Contas */
+.dre-toggle-cell { display:inline-flex; border:1px solid #d0d5dd; border-radius:4px; overflow:hidden; gap:0; }
+.dre-tb { padding:2px 8px; font-size:11px; font-weight:700; color:#6b7280; background:#f9fafb; cursor:pointer; user-select:none; }
+.dre-tb-f.ativo { background:#002060; color:#fff; }
+.dre-tb-v.ativo { background:#00B050; color:#fff; }
+.dre-tb-d.ativo { background:#00B050; color:#fff; }
+.dre-tb-i.ativo { background:#5a6a7e; color:#fff; }
+
 /* Rodapé de paginação */
 .lg-pag { padding: 6px 10px; font-size: 11px; background: var(--fin-bg-soft); border-top: 1px solid var(--fin-line); }
 .lg-pb  { border: 1px solid var(--fin-line); background: #fff; border-radius: 3px; padding: 2px 7px; cursor: pointer; font-size: 11px; }

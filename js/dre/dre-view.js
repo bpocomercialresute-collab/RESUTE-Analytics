@@ -429,6 +429,8 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
 
     gridPlano.setData(_drePlanoToRows(plano));
     FULL_DATA['dre_plano'] = gridPlano.allData.slice();
+    _drePatchPlanoToggles(gridPlano);
+    for (var pr = 0; pr < gridPlano.allData.length; pr++) gridPlano._renderRow(pr);
 
     var planoCallback = function() {
       FULL_DATA['dre_plano'] = gridPlano.allData.slice();
@@ -534,6 +536,58 @@ function _drePatchGrid(grid, cb) {
   grid._commit  = function()         { origCommit(); cb(); };
   grid._pasteAt = function(txt,r,c)  { origPasteAt(txt,r,c); cb(); };
   grid._paste   = function(txt)      { origPaste(txt); cb(); };
+}
+
+/** Aplica o visual de botoes nas colunas F_V e D_I sem alterar a logica do grid. */
+function _drePatchPlanoToggles(gridPlano) {
+  if (!gridPlano || gridPlano._dreTogglesPatched) return;
+  gridPlano._dreTogglesPatched = true;
+
+  var origRender = gridPlano._render.bind(gridPlano);
+  var origRenderRow = gridPlano._renderRow.bind(gridPlano);
+
+  gridPlano._render = function() {
+    origRender();
+    _dreRenderPlanoToggles(gridPlano);
+  };
+
+  gridPlano._renderRow = function(ri) {
+    origRenderRow(ri);
+    _dreRenderPlanoToggleRow(gridPlano, ri);
+  };
+}
+
+function _dreRenderPlanoToggles(gridPlano) {
+  if (!gridPlano || !gridPlano._tbody) return;
+  var from = gridPlano.page * gridPlano.pageSize;
+  var rows = gridPlano._tbody.querySelectorAll('tr');
+  rows.forEach(function(_tr, rowIdx) {
+    _dreRenderPlanoToggleRow(gridPlano, from + rowIdx);
+  });
+}
+
+function _dreRenderPlanoToggleRow(gridPlano, ri) {
+  if (!gridPlano || !gridPlano._tbody) return;
+  var from = gridPlano.page * gridPlano.pageSize;
+  var rowIdx = ri - from;
+  var rows = gridPlano._tbody.querySelectorAll('tr');
+  if (rowIdx < 0 || rowIdx >= rows.length) return;
+
+  var tr = rows[rowIdx];
+  var r = gridPlano.allData[ri] || [];
+  var tds = tr.querySelectorAll('td');
+  _dreRenderPlanoToggleCell(tds[4], r[3], 'F', 'V');
+  _dreRenderPlanoToggleCell(tds[5], r[4], 'D', 'I');
+}
+
+function _dreRenderPlanoToggleCell(td, valor, a, b) {
+  if (!td) return;
+  var v = String(valor || '').trim().toUpperCase();
+  td.innerHTML =
+    '<span class="dre-toggle-cell">' +
+      '<span class="dre-tb dre-tb-' + a.toLowerCase() + (v === a ? ' ativo' : '') + '">' + a + '</span>' +
+      '<span class="dre-tb dre-tb-' + b.toLowerCase() + (v === b ? ' ativo' : '') + '">' + b + '</span>' +
+    '</span>';
 }
 
 /** Objeto plano -> array de células (COD, CONTA, GRUPO, F_V, D_I). */
