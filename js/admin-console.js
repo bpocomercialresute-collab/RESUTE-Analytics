@@ -1095,6 +1095,8 @@ function adminConsoleRenderFinanceiro() {
             ) + '</small></div>'
       +   '<button type="button" class="admin-btn-secondary" onclick="dreAdminAbrirImportacaoPlano(\'' + adminConsoleEscape(id) + '\')">Importar plano de contas</button>'
       +   '<button type="button" class="admin-btn-secondary" onclick="dreAdminAbrirImportacaoLancamentos(\'' + adminConsoleEscape(id) + '\')">Importar lançamentos</button>'
+      +   '<button type="button" class="admin-btn-secondary" onclick="dreAdminAbrirGradePlano(\'' + adminConsoleEscape(id) + '\')">Editar plano (grade)</button>'
+      +   '<button type="button" class="admin-btn-secondary" onclick="dreAdminAbrirGradeLancamentos(\'' + adminConsoleEscape(id) + '\')">Editar lançamentos (grade)</button>'
       +   '<button type="button" class="admin-btn-secondary" onclick="dreAbrirDoAdmin(\'' + adminConsoleEscape(id) + '\')">Abrir DRE</button>'
       +   '<button type="button" class="admin-btn-secondary admin-btn-danger" onclick="dreAdminLimparPlano(\'' + adminConsoleEscape(id) + '\')">Limpar plano</button>'
       +   '<button type="button" class="admin-btn-secondary admin-btn-danger" onclick="dreAdminLimparLancamentos(\'' + adminConsoleEscape(id) + '\')">Limpar lançamentos</button>'

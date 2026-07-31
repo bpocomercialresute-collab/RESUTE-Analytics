@@ -12,6 +12,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css?v=15" />
+  <!-- Grade estilo Excel do DRE (js/dre/dre-grid.js) — overlay do console admin, carrega normal (nao e escopada via CSSOM como o dre-painel.css). -->
+  <link rel="stylesheet" href="css/dre-grid.css?v=1" />
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
 </head>
 <body class="cui-body">
@@ -1501,10 +1503,12 @@
   <script src="js/financeiro/financeiro-admin.js?v=1"></script>
   <!-- DRE: dre-engine.js e a ferramenta original, nao editar aqui.
        dre-view.js e a camada de encaixe (monta HTML, escopa CSS, carrega dados).
-       dre-admin.js e a entrada de dados (colar planilha) na aba Financeiro do console. -->
+       dre-grid.js e o motor de grade estilo Excel (colar/copiar/ordenar/filtrar/desfazer).
+       dre-admin.js e a entrada de dados (colar planilha + grade viva) na aba Financeiro do console. -->
   <script src="js/dre/dre-engine.js?v=1"></script>
   <script src="js/dre/dre-view.js?v=3"></script>
-  <script src="js/dre/dre-admin.js?v=1"></script>
+  <script src="js/dre/dre-grid.js?v=1"></script>
+  <script src="js/dre/dre-admin.js?v=2"></script>
   <script src="js/jss.js?v=3"></script>
   <script src="js/bd.js?v=2"></script>
   <script src="js/relatorios.js?v=3"></script>

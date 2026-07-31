@@ -513,3 +513,281 @@ function dreAdminResumoTexto(empresaId) {
   return resumo.contas.toLocaleString('pt-BR') + ' conta(s) no plano · '
     + resumo.lancamentos.toLocaleString('pt-BR') + ' lançamento(s)';
 }
+
+// =============================================================================
+// GRADE ESTILO EXCEL (js/dre/dre-grid.js)
+// =============================================================================
+// "Importar plano de contas" / "Importar lançamentos" acima continuam servindo
+// para a primeira carga em massa (colar uma planilha inteira de uma vez). Os
+// dois botões abaixo abrem uma grade viva, carregada com o que já está no
+// banco: célula a célula, colar/copiar, ordenar, filtrar, desfazer e validação
+// inline — ver docs/ferramenta/modelo/PROMPT_DRE_RESUTE.md. Fecha e reabre sem
+// perder nada; só grava no banco quando o admin aperta "Salvar no banco".
+// =============================================================================
+
+/** Cria o overlay de tela cheia e devolve os pontos onde a grade se pluga. */
+function _dreGradeCriarOverlay(titulo, subtitulo) {
+  var overlay = document.createElement('div');
+  overlay.className = 'fin-grid-overlay';
+  overlay.innerHTML =
+      '<div class="fin-grid-overlay-header">'
+    +   '<div><h2>' + titulo + '</h2><small>' + subtitulo + '</small></div>'
+    +   '<div class="fin-grid-overlay-acoes">'
+    +     '<button type="button" class="fin-grid-btn" data-fechar="1">Fechar sem salvar</button>'
+    +     '<button type="button" class="fin-grid-btn fin-grid-btn-primario" data-salvar="1">Salvar no banco</button>'
+    +     '<button type="button" class="fin-grid-btn-fechar" data-fechar="1" aria-label="Fechar">&times;</button>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="fin-grid-overlay-status"></div>'
+    + '<div class="fin-grid-overlay-body"></div>';
+
+  document.body.appendChild(overlay);
+
+  var corpo = overlay.querySelector('.fin-grid-overlay-body');
+  var status = overlay.querySelector('.fin-grid-overlay-status');
+  var btnSalvar = overlay.querySelector('[data-salvar]');
+
+  function fechar() { overlay.remove(); }
+  overlay.querySelectorAll('[data-fechar]').forEach(function(b) { b.addEventListener('click', fechar); });
+
+  function mostrarStatus(msg, tipo) {
+    status.textContent = msg || '';
+    status.className = 'fin-grid-overlay-status' + (tipo ? ' ' + tipo : '');
+  }
+
+  return { overlay: overlay, corpo: corpo, btnSalvar: btnSalvar, fechar: fechar, status: mostrarStatus };
+}
+
+/** DELETE + POST em lote na tabela. Mesma semântica das importações em texto. */
+async function _dreGradeSalvarTabela(tabela, empresaId, registros) {
+  var remocao = await fetch(
+    SUPA_URL + '/rest/v1/' + tabela + '?empresa_id=eq.' + encodeURIComponent(empresaId),
+    { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
+  );
+  if (!remocao.ok) throw new Error('Falha ao limpar antes de salvar (HTTP ' + remocao.status + ').');
+  if (!registros.length) return 0;
+
+  var enviados = 0;
+  for (var i = 0; i < registros.length; i += DRE_ADMIN_LOTE) {
+    var lote = registros.slice(i, i + DRE_ADMIN_LOTE);
+    var resposta = await fetch(SUPA_URL + '/rest/v1/' + tabela, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY,
+        'Content-Type': 'application/json', 'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(lote)
+    });
+    if (!resposta.ok) throw new Error('Falha ao gravar o lote ' + (i / DRE_ADMIN_LOTE + 1) + ' (HTTP ' + resposta.status + ').');
+    enviados += lote.length;
+  }
+  return enviados;
+}
+
+// ── GRADE: PLANO DE CONTAS ───────────────────────────────────────────────────
+
+function _dreGradeColunasPlano() {
+  return [
+    { key: 'cod', titulo: 'COD', tipo: 'texto' },
+    { key: 'conta', titulo: 'CONTA', tipo: 'texto', obrigatorio: true,
+      validar: function(valor, linha, todasLinhas) {
+        if (!valor) return null;
+        var repetida = todasLinhas.some(function(l) {
+          return l !== linha && String(l.conta || '').trim().toLowerCase() === String(valor).trim().toLowerCase();
+        });
+        return repetida ? 'Conta repetida na grade — o PROCV do motor fica ambíguo.' : null;
+      } },
+    { key: 'grupo', titulo: 'GRUPO', tipo: 'texto', obrigatorio: true,
+      validar: function(valor) {
+        if (!valor) return null;
+        return dreAdminGrupoCanonico(valor) ? null : 'Grupo não reconhecido pelo motor.';
+      } },
+    { key: 'fv', titulo: 'F_V', tipo: 'toggle', opcoes: ['F', 'V'] },
+    { key: 'di', titulo: 'D_I', tipo: 'toggle', opcoes: ['D', 'I'] }
+  ];
+}
+
+async function dreAdminAbrirGradePlano(empresaId) {
+  if (!SESSION || SESSION.papel !== 'super_admin') return;
+  var empresaNome = adminConsoleCompanyName(empresaId);
+  var ui = _dreGradeCriarOverlay('Plano de contas — ' + adminConsoleEscape(empresaNome),
+    'Grade editável. Cole do Excel com Ctrl+V, clique nos botões F_V/D_I para marcar. Nada grava até "Salvar no banco".');
+
+  ui.status('Carregando plano de contas...', '');
+
+  var linhas = [];
+  try {
+    var resposta = await fetch(
+      SUPA_URL + '/rest/v1/fin_dre_plano_contas?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=cod,conta,grupo,fv,di&order=conta.asc',
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
+    );
+    if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
+    linhas = await resposta.json();
+  } catch (e) {
+    ui.status('Falha ao carregar: ' + e.message, 'erro');
+  }
+
+  var grid = criarGridDRE({
+    container: ui.corpo,
+    colunas: _dreGradeColunasPlano(),
+    linhas: linhas,
+    aoMudar: function() { ui.status('', ''); }
+  });
+
+  ui.btnSalvar.addEventListener('click', async function() {
+    var registros = grid.obterLinhas()
+      .filter(function(l) { return l.conta; })
+      .map(function(l) {
+        return {
+          empresa_id: empresaId,
+          cod: l.cod || l.conta,
+          conta: l.conta,
+          grupo: dreAdminGrupoCanonico(l.grupo) || l.grupo,
+          fv: (l.fv === 'F' || l.fv === 'V') ? l.fv : '',
+          di: (l.di === 'D' || l.di === 'I') ? l.di : ''
+        };
+      });
+
+    var semGrupo = registros.filter(function(r) { return !dreAdminGrupoCanonico(r.grupo); });
+    if (semGrupo.length) {
+      ui.status(semGrupo.length + ' conta(s) com grupo inválido — corrija antes de salvar (veja a borda vermelha).', 'erro');
+      return;
+    }
+
+    if (!window.confirm('Salvar ' + registros.length + ' conta(s) para ' + empresaNome + '? Substitui todo o plano atual desta empresa.')) return;
+
+    ui.status('Salvando...', '');
+    try {
+      var enviados = await _dreGradeSalvarTabela('fin_dre_plano_contas', empresaId, registros);
+      if (typeof adminConsoleTrackActivity === 'function') {
+        adminConsoleTrackActivity('financeiro', 'Plano de contas do DRE editado na grade', enviados + ' contas - ' + empresaNome);
+      }
+      ui.status('✓ ' + enviados.toLocaleString('pt-BR') + ' conta(s) salva(s).', 'ok');
+      await dreAdminCarregarResumo(true);
+    } catch (e) {
+      ui.status('Falha ao salvar: ' + e.message, 'erro');
+    }
+  });
+}
+
+// ── GRADE: LANÇAMENTOS ───────────────────────────────────────────────────────
+
+function _dreGradeColunasLancamentos(planoIndex) {
+  return [
+    { key: 'conta', titulo: 'CONTA', tipo: 'texto', obrigatorio: true,
+      aviso: function(valor) {
+        if (!valor || !planoIndex.size) return null;
+        return planoIndex.has(String(valor).trim().toLowerCase()) ? null : 'Conta fora do plano — vira #N/A no DRE.';
+      } },
+    { key: 'dt_caixa', titulo: 'DT_CAIXA', tipo: 'data', obrigatorio: true,
+      validar: function(valor) { return valor && !/^\d{4}-\d{2}-\d{2}$/.test(valor) ? 'Data inválida.' : null; } },
+    { key: 'dt_venc', titulo: 'DT_VENC', tipo: 'data' },
+    { key: 'dt_pag', titulo: 'DT_PAG', tipo: 'data' },
+    { key: 'valor', titulo: 'VALOR', tipo: 'numero', obrigatorio: true, soma: true,
+      validar: function(valor) { return valor !== '' && isNaN(Number(valor)) ? 'Valor não numérico.' : null; } },
+    { key: 'parceiro', titulo: 'PARCEIRO', tipo: 'texto' },
+    { key: 'documento', titulo: 'DOCUMENTO', tipo: 'texto' },
+    { key: 'banco', titulo: 'BANCO', tipo: 'texto' },
+    { key: 'forma', titulo: 'FORMA', tipo: 'texto' },
+    { key: 'grupo', titulo: 'GRUPO', tipo: 'derivada' },
+    { key: 's_e', titulo: 'S_E', tipo: 'derivada' },
+    { key: 'ano', titulo: 'ANO', tipo: 'derivada' },
+    { key: 'mes', titulo: 'MÊS', tipo: 'derivada' },
+    { key: 'status', titulo: 'STATUS', tipo: 'derivada' }
+  ];
+}
+
+/** GRUPO/S_E via PROCV no plano; ANO/MÊS/STATUS a partir das datas — mesma lógica do motor. */
+function _dreGradeCalcularDerivadasLancamento(planoIndex) {
+  var meses = (typeof DRE !== 'undefined' && DRE.MESES) ? DRE.MESES : [];
+  return function(linha) {
+    var conta = planoIndex.get(String(linha.conta || '').trim().toLowerCase());
+    linha.grupo = conta ? conta.grupo : '#N/A';
+    linha.s_e = conta ? (typeof DRE !== 'undefined' ? (DRE.SE_POR_GRUPO[conta.grupo] || 'S') : '') : '#N/A';
+
+    var d = new Date(linha.dt_caixa);
+    var valido = linha.dt_caixa && !isNaN(d);
+    linha.ano = valido ? d.getFullYear() : '';
+    linha.mes = valido ? (meses[d.getMonth()] || '') : '';
+    linha.status = linha.dt_pag ? 'PG' : 'N';
+  };
+}
+
+async function dreAdminAbrirGradeLancamentos(empresaId) {
+  if (!SESSION || SESSION.papel !== 'super_admin') return;
+  var empresaNome = adminConsoleCompanyName(empresaId);
+  var ui = _dreGradeCriarOverlay('Lançamentos — ' + adminConsoleEscape(empresaNome),
+    'Grade editável. GRUPO/S_E/ANO/MÊS/STATUS são calculados sozinhos — não edite. Nada grava até "Salvar no banco".');
+
+  ui.status('Carregando lançamentos e plano de contas...', '');
+
+  var linhas = [];
+  var planoIndex = new Map();
+  try {
+    var respostas = await Promise.all([
+      fetch(SUPA_URL + '/rest/v1/fin_dre_lancamentos?empresa_id=eq.' + encodeURIComponent(empresaId)
+        + '&select=conta,valor,dt_caixa,dt_venc,dt_pag,parceiro,documento,banco,forma&order=dt_caixa.desc&limit=20000',
+        { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }),
+      fetch(SUPA_URL + '/rest/v1/fin_dre_plano_contas?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=conta,grupo',
+        { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } })
+    ]);
+    respostas.forEach(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); });
+    var dados = await Promise.all(respostas.map(function(r) { return r.json(); }));
+    linhas = Array.isArray(dados[0]) ? dados[0] : [];
+    (Array.isArray(dados[1]) ? dados[1] : []).forEach(function(c) {
+      planoIndex.set(String(c.conta).trim().toLowerCase(), c);
+    });
+  } catch (e) {
+    ui.status('Falha ao carregar: ' + e.message, 'erro');
+  }
+
+  if (linhas.length > 5000) {
+    ui.status('Aviso: ' + linhas.length.toLocaleString('pt-BR') + ' lançamentos — a grade renderiza tudo de uma vez '
+      + 'e pode ficar lenta acima de alguns milhares de linhas. Use filtro por ano/conta se travar.', '');
+  }
+
+  var grid = criarGridDRE({
+    container: ui.corpo,
+    colunas: _dreGradeColunasLancamentos(planoIndex),
+    linhas: linhas,
+    calcularDerivadas: _dreGradeCalcularDerivadasLancamento(planoIndex),
+    aoMudar: function() { ui.status('', ''); }
+  });
+
+  ui.btnSalvar.addEventListener('click', async function() {
+    var registros = grid.obterLinhas()
+      .filter(function(l) { return l.conta && l.dt_caixa; })
+      .map(function(l) {
+        return {
+          empresa_id: empresaId,
+          conta: l.conta,
+          valor: Number(l.valor) || 0,
+          dt_caixa: l.dt_caixa,
+          dt_venc: l.dt_venc || l.dt_caixa,
+          dt_pag: l.dt_pag || null,
+          parceiro: l.parceiro || null,
+          documento: l.documento || null,
+          banco: l.banco || null,
+          forma: l.forma || null,
+          origem: 'manual',
+          criado_por: (SESSION && SESSION.email) || 'super_admin'
+        };
+      });
+
+    var foraDoPlano = registros.filter(function(r) { return planoIndex.size && !planoIndex.has(String(r.conta).trim().toLowerCase()); }).length;
+    var aviso = foraDoPlano ? ('\n\n' + foraDoPlano + ' conta(s) fora do plano vão ficar de fora do DRE (#N/A).') : '';
+    if (!window.confirm('Salvar ' + registros.length + ' lançamento(s) para ' + empresaNome + '? Substitui todos os lançamentos atuais desta empresa.' + aviso)) return;
+
+    ui.status('Salvando...', '');
+    try {
+      var enviados = await _dreGradeSalvarTabela('fin_dre_lancamentos', empresaId, registros);
+      if (typeof adminConsoleTrackActivity === 'function') {
+        adminConsoleTrackActivity('financeiro', 'Lançamentos do DRE editados na grade', enviados + ' registros - ' + empresaNome);
+      }
+      ui.status('✓ ' + enviados.toLocaleString('pt-BR') + ' lançamento(s) salvo(s).', 'ok');
+      await dreAdminCarregarResumo(true);
+    } catch (e) {
+      ui.status('Falha ao salvar: ' + e.message, 'erro');
+    }
+  });
+}

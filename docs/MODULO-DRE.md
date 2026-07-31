@@ -114,7 +114,7 @@ da ferramenta, nenhum precisou ser inventado aqui.
 
 A entrada de dados é **só no console admin**, na aba **Financeiro**
 (`js/admin-console.js`, `adminConsoleRenderFinanceiro`): cada card de empresa
-ganhou a linha "Dados do DRE" com cinco botões, implementados em
+ganhou a linha "Dados do DRE" com sete botões, implementados em
 `js/dre/dre-admin.js` (mesmo padrão de `financeiro-admin.js` — colar
 planilha, parser converte, grava por lote):
 
@@ -122,8 +122,33 @@ planilha, parser converte, grava por lote):
 |---|---|
 | Importar plano de contas | cola `cod\|conta\|grupo\|fv\|di`, grava em `fin_dre_plano_contas` |
 | Importar lançamentos | cola `conta\|dt_caixa\|dt_venc\|dt_pag\|valor\|parceiro\|documento\|banco\|forma`, grava em `fin_dre_lancamentos` |
+| Editar plano (grade) / Editar lançamentos (grade) | grade estilo Excel — ver abaixo |
 | Abrir DRE | abre o painel da ferramenta para aquela empresa (preview supervisionado) |
 | Limpar plano / Limpar lançamentos | apaga tudo daquela empresa e tabela, com dupla confirmação |
+
+### Grade estilo Excel (`js/dre/dre-grid.js`)
+
+Os botões "Importar" (textarea + colar de uma vez) continuam para a primeira
+carga em massa. Os botões "Editar (grade)" abrem um overlay de tela cheia com
+comportamento de planilha de verdade — célula clicável, colar/copiar do
+Excel (Ctrl+V/Ctrl+C), navegação por Tab/Enter/setas, ordenar por coluna,
+filtro por coluna (estilo AutoFiltro), busca, desfazer última colagem
+(1 nível), validação inline (borda vermelha + tooltip) e totais no rodapé.
+Carrega o que já está no banco; só grava quando o admin aperta
+"Salvar no banco" (`_dreGradeSalvarTabela`, delete + insert em lote).
+
+Motor genérico, reutilizado pelas duas grades (Plano de Contas e
+Lançamentos) — cada instância com seu próprio estado. Documentado por inteiro
+em `docs/DRE_RESUTE_DOCUMENTACAO.md`, seção "Como os dados entram hoje", e o
+brief original que pediu esse comportamento está em
+`docs/ferramenta/modelo/PROMPT_DRE_RESUTE.md`.
+
+**Limite assumido, de propósito:** colar (Ctrl+V) só funciona sem ordenação
+nem filtro ativos na grade — a posição visual da célula deixa de bater com o
+array de dados assim que a view é reordenada, e colar "no meio" de outra
+ordem quebraria em silêncio. Copiar, navegar e editar célula a célula
+funcionam normalmente com filtro/ordenação ligados. A grade avisa o usuário
+antes de recusar a colagem.
 
 O painel do cliente (seletor de módulos → Resultado (DRE)) usa a mesma
 `dreAbrir()`, mas sem nenhum desses botões — o cliente só lê o que o admin já
