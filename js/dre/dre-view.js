@@ -32,9 +32,10 @@
 // empresa sem plano/lançamentos cadastrados abre o painel vazio, com os
 // estados vazios que a própria ferramenta já desenha. A digitação (colar
 // planilha, editar célula a célula, marcar F_V/D_I) acontece dentro das
-// próprias abas Plano de Contas e Lançamentos do painel — ver a grade
-// (js/dre/dre-grid.js) ligada ao motor em js/dre/dre-engine.js e os botões
-// "Salvar no banco" ligados aqui embaixo. O console admin (js/dre/dre-admin.js)
+// próprias abas Plano de Contas e BD do painel — a aba Lançamentos é só
+// leitura (visualização filtrada por ano). Ver a grade (js/dre/dre-grid.js)
+// ligada ao motor em js/dre/dre-engine.js e os botões "Salvar no banco"
+// ligados aqui embaixo. O console admin (js/dre/dre-admin.js)
 // mantém só o botão "Abrir DRE" e as configurações da empresa.
 // =============================================================================
 
@@ -42,7 +43,7 @@ var DRE_MONTADO = false;
 var DRE_ADMIN_PREVIEW = false;
 var DRE_ADMIN_PREVIEW_COMPANY = null;
 
-var DRE_HTML_URL = 'views/dre-painel.html?v=2';
+var DRE_HTML_URL = 'views/dre-painel.html?v=3';
 var DRE_CSS_URL  = 'css/dre-painel.css?v=1';
 
 // ── CSS ESCOPADO ─────────────────────────────────────────────────────────────
@@ -247,7 +248,7 @@ function _dreAplicarHeader() {
   if (typeof renderizarSeletorModulos === 'function') renderizarSeletorModulos();
 }
 
-// ── SALVAR NO BANCO (botões das abas Plano de Contas e Lançamentos) ──────────
+// ── SALVAR NO BANCO (botões das abas Plano de Contas e BD) ───────────────────
 //
 // Mesmo fetch DELETE+POST em lote que antes vivia em js/dre/dre-admin.js
 // (_dreGradeSalvarTabela) — só mudou de lugar. Grava em fin_dre_plano_contas
@@ -287,7 +288,7 @@ function _dreStatusGrade(elId, msg, tipo) {
   el.className = 'fin-status' + (tipo ? ' ' + tipo : '');
 }
 
-/** Liga os botões "Salvar no banco" das abas Plano de Contas e Lançamentos ao fetch acima. */
+/** Liga os botões "Salvar no banco" das abas Plano de Contas e BD ao fetch acima. */
 function _dreLigarSalvarGrades(empresaId) {
   var btnPlano = document.getElementById('fin-dre-salvar-plano');
   if (btnPlano) {
@@ -311,19 +312,19 @@ function _dreLigarSalvarGrades(empresaId) {
     };
   }
 
-  var btnLanc = document.getElementById('fin-dre-salvar-lancamentos');
-  if (btnLanc) {
-    btnLanc.onclick = async function() {
-      var registros = DRE.registrosLancamentosParaSalvar();
+  var btnBD = document.getElementById('fin-dre-bd-salvar');
+  if (btnBD) {
+    btnBD.onclick = async function() {
+      var registros = DRE.registrosBDParaSalvar();
       if (!window.confirm('Salvar ' + registros.length + ' lançamento(s)? Substitui todos os lançamentos atuais desta empresa.')) return;
 
-      _dreStatusGrade('fin-dre-status-lancamentos', 'Salvando...', '');
+      _dreStatusGrade('fin-dre-status-bd', 'Salvando...', '');
       try {
         var enviados = await _dreSalvarTabela('fin_dre_lancamentos', empresaId,
           registros.map(function(r) { return Object.assign({}, r, { empresa_id: empresaId }); }));
-        _dreStatusGrade('fin-dre-status-lancamentos', '✓ ' + enviados.toLocaleString('pt-BR') + ' lançamento(s) salvo(s).', 'ok');
+        _dreStatusGrade('fin-dre-status-bd', '✓ ' + enviados.toLocaleString('pt-BR') + ' lançamento(s) salvo(s).', 'ok');
       } catch (e) {
-        _dreStatusGrade('fin-dre-status-lancamentos', 'Falha ao salvar: ' + e.message, 'erro');
+        _dreStatusGrade('fin-dre-status-bd', 'Falha ao salvar: ' + e.message, 'erro');
       }
     };
   }

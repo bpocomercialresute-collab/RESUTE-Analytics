@@ -71,6 +71,7 @@
   <nav class="fin-tabs">
     <button class="fin-tab active" data-fin-pane="fin-dre-pane-dre">DRE</button>
     <button class="fin-tab" data-fin-pane="fin-dre-pane-bddre">BD_DRE</button>
+    <button class="fin-tab" data-fin-pane="fin-dre-pane-bd">BD</button>
     <button class="fin-tab" data-fin-pane="fin-dre-pane-plano">Plano de Contas</button>
     <button class="fin-tab" data-fin-pane="fin-dre-pane-lancamentos">Lançamentos</button>
     <button class="fin-tab" data-fin-pane="fin-dre-pane-fv">Fixo/Variável · Direto/Indireto</button>
@@ -90,7 +91,21 @@
     <div id="fin-dre-tab-bddre" class="fin-tabela-scroll"></div>
   </section>
 
-  <!-- ---------- ABA 3: PLANO DE CONTAS ---------- -->
+  <!-- ---------- ABA 3: BD (livro-razão, entrada de dados) ---------- -->
+  <section class="fin-pane" id="fin-dre-pane-bd">
+    <div class="fin-nota">
+      Livro-razão. Colunas em fundo claro são editáveis (cole do Excel com Ctrl+V).
+      Colunas em fundo escuro (GRUPO, S_E, ANO, MÊS, STATUS) são calculadas sozinhas — conta ausente
+      no plano aparece como <code>#N/A</code>. Nada grava até "Salvar no banco".
+    </div>
+    <div class="fin-grid-acoes">
+      <button type="button" id="fin-dre-bd-salvar" class="fin-btn-primario">Salvar no banco</button>
+      <span id="fin-dre-status-bd" class="fin-status"></span>
+    </div>
+    <div id="fin-dre-tab-bd" class="fin-tabela-scroll"></div>
+  </section>
+
+  <!-- ---------- ABA 4: PLANO DE CONTAS ---------- -->
   <section class="fin-pane" id="fin-dre-pane-plano">
     <div class="fin-barra-filtro">
       <input type="text" id="fin-dre-busca-plano" placeholder="Buscar por código ou conta…">
@@ -119,25 +134,22 @@
     <div id="fin-dre-tab-plano" class="fin-tabela-scroll"></div>
   </section>
 
-  <!-- ---------- ABA 4: LANÇAMENTOS ---------- -->
+  <!-- ---------- ABA 5: LANÇAMENTOS (visualização, somente leitura) ---------- -->
   <section class="fin-pane" id="fin-dre-pane-lancamentos">
     <div class="fin-nota">
-      Livro-razão editável. Grupo, S_E, ANO, MÊS e STATUS são calculados sozinhos (colunas somente leitura,
-      fundo diferente) — conta ausente no plano aparece como <code>#N/A</code>. Nada grava até "Salvar no banco".
-    </div>
-    <div class="fin-grid-acoes">
-      <button type="button" id="fin-dre-salvar-lancamentos" class="fin-btn-primario">Salvar no banco</button>
-      <span id="fin-dre-status-lancamentos" class="fin-status"></span>
+      Visualização somente leitura do livro-razão, filtrada pelo ano selecionado nos filtros do topo.
+      Para editar/colar dados, use a aba <strong>BD</strong>. Grupo e S_E vêm por PROCV no plano de contas;
+      conta ausente no plano aparece como <code>#N/A</code>.
     </div>
     <div id="fin-dre-tab-lancamentos" class="fin-tabela-scroll"></div>
   </section>
 
-  <!-- ---------- ABA 5: FIXO/VARIÁVEL E DIRETO/INDIRETO ---------- -->
+  <!-- ---------- ABA 6: FIXO/VARIÁVEL E DIRETO/INDIRETO ---------- -->
   <section class="fin-pane" id="fin-dre-pane-fv">
     <div id="fin-dre-tab-fv"></div>
   </section>
 
-  <!-- ---------- ABA 6: GRÁFICOS ---------- -->
+  <!-- ---------- ABA 7: GRÁFICOS ---------- -->
   <section class="fin-pane" id="fin-dre-pane-graficos">
     <div class="fin-grid-graficos">
       <div class="fin-card-grafico">

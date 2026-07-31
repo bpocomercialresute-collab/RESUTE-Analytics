@@ -384,17 +384,20 @@ const DRE = (() => {
     alvo.innerHTML = `<table class="dc-tabela"><thead><tr>${th}</tr></thead><tbody>${tb}</tbody></table>`;
   }
 
-  /* ---------- 11. GRADE ESTILO EXCEL: PLANO DE CONTAS E LANÇAMENTOS ---------- */
+  /* ---------- 11. GRADE ESTILO EXCEL: PLANO DE CONTAS E BD ---------- */
   //
   // A digitação vive aqui dentro das abas do painel (js/dre/dre-grid.js monta
-  // a grade nos containers #fin-dre-tab-plano / #fin-dre-tab-lancamentos). A
-  // cada colagem/edição (aoMudar) o estado do motor é atualizado e recalcular()
+  // a grade nos containers #fin-dre-tab-plano / #fin-dre-tab-bd). A cada
+  // colagem/edição (aoMudar) o estado do motor é atualizado e recalcular()
   // repropaga PLANO_CONTAS/BD -> BD_DRE -> DRE visual -> Gráficos. O botão
   // "Salvar no banco" de cada aba é ligado por fora (js/dre/dre-view.js), que
   // sabe o empresa_id e faz o fetch — aqui só existem os dados prontos pra ele.
+  //
+  // A aba Lançamentos (seção 12) é só leitura: mostra estado.lancamentos já
+  // filtrado pelo ano do topo — quem edita/cola é a aba BD, aqui.
 
   let gradePlano = null;
-  let gradeLancamentos = null;
+  let gradeBD = null;
 
   function grupoCanonico(valor) {
     const alvo = norm(valor);
@@ -418,7 +421,7 @@ const DRE = (() => {
     ];
   }
 
-  function colunasGradeLancamentos(planoIndex) {
+  function colunasGradeBD(planoIndex) {
     return [
       { key: 'conta', titulo: 'CONTA', tipo: 'texto', obrigatorio: true,
         aviso: valor => (!valor || !planoIndex.size || planoIndex.has(norm(valor)))
@@ -446,7 +449,7 @@ const DRE = (() => {
   }
 
   /** GRUPO/S_E via PROCV no plano; ANO/MÊS/STATUS a partir das datas — mesma lógica do motor. */
-  function calcularDerivadasLancamento(planoIndex) {
+  function calcularDerivadasBD(planoIndex) {
     return linha => {
       const conta = planoIndex.get(norm(linha.conta));
       linha.grupo = conta ? conta.grupo : '#N/A';
@@ -483,18 +486,18 @@ const DRE = (() => {
     });
   }
 
-  function montarGradeLancamentos() {
-    const alvo = document.getElementById('fin-dre-tab-lancamentos');
+  function montarGradeBD() {
+    const alvo = document.getElementById('fin-dre-tab-bd');
     if (!alvo || typeof criarGridDRE !== 'function') return;
 
-    if (gradeLancamentos) return; // uma instância só: recalcular() não remonta a grade
+    if (gradeBD) return; // uma instância só: recalcular() não remonta a grade
 
     const planoIndex = indexarPlanoPorNome();
-    gradeLancamentos = criarGridDRE({
+    gradeBD = criarGridDRE({
       container: alvo,
-      colunas: colunasGradeLancamentos(planoIndex),
+      colunas: colunasGradeBD(planoIndex),
       linhas: estado.lancamentos,
-      calcularDerivadas: calcularDerivadasLancamento(planoIndex),
+      calcularDerivadas: calcularDerivadasBD(planoIndex),
       aoMudar: linhas => {
         estado.lancamentos = linhas.map(l => ({ ...l, cnpj: estado.cnpj }));
         recalcular();
@@ -516,7 +519,7 @@ const DRE = (() => {
   }
 
   /** Linhas prontas para POST em fin_dre_lancamentos (sem empresa_id — quem chama sabe qual empresa). */
-  function registrosLancamentosParaSalvar() {
+  function registrosBDParaSalvar() {
     return estado.lancamentos
       .filter(l => l.conta && l.dt_caixa)
       .map(l => ({
@@ -532,6 +535,38 @@ const DRE = (() => {
         forma: l.forma || null,
         origem: 'manual'
       }));
+  }
+
+  /* ---------- 12. RENDER: LANÇAMENTOS (visualização somente leitura) ---------- */
+  //
+  // Quem edita é a grade da aba BD (seção 11, estado.lancamentos). Esta aba só
+  // mostra o resultado já enriquecido (PROCV + derivadas), filtrado pelo ano
+  // corrente do topo — mesma lógica que a ferramenta original tinha antes da
+  // grade existir.
+
+  function renderLancamentos() {
+    const alvo = document.getElementById('fin-dre-tab-lancamentos');
+    if (!alvo) return;
+    const bd = enriquecerBD().filter(l => l.ano === estado.ano);
+    if (!bd.length) {
+      alvo.innerHTML = '<div class="fin-tabela-vazia">Sem lançamentos no período.</div>';
+      return;
+    }
+    const tb = bd.map((l, i) => `<tr>
+      <td>${esc(i + 1)}</td>
+      <td>${esc(l.dt_caixa)}</td>
+      <td>${esc(l.conta)}</td>
+      <td><span class="fin-dre-chip-grupo">${esc(l.grupo)}</span></td>
+      <td>${esc(l.s_e)}</td>
+      <td class="num${l.s_e === 'S' ? ' neg' : ''}">${fmt(l.valor)}</td>
+      <td>${esc(l.status)}</td>
+      <td>${esc(l.banco)}</td>
+      <td>${esc(l.forma)}</td>
+    </tr>`).join('');
+    alvo.innerHTML = `<table class="dc-tabela">
+      <thead><tr><th>#</th><th>DT_CAIXA</th><th>CONTA</th><th>GRUPO</th>
+      <th>S_E</th><th class="num">VALOR</th><th>STATUS</th><th>BANCO</th><th>FORMA</th></tr></thead>
+      <tbody>${tb}</tbody></table>`;
   }
 
   /* ---------- 13. RENDER: ANÁLISE F/V E D/I ---------- */
@@ -753,6 +788,7 @@ const DRE = (() => {
     renderAlertas(res);
     renderDRE();                   // 6-8
     renderBDDRE();
+    renderLancamentos();
     renderFVDI();
     renderGraficos(res);
 
@@ -819,23 +855,23 @@ const DRE = (() => {
     if (el) el.textContent = empresa || 'RESUTE';
 
     // Toda chamada a init() vem com o HTML remontado do zero (js/dre/dre-view.js
-    // recria #fin-dre-tab-plano/#fin-dre-tab-lancamentos a cada abertura). Sem
-    // isto, ao fechar e reabrir o DRE (ou trocar de empresa), gradePlano/
-    // gradeLancamentos continuavam apontando pro container antigo — já fora do
-    // documento — e a grade nova nunca era montada (guarda "if (gradePlano) return").
+    // recria #fin-dre-tab-plano/#fin-dre-tab-bd a cada abertura). Sem isto, ao
+    // fechar e reabrir o DRE (ou trocar de empresa), gradePlano/gradeBD
+    // continuavam apontando pro container antigo — já fora do documento — e a
+    // grade nova nunca era montada (guarda "if (gradePlano) return").
     gradePlano = null;
-    gradeLancamentos = null;
+    gradeBD = null;
 
     ligarAbas();
     montarFiltros();
     recalcular();
     montarGradePlano();
-    montarGradeLancamentos();
+    montarGradeBD();
   }
 
   return { init, recalcular, estado, MESES, SE_POR_GRUPO, ESTRUTURA,
            montarBDDRE, calcularResultado, analiseFVDI, totalGrupo,
-           registrosPlanoParaSalvar, registrosLancamentosParaSalvar };
+           registrosPlanoParaSalvar, registrosBDParaSalvar };
 })();
 
 if (typeof module !== 'undefined') module.exports = DRE;
