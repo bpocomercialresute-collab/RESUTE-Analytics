@@ -508,6 +508,41 @@
   font-weight: 600;
   font-size: 11px;
   white-space: nowrap;
+  border-right: 1px solid rgba(255,255,255,.28) !important;
+  border-bottom: 2px solid #0b2e79 !important;
+}
+
+.lg-table .lg-rn {
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+  text-align: center !important;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+}
+
+.lg-table tbody td {
+  border-right: 1px solid #d7dde8 !important;
+  border-bottom: 1px solid #e6eaf1 !important;
+}
+
+.lg-table tbody td.lg-rn {
+  background: #eef3f9 !important;
+  color: #35506f !important;
+  font-weight: 700;
+  border-right: 2px solid #aebbd0 !important;
+}
+
+#fin-dre-tab-bddre .lg-table thead th,
+#fin-dre-tab-bd .lg-table thead th,
+#fin-dre-tab-plano .lg-table thead th {
+  box-shadow: inset -1px 0 rgba(255,255,255,.22);
+}
+
+#fin-dre-tab-bddre .lg-table tbody td,
+#fin-dre-tab-bd .lg-table tbody td,
+#fin-dre-tab-plano .lg-table tbody td {
+  box-shadow: inset -1px 0 rgba(14,20,36,.035);
 }
 
 /* Barra de referÃªncia */

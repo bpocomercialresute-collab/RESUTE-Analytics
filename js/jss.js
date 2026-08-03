@@ -76,7 +76,8 @@ function LiteGrid(container, key) {
   this.allData   = [];
   this.filtered  = null;
   this.page      = 0;
-  this.pageSize  = 100;
+  this.pageSize  = 500;
+  this.minRows   = 100;
   this.selRow    = -1;
   this.selCol    = -1;
   this._build();
@@ -94,7 +95,7 @@ LiteGrid.prototype._build = function() {
     '<input class="lg-ref-val" id="lg-rv-'+self.key+'" readonly placeholder="valor..." />';
 
   // 2. Cabeçalho da tabela
-  var thead = '<thead><tr><th class="lg-rn">#</th>';
+  var thead = '<thead><tr><th class="lg-rn" style="width:42px;min-width:42px;max-width:42px">ID</th>';
   def.cols.forEach(function(c,i){
     thead += '<th class="'+(c.auto?'lg-auto':'')+'" style="width:'+c.w+'px;min-width:'+c.w+'px"'
            + ' onclick="lgSortCol(\''+self.key+'\','+i+',this)">'
@@ -148,6 +149,7 @@ LiteGrid.prototype._build = function() {
     var rn  = tr.querySelector('.lg-rn');
     var ri  = rn ? parseInt(rn.textContent) - 1 : -1;
     if (ci < 0 || ri < 0) return;
+    self._commit();
     self._select(ri, ci, td);
   });
 
@@ -167,6 +169,10 @@ LiteGrid.prototype._build = function() {
     if (rv) rv.value = inp.value;
   });
 
+  inp.addEventListener('blur', function() {
+    self._commit();
+  });
+
   // Paste no input → cola a partir da célula selecionada
   inp.addEventListener('paste', function(e) {
     e.preventDefault();
@@ -183,6 +189,17 @@ LiteGrid.prototype._build = function() {
     e.preventDefault();
     var txt = e.clipboardData ? e.clipboardData.getData('text/plain') : '';
     if (txt.trim()) self._paste(txt);
+  });
+
+  this.container.addEventListener('copy', function(e) {
+    if (e.target === inp) return;
+    if (self.selRow < 0 || self.selCol < 0) return;
+    var src = self.filtered !== null ? self.filtered : self.allData;
+    var val = (src[self.selRow] && src[self.selRow][self.selCol] !== undefined)
+      ? src[self.selRow][self.selCol]
+      : '';
+    e.preventDefault();
+    if (e.clipboardData) e.clipboardData.setData('text/plain', String(val || ''));
   });
 
   // Setas + Enter + Tab no container (modo navegação, sem editar)
@@ -420,11 +437,11 @@ LiteGrid.prototype._render = function() {
   var rows  = src.slice(from, from + this.pageSize);
   var def   = this.def;
   var html  = '';
-  var total = Math.max(rows.length, 30); // sempre mostra 30+ linhas
+  var total = Math.max(rows.length, this.minRows || 100);
 
   for (var ri = 0; ri < total; ri++) {
     var r = rows[ri] || [];
-    html += '<tr><td class="lg-rn">'+(from+ri+1)+'</td>';
+    html += '<tr><td class="lg-rn" style="width:42px;min-width:42px;max-width:42px">'+(from+ri+1)+'</td>';
     for (var ci = 0; ci < def.cols.length; ci++) {
       var v = (r[ci]!==undefined&&r[ci]!==null) ? r[ci] : '';
       html += def.cols[ci].auto ? '<td class="lg-auto">'+v+'</td>' : '<td>'+v+'</td>';
