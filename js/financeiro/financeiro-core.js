@@ -148,6 +148,27 @@ function finStatus(msg) {
   if (el) el.textContent = msg || '';
 }
 
+async function finFetchJson(url, signal, opcional) {
+  var resposta = await fetch(url, {
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY },
+    signal: signal
+  });
+
+  if (!resposta.ok) {
+    var detalhe = await resposta.text();
+    if (opcional) {
+      console.warn('[FIN] Fonte opcional indisponivel:', resposta.status, detalhe);
+      return [];
+    }
+    throw new Error(resposta.status === 403
+      ? 'Acesso negado aos dados financeiros desta empresa.'
+      : ('Falha ao carregar lancamentos (HTTP ' + resposta.status + ').'));
+  }
+
+  var json = await resposta.json();
+  return Array.isArray(json) ? json : [];
+}
+
 // ── CARGA DE DADOS ───────────────────────────────────────────────────────────
 
 /**
@@ -157,7 +178,7 @@ function finStatus(msg) {
  * FIN_LOAD_SEQUENCE + FIN_ABORT_CONTROLLER descartam respostas obsoletas
  * quando o usuario troca de empresa no meio da carga.
  */
-async function finCarregarDados(empresaId) {
+async function finCarregarDadosAntigo(empresaId) {
   if (!empresaId) { finStatus('⚠ Empresa não configurada.'); return; }
 
   var sequencia = ++FIN_LOAD_SEQUENCE;
@@ -213,6 +234,71 @@ async function finCarregarDados(empresaId) {
   }
 }
 
+/** Carrega o financeiro usando o DRE como fonte principal quando existir. */
+async function finCarregarDados(empresaId) {
+  if (!empresaId) { finStatus('Empresa nao configurada.'); return; }
+
+  var sequencia = ++FIN_LOAD_SEQUENCE;
+  FIN_ACTIVE_COMPANY = empresaId;
+  FIN_IS_LOADING = true;
+  finStatus('Carregando lancamentos...');
+
+  if (FIN_ABORT_CONTROLLER) { try { FIN_ABORT_CONTROLLER.abort(); } catch (e) {} }
+  FIN_ABORT_CONTROLLER = new AbortController();
+
+  try {
+    var filtroEmpresa = '?empresa_id=eq.' + encodeURIComponent(empresaId);
+    var urlManual = SUPA_URL + '/rest/v1/fin_lancamentos'
+      + filtroEmpresa
+      + '&select=*&order=data_competencia.desc&limit=100000';
+    var urlDre = SUPA_URL + '/rest/v1/fin_dre_lancamentos'
+      + filtroEmpresa
+      + '&select=*&order=dt_caixa.desc&limit=100000';
+    var urlPlano = SUPA_URL + '/rest/v1/fin_dre_plano_contas'
+      + filtroEmpresa
+      + '&select=conta,grupo,fv,di&limit=100000';
+
+    var respostas = await Promise.all([
+      finFetchJson(urlManual, FIN_ABORT_CONTROLLER.signal, false),
+      finFetchJson(urlDre, FIN_ABORT_CONTROLLER.signal, true),
+      finFetchJson(urlPlano, FIN_ABORT_CONTROLLER.signal, true)
+    ]);
+    if (sequencia !== FIN_LOAD_SEQUENCE) return;
+
+    var linhasManual = respostas[0];
+    var linhasDre = respostas[1];
+    var planoDre = finMontarMapaPlanoDRE(respostas[2]);
+    var normalizadosDre = linhasDre.map(function(l) {
+      return finNormalizarLancamentoDRE(l, planoDre);
+    }).filter(Boolean);
+
+    FIN_RAW = normalizadosDre.length
+      ? normalizadosDre
+      : linhasManual.map(finNormalizarLancamento);
+
+    var origem = normalizadosDre.length ? 'DRE' : 'manual';
+    finStatus(FIN_RAW.length
+      ? String.fromCharCode(10003) + ' ' + FIN_RAW.length.toLocaleString('pt-BR') + ' lancamentos (' + origem + ')'
+      : 'Nenhum lancamento cadastrado.');
+
+    var atualizado = document.getElementById('fin-last-update');
+    if (atualizado) atualizado.textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR');
+
+    finMontarFiltroAno();
+    finFiltrarPeriodo();
+
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+    if (sequencia !== FIN_LOAD_SEQUENCE) return;
+    console.error('[FIN] Erro ao carregar:', e);
+    FIN_RAW = [];
+    finStatus('Erro: ' + e.message);
+    finFiltrarPeriodo();
+  } finally {
+    if (sequencia === FIN_LOAD_SEQUENCE) FIN_IS_LOADING = false;
+  }
+}
+
 /** Normaliza tipos vindos do banco (numeric chega como string). */
 function finNormalizarLancamento(linha) {
   return {
@@ -232,6 +318,72 @@ function finNormalizarLancamento(linha) {
 }
 
 // ── HELPERS DE LANCAMENTO ────────────────────────────────────────────────────
+
+function finMontarMapaPlanoDRE(plano) {
+  var mapa = {};
+  (plano || []).forEach(function(item) {
+    var conta = String(item.conta || '').trim().toLowerCase();
+    if (!conta) return;
+    mapa[conta] = {
+      grupo: item.grupo || '',
+      fv: item.fv || '',
+      di: item.di || ''
+    };
+  });
+  return mapa;
+}
+
+function finNormalizarLancamentoDRE(linha, planoDre) {
+  if (!linha || !linha.dt_caixa) return null;
+
+  var conta = linha.conta || 'Sem conta';
+  var plano = planoDre[String(conta).trim().toLowerCase()] || {};
+  var grupo = plano.grupo || linha.grupo || conta;
+  var bruto = Number(linha.valor);
+  if (!Number.isFinite(bruto)) bruto = Number(linha.tot_pago) || 0;
+  if (!bruto) return null;
+
+  var tipo = finTipoDRE(grupo, linha.tipo, bruto);
+  if (!tipo) return null;
+
+  var pago = Number(linha.tot_pago);
+  var valor = linha.dt_pag && Number.isFinite(pago) && pago > 0 ? pago : bruto;
+  var status = linha.dt_pag || (Number.isFinite(pago) && Math.abs(pago) >= Math.abs(bruto))
+    ? 'pago'
+    : 'previsto';
+
+  return {
+    id:               linha.id,
+    tipo:             tipo,
+    descricao:        conta,
+    parceiro:         linha.parceiro || '',
+    documento:        linha.documento || '',
+    categoria:        grupo || conta,
+    valor:            Math.abs(Number(valor) || 0),
+    data_competencia: linha.dt_caixa || null,
+    data_vencimento:  linha.dt_venc || linha.dt_caixa || null,
+    data_pagamento:   linha.dt_pag || null,
+    status:           status,
+    origem:           'dre'
+  };
+}
+
+function finTipoDRE(grupo, tipoOriginal, valor) {
+  var textoTipo = String(tipoOriginal || '').toLowerCase();
+  if (textoTipo.indexOf('rece') !== -1 || textoTipo.indexOf('entrada') !== -1) return 'receita';
+  if (textoTipo.indexOf('desp') !== -1 || textoTipo.indexOf('saida') !== -1 || textoTipo.indexOf('sa\u00edda') !== -1) return 'despesa';
+
+  var mapa = (typeof DRE !== 'undefined' && DRE.SE_POR_GRUPO) ? DRE.SE_POR_GRUPO : {};
+  var se = mapa[grupo] || '';
+  if (se === 'E') return 'receita';
+  if (se === 'S') return 'despesa';
+
+  var grupoNormalizado = String(grupo || '').toUpperCase();
+  if (grupoNormalizado.indexOf('RECEITA') !== -1 || grupoNormalizado.indexOf('FATURAMENTO') !== -1) return 'receita';
+  if (grupoNormalizado.indexOf('CUSTO') !== -1 || grupoNormalizado.indexOf('DESP') !== -1 || grupoNormalizado.indexOf('INVEST') !== -1) return 'despesa';
+
+  return Number(valor) < 0 ? 'despesa' : 'receita';
+}
 
 function finEhReceita(l)  { return l.tipo === 'receita'; }
 function finEhDespesa(l)  { return l.tipo === 'despesa'; }

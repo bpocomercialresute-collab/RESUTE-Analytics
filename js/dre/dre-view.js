@@ -43,7 +43,7 @@ var DRE_MONTADO = false;
 var DRE_ADMIN_PREVIEW = false;
 var DRE_ADMIN_PREVIEW_COMPANY = null;
 
-var DRE_HTML_URL = 'views/dre-painel.html?v=4';
+var DRE_HTML_URL = 'views/dre-painel.html?v=5';
 var DRE_CSS_URL  = 'css/dre-painel.css?v=3';
 
 // ── CSS ESCOPADO ─────────────────────────────────────────────────────────────
@@ -227,8 +227,8 @@ function _dreNomeEmpresa() {
 }
 
 /**
- * Ajustes de header que so o sistema conhece: selo de preview, botao de voltar
- * e o seletor de modulos. Roda depois do DRE.init, que escreve em #fin-empresa.
+ * Ajustes de header que so o sistema conhece: selo de preview e botao de voltar.
+ * Roda depois do DRE.init, que escreve em #fin-empresa.
  */
 function _dreAplicarHeader() {
   // O botao aparece para todo super_admin, nao so no preview: quando ele abre o
@@ -245,8 +245,6 @@ function _dreAplicarHeader() {
 
   var selo = document.getElementById('fin-admin-preview-badge');
   if (selo) selo.classList.toggle('visivel', DRE_ADMIN_PREVIEW);
-
-  if (typeof renderizarSeletorModulos === 'function') renderizarSeletorModulos();
 }
 
 // ── SALVAR NO BANCO (botões das abas Plano de Contas e BD) ───────────────────
