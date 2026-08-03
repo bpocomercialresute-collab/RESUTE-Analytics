@@ -24,7 +24,8 @@ var MODULOS = {
 };
 
 /** Ordem de prioridade quando a empresa contrata mais de um modulo */
-var MODULOS_PRIORIDADE = [MODULOS.COMERCIAL, MODULOS.FINANCEIRO, MODULOS.DRE];
+// DRE deliberadamente fora desta lista: acessado apenas via painel admin
+var MODULOS_PRIORIDADE = [MODULOS.COMERCIAL, MODULOS.FINANCEIRO];
 
 var MODULO_META = {
   comercial: {

@@ -685,7 +685,12 @@ function dreAbrirDoAdmin(companyId) {
     });
   }
 
-  if (typeof abrirModulo === 'function') abrirModulo('dre', { empresaIdPreview: companyId });
+  // Fecha módulo de cliente ativo se houver
+  if (typeof MODULO_ATIVO !== 'undefined' && MODULO_ATIVO && MODULO_ATIVO !== 'dre') {
+    if (typeof _fecharModulo === 'function') _fecharModulo(MODULO_ATIVO);
+  }
+  MODULO_ATIVO = 'dre';
+  if (typeof dreAbrir === 'function') dreAbrir({ empresaIdPreview: companyId });
 }
 
 /** Volta ao console do super_admin, encerrando o preview supervisionado. */
