@@ -44,7 +44,7 @@ var DRE_ADMIN_PREVIEW = false;
 var DRE_ADMIN_PREVIEW_COMPANY = null;
 
 var DRE_HTML_URL = 'views/dre-painel.html?v=4';
-var DRE_CSS_URL  = 'css/dre-painel.css?v=2';
+var DRE_CSS_URL  = 'css/dre-painel.css?v=3';
 
 // ── CSS ESCOPADO ─────────────────────────────────────────────────────────────
 
@@ -402,30 +402,34 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
       {t:'D_I',   w:60,  auto:false}
     ]};
   }
+  // BD_DRE: mesmo esquema visual da aba BD — só CAD e GRUPO ficam com aparência
+  // de "coluna auto" (fundo/cor de derivada). As demais herdam o estilo padrão
+  // de célula editável, mesmo sendo somente leitura (a edição é bloqueada por
+  // override de _commit/_paste/_pasteAt/_select mais abaixo).
   GRID_DEFS['dre_bddre'] = { cols: [
-    {t:'ID',     w:50,  auto:true},
-    {t:'CNPJ',   w:60,  auto:true},
-    {t:'ANO',    w:60,  auto:true},
-    {t:'CODIGO', w:80,  auto:true},
-    {t:'CONTA',  w:200, auto:true},
-    {t:'Jan',    w:80,  auto:true},
-    {t:'Fev',    w:80,  auto:true},
-    {t:'Mar',    w:80,  auto:true},
-    {t:'Abr',    w:80,  auto:true},
-    {t:'Mai',    w:80,  auto:true},
-    {t:'Jun',    w:80,  auto:true},
-    {t:'Jul',    w:80,  auto:true},
-    {t:'Ago',    w:80,  auto:true},
-    {t:'Set',    w:80,  auto:true},
-    {t:'Out',    w:80,  auto:true},
-    {t:'Nov',    w:80,  auto:true},
-    {t:'Dez',    w:80,  auto:true},
+    {t:'ID',     w:50,  auto:false},
+    {t:'CNPJ',   w:60,  auto:false},
+    {t:'ANO',    w:60,  auto:false},
+    {t:'CODIGO', w:80,  auto:false},
+    {t:'CONTA',  w:200, auto:false},
+    {t:'Jan',    w:80,  auto:false},
+    {t:'Fev',    w:80,  auto:false},
+    {t:'Mar',    w:80,  auto:false},
+    {t:'Abr',    w:80,  auto:false},
+    {t:'Mai',    w:80,  auto:false},
+    {t:'Jun',    w:80,  auto:false},
+    {t:'Jul',    w:80,  auto:false},
+    {t:'Ago',    w:80,  auto:false},
+    {t:'Set',    w:80,  auto:false},
+    {t:'Out',    w:80,  auto:false},
+    {t:'Nov',    w:80,  auto:false},
+    {t:'Dez',    w:80,  auto:false},
     {t:'CAD',    w:50,  auto:true},
     {t:'GRUPO',  w:180, auto:true},
-    {t:'TOTAL',  w:100, auto:true},
-    {t:'MED',    w:80,  auto:true},
-    {t:'%',      w:70,  auto:true},
-    {t:'s_e',    w:50,  auto:true}
+    {t:'TOTAL',  w:100, auto:false},
+    {t:'MED',    w:80,  auto:false},
+    {t:'%',      w:70,  auto:false},
+    {t:'s_e',    w:50,  auto:false}
   ]};
 
   // Fecha instâncias antigas (troca de empresa, reabertura)
@@ -567,6 +571,30 @@ function _dreReconstruirBDDRE() {
     grid._commit  = function() {};
     grid._paste   = function() {};
     grid._pasteAt = function() {};
+    // _select: nunca abre o input flutuante — apenas realça a célula e mostra
+    // a referência. Vale para colunas auto:true (CAD/GRUPO) e auto:false, que
+    // aqui existem só pelo esquema de cores da aba BD; nada é editável.
+    grid._select = function(ri, ci, td) {
+      this.selRow = ri; this.selCol = ci;
+      if (this._tbody) {
+        this._tbody.querySelectorAll('.lg-sel-cell').forEach(function(el){ el.classList.remove('lg-sel-cell'); });
+        this._tbody.querySelectorAll('.lg-sel-row').forEach(function(el){ el.classList.remove('lg-sel-row'); });
+      }
+      if (td) {
+        td.classList.add('lg-sel-cell');
+        var tr = td.closest('tr');
+        if (tr) Array.from(tr.cells).forEach(function(c){ c.classList.add('lg-sel-row'); });
+      }
+      var col = ci < 26
+        ? String.fromCharCode(65 + ci)
+        : String.fromCharCode(64 + Math.floor(ci / 26)) + String.fromCharCode(65 + (ci % 26));
+      var rc = document.getElementById('lg-rc-' + this.key);
+      if (rc) rc.textContent = col + (ri + 1);
+      if (this._inp) this._inp.style.display = 'none';
+      var rv = document.getElementById('lg-rv-' + this.key);
+      var src = this.filtered || this.allData;
+      if (rv) rv.value = (src[ri] && src[ri][ci] !== undefined) ? src[ri][ci] : '';
+    };
     GRIDS['dre_bddre'] = grid;
   }
   _dreAtualizarBDDRE();
