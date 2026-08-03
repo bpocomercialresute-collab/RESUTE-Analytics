@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=16" />
+  <link rel="stylesheet" href="css/style.css?v=17" />
   <!-- Grade estilo Excel do DRE (js/dre/dre-grid.js) — overlay do console admin, carrega normal (nao e escopada via CSSOM como o dre-painel.css). -->
   <link rel="stylesheet" href="css/dre-grid.css?v=1" />
   <link rel="icon" href="assets/resute-brand/SIMBOLO.png" type="image/png" />
@@ -808,7 +808,7 @@
               <div class="jss-toolbar">
                 <div class="jss-toolbar-left"><span class="jss-cell-ref" id="jss-ref-clientes">A1</span></div>
                 <div class="jss-toolbar-right">
-                  <button class="jss-btn jss-btn-success" onclick="bdUpdateClientes();jssColorAutoHeaders('clientes')" style="background:#E7F7F2;border-color:#059669;color:#059669">
+                  <button class="jss-btn jss-btn-success" onclick="bdUpdateClientes();jssColorAutoHeaders('clientes')" style="background:rgba(36,146,234,.12);border-color:#1C64C0;color:#1C64C0">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
                     Atualizar Colunas
                   </button>
@@ -1013,7 +1013,7 @@
   </script>
 
   <!-- DASHBOARD CLIENTE -->
-  <div id="view-dash-cliente" style="display:none;position:fixed;inset:0;z-index:9000;background:#F0FAF8;flex-direction:column;font-family:'Poppins',system-ui,sans-serif;overflow:hidden;">
+  <div id="view-dash-cliente" style="display:none;position:fixed;inset:0;z-index:9000;background:#F5F7FA;flex-direction:column;font-family:'Outfit',system-ui,sans-serif;overflow:hidden;">
     <div id="dc-loading" class="dc-loading" style="display:none">
       <div class="dc-loading-card">
         <span class="dc-loader"></span>
@@ -1320,7 +1320,7 @@
   <div id="view-dash-dre" style="display:none;position:fixed;inset:0;z-index:9000;background:#ffffff;overflow:auto;"></div>
 
   <!-- DASHBOARD FINANCEIRO — espaço reservado do módulo (js/financeiro/*) -->
-  <div id="view-dash-financeiro" style="display:none;position:fixed;inset:0;z-index:9000;background:#F0FAF8;flex-direction:column;font-family:'Poppins',system-ui,sans-serif;overflow:hidden;">
+  <div id="view-dash-financeiro" style="display:none;position:fixed;inset:0;z-index:9000;background:#F5F7FA;flex-direction:column;font-family:'Outfit',system-ui,sans-serif;overflow:hidden;">
 
     <header class="dc-header">
       <div class="dc-header-left">
