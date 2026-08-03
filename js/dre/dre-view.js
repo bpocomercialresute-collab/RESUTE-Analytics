@@ -362,21 +362,37 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
 
   if (!GRID_DEFS['dre_bd']) {
     GRID_DEFS['dre_bd'] = { cols: [
-      {t:'CONTA',     w:200, auto:false},
-      {t:'DT_CAIXA',  w:100, auto:false},
-      {t:'DT_VENC',   w:100, auto:false},
-      {t:'DT_PAG',    w:100, auto:false},
-      {t:'VALOR',     w:90,  auto:false},
-      {t:'TOT_PAGO',  w:90,  auto:false},
-      {t:'PARCEIRO',  w:150, auto:false},
-      {t:'DOCUMENTO', w:110, auto:false},
-      {t:'BANCO',     w:90,  auto:false},
-      {t:'FORMA',     w:90,  auto:false},
-      {t:'GRUPO',     w:160, auto:true},
-      {t:'S_E',       w:50,  auto:true},
-      {t:'ANO',       w:60,  auto:true},
-      {t:'MÊS',       w:60,  auto:true},
-      {t:'STATUS',    w:60,  auto:true}
+      {t:'ID',                 w:60,  auto:false},
+      {t:'DT_CAIXA',           w:100, auto:false},
+      {t:'DT_VENC',            w:100, auto:false},
+      {t:'DT_PAG',             w:100, auto:false},
+      {t:'CONTA',              w:200, auto:false},
+      {t:'TIPO',               w:80,  auto:false},
+      {t:'VALOR',              w:90,  auto:false},
+      {t:'TOT_PAGO',           w:90,  auto:false},
+      {t:'FORNECEDOR CLIENTE', w:170, auto:false},
+      {t:'N_DOC',              w:100, auto:false},
+      {t:'BANCO',              w:90,  auto:false},
+      {t:'FORMA',              w:90,  auto:false},
+      {t:'PARCELA',            w:75,  auto:false},
+      {t:'TOT_PARCELAS',       w:105, auto:false},
+      {t:'OBS',                w:150, auto:false},
+      {t:'CNPJ',               w:140, auto:false},
+      {t:'DT CUSTORIA',        w:110, auto:false},
+      {t:'Histórico',          w:180, auto:false},
+      {t:'S_E',                w:50,  auto:true},
+      {t:'GRUPO',              w:160, auto:true},
+      {t:'STATUS',             w:70,  auto:true},
+      {t:'DIA',                w:50,  auto:true},
+      {t:'MÊS',                w:60,  auto:true},
+      {t:'DIA_SEM',            w:70,  auto:true},
+      {t:'ANO',                w:60,  auto:true},
+      {t:'VENC',               w:80,  auto:true},
+      {t:'SEMANA_ANO',         w:100, auto:true},
+      {t:'ULTIMO_DIA_DO_MES',  w:140, auto:true},
+      {t:'CNPJ_2',             w:140, auto:true},
+      {t:'safra',              w:70,  auto:true},
+      {t:'CICLO',              w:70,  auto:true}
     ]};
   }
   if (!GRID_DEFS['dre_plano']) {
@@ -496,31 +512,71 @@ function _dreAtualizarTodosTogles(gridPlano) {
   }
 }
 
-/** Recalcula colunas auto (GRUPO, S_E, ANO, MÊS, STATUS) na grade BD. */
+/** Recalcula colunas auto (S_E, GRUPO, STATUS, DIA, MÊS, DIA_SEM, ANO, VENC, SEMANA_ANO, ULTIMO_DIA_DO_MES, CNPJ_2, safra, CICLO) na grade BD. */
 function _dreAtualizarDerivadasBD(gridBD) {
-  var SE_MAP = DRE.SE_POR_GRUPO;
-  var MESES  = DRE.MESES;
+  var SE_MAP   = DRE.SE_POR_GRUPO;
+  var MESES    = DRE.MESES;
+  var DIAS_SEM = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   var idx = new Map();
   DRE.estado.plano.forEach(function(c) {
     idx.set(String(c.conta || '').trim().toLowerCase(), c);
   });
 
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
   var data = gridBD.allData;
   for (var i = 0; i < data.length; i++) {
     var r = data[i];
     if (!r) continue;
-    var conta = String(r[0] || '').trim().toLowerCase();
+
+    // CONTA = índice 4
+    var conta = String(r[4] || '').trim().toLowerCase();
     var pc = conta ? idx.get(conta) : null;
 
-    r[10] = pc ? (pc.grupo || '') : (conta ? '#N/A' : '');
-    r[11] = pc ? (SE_MAP[pc.grupo] || 'S') : (conta ? '#N/A' : '');
+    // 18: S_E  |  19: GRUPO
+    r[19] = pc ? (pc.grupo || '') : (conta ? '#N/A' : '');
+    r[18] = pc ? (SE_MAP[pc.grupo] || 'S') : (conta ? '#N/A' : '');
 
+    // DT_CAIXA = índice 1
     var dt = String(r[1] || '');
     var d  = dt ? new Date(dt) : null;
     var ok = d && !isNaN(d);
-    r[12] = ok ? d.getFullYear() : '';
-    r[13] = ok ? (MESES[d.getMonth()] || '') : '';
-    r[14] = r[0] ? (r[3] ? 'PG' : 'N') : '';
+
+    r[24] = ok ? d.getFullYear()                  : '';  // ANO
+    r[22] = ok ? (MESES[d.getMonth()] || '')      : '';  // MÊS
+    r[21] = ok ? d.getDate()                       : '';  // DIA
+    r[23] = ok ? (DIAS_SEM[d.getDay()] || '')     : '';  // DIA_SEM
+    r[29] = ok ? d.getFullYear()                  : '';  // safra
+
+    // SEMANA_ANO
+    if (ok) {
+      var jan1 = new Date(d.getFullYear(), 0, 1);
+      r[26] = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+    } else {
+      r[26] = '';
+    }
+
+    // ULTIMO_DIA_DO_MES
+    r[27] = ok ? new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() : '';
+
+    // DT_VENC = índice 2
+    var dtv = String(r[2] || '');
+    var dv  = dtv ? new Date(dtv) : null;
+    var okv = dv && !isNaN(dv);
+    if (okv) {
+      dv.setHours(0,0,0,0);
+      r[25] = dv < hoje ? 'VENCIDO' : 'NO PRAZO';  // VENC
+    } else {
+      r[25] = '';
+    }
+
+    // 20: STATUS — DT_PAG = índice 3
+    r[20] = r[4] ? (r[3] ? 'PG' : 'N') : '';
+
+    // 28: CNPJ_2 — copia CNPJ (índice 15)
+    r[28] = r[15] || '';
+
+    // 30: CICLO — dias entre DT_CAIXA e DT_VENC
+    r[30] = (ok && okv) ? Math.round((dv - d) / 86400000) : '';
   }
   gridBD._render();
 }
@@ -550,14 +606,29 @@ function _drePlanoDeRows(rows) {
   });
 }
 
-/** Objeto lançamento -> array (10 colunas editáveis + 5 derivadas vazias). */
+/** Objeto lançamento -> array (18 colunas editáveis + 13 derivadas vazias). */
 function _dreRowsBD(lancs) {
   return (lancs || []).map(function(l) {
     return [
-      l.conta || '', l.dt_caixa || '', l.dt_venc || '', l.dt_pag || '',
-      l.valor != null ? l.valor : '', l.tot_pago != null ? l.tot_pago : '',
-      l.parceiro || '', l.documento || '', l.banco || '', l.forma || '',
-      '', '', '', '', ''
+      l.id           || '',                                  // 0:  ID
+      l.dt_caixa     || '',                                  // 1:  DT_CAIXA
+      l.dt_venc      || '',                                  // 2:  DT_VENC
+      l.dt_pag       || '',                                  // 3:  DT_PAG
+      l.conta        || '',                                  // 4:  CONTA
+      l.tipo         || '',                                  // 5:  TIPO
+      l.valor     != null ? l.valor     : '',                // 6:  VALOR
+      l.tot_pago  != null ? l.tot_pago  : '',                // 7:  TOT_PAGO
+      l.parceiro     || '',                                  // 8:  FORNECEDOR CLIENTE
+      l.documento    || '',                                  // 9:  N_DOC
+      l.banco        || '',                                  // 10: BANCO
+      l.forma        || '',                                  // 11: FORMA
+      l.parcela      || '',                                  // 12: PARCELA
+      l.tot_parcelas || '',                                  // 13: TOT_PARCELAS
+      l.obs          || '',                                  // 14: OBS
+      l.cnpj         || '',                                  // 15: CNPJ
+      l.dt_custoria  || '',                                  // 16: DT CUSTORIA
+      l.historico    || '',                                  // 17: Histórico
+      '', '', '', '', '', '', '', '', '', '', '', '', ''     // 18-30: auto
     ];
   });
 }
@@ -566,15 +637,26 @@ function _dreRowsBD(lancs) {
 function _dreLancDeRows(rows) {
   var cnpj = DRE.estado.cnpj;
   return rows
-    .filter(function(r) { return r[0] && r[1]; })
+    .filter(function(r) { return r[4] && r[1]; })  // CONTA(4) + DT_CAIXA(1)
     .map(function(r) {
       return {
-        conta: r[0] || '', dt_caixa: r[1] || '',
-        dt_venc:  r[2] || null, dt_pag: r[3] || null,
-        valor:    (r[4] !== '' && r[4] !== null) ? Number(r[4]) : null,
-        tot_pago: (r[5] !== '' && r[5] !== null) ? Number(r[5]) : null,
-        parceiro: r[6] || null, documento: r[7] || null,
-        banco: r[8] || null, forma: r[9] || null, cnpj: cnpj
+        conta:        r[4]  || '',
+        dt_caixa:     r[1]  || '',
+        dt_venc:      r[2]  || null,
+        dt_pag:       r[3]  || null,
+        tipo:         r[5]  || null,
+        valor:        (r[6]  !== '' && r[6]  !== null) ? Number(r[6])  : null,
+        tot_pago:     (r[7]  !== '' && r[7]  !== null) ? Number(r[7])  : null,
+        parceiro:     r[8]  || null,
+        documento:    r[9]  || null,
+        banco:        r[10] || null,
+        forma:        r[11] || null,
+        parcela:      r[12] || null,
+        tot_parcelas: r[13] || null,
+        obs:          r[14] || null,
+        cnpj:         r[15] || cnpj,
+        dt_custoria:  r[16] || null,
+        historico:    r[17] || null
       };
     });
 }

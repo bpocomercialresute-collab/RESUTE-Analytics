@@ -277,11 +277,18 @@ html, body {
 
 /* LiteGrid */
 .lg-wrap { position:relative; display:flex; flex-direction:column; height:calc(100vh - 260px); background:#0d1117; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
-.lg-scroll { flex:1; overflow:auto; }
+.lg-scroll { flex:1; overflow:auto; position:relative; }
 .lg-scroll::-webkit-scrollbar { width:8px; height:8px; }
 .lg-scroll::-webkit-scrollbar-track { background:var(--bg); }
-.lg-scroll::-webkit-scrollbar-thumb { background:#1e3a5f; border-radius:4px; }
+.lg-scroll::-webkit-scrollbar-thumb { background:#2d4a7a; border-radius:4px; }
 .lg-scroll::-webkit-scrollbar-thumb:hover { background:#3b82f6; }
+/* sombra lateral direita indica conteúdo além da janela */
+.lg-wrap::after {
+  content:''; pointer-events:none;
+  position:absolute; top:0; right:0; bottom:0; width:24px;
+  background:linear-gradient(to right,transparent,rgba(0,0,0,.35));
+  z-index:4; border-radius:0 8px 0 0;
+}
 [id^="jss-container"]:focus { outline:2px solid var(--blue-400); outline-offset:-2px; }
 
 .lg-table { border-collapse:collapse; width:max-content; min-width:100%; font-size:12px; }

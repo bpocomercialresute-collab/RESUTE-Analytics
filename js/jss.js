@@ -121,12 +121,17 @@ LiteGrid.prototype._build = function() {
   table.innerHTML = thead;
   table.appendChild(tbody);
   scroll.appendChild(table);
+  // inp DENTRO do scroll → segue o scroll (corrige ghost cell)
+  scroll.appendChild(inp);
+  scroll.style.position = 'relative';
   wrap.appendChild(refBar);
   wrap.appendChild(scroll);
   wrap.appendChild(pag);
-  wrap.appendChild(inp);
   this.container.innerHTML = '';
   this.container.appendChild(wrap);
+  // Evita scroll duplo: container externo (fin-tabela-scroll etc.) não deve rolar
+  this.container.style.overflow  = 'visible';
+  this.container.style.maxHeight = 'none';
 
   this._tbody = tbody;
   this._inp   = inp;
@@ -178,6 +183,19 @@ LiteGrid.prototype._build = function() {
     e.preventDefault();
     var txt = e.clipboardData ? e.clipboardData.getData('text/plain') : '';
     if (txt.trim()) self._paste(txt);
+  });
+
+  // Setas + Enter + Tab no container (modo navegação, sem editar)
+  this.container.addEventListener('keydown', function(e) {
+    if (e.target === inp) return;
+    var map = {ArrowDown:[1,0], ArrowUp:[-1,0], ArrowRight:[0,1], ArrowLeft:[0,-1]};
+    var d = map[e.key];
+    if (!d && e.key !== 'Enter' && e.key !== 'Tab') return;
+    e.preventDefault();
+    if (e.key === 'Enter') d = [1, 0];
+    else if (e.key === 'Tab') d = [0, e.shiftKey ? -1 : 1];
+    if (self.selRow < 0 || self.selCol < 0) { self._select(0, 0, self._firstTd()); return; }
+    self._move(d[0], d[1]);
   });
 
   this._render();
@@ -288,6 +306,7 @@ LiteGrid.prototype._move = function(dr, dc) {
   var rows = this._tbody.querySelectorAll('tr');
   if (rowIdx < 0 || rowIdx >= rows.length) return;
   var td = rows[rowIdx].querySelectorAll('td')[ci+1];
+  this._scrollToTd(td); // scroll antes de selecionar → inp posicionado já com td visível
   this._select(ri, ci, td);
 };
 
@@ -299,6 +318,31 @@ LiteGrid.prototype._hideInp = function() {
       el.classList.remove('lg-sel-cell','lg-sel-row');
     });
   }
+};
+
+// Garante que o td selecionado esteja visível no scroll (vertical + horizontal)
+LiteGrid.prototype._scrollToTd = function(td) {
+  if (!td) return;
+  var scEl = this._tbody ? this._tbody.closest('.lg-scroll') : null;
+  if (!scEl) return;
+  var tdR = td.getBoundingClientRect();
+  var scR = scEl.getBoundingClientRect();
+  var RN  = 46; // largura da coluna # (sticky left)
+  // Vertical
+  if (tdR.bottom > scR.bottom - 2) scEl.scrollTop += tdR.bottom - scR.bottom + 4;
+  else if (tdR.top < scR.top + 2)  scEl.scrollTop -= scR.top + 2 - tdR.top;
+  // Horizontal
+  if (tdR.right  > scR.right  - 2) scEl.scrollLeft += tdR.right  - scR.right  + 4;
+  else if (tdR.left < scR.left + RN) scEl.scrollLeft -= scR.left + RN - tdR.left;
+};
+
+// Primeira td navegável (linha 0, coluna 0 manual)
+LiteGrid.prototype._firstTd = function() {
+  if (!this._tbody) return null;
+  var rows = this._tbody.querySelectorAll('tr');
+  if (!rows.length) return null;
+  var tds = rows[0].querySelectorAll('td');
+  return tds[1] || null;
 };
 
 // ── PASTE ─────────────────────────────────────────────────────────────────────
