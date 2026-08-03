@@ -360,10 +360,6 @@ const DRE = (() => {
   function renderBDDRE() {
     const alvo = document.getElementById('fin-dre-tab-bddre');
     if (!alvo) return;
-    if (!estado.bdDre.length) {
-      alvo.innerHTML = '<div class="fin-tabela-vazia">Sem dados.</div>';
-      return;
-    }
     // Ordem de colunas conforme BD_DRE da planilha original
     const th = ['ID','CNPJ','ANO','CODIGO','CONTA']
       .map(h => `<th>${h}</th>`)
@@ -371,6 +367,16 @@ const DRE = (() => {
       .concat(['<th>CAD</th>','<th>GRUPO</th>','<th class="num">TOTAL</th>',
                '<th class="num">MED</th>','<th class="num">%</th>','<th>s_e</th>'])
       .join('');
+    const totalCols = 5 + MESES.length + 6;
+
+    if (!estado.bdDre.length) {
+      const motivo = !estado.plano.length
+        ? 'Matriz BD_DRE é derivada do Plano de Contas — cadastre contas na aba <strong>Plano de Contas</strong> para popular esta grade.'
+        : 'Nenhuma linha para o recorte atual.';
+      alvo.innerHTML = `<table class="dc-tabela"><thead><tr>${th}</tr></thead>`
+        + `<tbody><tr><td colspan="${totalCols}" class="fin-tabela-vazia">${motivo}</td></tr></tbody></table>`;
+      return;
+    }
 
     const tb = estado.bdDre.map(l => `<tr>
       <td>${esc(l.id)}</td>

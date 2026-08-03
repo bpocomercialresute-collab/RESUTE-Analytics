@@ -87,6 +87,22 @@
   <section class="fin-pane" id="fin-dre-pane-bddre">
     <div class="fin-nota">
       Matriz conta × mês. Cada célula é o SUMIFS do BD por conta, ano, mês e empresa.
+      Somente leitura — os valores vêm do cruzamento entre a aba <strong>BD</strong> e o <strong>Plano de Contas</strong>.
+    </div>
+    <div class="fin-barra-filtro">
+      <select id="fin-dre-bddre-filtro-ano">
+        <option value="">Ano: todos</option>
+      </select>
+      <select id="fin-dre-bddre-filtro-grupo">
+        <option value="">Grupo: todos</option>
+      </select>
+      <select id="fin-dre-bddre-filtro-se">
+        <option value="">S_E: todos</option>
+        <option value="E">E — Entrada</option>
+        <option value="S">S — Saída</option>
+        <option value="0">0 — Extracontábil</option>
+      </select>
+      <input type="text" id="fin-dre-bddre-busca" placeholder="Buscar por código ou conta…">
     </div>
     <div id="fin-dre-tab-bddre" class="fin-tabela-scroll"></div>
   </section>

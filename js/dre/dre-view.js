@@ -43,7 +43,7 @@ var DRE_MONTADO = false;
 var DRE_ADMIN_PREVIEW = false;
 var DRE_ADMIN_PREVIEW_COMPANY = null;
 
-var DRE_HTML_URL = 'views/dre-painel.html?v=3';
+var DRE_HTML_URL = 'views/dre-painel.html?v=4';
 var DRE_CSS_URL  = 'css/dre-painel.css?v=1';
 
 // ── CSS ESCOPADO ─────────────────────────────────────────────────────────────
@@ -402,10 +402,36 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
       {t:'D_I',   w:60,  auto:false}
     ]};
   }
+  GRID_DEFS['dre_bddre'] = { cols: [
+    {t:'ID',     w:50,  auto:true},
+    {t:'CNPJ',   w:60,  auto:true},
+    {t:'ANO',    w:60,  auto:true},
+    {t:'CODIGO', w:80,  auto:true},
+    {t:'CONTA',  w:200, auto:true},
+    {t:'Jan',    w:80,  auto:true},
+    {t:'Fev',    w:80,  auto:true},
+    {t:'Mar',    w:80,  auto:true},
+    {t:'Abr',    w:80,  auto:true},
+    {t:'Mai',    w:80,  auto:true},
+    {t:'Jun',    w:80,  auto:true},
+    {t:'Jul',    w:80,  auto:true},
+    {t:'Ago',    w:80,  auto:true},
+    {t:'Set',    w:80,  auto:true},
+    {t:'Out',    w:80,  auto:true},
+    {t:'Nov',    w:80,  auto:true},
+    {t:'Dez',    w:80,  auto:true},
+    {t:'CAD',    w:50,  auto:true},
+    {t:'GRUPO',  w:180, auto:true},
+    {t:'TOTAL',  w:100, auto:true},
+    {t:'MED',    w:80,  auto:true},
+    {t:'%',      w:70,  auto:true},
+    {t:'s_e',    w:50,  auto:true}
+  ]};
 
   // Fecha instâncias antigas (troca de empresa, reabertura)
   delete GRIDS['dre_bd'];
   delete GRIDS['dre_plano'];
+  delete GRIDS['dre_bddre'];
 
   // ── Grade BD (livro-razão editável) ──────────────────────────────────────────
   var alvoBD = document.getElementById('fin-dre-tab-bd');
@@ -422,6 +448,7 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
       FULL_DATA['dre_bd'] = gridBD.allData.slice();
       DRE.estado.lancamentos = _dreLancDeRows(gridBD.getData());
       DRE.recalcular();
+      _dreAtualizarBDDRE();
     });
   }
 
@@ -436,6 +463,7 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
       DRE.estado.plano = _drePlanoDeRows(gridPlano.getData());
       if (GRIDS['dre_bd']) _dreAtualizarDerivadasBD(GRIDS['dre_bd']);
       DRE.recalcular();
+      _dreAtualizarBDDRE();
     };
     var renderOriginalPlano = gridPlano._render.bind(gridPlano);
     gridPlano._render = function() {
@@ -491,6 +519,176 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
       atualizarPlano();
     });
   }
+
+  // ── Grade BD_DRE (matriz SUMIFS, 100% somente leitura) ──────────────────────
+  _dreIniciarGradeBDDRE();
+}
+
+// ── GRADE BD_DRE ────────────────────────────────────────────────────────────
+//
+// Somente leitura: nenhuma célula é editável. Origem dos dados é DRE.estado.bdDre,
+// que já é derivado do PLANO_CONTAS cruzado com o BD via SUMIFS. Filtros
+// (ano, grupo, s_e, busca) atuam client-side; o filtro de ano além de restringir
+// a visão troca DRE.estado.ano e dispara DRE.recalcular() para reindexar a matriz.
+
+var _dreBDDreFiltros = { ano: '', grupo: '', se: '', busca: '' };
+var _dreRecalcularWrapped = false;
+
+function _dreIniciarGradeBDDRE() {
+  var alvo = document.getElementById('fin-dre-tab-bddre');
+  if (!alvo) return;
+
+  // O motor tem seu próprio renderBDDRE() que reescreve o innerHTML deste
+  // container a cada DRE.recalcular(). Interceptamos recalcular() uma única vez
+  // para reconstruir a grade LiteGrid depois — assim a visualização em grade
+  // continua consistente sem tocar em dre-engine.js.
+  if (!_dreRecalcularWrapped && DRE && typeof DRE.recalcular === 'function') {
+    var recalcOrig = DRE.recalcular;
+    DRE.recalcular = function() {
+      recalcOrig.apply(this, arguments);
+      _dreReconstruirBDDRE();
+    };
+    _dreRecalcularWrapped = true;
+  }
+
+  _dreReconstruirBDDRE();
+  _dreBDDrePopularFiltros();
+  _dreBDDreLigarFiltros();
+}
+
+/** (Re)cria a grade LiteGrid do BD_DRE quando o container foi apagado por renderBDDRE. */
+function _dreReconstruirBDDRE() {
+  var alvo = document.getElementById('fin-dre-tab-bddre');
+  if (!alvo) return;
+  var grid = GRIDS['dre_bddre'];
+  if (!grid || !grid._tbody || !alvo.contains(grid._tbody)) {
+    grid = new LiteGrid(alvo, 'dre_bddre');
+    // Bloqueia edição/colagem — matriz é 100% derivada.
+    grid._commit  = function() {};
+    grid._paste   = function() {};
+    grid._pasteAt = function() {};
+    GRIDS['dre_bddre'] = grid;
+  }
+  _dreAtualizarBDDRE();
+}
+
+/** Popula selects de ano e grupo com base nos lançamentos e nos grupos conhecidos. */
+function _dreBDDrePopularFiltros() {
+  var selAno = document.getElementById('fin-dre-bddre-filtro-ano');
+  if (selAno) {
+    var anos = {};
+    (DRE.estado.lancamentos || []).forEach(function(l) {
+      var d = l.dt_caixa ? new Date(l.dt_caixa) : null;
+      if (d && !isNaN(d)) anos[d.getFullYear()] = true;
+    });
+    if (DRE.estado.ano) anos[DRE.estado.ano] = true;
+    var lista = Object.keys(anos).sort();
+    selAno.innerHTML = '<option value="">Ano: todos</option>'
+      + lista.map(function(a) { return '<option value="' + a + '">' + a + '</option>'; }).join('');
+    if (DRE.estado.ano && lista.indexOf(String(DRE.estado.ano)) >= 0) {
+      selAno.value = String(DRE.estado.ano);
+      _dreBDDreFiltros.ano = String(DRE.estado.ano);
+    }
+  }
+
+  var selGrupo = document.getElementById('fin-dre-bddre-filtro-grupo');
+  if (selGrupo) {
+    selGrupo.innerHTML = '<option value="">Grupo: todos</option>'
+      + Object.keys(DRE.SE_POR_GRUPO || {}).map(function(g) {
+          return '<option value="' + g.replace(/"/g,'&quot;') + '">' + g + '</option>';
+        }).join('');
+  }
+}
+
+/** Liga eventos change/input dos selects e do campo de busca. */
+function _dreBDDreLigarFiltros() {
+  var selAno = document.getElementById('fin-dre-bddre-filtro-ano');
+  if (selAno) selAno.onchange = function() {
+    _dreBDDreFiltros.ano = selAno.value;
+    // Ano vazio no filtro mantém o ano atual do estado (matriz sempre por ano)
+    var novo = selAno.value ? parseInt(selAno.value, 10) : null;
+    if (novo && novo !== DRE.estado.ano) {
+      DRE.estado.ano = novo;
+      DRE.recalcular();
+    }
+    _dreAtualizarBDDRE();
+  };
+
+  var selGrupo = document.getElementById('fin-dre-bddre-filtro-grupo');
+  if (selGrupo) selGrupo.onchange = function() {
+    _dreBDDreFiltros.grupo = selGrupo.value;
+    _dreAtualizarBDDRE();
+  };
+
+  var selSE = document.getElementById('fin-dre-bddre-filtro-se');
+  if (selSE) selSE.onchange = function() {
+    _dreBDDreFiltros.se = selSE.value;
+    _dreAtualizarBDDRE();
+  };
+
+  var busca = document.getElementById('fin-dre-bddre-busca');
+  if (busca) busca.oninput = function() {
+    _dreBDDreFiltros.busca = busca.value || '';
+    _dreAtualizarBDDRE();
+  };
+}
+
+/** Repopula a grade BD_DRE a partir de DRE.estado.bdDre, aplicando filtros. */
+function _dreAtualizarBDDRE() {
+  var grid = GRIDS['dre_bddre'];
+  if (!grid) return;
+  var linhas = _dreBDDreFiltrar(DRE.estado.bdDre || []);
+  grid.setData(_dreRowsBDDRE(linhas));
+  FULL_DATA['dre_bddre'] = grid.allData.slice();
+}
+
+/** Aplica filtros client-side sobre estado.bdDre. */
+function _dreBDDreFiltrar(bdDre) {
+  var f = _dreBDDreFiltros;
+  var busca = (f.busca || '').trim().toLowerCase();
+  return bdDre.filter(function(l) {
+    if (f.ano && String(l.ano) !== f.ano) return false;
+    if (f.grupo && l.grupo !== f.grupo) return false;
+    if (f.se && String(l.s_e) !== f.se) return false;
+    if (busca) {
+      var alvo = ((l.codigo || '') + ' ' + (l.conta || '')).toLowerCase();
+      if (alvo.indexOf(busca) < 0) return false;
+    }
+    return true;
+  });
+}
+
+/** Formata número no padrão pt-BR com 2 casas; zero e não-numérico viram ''. */
+function _dreBDDreNum(v) {
+  var n = Number(v);
+  if (!isFinite(n) || n === 0) return '';
+  return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/** Objeto linha BD_DRE -> array de células (mesma ordem de GRID_DEFS dre_bddre). */
+function _dreRowsBDDRE(linhas) {
+  return (linhas || []).map(function(l) {
+    var meses = (l.meses || []).map(_dreBDDreNum);
+    while (meses.length < 12) meses.push('');
+    var pct = (typeof l.pct === 'number' && isFinite(l.pct))
+      ? (l.pct * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%'
+      : '';
+    return [
+      l.id      != null ? l.id      : '',
+      l.cnpj    != null ? l.cnpj    : '',
+      l.ano     != null ? l.ano     : '',
+      l.codigo  || '',
+      l.conta   || '',
+      meses[0], meses[1], meses[2], meses[3], meses[4], meses[5],
+      meses[6], meses[7], meses[8], meses[9], meses[10], meses[11],
+      l.cad     || '',
+      l.grupo   || '',
+      _dreBDDreNum(l.total),
+      _dreBDDreNum(l.med),
+      pct,
+      l.s_e     || ''
+    ];
+  });
 }
 
 function _dreAtualizarTodosTogles(gridPlano) {
