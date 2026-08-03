@@ -525,6 +525,37 @@
   font-style: italic;
 }
 
+/* BD_DRE: matriz 100% derivada — só as colunas CAD (nth 19) e GRUPO (nth 20)
+   mantêm o realce vermelho de "coluna auto". As demais ficam neutras porque,
+   embora sejam auto:true no LiteGrid, são valores numéricos derivados que
+   ficam mais legíveis sem o vermelho global de style.css. */
+#fin-dre-tab-bddre .lg-table thead th.lg-auto,
+#fin-dre-tab-bddre .lg-table tbody td.lg-auto {
+  background: transparent !important;
+  color: inherit !important;
+  border-bottom-color: inherit !important;
+  font-style: normal !important;
+}
+#fin-dre-tab-bddre .lg-table tbody tr:nth-child(even) td.lg-auto {
+  background: transparent !important;
+}
+#fin-dre-tab-bddre .lg-table thead th.lg-auto:nth-child(19),
+#fin-dre-tab-bddre .lg-table thead th.lg-auto:nth-child(20) {
+  background: #991b1b !important;
+  color: #fecaca !important;
+  border-bottom-color: #dc2626 !important;
+}
+#fin-dre-tab-bddre .lg-table tbody td.lg-auto:nth-child(19),
+#fin-dre-tab-bddre .lg-table tbody td.lg-auto:nth-child(20) {
+  background: #1a0505 !important;
+  color: #f87171 !important;
+  font-style: italic !important;
+}
+#fin-dre-tab-bddre .lg-table tbody tr:nth-child(even) td.lg-auto:nth-child(19),
+#fin-dre-tab-bddre .lg-table tbody tr:nth-child(even) td.lg-auto:nth-child(20) {
+  background: #1f0707 !important;
+}
+
 /* Célula selecionada */
 .lg-table td.lg-sel-cell { outline: 2px solid #002060; outline-offset: -1px; }
 .lg-table td.lg-sel-row  { background: #e8eef8 !important; }
