@@ -5,3 +5,11 @@
 
 # Node
 node_modules/
+
+# Arquivos temporarios locais
+tmp/
+tmp-*.png
+
+# Fontes vetoriais da marca ficam locais; o site usa os PNGs otimizados
+assets/resute-brand/*.ai
+assets/resute-brand/*.eps
