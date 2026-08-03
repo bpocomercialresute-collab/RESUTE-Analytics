@@ -150,7 +150,10 @@ LiteGrid.prototype._build = function() {
     var ri  = rn ? parseInt(rn.textContent) - 1 : -1;
     if (ci < 0 || ri < 0) return;
     self._commit();
-    self._select(ri, ci, td);
+    var rowIdx = ri - (self.page * self.pageSize);
+    var liveRow = self._tbody ? self._tbody.querySelectorAll('tr')[rowIdx] : null;
+    var liveTd = liveRow ? liveRow.querySelectorAll('td')[ci + 1] : null;
+    self._select(ri, ci, liveTd || td);
   });
 
   // Teclado no input
