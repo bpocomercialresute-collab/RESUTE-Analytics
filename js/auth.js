@@ -1209,6 +1209,52 @@ function dcComTimeout(promise, timeoutMs, mensagem) {
   });
 }
 
+function dcPreencherFiltroAnos(rows) {
+  var vendas = Array.isArray(rows) ? rows : [];
+  var anos = [...new Set(vendas.map(function(v){
+    var data = dcDataValor(v);
+    return data ? data.getFullYear() : parseInt(v.ano, 10);
+  }).filter(Boolean))].sort();
+  var selAno = document.getElementById('dc-filtro-ano');
+  if (selAno) {
+    selAno.innerHTML = '<option value="0">Todos os anos</option>';
+    anos.forEach(function(a){ selAno.innerHTML += '<option value="'+a+'">'+a+'</option>'; });
+  }
+}
+
+function dcAplicarVendasCarregadas(vendas) {
+  DC_RAW = Array.isArray(vendas) ? vendas : [];
+  dcPreencherFiltroAnos(DC_RAW);
+  dcDefinirPeriodoInicial(DC_RAW);
+  dcAplicarFiltro();
+}
+
+async function dcTentarSnapshotCliente(eid, origem) {
+  if (!window.ReportCache) return null;
+  var cache = await window.ReportCache.getLatest(eid, 'dashboard_cliente', window.ReportCache.cacheKey(origem));
+  if (!cache || !cache.dados || !Array.isArray(cache.dados.vendas) || !cache.dados.vendas.length) return null;
+  return cache;
+}
+
+async function dcSalvarSnapshotCliente(eid, origem, vendas, periodoInicio, periodoFim) {
+  if (!window.ReportCache || !eid || !Array.isArray(vendas) || !vendas.length) return false;
+  return window.ReportCache.save({
+    empresa_id: eid,
+    tipo: 'dashboard_cliente',
+    cache_key: window.ReportCache.cacheKey(origem),
+    origem: origem || 'manual',
+    periodo_inicio: periodoInicio || null,
+    periodo_fim: periodoFim || null,
+    total_registros: vendas.length,
+    dados: {
+      vendas: vendas,
+      origem: origem || 'manual',
+      total_registros: vendas.length,
+      gerado_em: new Date().toISOString()
+    }
+  });
+}
+
 async function dcCarregarDados(empresa_id_param) {
   var eid = empresa_id_param || SESSION.empresa_id;
   if (!eid) { dcStatus('⚠ Empresa não selecionada.'); return; }
@@ -1252,6 +1298,18 @@ async function dcCarregarDados(empresa_id_param) {
       'A consulta da ultima sincronizacao demorou mais que o esperado.'
     );
 
+    dcStatus('Conferindo relatorios salvos...');
+    var snapshot = await dcTentarSnapshotCliente(eid, exibir);
+    if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
+    if (snapshot && snapshot.dados && Array.isArray(snapshot.dados.vendas)) {
+      dcStatus('OK relatorios salvos encontrados - abrindo painel', true);
+      dcAplicarVendasCarregadas(snapshot.dados.vendas);
+      if ((DC_DATA || []).length) {
+        dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
+      }
+      return;
+    }
+
     // Paginação: busca TODOS os registros em lotes (sem limite de 1000)
     dcStatus('⏳ Carregando dados...');
     var vendas = await dcComTimeout(
@@ -1290,6 +1348,9 @@ async function dcCarregarDados(empresa_id_param) {
     dcDefinirPeriodoInicial(vendas);
 
     dcAplicarFiltro();
+    dcSalvarSnapshotCliente(eid, exibir, vendas).catch(function(e) {
+      console.warn('[ReportCache] Snapshot do cliente nao foi salvo:', e);
+    });
     if ((DC_DATA || []).length) {
       dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
     }
@@ -3978,6 +4039,9 @@ adminSincronizar = async function() {
       throw new Error('Falha ao limpar dados antigos: HTTP ' + delAll.status + ': ' + delBody.slice(0,300));
     }
     _syncLog('Dados anteriores removidos com sucesso');
+    if (window.ReportCache) {
+      await window.ReportCache.clearEmpresa(EMPRESA_ATIVA.empresa_id);
+    }
 
     // Insere
     var inseridos = 0;
@@ -4035,6 +4099,12 @@ adminSincronizar = async function() {
     try { bdMapColumns(); } catch(e) { console.error(e); }
     try { bdAutoFill(); }   catch(e) { console.error(e); }
     try { bdUpdateAllTabs(); } catch(e) { console.error(e); }
+    if (window.ReportCache) {
+      var periodoInicioCache = dataInicio instanceof Date ? dataInicio.toISOString().slice(0,10) : null;
+      var periodoFimCache = dataFim instanceof Date ? dataFim.toISOString().slice(0,10) : null;
+      var cacheOk = await dcSalvarSnapshotCliente(EMPRESA_ATIVA.empresa_id, 'api', regs, periodoInicioCache, periodoFimCache);
+      _syncLog(cacheOk ? 'Snapshot dos relatórios salvo para o cliente.' : 'Snapshot não salvo: tabela relatorios_cache ainda não disponível.', cacheOk ? 'ok' : 'warn');
+    }
     if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
       GRIDS.bd.allData = BD_DATA.rows; GRIDS.bd.filtered = null;
       GRIDS.bd.page = 0; GRIDS.bd._render();

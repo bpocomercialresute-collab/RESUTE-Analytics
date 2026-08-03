@@ -29,6 +29,7 @@ const ALLOWED_SUPABASE_PATHS = [
   '/rest/v1/api_config',
   '/rest/v1/sync_log',
   '/rest/v1/admin_audit_log',
+  '/rest/v1/relatorios_cache',
   '/rest/v1/clientes_cad',
   '/rest/v1/produtos',
   '/rest/v1/representantes',
@@ -381,6 +382,26 @@ function assertAuthorized(appUser, targetUrl, method, body) {
     }
     if (isWrite) {
       throw new Error('Registros de auditoria nao podem ser alterados pelo navegador.');
+    }
+    return;
+  }
+
+  if (targetUrl.pathname === '/rest/v1/relatorios_cache') {
+    const empresaIdsCache = [
+      ...extractEmpresaIdsFromUrl(targetUrl),
+      ...extractEmpresaIdsFromBody(body)
+    ];
+
+    if (!empresaIdsCache.length) {
+      throw new Error('Empresa obrigatoria para consultar snapshots.');
+    }
+
+    if (!empresaIdsCache.every((empresaId) => canAccessEmpresa(appUser, empresaId))) {
+      throw new Error('Acesso negado para esta empresa.');
+    }
+
+    if (isWrite && appUser.papel !== 'super_admin') {
+      throw new Error('Apenas super_admin pode alterar snapshots.');
     }
     return;
   }

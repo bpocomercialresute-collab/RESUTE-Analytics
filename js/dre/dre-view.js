@@ -803,6 +803,37 @@ function _dreAtualizarDerivadasBD(gridBD) {
 }
 
 /** Intercepta _commit, _pasteAt e _paste para disparar callback após cada mudança. */
+function _dreNormalizarPastePlano(txt, startCol) {
+  if (startCol !== 0) return txt;
+  var linhas = String(txt || '').replace(/\r/g, '').split('\n');
+  if (linhas.length && linhas[linhas.length - 1] === '') linhas.pop();
+  if (!linhas.length) return txt;
+
+  var deveNormalizar = linhas.some(function(linha) {
+    var cells = linha.split('\t');
+    if (cells.length < 6) return false;
+    var c0 = String(cells[0] || '').trim().toUpperCase();
+    var c1 = String(cells[1] || '').trim().toUpperCase();
+    var c2 = String(cells[2] || '').trim().toUpperCase();
+    var c3 = String(cells[3] || '').trim();
+    var c4 = String(cells[4] || '').trim().toUpperCase();
+    var c5 = String(cells[5] || '').trim().toUpperCase();
+    var headerPlanoExcel = c0 === 'COD' && c1 === 'CONTA' && c2 === 'CAD' && c3.toUpperCase() === 'GRUPO';
+    var linhaPlanoExcel = c0 && c1 && c3 && /^[FV]?$/.test(c4) && /^[DI]?$/.test(c5);
+    return headerPlanoExcel || linhaPlanoExcel;
+  });
+
+  if (!deveNormalizar) return txt;
+
+  return linhas.map(function(linha) {
+    var cells = linha.split('\t');
+    if (cells.length < 6) return linha;
+    cells[4] = String(cells[4] || '').trim().toUpperCase();
+    cells[5] = String(cells[5] || '').trim().toUpperCase();
+    return [cells[0], cells[1], cells[3], cells[4], cells[5]].join('\t');
+  }).join('\n');
+}
+
 function _drePatchGrid(grid, cb) {
   var origCommit  = grid._commit.bind(grid);
   var origPasteAt = grid._pasteAt.bind(grid);
@@ -810,8 +841,16 @@ function _drePatchGrid(grid, cb) {
   var origUndo    = grid._undo ? grid._undo.bind(grid) : null;
 
   grid._commit = function() { origCommit(); cb(); };
-  grid._pasteAt = function(txt, r, c) { origPasteAt(txt, r, c); cb(); };
-  grid._paste   = function(txt)       { origPaste(txt); cb(); };
+  grid._pasteAt = function(txt, r, c) {
+    if (grid.key === 'dre_plano') txt = _dreNormalizarPastePlano(txt, c);
+    origPasteAt(txt, r, c);
+    cb();
+  };
+  grid._paste   = function(txt) {
+    if (grid.key === 'dre_plano') txt = _dreNormalizarPastePlano(txt, 0);
+    origPaste(txt);
+    cb();
+  };
   if (origUndo) grid._undo = function() { origUndo(); cb(); };
 }
 
