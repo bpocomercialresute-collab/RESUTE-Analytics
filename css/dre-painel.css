@@ -1,26 +1,26 @@
 ﻿/* ============================================================
-   PAINEL DRE â€” RESUTE
-   Paleta extraÃ­da da aba DESIGN do Modelo_DRE_Matheus.xlsx:
-     cabeÃ§alho  #002060   coluna TOT  #1C64C0
+   PAINEL DRE - RESUTE
+   Replica visual da aba DESIGN do Modelo DRE Matheus.xlsx:
+     cabeçalho  #002060   coluna TOT  #00B050
      despesas   #FF0000   linha total #FFFF00
-   Fonte Outfit/Archivo - numeros #,##0
+   Fonte Calibri 10 - números #,##0
    Todo seletor novo usa prefixo fin- (namespace fin-dre-).
    ============================================================ */
 
 .fin-wrap {
-  --fin-navy:      #0E1424;
-  --fin-navy-alt:  #2F3848;
-  --fin-green:     #1C64C0;
-  --fin-red:       #322E80;
-  --fin-yellow:    #EAEAEB;
-  --fin-ink:       #0E1424;
-  --fin-mute:      #8B90A4;
-  --fin-line:      #DCE3EC;
-  --fin-line-soft: #EAEAEB;
+  --fin-navy:      #002060;
+  --fin-navy-alt:  #0a2f7a;
+  --fin-green:     #00B050;
+  --fin-red:       #FF0000;
+  --fin-yellow:    #FFFF00;
+  --fin-ink:       #1a1a1a;
+  --fin-mute:      #6b7280;
+  --fin-line:      #d8dde5;
+  --fin-line-soft: #eceff4;
   --fin-bg:        #ffffff;
-  --fin-bg-soft:   #F5F7FA;
+  --fin-bg-soft:   #f6f8fb;
 
-  font-family: "Outfit", "Segoe UI", system-ui, sans-serif;
+  font-family: Calibri, "Segoe UI", system-ui, sans-serif;
   font-size: 13px;
   color: var(--fin-ink);
   background: var(--fin-bg);
@@ -229,16 +229,18 @@
 
 .fin-dre-tabela {
   width: 100%; border-collapse: collapse;
-  font-family: "Outfit", "Segoe UI", sans-serif; font-size: 12px;
+  font-family: Calibri, "Segoe UI", sans-serif; font-size: 10pt;
   font-variant-numeric: tabular-nums;
+  background: #fff;
 }
 
 /* --- cabeÃ§alho azul-marinho #002060 --- */
 .fin-dre-tabela thead th {
-  padding: 6px 8px; white-space: nowrap;
+  padding: 4px 8px; white-space: nowrap;
   background: var(--fin-navy); color: #fff;
-  font-weight: 700; text-align: right;
-  border-right: 1px solid rgba(255,255,255,.14);
+  font-weight: 400; text-align: center;
+  border-right: 1px solid #000;
+  border-bottom: 1px solid #000;
   position: sticky; top: 0; z-index: 2;
 }
 .fin-dre-tabela thead th.fin-dre-col-conta {
@@ -246,16 +248,16 @@
   position: sticky; left: 0; z-index: 3;
   text-transform: uppercase; letter-spacing: .3px;
 }
-/* --- coluna TOT em verde #1C64C0 --- */
+/* --- coluna TOT em verde #00B050 --- */
 .fin-dre-tabela thead th.fin-dre-col-tot { background: var(--fin-green); }
 
 /* --- linhas de conta --- */
 .fin-dre-tabela tbody td {
   padding: 3px 8px; text-align: right; white-space: nowrap;
-  border-bottom: 1px solid var(--fin-line-soft);
+  border: 1px solid var(--fin-line);
 }
-.fin-dre-tabela tbody tr:nth-child(even) td { background: #fbfcfe; }
-.fin-dre-tabela tbody tr:hover td { background: #eef3fb; }
+.fin-dre-tabela tbody tr:nth-child(even) td { background: #fff; }
+.fin-dre-tabela tbody tr:hover td { background: #fff; }
 
 .fin-dre-tabela td.fin-dre-col-conta {
   text-align: left; color: var(--fin-ink);
@@ -263,15 +265,18 @@
   background: var(--fin-bg);
   border-right: 1px solid var(--fin-line);
 }
-.fin-dre-tabela tbody tr:nth-child(even) td.fin-dre-col-conta { background: #fbfcfe; }
-.fin-dre-tabela tbody tr:hover td.fin-dre-col-conta { background: #eef3fb; }
+.fin-dre-tabela tbody tr:nth-child(even) td.fin-dre-col-conta { background: #fff; }
+.fin-dre-tabela tbody tr:hover td.fin-dre-col-conta { background: #fff; }
 
 /* --- valores de saÃ­da em vermelho #FF0000 --- */
 .fin-dre-val-saida   { color: var(--fin-red); }
 .fin-dre-val-entrada { color: var(--fin-ink); }
 .fin-dre-val-zero    { color: #b9c0cc; }
 
-.fin-dre-col-tot { font-weight: 700; }
+.fin-dre-col-tot {
+  font-weight: 700;
+  background: #E2F0D9;
+}
 .fin-dre-col-pct { color: var(--fin-mute); font-size: 11px; }
 
 /* --- linha de total: fundo amarelo #FFFF00 --- */
@@ -280,7 +285,7 @@
   padding: 5px 8px; text-align: right; white-space: nowrap;
   background: var(--fin-yellow) !important;
   color: var(--fin-red); font-weight: 700;
-  border-top: 1px solid #d4c400; border-bottom: 1px solid #d4c400;
+  border: 1px solid #000;
 }
 .fin-dre-tabela tfoot td.fin-dre-col-conta,
 .fin-dre-linha-total td.fin-dre-col-conta {
