@@ -807,10 +807,12 @@ function _drePatchGrid(grid, cb) {
   var origCommit  = grid._commit.bind(grid);
   var origPasteAt = grid._pasteAt.bind(grid);
   var origPaste   = grid._paste.bind(grid);
+  var origUndo    = grid._undo ? grid._undo.bind(grid) : null;
 
   grid._commit = function() { origCommit(); cb(); };
   grid._pasteAt = function(txt, r, c) { origPasteAt(txt, r, c); cb(); };
   grid._paste   = function(txt)       { origPaste(txt); cb(); };
+  if (origUndo) grid._undo = function() { origUndo(); cb(); };
 }
 
 /** Objeto plano -> array de células (mesma ordem de GRID_DEFS dre_plano). */

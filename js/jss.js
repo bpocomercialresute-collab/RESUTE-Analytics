@@ -80,6 +80,8 @@ function LiteGrid(container, key) {
   this.minRows   = 100;
   this.selRow    = -1;
   this.selCol    = -1;
+  this.undoStack = [];
+  this.maxUndo   = 50;
   this._build();
 }
 
@@ -158,6 +160,8 @@ LiteGrid.prototype._build = function() {
 
   // Teclado no input
   inp.addEventListener('keydown', function(e) {
+    var key = String(e.key || '').toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && key === 'z') { e.preventDefault(); self._undo(); return; }
     if (e.key === 'Enter')     { e.preventDefault(); self._commit(); self._move(1, 0); }
     else if (e.key === 'Tab')  { e.preventDefault(); self._commit(); self._move(0, e.shiftKey?-1:1); }
     else if (e.key === 'Escape') { self._hideInp(); }
@@ -196,18 +200,14 @@ LiteGrid.prototype._build = function() {
 
   this.container.addEventListener('copy', function(e) {
     if (e.target === inp) return;
-    if (self.selRow < 0 || self.selCol < 0) return;
-    var src = self.filtered !== null ? self.filtered : self.allData;
-    var val = (src[self.selRow] && src[self.selRow][self.selCol] !== undefined)
-      ? src[self.selRow][self.selCol]
-      : '';
-    e.preventDefault();
-    if (e.clipboardData) e.clipboardData.setData('text/plain', String(val || ''));
+    self._copySelected(e);
   });
 
   // Setas + Enter + Tab no container (modo navegação, sem editar)
   this.container.addEventListener('keydown', function(e) {
     if (e.target === inp) return;
+    var key = String(e.key || '').toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && key === 'z') { e.preventDefault(); self._undo(); return; }
     var map = {ArrowDown:[1,0], ArrowUp:[-1,0], ArrowRight:[0,1], ArrowLeft:[0,-1]};
     var d = map[e.key];
     if (!d && e.key !== 'Enter' && e.key !== 'Tab') return;
@@ -286,10 +286,58 @@ LiteGrid.prototype._commit = function() {
     var er = []; for(var j=0;j<ncols;j++) er.push(''); this.allData.push(er);
   }
   while (this.allData[ri].length < ncols) this.allData[ri].push('');
+  var oldVal = this.allData[ri][ci];
+  if (oldVal !== val) this._pushUndo({ type:'cells', oldLength:this.allData.length, changes:[{ri:ri, ci:ci, oldVal:oldVal}] });
   this.allData[ri][ci] = val;
   FULL_DATA[this.key] = this.allData.filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null; }); });
   this._renderRow(ri);
   this._updateStatus();
+};
+
+LiteGrid.prototype._pushUndo = function(entry) {
+  if (!entry) return;
+  this.undoStack.push(entry);
+  if (this.undoStack.length > this.maxUndo) this.undoStack.shift();
+};
+
+LiteGrid.prototype._undo = function() {
+  var entry = this.undoStack.pop();
+  if (!entry) return;
+  if (entry.type === 'replace') {
+    this.allData = entry.oldData || [];
+    this.filtered = null;
+    this.page = entry.oldPage || 0;
+  } else if (entry.type === 'cells') {
+    (entry.changes || []).forEach(function(ch) {
+      if (!this.allData[ch.ri]) return;
+      while (this.allData[ch.ri].length < this.def.cols.length) this.allData[ch.ri].push('');
+      this.allData[ch.ri][ch.ci] = ch.oldVal;
+    }.bind(this));
+    if (typeof entry.oldLength === 'number' && this.allData.length > entry.oldLength) {
+      this.allData.length = entry.oldLength;
+    }
+  }
+  FULL_DATA[this.key] = this.allData.filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null; }); });
+  this.filtered = null;
+  this._render();
+  this._updateStatus();
+  if (this.selRow >= 0 && this.selCol >= 0) {
+    var from = this.page * this.pageSize;
+    var rowIdx = this.selRow - from;
+    var tr = this._tbody ? this._tbody.querySelectorAll('tr')[rowIdx] : null;
+    var td = tr ? tr.querySelectorAll('td')[this.selCol + 1] : null;
+    if (td) this._select(this.selRow, this.selCol, td);
+  }
+};
+
+LiteGrid.prototype._copySelected = function(e) {
+  if (this.selRow < 0 || this.selCol < 0) return;
+  var src = this.filtered !== null ? this.filtered : this.allData;
+  var val = (src[this.selRow] && src[this.selRow][this.selCol] !== undefined)
+    ? src[this.selRow][this.selCol]
+    : '';
+  if (e) e.preventDefault();
+  if (e && e.clipboardData) e.clipboardData.setData('text/plain', String(val || ''));
 };
 
 LiteGrid.prototype._renderRow = function(ri) {
@@ -386,12 +434,17 @@ LiteGrid.prototype._pasteAt = function(txt, startRow, startCol) {
   if (startRow < 0) startRow = 0;
   if (startCol < 0) startCol = 0;
   var ncols = this.def.cols.length;
-  var lines = txt.split('\n').filter(function(l){ return l.trim(); });
+  var lines = String(txt || '').replace(/\r/g, '').split('\n');
+  if (lines.length && lines[lines.length - 1] === '') lines.pop();
+  lines = lines.filter(function(l){ return l.length || l.indexOf('\t') >= 0; });
   if (lines.length > 1) {
     var kw = ['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE','GRUPO','COD'];
     var fc = lines[0].split('\t');
     if (fc.some(function(c){ return kw.some(function(k){ return c.toUpperCase().indexOf(k)>=0; }); })) lines.shift();
   }
+  if (!lines.length) return;
+  var changes = [];
+  var oldLength = this.allData.length;
   while (this.allData.length < startRow + lines.length) {
     var er=[]; for(var j=0;j<ncols;j++) er.push(''); this.allData.push(er);
   }
@@ -399,15 +452,25 @@ LiteGrid.prototype._pasteAt = function(txt, startRow, startCol) {
     var ri = startRow + li;
     if (!this.allData[ri]) { this.allData[ri]=[]; }
     while (this.allData[ri].length < ncols) this.allData[ri].push('');
-    line.split('\t').forEach(function(v,ci){ var d=startCol+ci; if(d<ncols) this.allData[ri][d]=v; }.bind(this));
+    line.split('\t').forEach(function(v,ci){
+      var d=startCol+ci;
+      if(d<ncols) {
+        var oldVal = this.allData[ri][d];
+        if (oldVal !== v) changes.push({ri:ri, ci:d, oldVal:oldVal});
+        this.allData[ri][d]=v;
+      }
+    }.bind(this));
   }.bind(this));
+  if (changes.length) this._pushUndo({ type:'cells', oldLength:oldLength, changes:changes });
   FULL_DATA[this.key] = this.allData.filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null; }); });
   this.filtered=null; this._render(); this._updateStatus();
 };
 
 LiteGrid.prototype._paste = function(txt) {
   var ncols = this.def.cols.length;
-  var lines = txt.split('\n').filter(function(l){ return l.trim(); });
+  var lines = String(txt || '').replace(/\r/g, '').split('\n');
+  if (lines.length && lines[lines.length - 1] === '') lines.pop();
+  lines = lines.filter(function(l){ return l.length || l.indexOf('\t') >= 0; });
   var start = 0;
   if (lines.length>0) {
     var kw=['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE','GRUPO','COD'];
@@ -420,6 +483,7 @@ LiteGrid.prototype._paste = function(txt) {
     while(cells.length<ncols) cells.push('');
     data.push(cells.slice(0,ncols));
   }
+  this._pushUndo({ type:'replace', oldData:this.allData.map(function(r){ return (r || []).slice(); }), oldPage:this.page });
   FULL_DATA[this.key]=data; this.allData=data; this.filtered=null; this.page=0;
   this._render(); this._updateStatus();
 };
@@ -430,6 +494,7 @@ LiteGrid.prototype.getData = function() {
 
 LiteGrid.prototype.setData = function(data) {
   this.allData = (data||[]).filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null&&c!==undefined; }); });
+  this.undoStack = [];
   this.filtered=null; this.page=0; this._render(); this._updateStatus();
 };
 
