@@ -299,12 +299,7 @@ const DRE = (() => {
     const cls = v => num(v) === 0 ? 'fin-dre-val-zero'
                    : (saida ? 'fin-dre-val-saida' : 'fin-dre-val-entrada');
 
-    if (!g.linhas.length) {
-      return `<div class="fin-dre-bloco"><div class="fin-tabela-vazia">
-        Sem contas cadastradas em ${esc(item.nome)}.</div></div>`;
-    }
-
-    const corpo = g.linhas.map(l => {
+    const corpo = g.linhas.length ? g.linhas.map(l => {
       const tds = [`<td class="fin-dre-col-conta">${esc(l.conta)}</td>`];
       for (let i = estado.mesInicio; i <= estado.mesFim; i++)
         tds.push(`<td class="${cls(l.meses[i])}">${fmt(l.meses[i])}</td>`);
@@ -312,7 +307,8 @@ const DRE = (() => {
       tds.push(`<td class="${cls(l.med)}">${fmt(l.med)}</td>`);
       tds.push(`<td class="fin-dre-col-pct">${fmtPct(l.pct)}</td>`);
       return `<tr>${tds.join('')}</tr>`;
-    }).join('');
+    }).join('') : `<tr><td colspan="${(estado.mesFim - estado.mesInicio + 1) + 4}" class="fin-tabela-vazia">
+      Sem contas cadastradas em ${esc(item.nome)}.</td></tr>`;
 
     const prefixo = saida ? '(-)' : (item.paralelo ? '(=)' : '(+)');
     const rodape = [`<td class="fin-dre-col-conta">${prefixo} TOTAL ${esc(item.nome)}</td>`];

@@ -156,10 +156,10 @@ LiteGrid.prototype._build = function() {
     if (e.key === 'Enter')     { e.preventDefault(); self._commit(); self._move(1, 0); }
     else if (e.key === 'Tab')  { e.preventDefault(); self._commit(); self._move(0, e.shiftKey?-1:1); }
     else if (e.key === 'Escape') { self._hideInp(); }
-    else if (e.key === 'ArrowDown')  { self._commit(); self._move(1,  0); }
-    else if (e.key === 'ArrowUp')    { self._commit(); self._move(-1, 0); }
-    else if (e.key === 'ArrowRight' && inp.selectionEnd === inp.value.length) { self._commit(); self._move(0, 1); }
-    else if (e.key === 'ArrowLeft'  && inp.selectionStart === 0)              { self._commit(); self._move(0,-1); }
+    else if (e.key === 'ArrowDown')  { e.preventDefault(); self._commit(); self._move(1,  0); }
+    else if (e.key === 'ArrowUp')    { e.preventDefault(); self._commit(); self._move(-1, 0); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); self._commit(); self._move(0, 1); }
+    else if (e.key === 'ArrowLeft')  { e.preventDefault(); self._commit(); self._move(0,-1); }
   });
 
   inp.addEventListener('input', function() {
@@ -296,6 +296,7 @@ LiteGrid.prototype._move = function(dr, dc) {
   var ncols = this.def.cols.length;
   ri = Math.max(0, ri);
   ci = Math.max(0, Math.min(ncols-1, ci));
+  this._ensureRow(ri);
   // Vai para a página certa se necessário
   var from = this.page * this.pageSize;
   if (ri >= from + this.pageSize) { this.page++; this._render(); }
@@ -304,10 +305,25 @@ LiteGrid.prototype._move = function(dr, dc) {
   var rowIdx = ri - from2;
   if (!this._tbody) return;
   var rows = this._tbody.querySelectorAll('tr');
-  if (rowIdx < 0 || rowIdx >= rows.length) return;
+  if (rowIdx < 0 || rowIdx >= rows.length) {
+    this._render();
+    rows = this._tbody.querySelectorAll('tr');
+    if (rowIdx < 0 || rowIdx >= rows.length) return;
+  }
   var td = rows[rowIdx].querySelectorAll('td')[ci+1];
   this._scrollToTd(td); // scroll antes de selecionar → inp posicionado já com td visível
   this._select(ri, ci, td);
+};
+
+LiteGrid.prototype._ensureRow = function(ri) {
+  if (ri < 0) return;
+  var ncols = this.def.cols.length;
+  while (this.allData.length <= ri) {
+    var row = [];
+    for (var j = 0; j < ncols; j++) row.push('');
+    this.allData.push(row);
+  }
+  while (this.allData[ri].length < ncols) this.allData[ri].push('');
 };
 
 LiteGrid.prototype._hideInp = function() {
