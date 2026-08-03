@@ -359,7 +359,6 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
   };
 
   GRID_DEFS['dre_bd'] = { cols: [
-    {t:'ID',                 w:60,  auto:false},
     {t:'DT_CAIXA',           w:100, auto:false},
     {t:'DT_VENC',            w:100, auto:false},
     {t:'DT_PAG',             w:100, auto:false},
@@ -750,55 +749,55 @@ function _dreAtualizarDerivadasBD(gridBD) {
     var r = data[i];
     if (!r) continue;
 
-    // CONTA = índice 4
-    var conta = String(r[4] || '').trim().toLowerCase();
+    // CONTA = indice 3
+    var conta = String(r[3] || '').trim().toLowerCase();
     var pc = conta ? idx.get(conta) : null;
 
-    // 18: S_E  |  19: GRUPO
-    r[19] = pc ? (pc.grupo || '') : (conta ? '#N/A' : '');
-    r[18] = pc ? (SE_MAP[pc.grupo] || 'S') : (conta ? '#N/A' : '');
+    // 17: S_E  |  18: GRUPO
+    r[18] = pc ? (pc.grupo || '') : (conta ? '#N/A' : '');
+    r[17] = pc ? (SE_MAP[pc.grupo] || 'S') : (conta ? '#N/A' : '');
 
-    // DT_CAIXA = índice 1
-    var dt = String(r[1] || '');
+    // DT_CAIXA = indice 0
+    var dt = String(r[0] || '');
     var d  = dt ? new Date(dt) : null;
     var ok = d && !isNaN(d);
 
-    r[24] = ok ? d.getFullYear()                  : '';  // ANO
-    r[22] = ok ? (MESES[d.getMonth()] || '')      : '';  // MÊS
-    r[21] = ok ? d.getDate()                       : '';  // DIA
-    r[23] = ok ? (DIAS_SEM[d.getDay()] || '')     : '';  // DIA_SEM
-    r[29] = ok ? d.getFullYear()                  : '';  // safra
+    r[23] = ok ? d.getFullYear()                  : '';  // ANO
+    r[21] = ok ? (MESES[d.getMonth()] || '')      : '';  // MÊS
+    r[20] = ok ? d.getDate()                       : '';  // DIA
+    r[22] = ok ? (DIAS_SEM[d.getDay()] || '')     : '';  // DIA_SEM
+    r[28] = ok ? d.getFullYear()                  : '';  // safra
 
     // SEMANA_ANO
     if (ok) {
       var jan1 = new Date(d.getFullYear(), 0, 1);
-      r[26] = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
-    } else {
-      r[26] = '';
-    }
-
-    // ULTIMO_DIA_DO_MES
-    r[27] = ok ? new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() : '';
-
-    // DT_VENC = índice 2
-    var dtv = String(r[2] || '');
-    var dv  = dtv ? new Date(dtv) : null;
-    var okv = dv && !isNaN(dv);
-    if (okv) {
-      dv.setHours(0,0,0,0);
-      r[25] = dv < hoje ? 'VENCIDO' : 'NO PRAZO';  // VENC
+      r[25] = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
     } else {
       r[25] = '';
     }
 
-    // 20: STATUS — DT_PAG = índice 3
-    r[20] = r[4] ? (r[3] ? 'PG' : 'N') : '';
+    // ULTIMO_DIA_DO_MES
+    r[26] = ok ? new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() : '';
 
-    // 28: CNPJ_2 — copia CNPJ (índice 15)
-    r[28] = r[15] || '';
+    // DT_VENC = indice 1
+    var dtv = String(r[1] || '');
+    var dv  = dtv ? new Date(dtv) : null;
+    var okv = dv && !isNaN(dv);
+    if (okv) {
+      dv.setHours(0,0,0,0);
+      r[24] = dv < hoje ? 'VENCIDO' : 'NO PRAZO';  // VENC
+    } else {
+      r[24] = '';
+    }
 
-    // 30: CICLO — dias entre DT_CAIXA e DT_VENC
-    r[30] = (ok && okv) ? Math.round((dv - d) / 86400000) : '';
+    // 19: STATUS - DT_PAG = indice 2
+    r[19] = r[3] ? (r[2] ? 'PG' : 'N') : '';
+
+    // 27: CNPJ_2 - copia CNPJ (indice 14)
+    r[27] = r[14] || '';
+
+    // 29: CICLO - dias entre DT_CAIXA e DT_VENC
+    r[29] = (ok && okv) ? Math.round((dv - d) / 86400000) : '';
   }
   gridBD._render();
 }
@@ -832,7 +831,6 @@ function _drePlanoDeRows(rows) {
 function _dreRowsBD(lancs) {
   return (lancs || []).map(function(l) {
     return [
-      l.id           || '',                                  // 0:  ID
       l.dt_caixa     || '',                                  // 1:  DT_CAIXA
       l.dt_venc      || '',                                  // 2:  DT_VENC
       l.dt_pag       || '',                                  // 3:  DT_PAG
@@ -859,26 +857,26 @@ function _dreRowsBD(lancs) {
 function _dreLancDeRows(rows) {
   var cnpj = DRE.estado.cnpj;
   return rows
-    .filter(function(r) { return r[4] && r[1]; })  // CONTA(4) + DT_CAIXA(1)
+    .filter(function(r) { return r[3] && r[0]; })  // CONTA(3) + DT_CAIXA(0)
     .map(function(r) {
       return {
-        conta:        r[4]  || '',
-        dt_caixa:     r[1]  || '',
-        dt_venc:      r[2]  || null,
-        dt_pag:       r[3]  || null,
-        tipo:         r[5]  || null,
-        valor:        (r[6]  !== '' && r[6]  !== null) ? Number(r[6])  : null,
-        tot_pago:     (r[7]  !== '' && r[7]  !== null) ? Number(r[7])  : null,
-        parceiro:     r[8]  || null,
-        documento:    r[9]  || null,
-        banco:        r[10] || null,
-        forma:        r[11] || null,
-        parcela:      r[12] || null,
-        tot_parcelas: r[13] || null,
-        obs:          r[14] || null,
-        cnpj:         r[15] || cnpj,
-        dt_custoria:  r[16] || null,
-        historico:    r[17] || null
+        conta:        r[3]  || '',
+        dt_caixa:     r[0]  || '',
+        dt_venc:      r[1]  || null,
+        dt_pag:       r[2]  || null,
+        tipo:         r[4]  || null,
+        valor:        (r[5]  !== '' && r[5]  !== null) ? Number(r[5])  : null,
+        tot_pago:     (r[6]  !== '' && r[6]  !== null) ? Number(r[6])  : null,
+        parceiro:     r[7]  || null,
+        documento:    r[8]  || null,
+        banco:        r[9]  || null,
+        forma:        r[10] || null,
+        parcela:      r[11] || null,
+        tot_parcelas: r[12] || null,
+        obs:          r[13] || null,
+        cnpj:         r[14] || cnpj,
+        dt_custoria:  r[15] || null,
+        historico:    r[16] || null
       };
     });
 }
