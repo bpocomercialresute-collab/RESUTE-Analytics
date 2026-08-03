@@ -912,11 +912,69 @@ function adminConsoleRenderModulos() {
         + '</div>';
     }).join('');
 
+    var usuarios = adminConsoleUsuariosDaEmpresa(id);
+    var planoAtual = adminConsolePlanoDaEmpresa(id);
+    var temFinanceiro = planoAtual === 'financeiro' || planoAtual === 'completo';
+    var opcoesPlano = ADMIN_PLANOS.map(function(plano) {
+      return '<option value="' + plano.id + '"' + (plano.id === planoAtual ? ' selected' : '') + '>'
+        + adminConsoleEscape(plano.nome) + '</option>';
+    }).join('');
+    var contratoFinanceiro = adminConsoleContratoModulo(id, 'financeiro');
+    var expiraFinanceiro = contratoFinanceiro && contratoFinanceiro.expira_em
+      ? String(contratoFinanceiro.expira_em).slice(0, 10)
+      : '';
+    var listaUsuarios = usuarios.length
+      ? '<ul class="admin-fin-users">' + usuarios.map(function(user) {
+          return '<li><span><strong>' + adminConsoleEscape(user.nome || user.email || 'Acesso')
+            + '</strong><small>' + adminConsoleEscape(user.email || '') + '</small></span>'
+            + adminConsoleBadge(user.ativo === false ? 'Inativo' : (user.papel || 'cliente'),
+                                user.ativo === false ? 'danger' : 'neutral')
+            + '<button type="button" class="admin-btn-secondary" onclick="adminConsoleEditarUsuario(\''
+            + adminConsoleEscape(String(user.id)) + '\')">Editar</button></li>';
+        }).join('') + '</ul>'
+      : '<p class="admin-fin-sem-acesso">Nenhum acesso criado para esta empresa.</p>';
+
     return '<article class="admin-panel-card admin-module-card">'
       + '<div class="admin-card-heading"><div><span>EMPRESA</span>'
       + '<h2>' + adminConsoleEscape(empresa.nome || 'Empresa') + '</h2></div>'
-      + (empresa.ativo === false ? adminConsoleBadge('Empresa inativa', 'danger') : '')
-      + '</div>' + linhas + '</article>';
+      + (empresa.ativo === false
+          ? adminConsoleBadge('Empresa inativa', 'danger')
+          : adminConsoleBadge(adminConsolePlanoNome(planoAtual), temFinanceiro ? 'success' : 'neutral'))
+      + '</div>'
+      + linhas
+      + '<div class="admin-module-row">'
+      +   '<div class="admin-module-info"><strong>Plano contratado</strong>'
+      +   '<small>Define o que o cliente enxerga ao entrar no sistema.</small></div>'
+      +   '<select data-fin-plano="' + adminConsoleEscape(id) + '">' + opcoesPlano + '</select>'
+      +   '<label class="admin-module-expira">Expira em'
+      +   '<input type="date" value="' + adminConsoleEscape(expiraFinanceiro) + '" data-fin-expira="' + adminConsoleEscape(id) + '"></label>'
+      +   '<button type="button" class="admin-btn-primary" onclick="adminConsoleAplicarPlano(\'' + adminConsoleEscape(id) + '\')">Aplicar</button>'
+      + '</div>'
+      + '<div class="admin-module-row">'
+      +   '<div class="admin-module-info"><strong>Dados financeiros</strong>'
+      +   '<small>' + adminConsoleEscape(
+              typeof finAdminResumoTexto === 'function' ? finAdminResumoTexto(id) : ''
+            ) + '</small></div>'
+      +   '<button type="button" class="admin-btn-secondary" onclick="finAdminAbrirImportacao(\'' + adminConsoleEscape(id) + '\')">Importar lancamentos</button>'
+      +   '<button type="button" class="admin-btn-secondary admin-btn-danger" onclick="finAdminLimpar(\'' + adminConsoleEscape(id) + '\')">Limpar</button>'
+      + '</div>'
+      + '<div class="admin-module-row">'
+      +   '<div class="admin-module-info"><strong>Dados do DRE</strong>'
+      +   '<small>' + adminConsoleEscape(
+              typeof dreAdminResumoTexto === 'function' ? dreAdminResumoTexto(id) : ''
+            ) + '</small></div>'
+      +   '<button type="button" class="admin-btn-secondary" onclick="dreAbrirDoAdmin(\'' + adminConsoleEscape(id) + '\')">Abrir DRE</button>'
+      + '</div>'
+      + '<div class="admin-module-row admin-fin-acessos">'
+      +   '<div class="admin-module-info"><strong>Acessos (' + usuarios.length + ')</strong>'
+      +   '<small>Login de cliente. O super_admin gerencia tudo por aqui.</small></div>'
+      +   '<button type="button" class="admin-btn-secondary" onclick="adminConsoleNovoUsuarioPara(\'' + adminConsoleEscape(id) + '\')">Adicionar acesso</button>'
+      +   (temFinanceiro
+            ? '<button type="button" class="admin-btn-secondary" onclick="adminConsoleAbrirFinanceiroEmpresa(\'' + adminConsoleEscape(id) + '\')">Ver painel do cliente</button>'
+            : '')
+      + '</div>'
+      + listaUsuarios
+      + '</article>';
   }).join('');
 }
 
@@ -995,6 +1053,41 @@ function adminConsoleRenderFinanceiro() {
     var id = String(empresa.id || empresa.empresa_id || '');
     return { dados: empresa, id: id, plano: adminConsolePlanoDaEmpresa(id) };
   });
+
+  var empresasComDre = empresas.filter(function(item) {
+    if (item.dados && item.dados.ativo === false) return false;
+    return item.plano === 'financeiro' || item.plano === 'completo';
+  });
+  var termoFinanceiro = String((document.getElementById('admin-fin-search') || {}).value || '').trim().toLowerCase();
+  var planoFinanceiro = String((document.getElementById('admin-fin-plano') || {}).value || '');
+  var listaDre = empresasComDre.filter(function(item) {
+    if (termoFinanceiro && String(item.dados.nome || '').toLowerCase().indexOf(termoFinanceiro) === -1) return false;
+    if (planoFinanceiro && item.plano !== planoFinanceiro) return false;
+    return true;
+  });
+  var contadorFinanceiro = document.getElementById('admin-fin-result');
+  if (contadorFinanceiro) contadorFinanceiro.textContent = listaDre.length + ' empresa(s)';
+  if (!listaDre.length) {
+    grid.innerHTML = adminConsoleEmpty('Nenhuma empresa com DRE habilitado.');
+    return;
+  }
+  grid.innerHTML = listaDre.map(function(item) {
+    var id = item.id;
+    return '<article class="admin-panel-card admin-module-card">'
+      + '<div class="admin-card-heading"><div><span>EMPRESA</span>'
+      + '<h2>' + adminConsoleEscape(item.dados.nome || 'Empresa') + '</h2></div>'
+      + adminConsoleBadge('DRE habilitado', 'success')
+      + '</div>'
+      + '<div class="admin-module-row">'
+      +   '<div class="admin-module-info"><strong>Dados do DRE</strong>'
+      +   '<small>' + adminConsoleEscape(
+              typeof dreAdminResumoTexto === 'function' ? dreAdminResumoTexto(id) : ''
+            ) + '</small></div>'
+      +   '<button type="button" class="admin-btn-primary" onclick="dreAbrirDoAdmin(\'' + adminConsoleEscape(id) + '\')">Abrir painel DRE</button>'
+      + '</div>'
+      + '</article>';
+  }).join('');
+  return;
 
   // KPIs do topo — sempre sobre o total, não sobre o filtro
   var comFinanceiro = empresas.filter(function(e) { return e.plano === 'financeiro' || e.plano === 'completo'; });

@@ -374,30 +374,10 @@
 
           <section id="admin-section-financeiro" class="admin-console-section">
             <div class="admin-section-intro">
-              <div><span>PRODUTO FINANCEIRO</span><h2>Gest&atilde;o do Financeiro</h2><p>Quem contratou, quem tem acesso e como cada empresa enxerga o produto. O plano define o que o cliente v&ecirc; ao entrar.</p></div>
+              <div><span>PRODUTO FINANCEIRO</span><h2>Painel DRE</h2><p>Acesse o painel DRE das empresas com Financeiro habilitado. Contratos, planos, acessos e importa&ccedil;&otilde;es ficam em M&oacute;dulos e contratos.</p></div>
               <div class="admin-inline-actions">
                 <button class="admin-btn-secondary" onclick="adminConsoleCarregarModulos(true)">Atualizar</button>
-                <button class="admin-btn-primary" onclick="adminConsoleNovoUsuario()">Novo acesso</button>
               </div>
-            </div>
-
-            <div class="admin-overview-kpis">
-              <div class="admin-kpi-card"><span>Empresas com Financeiro</span><strong id="admin-fin-kpi-empresas">--</strong><small>contrato vigente</small></div>
-              <div class="admin-kpi-card"><span>Somente Financeiro</span><strong id="admin-fin-kpi-somente">--</strong><small>sem o m&oacute;dulo comercial</small></div>
-              <div class="admin-kpi-card"><span>Acessos liberados</span><strong id="admin-fin-kpi-usuarios">--</strong><small>usu&aacute;rios dessas empresas</small></div>
-              <div class="admin-kpi-card"><span>Contratos vencendo</span><strong id="admin-fin-kpi-vencendo">--</strong><small>pr&oacute;ximos 30 dias</small></div>
-            </div>
-
-            <div class="admin-section-toolbar">
-              <div class="admin-search-wrap"><input id="admin-fin-search" type="search" placeholder="Buscar empresa..." oninput="adminConsoleRenderFinanceiro()"></div>
-              <select id="admin-fin-plano" onchange="adminConsoleRenderFinanceiro()">
-                <option value="">Todos os planos</option>
-                <option value="completo">Comercial + Financeiro</option>
-                <option value="financeiro">Somente Financeiro</option>
-                <option value="comercial">Somente Comercial</option>
-                <option value="nenhum">Sem acesso</option>
-              </select>
-              <span id="admin-fin-result" class="admin-result-count">0 empresas</span>
             </div>
 
             <div id="admin-financeiro-grid" class="admin-modules-grid"></div>
@@ -405,7 +385,7 @@
 
           <section id="admin-section-modules" class="admin-console-section">
             <div class="admin-section-intro">
-              <div><span>CONTRATOS SAAS</span><h2>M&oacute;dulos por empresa</h2><p>Ligue ou desligue o Comercial e o Financeiro de cada cliente. Desativar um m&oacute;dulo bloqueia o acesso, mas nunca apaga dados.</p></div>
+              <div><span>CONTRATOS SAAS</span><h2>M&oacute;dulos e contratos</h2><p>Controle planos, m&oacute;dulos, expira&ccedil;&otilde;es, acessos, importa&ccedil;&otilde;es financeiras e abertura do DRE por empresa.</p></div>
               <button class="admin-btn-secondary" onclick="adminConsoleCarregarModulos(true)">Atualizar contratos</button>
             </div>
             <div class="admin-section-toolbar">
