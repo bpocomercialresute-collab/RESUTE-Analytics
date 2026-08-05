@@ -955,14 +955,6 @@ function adminConsoleRenderModulos() {
       +   '<button type="button" class="admin-btn-primary" onclick="adminConsoleAplicarPlano(\'' + adminConsoleEscape(id) + '\')">Aplicar</button>'
       + '</div>'
       + '<div class="admin-module-row">'
-      +   '<div class="admin-module-info"><strong>Dados financeiros</strong>'
-      +   '<small>' + adminConsoleEscape(
-              typeof finAdminResumoTexto === 'function' ? finAdminResumoTexto(id) : ''
-            ) + '</small></div>'
-      +   '<button type="button" class="admin-btn-secondary" onclick="finAdminAbrirImportacao(\'' + adminConsoleEscape(id) + '\')">Importar lancamentos</button>'
-      +   '<button type="button" class="admin-btn-secondary admin-btn-danger" onclick="finAdminLimpar(\'' + adminConsoleEscape(id) + '\')">Limpar</button>'
-      + '</div>'
-      + '<div class="admin-module-row">'
       +   '<div class="admin-module-info"><strong>Dados do DRE</strong>'
       +   '<small>' + adminConsoleEscape(
               typeof dreAdminResumoTexto === 'function' ? dreAdminResumoTexto(id) : ''
@@ -1171,15 +1163,6 @@ function adminConsoleRenderFinanceiro() {
       +   '<label class="admin-module-expira">Expira em'
       +   '<input type="date" value="' + adminConsoleEscape(expira) + '" data-fin-expira="' + adminConsoleEscape(id) + '"></label>'
       +   '<button type="button" class="admin-btn-primary" onclick="adminConsoleAplicarPlano(\'' + adminConsoleEscape(id) + '\')">Aplicar</button>'
-      + '</div>'
-
-      + '<div class="admin-module-row">'
-      +   '<div class="admin-module-info"><strong>Dados financeiros</strong>'
-      +   '<small>' + adminConsoleEscape(
-              typeof finAdminResumoTexto === 'function' ? finAdminResumoTexto(id) : ''
-            ) + '</small></div>'
-      +   '<button type="button" class="admin-btn-secondary" onclick="finAdminAbrirImportacao(\'' + adminConsoleEscape(id) + '\')">Importar lançamentos</button>'
-      +   '<button type="button" class="admin-btn-secondary admin-btn-danger" onclick="finAdminLimpar(\'' + adminConsoleEscape(id) + '\')">Limpar</button>'
       + '</div>'
 
       // DRE: a digitação (plano de contas, lançamentos, F_V/D_I) acontece dentro
