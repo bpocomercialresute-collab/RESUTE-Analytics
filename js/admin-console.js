@@ -567,24 +567,21 @@ function adminConsoleRenderEmpresas(list) {
       + adminConsoleEscape(company.slug || 'sem slug') + '</span></div>'
       + adminConsoleBadge(company.ativo === false ? 'Inativa' : 'Ativa', company.ativo === false ? 'neutral' : 'ok')
       + '</div>'
-      + '<div class="admin-company-metrics"><span><strong>' + companyUsers.length + '</strong> acesso(s)</span><span><strong>'
-      + companyUsers.filter(function(user) { return user.papel === 'cliente'; }).length + '</strong> cliente(s)</span><span><strong>'
-      + adminConsoleEscape(origin) + '</strong> origem</span><span><strong>'
-      + (integration && integration.ativo !== false ? 'Conectada' : 'Pendente') + '</strong> integracao</span><span><strong>'
-      + adminConsoleEscape(syncState.label) + '</strong> sincronizacao</span><span><strong>'
-      + adminConsoleEscape(latestSync
-        ? adminConsoleDate(latestSync.ultima_sync || latestSync.atualizado_em || latestSync.criado_em || latestSync.ultima_data, false)
-        : 'Nao registrada')
-      + '</strong> ultima execucao</span></div>'
-      + '<div class="admin-company-actions"><button onclick="adminConsoleEditarEmpresa(\'' + adminConsoleEscape(id) + '\')">Editar empresa</button>'
+      + '<div class="admin-company-info">'
+      + '<span>' + companyUsers.length + ' usuario(s)</span>'
+      + '<span class="admin-company-sync-' + adminConsoleEscape(syncState.type) + '">' + adminConsoleEscape(syncState.label) + '</span>'
+      + '<span>' + (integration && integration.ativo !== false ? 'Conectada' : 'Pendente') + '</span>'
+      + '</div>'
+      + '<div class="admin-company-actions">'
+      + '<button class="admin-company-primary" onclick="adminConsoleAbrirOperacao(\'' + adminConsoleEscape(id) + '\')">Abrir operacao</button>'
+      + '<button onclick="adminConsoleEditarEmpresa(\'' + adminConsoleEscape(id) + '\')">Editar</button>'
       + (integration
-        ? '<button onclick="adminConsoleEditarIntegracao(\'' + adminConsoleEscape(id) + '\')">Configurar API</button>'
+        ? '<button onclick="adminConsoleEditarIntegracao(\'' + adminConsoleEscape(id) + '\')">Config. API</button>'
         : '<button onclick="adminConsoleNovaIntegracao(\'' + adminConsoleEscape(id) + '\')">Conectar API</button>')
-      + '<button onclick="adminConsoleNovoUsuarioPara(\'' + adminConsoleEscape(id) + '\')">Adicionar usuario</button>'
-      + '<button onclick="adminConsoleFiltrarPorEmpresa(\'' + adminConsoleEscape(id) + '\')">Ver usuarios</button>'
+      + '<button onclick="adminConsoleFiltrarPorEmpresa(\'' + adminConsoleEscape(id) + '\')">Usuarios</button>'
       + '<button class="admin-company-danger" onclick="adminConsoleArquivarEmpresa(\'' + adminConsoleEscape(id) + '\')">Arquivar</button>'
-      + '<button class="admin-company-delete" onclick="adminConsoleExcluirEmpresa(\'' + adminConsoleEscape(id) + '\')">Excluir empresa</button>'
-      + '<button class="admin-company-primary" onclick="adminConsoleAbrirOperacao(\'' + adminConsoleEscape(id) + '\')">Abrir operacao</button></div>'
+      + '<button class="admin-company-delete" onclick="adminConsoleExcluirEmpresa(\'' + adminConsoleEscape(id) + '\')">Excluir</button>'
+      + '</div>'
       + '</article>';
   }).join('');
 }

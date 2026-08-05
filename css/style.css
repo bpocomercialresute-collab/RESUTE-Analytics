@@ -10906,6 +10906,37 @@ body.bpo-admin-mode .admin-integration-card {
 }
 body.bpo-admin-mode .admin-company-card h2 { font-size: 14px !important; }
 
+/* Company card: info line compacta (substitui metrics grid) */
+body.bpo-admin-mode .admin-company-info {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  margin: 10px 0 !important;
+}
+body.bpo-admin-mode .admin-company-info span {
+  padding: 3px 8px !important;
+  border-radius: 20px !important;
+  background: var(--admin-soft) !important;
+  color: var(--admin-muted) !important;
+  font-size: 10px !important;
+  white-space: nowrap !important;
+}
+body.bpo-admin-mode .admin-company-info .admin-company-sync-ok { color: #059669 !important; }
+body.bpo-admin-mode .admin-company-info .admin-company-sync-warn { color: #B45309 !important; }
+body.bpo-admin-mode .admin-company-info .admin-company-sync-error { color: #B42318 !important; }
+
+/* Company actions: flex-wrap em vez de grid 2 col */
+body.bpo-admin-mode .admin-company-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+}
+body.bpo-admin-mode .admin-company-actions button {
+  width: auto !important;
+  flex: 0 0 auto !important;
+  padding: 0 10px !important;
+}
+
 /* Modules grid */
 body.bpo-admin-mode .admin-modules-grid { gap: 8px !important; }
 body.bpo-admin-mode .adm-module-card { padding: 12px 14px !important; border-radius: 12px !important; }
