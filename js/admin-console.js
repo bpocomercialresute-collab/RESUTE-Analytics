@@ -700,10 +700,16 @@ function adminConsoleRenderIntegracoes() {
     return '<article class="admin-integration-card"><div class="admin-integration-head"><div><span>'
       + adminConsoleEscape(company) + '</span><h2>' + adminConsoleEscape(api.sistema || 'API') + '</h2></div>'
       + adminConsoleBadge(status.label, status.type) + '</div>'
-      + '<div class="admin-integration-info"><span>URL <strong>' + adminConsoleEscape(api.api_url || 'Nao configurada') + '</strong></span>'
-      + '<span>Ultima sincronizacao <strong>' + adminConsoleEscape(adminConsoleDate(log.ultima_sync || log.atualizado_em || log.criado_em || log.ultima_data, true)) + '</strong></span>'
-      + ((log.mensagem || log.erro) ? '<span>Resumo <strong>' + adminConsoleEscape(adminConsoleSafeText(log.mensagem || log.erro, 120)) + '</strong></span>' : '')
-      + '</div>'
+      + (function() {
+          var syncDate = adminConsoleDate(log.ultima_sync || log.atualizado_em || log.criado_em || log.ultima_data, true);
+          var erroTexto = log.erro || (log.mensagem && !String(log.mensagem).startsWith('CAMPOS_API') ? log.mensagem : '');
+          var rows = '';
+          if (api.api_url) rows += '<span>URL <strong>' + adminConsoleEscape(api.api_url) + '</strong></span>';
+          if (syncDate) rows += '<span>Sincronizado <strong>' + adminConsoleEscape(syncDate) + '</strong></span>';
+          if (erroTexto) rows += '<span>Aviso <strong>' + adminConsoleEscape(adminConsoleSafeText(erroTexto, 100)) + '</strong></span>';
+          if (!rows) rows = '<span>Nenhuma configuracao registrada</span>';
+          return '<div class="admin-integration-info">' + rows + '</div>';
+        })()
       + '<div class="admin-company-actions"><button onclick="adminConsoleEditarIntegracao(\'' + adminConsoleEscape(api.empresa_id) + '\')">Editar configuracao</button>'
       + '<button onclick="adminConsoleTestarIntegracao(\'' + adminConsoleEscape(api.empresa_id) + '\', this)">Testar conexao</button></div></article>';
   }).join('');
