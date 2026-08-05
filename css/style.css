@@ -7499,23 +7499,8 @@ body.bpo-admin-mode .av-exibir-btn:hover {
 }
 .dc-kpi-sub { display: none !important; }
 
-/* ── ALERTAS COMPACTOS ── */
-.dc-alert-grid {
-  grid-template-columns: repeat(4, 1fr) !important;
-  gap: 8px !important;
-}
-.dc-alert-card {
-  padding: 10px 12px !important;
-  border-radius: 12px !important;
-}
-.dc-alert-card strong {
-  font-size: 9px !important;
-}
-.dc-alert-card span {
-  font-size: 14px !important;
-  margin-top: 4px !important;
-}
-.dc-alert-card small { display: none !important; }
+/* ── ALERTAS REMOVIDOS ── */
+.dc-alert-grid { display: none !important; }
 
 @media (max-width: 980px) {
   .dc-kpis-grid { grid-template-columns: repeat(3, 1fr) !important; }
