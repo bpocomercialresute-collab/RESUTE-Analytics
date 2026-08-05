@@ -132,11 +132,11 @@ function dcChartEvolucao(rows) {
       datasets: [{
         label: 'Faturamento',
         data: data,
-        borderColor: '#1E3A5F',
-        backgroundColor: 'rgba(30,58,95,0.12)',
+        borderColor: '#1C64C0',
+        backgroundColor: 'rgba(28,100,192,0.12)',
         fill: true,
         tension: 0.4,
-        pointBackgroundColor: '#1E3A5F',
+        pointBackgroundColor: '#1C64C0',
         pointRadius: 4
       }]
     },
@@ -159,7 +159,7 @@ function dcChartTrimestre(rows) {
     type: 'doughnut',
     data: {
       labels: ['Jan-Mar','Abr-Jun','Jul-Set','Out-Dez'],
-      datasets: [{ data: Object.values(trim), backgroundColor: ['#92700C','#1E3A5F','#1C1C1E','#4A4A4C'], borderWidth: 0 }]
+      datasets: [{ data: Object.values(trim), backgroundColor: '#1C64C0', borderWidth: 0 }]
     },
     options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom',labels:{color:'#5A7A74',font:{size:10}}}, tooltip:{callbacks:{label:function(c){ return ' '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0}); }}} } }
   });
@@ -178,7 +178,7 @@ function dcChartProdutos(rows) {
   if (!ctx) return;
   DC_CHARTS['produtos'] = new Chart(ctx, {
     type: 'bar',
-    data: { labels:labels, datasets:[{label:'Faturamento',data:data,backgroundColor:'#1E3A5F',borderRadius:4}] },
+    data: { labels:labels, datasets:[{label:'Faturamento',data:data,backgroundColor:'#1C64C0',borderRadius:4}] },
     options: Object.assign(dcChartOpts(''),{indexAxis:'y'})
   });
 }
@@ -188,7 +188,7 @@ function dcChartGrupos(rows) {
   var map = {};
   rows.forEach(function(r){ var k=r.grupo||r.grupo_produto||'Sem grupo'; if(k&&k.trim()) map[k]=(map[k]||0)+(parseFloat(r.valor)||0); });
   var sorted = Object.entries(map).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
-  var cores = ['#1E3A5F','#92700C','#1C1C1E','#4A4A4C','#6B2114','#3B1F6E','#0C4A3E','#5C3D0E'];
+  var cores = ['#1C64C0','#1C64C0','#1C64C0','#1C64C0','#1C64C0','#1C64C0','#1C64C0','#1C64C0'];
 
   dcDestroyChart('dc-chart-grupos');
   var ctx = document.getElementById('dc-chart-grupos');
