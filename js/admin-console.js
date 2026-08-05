@@ -361,6 +361,7 @@ function adminConsoleAbrir(section, navItem) {
   if (breadcrumb) breadcrumb.textContent = meta.title;
 
   if (!ADMIN_CONSOLE.loaded) adminConsoleInicializar();
+  if (target === 'sync' && ADMIN_CONSOLE.loaded) _adminConsoleSyncPopularEmpresas();
   if (target === 'modules' || target === 'financeiro') adminConsoleCarregarModulos();
   if (target === 'financeiro' && typeof finAdminCarregarResumo === 'function') finAdminCarregarResumo();
   if (target === 'financeiro' && typeof dreAdminCarregarResumo === 'function') dreAdminCarregarResumo();
@@ -388,6 +389,7 @@ function adminConsoleRenderTudo() {
   adminConsoleFiltrarUsuarios();
   adminConsoleRenderIntegracoes();
   adminConsoleFiltrarSync();
+  _adminConsoleSyncPopularEmpresas();
   adminConsoleRenderAtividades();
   adminConsoleRenderAuditoria();
   adminConsoleRenderSeguranca();
