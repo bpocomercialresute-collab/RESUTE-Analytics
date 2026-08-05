@@ -7419,7 +7419,7 @@ body.bpo-admin-mode .av-exibir-btn:hover {
 }
 
 /* Compactacao do painel executivo inicial */
-/* ── HERO PREMIUM ── */
+/* ── HERO CLEAN ── */
 .dc-hero {
   display: block !important;
   margin-bottom: 12px !important;
@@ -7428,25 +7428,25 @@ body.bpo-admin-mode .av-exibir-btn:hover {
   display: flex !important;
   flex-direction: column !important;
   min-height: 0 !important;
-  padding: 18px 22px !important;
-  background: linear-gradient(135deg, #0b1a2e 0%, #0f2240 60%, #132d54 100%) !important;
-  border: 1px solid rgba(96,165,250,.18) !important;
-  border-radius: 18px !important;
-  box-shadow: 0 8px 32px rgba(2,8,20,.35), inset 0 1px 0 rgba(255,255,255,.04) !important;
+  padding: 16px 20px !important;
+  background: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06) !important;
 }
 .dc-hero-title {
-  font-size: clamp(17px, 2vw, 23px) !important;
+  font-size: clamp(17px, 2vw, 22px) !important;
   font-weight: 800 !important;
   line-height: 1.15 !important;
-  margin: 0 0 4px !important;
-  color: #f1f5f9 !important;
+  margin: 0 0 2px !important;
+  color: #0F172A !important;
   letter-spacing: -.02em !important;
 }
 .dc-periodo-label {
   font-size: 11px !important;
   font-weight: 600 !important;
   margin: 0 0 12px !important;
-  color: rgba(148,180,216,.7) !important;
+  color: #64748B !important;
 }
 .dc-hero-bar {
   display: flex;
@@ -7460,36 +7460,35 @@ body.bpo-admin-mode .av-exibir-btn:hover {
 }
 .dc-pill-btn {
   padding: 7px 16px;
-  border-radius: 10px;
-  border: 1px solid rgba(59,130,246,.35);
-  background: linear-gradient(135deg, rgba(59,130,246,.18) 0%, rgba(37,99,235,.12) 100%);
-  color: #93c5fd;
+  border-radius: 8px;
+  border: 1px solid #2563EB;
+  background: #2563EB;
+  color: #FFFFFF;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: .03em;
   cursor: pointer;
-  transition: all 180ms ease;
-  box-shadow: 0 2px 8px rgba(59,130,246,.12);
+  transition: all 150ms ease;
 }
 .dc-pill-btn:hover {
-  background: linear-gradient(135deg, rgba(59,130,246,.32) 0%, rgba(37,99,235,.22) 100%);
-  border-color: rgba(96,165,250,.55);
-  box-shadow: 0 4px 16px rgba(59,130,246,.2);
+  background: #1D4ED8;
+  border-color: #1D4ED8;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37,99,235,.25);
 }
 .dc-ordem-select {
   margin-left: auto;
   font-size: 11px !important;
   padding: 6px 12px !important;
   min-height: 0 !important;
-  border-radius: 10px !important;
-  background: rgba(255,255,255,.06) !important;
-  border: 1px solid rgba(148,180,216,.2) !important;
-  color: #94b4d8 !important;
+  border-radius: 8px !important;
+  background: #F8FAFC !important;
+  border: 1px solid #E2E8F0 !important;
+  color: #334155 !important;
 }
 .dc-executive-summary { display: none !important; }
 
-/* ── KPIs PREMIUM ── */
+/* ── KPIs CLEAN ── */
 .dc-kpis-grid {
   grid-template-columns: repeat(6, 1fr) !important;
   gap: 8px !important;
@@ -7497,15 +7496,15 @@ body.bpo-admin-mode .av-exibir-btn:hover {
 .dc-kpi-card {
   padding: 14px 16px !important;
   gap: 3px !important;
-  background: linear-gradient(145deg, #0d1f36 0%, #0f2744 100%) !important;
-  border: 1px solid rgba(96,165,250,.14) !important;
+  background: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
   border-radius: 14px !important;
-  box-shadow: 0 4px 16px rgba(2,8,20,.2), inset 0 1px 0 rgba(255,255,255,.03) !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05) !important;
   transition: border-color 200ms, box-shadow 200ms !important;
 }
 .dc-kpi-card:hover {
-  border-color: rgba(59,130,246,.35) !important;
-  box-shadow: 0 6px 24px rgba(59,130,246,.12) !important;
+  border-color: #93C5FD !important;
+  box-shadow: 0 4px 12px rgba(59,130,246,.1) !important;
 }
 .dc-kpi-icon { display: none !important; }
 .dc-kpi-code { display: none !important; }
@@ -7513,14 +7512,14 @@ body.bpo-admin-mode .av-exibir-btn:hover {
   font-size: 18px !important;
   font-weight: 900 !important;
   line-height: 1.15 !important;
-  color: #f1f5f9 !important;
+  color: #0F172A !important;
   letter-spacing: -.02em !important;
 }
 .dc-kpi-label {
   font-size: 9px !important;
   font-weight: 700 !important;
   margin-top: 3px !important;
-  color: rgba(148,180,216,.55) !important;
+  color: #94A3B8 !important;
   text-transform: uppercase !important;
   letter-spacing: .07em !important;
 }
