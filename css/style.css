@@ -10919,3 +10919,115 @@ body.bpo-admin-mode .admin-console-notice {
   border-radius: 10px !important;
   margin-bottom: 10px !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ADMIN OVERVIEW — coluna única, tudo compacto e próximo
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* KPIs: 4 colunas por linha mas cards horizontais */
+body.bpo-admin-mode .admin-overview-kpis {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+  margin-bottom: 8px !important;
+}
+
+/* Card KPI vira linha horizontal: label + valor em linha */
+body.bpo-admin-mode .admin-kpi-card {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-height: 0 !important;
+  padding: 9px 12px !important;
+  border-radius: 10px !important;
+}
+body.bpo-admin-mode .admin-kpi-card::before { display: none !important; }
+body.bpo-admin-mode .admin-kpi-card span {
+  font-size: 9px !important;
+  margin-bottom: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  flex: 1 !important;
+  order: 2 !important;
+}
+body.bpo-admin-mode .admin-kpi-card strong {
+  font-size: 18px !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  order: 1 !important;
+  flex-shrink: 0 !important;
+}
+body.bpo-admin-mode .admin-kpi-card small {
+  display: none !important;
+}
+
+/* Overview grid: coluna única (stacked) */
+body.bpo-admin-mode .admin-overview-grid {
+  grid-template-columns: 1fr !important;
+  gap: 8px !important;
+}
+
+/* Saúde e Ações lado a lado dentro de um sub-grid */
+body.bpo-admin-mode .admin-overview-grid .admin-overview-main,
+body.bpo-admin-mode .admin-overview-grid > .admin-panel-card:not(.admin-overview-main) {
+  padding: 12px 14px !important;
+}
+
+/* Coloca Saúde e Ações lado a lado num flex row */
+body.bpo-admin-mode .admin-overview-grid {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+}
+body.bpo-admin-mode .admin-overview-grid .admin-overview-main {
+  flex: 1.4 !important;
+  min-width: 0 !important;
+}
+body.bpo-admin-mode .admin-overview-grid > .admin-panel-card:not(.admin-overview-main) {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+/* Activity panel logo abaixo */
+body.bpo-admin-mode .admin-activity-panel {
+  margin-top: 8px !important;
+  padding: 12px 14px !important;
+}
+body.bpo-admin-mode .admin-activity-list { gap: 4px !important; }
+body.bpo-admin-mode .admin-activity-item {
+  padding: 7px 10px !important;
+  border-radius: 8px !important;
+  gap: 8px !important;
+}
+body.bpo-admin-mode .admin-activity-item strong { font-size: 11px !important; }
+body.bpo-admin-mode .admin-activity-item small,
+body.bpo-admin-mode .admin-activity-item time { font-size: 9px !important; }
+
+/* Quick actions mais compacto */
+body.bpo-admin-mode .admin-quick-actions { gap: 4px !important; }
+body.bpo-admin-mode .admin-quick-actions button {
+  min-height: 36px !important;
+  padding: 6px 28px 6px 10px !important;
+  font-size: 11px !important;
+  border-radius: 8px !important;
+}
+body.bpo-admin-mode .admin-quick-actions button::after { font-size: 14px !important; right: 10px !important; }
+body.bpo-admin-mode .admin-quick-actions small { display: none !important; }
+
+/* Health list mais compacto */
+body.bpo-admin-mode .admin-health-list { gap: 4px !important; }
+body.bpo-admin-mode .admin-health-item {
+  min-height: 36px !important;
+  padding: 6px 10px !important;
+  border-radius: 8px !important;
+  gap: 8px !important;
+}
+body.bpo-admin-mode .admin-health-item strong { font-size: 11px !important; }
+body.bpo-admin-mode .admin-health-item small  { display: none !important; }
+body.bpo-admin-mode .admin-status-badge {
+  min-height: 20px !important;
+  padding: 0 7px !important;
+  font-size: 8px !important;
+}
