@@ -7419,34 +7419,39 @@ body.bpo-admin-mode .av-exibir-btn:hover {
 }
 
 /* Compactacao do painel executivo inicial */
-/* ── HERO COMPACTO ── */
+/* ── HERO PREMIUM ── */
 .dc-hero {
   display: block !important;
-  margin-bottom: 10px !important;
+  margin-bottom: 12px !important;
 }
 .dc-hero-copy {
   display: flex !important;
   flex-direction: column !important;
   min-height: 0 !important;
-  padding: 14px 18px !important;
-  border: 1px solid rgba(96,165,250,.22) !important;
+  padding: 18px 22px !important;
+  background: linear-gradient(135deg, #0b1a2e 0%, #0f2240 60%, #132d54 100%) !important;
+  border: 1px solid rgba(96,165,250,.18) !important;
   border-radius: 18px !important;
-  box-shadow: 0 12px 28px rgba(2,8,20,.22) !important;
+  box-shadow: 0 8px 32px rgba(2,8,20,.35), inset 0 1px 0 rgba(255,255,255,.04) !important;
 }
 .dc-hero-title {
-  font-size: clamp(16px, 2vw, 22px) !important;
+  font-size: clamp(17px, 2vw, 23px) !important;
+  font-weight: 800 !important;
   line-height: 1.15 !important;
   margin: 0 0 4px !important;
+  color: #f1f5f9 !important;
+  letter-spacing: -.02em !important;
 }
 .dc-periodo-label {
   font-size: 11px !important;
-  margin: 0 0 10px !important;
-  opacity: .7 !important;
+  font-weight: 600 !important;
+  margin: 0 0 12px !important;
+  color: rgba(148,180,216,.7) !important;
 }
 .dc-hero-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 .dc-hero-pills {
@@ -7454,48 +7459,70 @@ body.bpo-admin-mode .av-exibir-btn:hover {
   gap: 6px;
 }
 .dc-pill-btn {
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(96,165,250,.28);
-  background: rgba(30,58,138,.25);
+  padding: 7px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(59,130,246,.35);
+  background: linear-gradient(135deg, rgba(59,130,246,.18) 0%, rgba(37,99,235,.12) 100%);
   color: #93c5fd;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: .04em;
+  letter-spacing: .03em;
   cursor: pointer;
-  transition: background 150ms, border-color 150ms;
+  transition: all 180ms ease;
+  box-shadow: 0 2px 8px rgba(59,130,246,.12);
 }
 .dc-pill-btn:hover {
-  background: rgba(30,58,138,.45);
-  border-color: rgba(96,165,250,.5);
+  background: linear-gradient(135deg, rgba(59,130,246,.32) 0%, rgba(37,99,235,.22) 100%);
+  border-color: rgba(96,165,250,.55);
+  box-shadow: 0 4px 16px rgba(59,130,246,.2);
+  transform: translateY(-1px);
 }
 .dc-ordem-select {
   margin-left: auto;
   font-size: 11px !important;
-  padding: 5px 10px !important;
+  padding: 6px 12px !important;
   min-height: 0 !important;
-  border-radius: 8px !important;
+  border-radius: 10px !important;
+  background: rgba(255,255,255,.06) !important;
+  border: 1px solid rgba(148,180,216,.2) !important;
+  color: #94b4d8 !important;
 }
 .dc-executive-summary { display: none !important; }
 
-/* ── KPIs COMPACTOS ── */
+/* ── KPIs PREMIUM ── */
 .dc-kpis-grid {
   grid-template-columns: repeat(6, 1fr) !important;
   gap: 8px !important;
 }
 .dc-kpi-card {
-  padding: 12px 14px !important;
-  gap: 2px !important;
+  padding: 14px 16px !important;
+  gap: 3px !important;
+  background: linear-gradient(145deg, #0d1f36 0%, #0f2744 100%) !important;
+  border: 1px solid rgba(96,165,250,.14) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 4px 16px rgba(2,8,20,.2), inset 0 1px 0 rgba(255,255,255,.03) !important;
+  transition: border-color 200ms, box-shadow 200ms !important;
+}
+.dc-kpi-card:hover {
+  border-color: rgba(59,130,246,.35) !important;
+  box-shadow: 0 6px 24px rgba(59,130,246,.12) !important;
 }
 .dc-kpi-icon { display: none !important; }
 .dc-kpi-code { display: none !important; }
 .dc-kpi-value {
-  font-size: 17px !important;
+  font-size: 18px !important;
+  font-weight: 900 !important;
   line-height: 1.15 !important;
+  color: #f1f5f9 !important;
+  letter-spacing: -.02em !important;
 }
 .dc-kpi-label {
   font-size: 9px !important;
-  margin-top: 2px !important;
+  font-weight: 700 !important;
+  margin-top: 3px !important;
+  color: rgba(148,180,216,.55) !important;
+  text-transform: uppercase !important;
+  letter-spacing: .07em !important;
 }
 .dc-kpi-sub { display: none !important; }
 
@@ -7504,11 +7531,9 @@ body.bpo-admin-mode .av-exibir-btn:hover {
 
 @media (max-width: 980px) {
   .dc-kpis-grid { grid-template-columns: repeat(3, 1fr) !important; }
-  .dc-alert-grid { grid-template-columns: repeat(2, 1fr) !important; }
 }
 @media (max-width: 600px) {
   .dc-kpis-grid { grid-template-columns: repeat(2, 1fr) !important; }
-  .dc-alert-grid { grid-template-columns: 1fr !important; }
   .dc-hero-bar { flex-direction: column !important; align-items: stretch !important; }
   .dc-ordem-select { margin-left: 0 !important; width: 100% !important; }
 }
