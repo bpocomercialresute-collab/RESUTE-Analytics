@@ -9768,7 +9768,122 @@ body.bpo-admin-mode .adm-sync-log-body   { background: #111827; }
   .dc-modulos-btn { padding: 6px 10px; }
 }
 
-/* â”€â”€ Painel financeiro (espaco reservado) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE GLOBAL — correções responsivas abrangentes ≤ 600px / 480px
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+
+  /* ── CUI HEADER (admin) ── */
+  .cui-header { padding: 0 12px !important; }
+  .cui-header-right { gap: 8px !important; flex-wrap: wrap !important; }
+  .cui-sync-status { display: none !important; }
+  .cui-breadcrumb { font-size: 13px !important; }
+  .cui-header-user-info { display: none !important; }
+  .cui-header-user-nome { font-size: 12px !important; }
+
+  /* ── CUI MAIN (admin) ── */
+  .cui-main { padding: 16px 14px 32px !important; }
+
+  /* ── BOTÕES — touch targets mínimos 44px ── */
+  .btn     { min-height: 44px !important; padding: 11px 20px !important; }
+  .btn-lg  { min-height: 48px !important; padding: 14px 24px !important; }
+  .voltar-btn   { min-height: 44px !important; padding: 10px 16px !important; }
+  .cui-btn-sync { min-height: 40px !important; padding: 10px 14px !important; }
+  .jss-btn      { min-height: 40px !important; padding: 9px 14px !important; }
+  .adm-btn      { min-height: 44px !important; padding: 12px 18px !important; }
+  .av-exibir-btn { min-height: 48px !important; padding: 14px 16px !important; }
+  .lp-btn       { min-height: 52px !important; }
+
+  /* ── DASHBOARD CLIENTE ── */
+  .dc-main { padding: 16px 14px 48px !important; }
+
+  /* Header do dashboard */
+  .dc-header { padding: 0 14px !important; height: 54px !important; }
+  .dc-client-logo { width: 110px !important; }
+
+  /* Hero: coluna única */
+  .dc-hero { grid-template-columns: 1fr !important; gap: 10px !important; }
+  .dc-hero-title { font-size: 22px !important; }
+  .dc-hero-sub { font-size: 14px !important; }
+
+  /* KPIs: 2 colunas no mobile */
+  .dc-kpis-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+  .dc-kpi-value { font-size: 18px !important; }
+
+  /* Grids responsivos: 1 coluna */
+  .dc-grid-2,
+  .dc-grid-2-1,
+  .dc-grid-3-2 { grid-template-columns: 1fr !important; }
+
+  /* Tabelas: scroll horizontal controlado */
+  .dc-tabela-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
+  .dc-tabela { min-width: 460px; }
+  .dc-sync-badge { max-width: 160px !important; font-size: 10px !important; }
+
+  /* ── ANÁLISE DE VENDAS (av-*) ── */
+  /* Abas com scroll horizontal */
+  .av-tabs-bar {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 2px !important;
+    scrollbar-width: none !important;
+  }
+  .av-tabs-bar::-webkit-scrollbar { display: none !important; }
+  .av-tab { flex-shrink: 0 !important; }
+
+  /* Grid de exibir: coluna única */
+  .av-exibir-grid { grid-template-columns: 1fr !important; max-width: 100% !important; }
+
+  /* LiteGrid: altura mínima funcional */
+  .lg-wrap { height: calc(100vh - 210px) !important; min-height: 280px !important; }
+  .jss-toolbar { flex-wrap: wrap !important; gap: 6px !important; }
+  .jss-info-bar { flex-wrap: wrap !important; gap: 6px !important; }
+  .jss-info-left { flex-wrap: wrap !important; gap: 4px !important; }
+
+  /* ── PAINEL ADM (adm-*) ── */
+  .adm-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; padding: 14px 14px !important; }
+  .adm-header-right { width: 100% !important; justify-content: flex-start !important; }
+  .adm-toggle-wrap { flex-wrap: wrap !important; }
+  .adm-sync-period-row { flex-direction: column !important; gap: 10px !important; }
+  .adm-sync-actions { flex-direction: column !important; gap: 8px !important; }
+  .adm-sync-actions button { width: 100% !important; justify-content: center !important; }
+  .adm-api-modulos { grid-template-columns: 1fr !important; }
+
+  /* ── RELATÓRIOS (rel-*, rep-*) ── */
+  .rel-area-header { flex-wrap: wrap !important; gap: 8px !important; padding: 10px 14px !important; }
+  .rel-print-btn { width: 100% !important; justify-content: center !important; }
+  .rel-area-title { font-size: 14px !important; }
+  .laudo-filtros { flex-direction: column !important; align-items: stretch !important; }
+
+  /* ── ADMIN CONSOLE ── */
+  .admin-overview-kpis { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+  .admin-overview-grid { grid-template-columns: 1fr !important; }
+  .admin-section-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }
+  .admin-search-wrap { width: 100% !important; }
+  .admin-search-wrap input { width: 100% !important; box-sizing: border-box !important; }
+  .admin-section-toolbar select { width: 100% !important; }
+  .admin-btn-primary,
+  .admin-btn-secondary { width: 100% !important; text-align: center !important; justify-content: center !important; }
+
+  /* ── FONTES ILEGÍVEIS ── */
+  .cui-brand-sub { font-size: 11px !important; }
+  .cui-nav-title { font-size: 11px !important; }
+
+  /* ── MISC ── */
+  .page-header { margin-bottom: 18px !important; }
+  .page-title { font-size: 20px !important; }
+  .hero { padding: 32px 0 24px !important; }
+  .hero-title { font-size: clamp(24px, 6vw, 34px) !important; }
+}
+
+@media (max-width: 480px) {
+  /* KPIs colapsa para 1 coluna em telas muito estreitas */
+  .dc-kpis-grid { grid-template-columns: 1fr !important; }
+  .admin-overview-kpis { grid-template-columns: 1fr !important; }
+}
+
+/* ── Painel financeiro (espaco reservado) ─────────────────────────────────── */
 .fin-main { padding-bottom: 40px; }
 .fin-empty {
   align-items: center;
