@@ -1627,13 +1627,11 @@ function dcAtualizarPeriodoLabel(rows) {
   var inicioEl = document.getElementById('dc-filtro-inicio');
   var fimEl = document.getElementById('dc-filtro-fim');
   var partes = [];
-  partes.push(ano ? 'Ano ' + ano : 'Todos os anos');
-  partes.push(mes ? MESES_FULL[mes - 1] : 'Todos os meses');
-  if (inicioEl && inicioEl.value && fimEl && fimEl.value) {
-    partes.push(inicioEl.value.split('-').reverse().join('/') + ' a ' + fimEl.value.split('-').reverse().join('/'));
-  }
-  partes.push((rows || []).length.toLocaleString('pt-BR') + ' registros no recorte');
-  el.textContent = partes.join(' • ');
+  if (mes && ano) partes.push(MESES_FULL[mes - 1] + ' ' + ano);
+  else if (ano) partes.push(String(ano));
+  else partes.push('Todos os períodos');
+  partes.push((rows || []).length.toLocaleString('pt-BR') + ' registros');
+  el.textContent = partes.join(' · ');
 }
 
 function dcPrepararDadosRelatorios(rows) {
@@ -2026,7 +2024,6 @@ function dcRenderAlertasExecutivos(rows, m) {
     return '<div class="dc-alert-card '+c.classe+'">'
       + '<strong>'+escapeHtml(c.titulo)+'</strong>'
       + '<span>'+escapeHtml(c.valor)+'</span>'
-      + '<small>'+escapeHtml(c.desc)+'</small>'
       + '</div>';
   }).join('');
 }
@@ -2110,18 +2107,16 @@ function dcRenderizar() {
 
   var kEl = document.getElementById('dc-kpis');
   if (kEl) kEl.innerHTML = [
-    { ico:'R$', val:dcMoedaLimpa(fat),             lbl:'Faturamento Total', sub: metricas.variacaoFat.texto },
-    { ico:'PD', val:ped.toLocaleString('pt-BR'),    lbl:'Pedidos', sub: metricas.variacaoPedidos.texto },
-    { ico:'TM', val:dcMoedaLimpa(tick),             lbl:'Ticket Médio' },
-    { ico:'CL', val:cli.toLocaleString('pt-BR'),    lbl:'Clientes Ativos' },
-    { ico:'PR', val:prd.toLocaleString('pt-BR'),    lbl:'Produtos' },
-    { ico:'RP', val:rep.toLocaleString('pt-BR'),    lbl:'Representantes' }
+    { val:dcMoedaLimpa(fat),             lbl:'Faturamento' },
+    { val:ped.toLocaleString('pt-BR'),    lbl:'Pedidos' },
+    { val:dcMoedaLimpa(tick),             lbl:'Ticket Médio' },
+    { val:cli.toLocaleString('pt-BR'),    lbl:'Clientes' },
+    { val:prd.toLocaleString('pt-BR'),    lbl:'Produtos' },
+    { val:rep.toLocaleString('pt-BR'),    lbl:'Representantes' }
   ].map(function(k){
     return '<div class="dc-kpi-card">'
-         + '<div class="dc-kpi-icon dc-kpi-code">'+k.ico+'</div>'
          + '<div class="dc-kpi-value">'+k.val+'</div>'
          + '<div class="dc-kpi-label">'+k.lbl+'</div>'
-         + (k.sub ? '<div class="dc-kpi-sub">'+escapeHtml(k.sub)+'</div>' : '')
          + '</div>';
   }).join('');
 

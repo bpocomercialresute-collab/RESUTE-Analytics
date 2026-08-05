@@ -1025,31 +1025,19 @@
 
       <section class="dc-hero">
         <div class="dc-hero-copy">
-          <div class="dc-hero-kicker">Painel executivo</div>
-          <h1 class="dc-hero-title">Resultados organizados por período, produto e representante.</h1>
-          <p class="dc-hero-sub">Visão comercial consolidada para acompanhar faturamento, mix de produtos, clientes e performance da equipe.</p>
+          <h1 class="dc-hero-title">Relatório Comercial</h1>
           <div id="dc-periodo-label" class="dc-periodo-label"></div>
-          <div id="dc-executive-summary" class="dc-executive-summary"></div>
-          <div class="dc-panel-tools">
-            <label>
-              Ordenar relatórios
-              <select id="dc-ordem-tabelas" class="dc-filtro" onchange="dcRenderizar()">
-                <option value="desc">Maior para menor</option>
-                <option value="asc">Menor para maior</option>
-                <option value="az">A-Z</option>
-              </select>
-            </label>
+          <div class="dc-hero-bar">
+            <div class="dc-hero-pills">
+              <button class="dc-pill-btn" onclick="dcAbrirRelatorio('relat-produtos')">Produtos</button>
+              <button class="dc-pill-btn" onclick="dcAbrirRelatorio('relat-representantes')">Representantes</button>
+            </div>
+            <select id="dc-ordem-tabelas" class="dc-filtro dc-ordem-select" onchange="dcRenderizar()">
+              <option value="desc">Maior para menor</option>
+              <option value="asc">Menor para maior</option>
+              <option value="az">A-Z</option>
+            </select>
           </div>
-        </div>
-        <div class="dc-hero-actions">
-          <button class="dc-action-btn" onclick="dcAbrirRelatorio('relat-produtos')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-            <span>RELAT PRODUTOS</span>
-          </button>
-          <button class="dc-action-btn" onclick="dcAbrirRelatorio('relat-representantes')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            <span>RELAT REPRESENTANTES</span>
-          </button>
         </div>
       </section>
 
