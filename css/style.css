@@ -7494,12 +7494,12 @@ body.bpo-admin-mode .av-exibir-btn:hover {
   gap: 8px !important;
 }
 .dc-kpi-card {
-  padding: 14px 16px !important;
-  gap: 3px !important;
+  padding: 8px 12px !important;
+  gap: 1px !important;
   background: #FFFFFF !important;
   border: 1px solid #E2E8F0 !important;
-  border-radius: 14px !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,.05) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04) !important;
   transition: border-color 200ms, box-shadow 200ms !important;
 }
 .dc-kpi-card:hover {
@@ -7508,20 +7508,21 @@ body.bpo-admin-mode .av-exibir-btn:hover {
 }
 .dc-kpi-icon { display: none !important; }
 .dc-kpi-code { display: none !important; }
-.dc-kpi-value {
-  font-size: 18px !important;
-  font-weight: 900 !important;
-  line-height: 1.15 !important;
-  color: #0F172A !important;
-  letter-spacing: -.02em !important;
-}
 .dc-kpi-label {
   font-size: 9px !important;
   font-weight: 700 !important;
-  margin-top: 3px !important;
+  margin: 0 !important;
   color: #94A3B8 !important;
   text-transform: uppercase !important;
   letter-spacing: .07em !important;
+  order: -1 !important;
+}
+.dc-kpi-value {
+  font-size: 16px !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+  color: #0F172A !important;
+  letter-spacing: -.02em !important;
 }
 .dc-kpi-sub { display: none !important; }
 

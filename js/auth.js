@@ -2115,8 +2115,8 @@ function dcRenderizar() {
     { val:rep.toLocaleString('pt-BR'),    lbl:'Representantes' }
   ].map(function(k){
     return '<div class="dc-kpi-card">'
-         + '<div class="dc-kpi-value">'+k.val+'</div>'
          + '<div class="dc-kpi-label">'+k.lbl+'</div>'
+         + '<div class="dc-kpi-value">'+k.val+'</div>'
          + '</div>';
   }).join('');
 
