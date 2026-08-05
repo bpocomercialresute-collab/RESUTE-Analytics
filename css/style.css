@@ -9859,10 +9859,12 @@ body.bpo-admin-mode .adm-sync-log-body   { background: #111827; }
   /* ── ADMIN CONSOLE ── */
   .admin-overview-kpis { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
   .admin-overview-grid { grid-template-columns: 1fr !important; }
-  .admin-section-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }
-  .admin-search-wrap { width: 100% !important; }
+  .admin-section-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; justify-content: flex-start !important; }
+  .admin-search-wrap { width: 100% !important; flex: none !important; }
   .admin-search-wrap input { width: 100% !important; box-sizing: border-box !important; }
-  .admin-section-toolbar select { width: 100% !important; }
+  .admin-section-toolbar select { width: 100% !important; flex: none !important; }
+  .admin-section-toolbar .admin-result-count { flex: none !important; }
+  .admin-section-toolbar .admin-btn-primary { flex: none !important; }
   .admin-btn-primary,
   .admin-btn-secondary { width: 100% !important; text-align: center !important; justify-content: center !important; }
 
