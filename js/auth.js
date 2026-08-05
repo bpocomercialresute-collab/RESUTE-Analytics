@@ -1967,9 +1967,10 @@ function dcVariacaoAtualAnterior(atual, anterior) {
 function dcMetricasDashboard(rows) {
   var fat = dcSomarValor(rows);
   var pedidos = dcContarPedidosUnicos(rows);
-  var clientes = new Set(rows.map(function(r){ return dcClienteNome(r); }).filter(function(v){ return v && v !== 'Sem cliente'; })).size;
-  var produtos = new Set(rows.map(function(r){ return dcProdutoNome(r); }).filter(function(v){ return v && v !== 'Sem produto'; })).size;
-  var representantes = new Set(rows.map(function(r){ return dcRepresentanteNome(r); }).filter(function(v){ return v && v !== 'Sem representante'; })).size;
+  var base = Array.isArray(DC_RAW) && DC_RAW.length ? DC_RAW : rows;
+  var clientes = new Set(base.map(function(r){ return dcClienteNome(r); }).filter(function(v){ return v && v !== 'Sem cliente'; })).size;
+  var produtos = new Set(base.map(function(r){ return dcProdutoNome(r); }).filter(function(v){ return v && v !== 'Sem produto'; })).size;
+  var representantes = new Set(base.map(function(r){ return dcRepresentanteNome(r); }).filter(function(v){ return v && v !== 'Sem representante'; })).size;
   var anterior = dcPeriodoAnteriorRows();
   var fatAnterior = dcSomarValor(anterior);
   return {

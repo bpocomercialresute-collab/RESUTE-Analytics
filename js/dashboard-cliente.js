@@ -85,9 +85,10 @@ function dcRenderizar() {
   var fatTotal   = rows.reduce(function(s,r){ return s + (parseFloat(r.valor)||0); }, 0);
   var nPedidos   = rows.length;
   var ticket     = nPedidos ? fatTotal / nPedidos : 0;
-  var clientes   = new Set(rows.map(function(r){ return r.cliente; }).filter(Boolean)).size;
-  var produtos   = new Set(rows.map(function(r){ return r.produto; }).filter(Boolean)).size;
-  var reps       = new Set(rows.map(function(r){ return r.vendedor; }).filter(Boolean)).size;
+  var base       = Array.isArray(DC_RAW) && DC_RAW.length ? DC_RAW : rows;
+  var clientes   = new Set(base.map(function(r){ return r.cliente; }).filter(Boolean)).size;
+  var produtos   = new Set(base.map(function(r){ return r.produto; }).filter(Boolean)).size;
+  var reps       = new Set(base.map(function(r){ return r.vendedor; }).filter(Boolean)).size;
 
   // KPIs
   function fmt(v){ return Number(v || 0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}); }
