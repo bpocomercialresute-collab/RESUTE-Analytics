@@ -1728,16 +1728,15 @@ function dcNumeroBase(valor) {
 function dcNumeroLimpo(valor, maxCasas) {
   var n = dcNumeroBase(valor);
   if (!Number.isFinite(n)) n = 0;
-  var casas = typeof maxCasas === 'number' ? maxCasas : 2;
-  var centavos = Math.round(Math.abs(n * 100)) % 100;
+  var casas = typeof maxCasas === 'number' ? maxCasas : 0;
   return n.toLocaleString('pt-BR', {
-    minimumFractionDigits: centavos ? Math.min(casas, 2) : 0,
+    minimumFractionDigits: 0,
     maximumFractionDigits: casas
   });
 }
 
 function dcMoedaLimpa(valor) {
-  return 'R$ ' + dcNumeroLimpo(valor, 2);
+  return dcNumeroLimpo(valor, 0);
 }
 
 function dcValorLinha(row) {
@@ -1835,9 +1834,9 @@ function dcValorCompacto(valor) {
   var n = dcNumeroBase(valor);
   if (!Number.isFinite(n)) n = 0;
   var abs = Math.abs(n);
-  if (abs >= 1000000) return 'R$ ' + dcNumeroLimpo(n / 1000000, 1) + ' mi';
-  if (abs >= 1000) return 'R$ ' + dcNumeroLimpo(n / 1000, 0) + ' mil';
-  return dcMoedaLimpa(n);
+  if (abs >= 1000000) return dcNumeroLimpo(n / 1000000, 1) + ' mi';
+  if (abs >= 1000) return dcNumeroLimpo(n / 1000, 0) + ' mil';
+  return dcNumeroLimpo(n, 0);
 }
 
 function dcOrdenacaoAtual() {
@@ -2189,7 +2188,7 @@ function _dcOpts(horizontal) {
     responsive: true, maintainAspectRatio: false,
     indexAxis: horizontal ? 'y' : 'x',
     plugins: { legend: { display: false },
-      tooltip: { callbacks: { label: function(c){ return ' ' + dcMoedaLimpa(c.raw); } } },
+      tooltip: { callbacks: { label: function(c){ return ' ' + dcNumeroLimpo(c.raw, 0); } } },
       dcValueLabels: { formatter: function(v){ return dcValorCompacto(v); }, color: '#0A2F2F' } },
     scales: {
       x: { ticks: { color: '#5A7A74', font: { size: 10 }, callback: function(v){ return this && this.type === 'category' ? this.getLabelForValue(v) : (typeof v==='number' ? dcValorCompacto(v) : v); } }, grid: { color: '#D5EDE8' } },
@@ -2226,48 +2225,54 @@ function _dcTabelaInativos(rows) {
 }
 
 function dcChartEvolucao(rows) {
-  var por_mes = {};
-  MESES.forEach(function(m,i){ por_mes[i+1] = 0; });
-  rows.forEach(function(r){
+  var fonte = Array.isArray(DC_RAW) && DC_RAW.length ? DC_RAW : rows;
+  var porAnoMes = {};
+  fonte.forEach(function(r) {
     var data = dcDataValor(r);
+    var ano = data ? data.getFullYear() : parseInt(r.ano, 10);
     var m = data ? data.getMonth() + 1 : dcMesNumero(r.mes);
-    if (m >= 1 && m <= 12) por_mes[m] = (por_mes[m]||0) + dcValorLinha(r);
+    if (!ano || m < 1 || m > 12) return;
+    if (!porAnoMes[ano]) porAnoMes[ano] = {};
+    porAnoMes[ano][m] = (porAnoMes[ano][m] || 0) + dcValorLinha(r);
   });
-  var labels = MESES;
-  var data   = Object.values(por_mes);
-
+  var anos = Object.keys(porAnoMes).sort();
+  var cores = ['#2563EB','#14746F','#D97706','#7C3AED','#DC2626','#059669','#0D4F4F','#93C5FD'];
+  var datasets = anos.map(function(ano, i) {
+    var d = [];
+    for (var m = 1; m <= 12; m++) d.push(porAnoMes[ano][m] || 0);
+    return {
+      label: String(ano),
+      data: d,
+      borderColor: cores[i % cores.length],
+      backgroundColor: 'transparent',
+      fill: false,
+      tension: 0.35,
+      pointBackgroundColor: cores[i % cores.length],
+      pointRadius: 3,
+      borderWidth: 2
+    };
+  });
   dcDestroyChart('dc-chart-evolucao');
   var ctx = document.getElementById('dc-chart-evolucao');
   if (!ctx) return;
   DC_CHARTS['evolucao'] = new Chart(ctx, {
     type: 'line',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Faturamento',
-        data: data,
-        borderColor: '#14746F',
-        backgroundColor: 'rgba(20,116,111,0.12)',
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: '#14746F',
-        pointRadius: 4
-      }]
-    },
-    options: dcChartOpts('R$ '),
+    data: { labels: MESES, datasets: datasets },
+    options: Object.assign(dcChartOpts(''), { plugins: { legend: { display: true, labels: { color: '#334155', font: { size: 11, weight: 700 } } }, tooltip: { callbacks: { label: function(c){ return c.dataset.label + ': ' + dcNumeroLimpo(c.raw, 0); } } }, dcValueLabels: { display: false } } }),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
 }
 
 // ── TRIMESTRES ────────────────────────────────────────────────────────────────
 function dcChartTrimestre(rows) {
-  var trim = {Q1:0,Q2:0,Q3:0,Q4:0};
-  rows.forEach(function(r){
+  var fonte = Array.isArray(DC_RAW) && DC_RAW.length ? DC_RAW : rows;
+  var trim = [0, 0, 0, 0];
+  fonte.forEach(function(r) {
     var data = dcDataValor(r);
     var m = data ? data.getMonth() + 1 : dcMesNumero(r.mes);
     if (!m) return;
     var v = dcValorLinha(r);
-    if (m<=3) trim.Q1+=v; else if(m<=6) trim.Q2+=v; else if(m<=9) trim.Q3+=v; else trim.Q4+=v;
+    if (m <= 3) trim[0] += v; else if (m <= 6) trim[1] += v; else if (m <= 9) trim[2] += v; else trim[3] += v;
   });
   dcDestroyChart('dc-chart-trimestre');
   var ctx = document.getElementById('dc-chart-trimestre');
@@ -2275,8 +2280,8 @@ function dcChartTrimestre(rows) {
   DC_CHARTS['trimestre'] = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: ['Q1 Jan-Mar','Q2 Abr-Jun','Q3 Jul-Set','Q4 Out-Dez'],
-      datasets: [{ data: Object.values(trim), backgroundColor: ['#14746F','#2DD4BF','#059669','#0D4F4F'], borderWidth: 0, borderRadius: 8 }]
+      labels: ['Jan-Mar', 'Abr-Jun', 'Jul-Set', 'Out-Dez'],
+      datasets: [{ data: trim, backgroundColor: ['#14746F', '#2DD4BF', '#059669', '#0D4F4F'], borderWidth: 0, borderRadius: 8 }]
     },
     options: _dcOpts(false),
     plugins: [DC_VALUE_LABEL_PLUGIN]
@@ -2305,12 +2310,12 @@ function dcChartOpts(prefix) {
     responsive: true, maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: function(c){ return ' ' + (prefix ? dcMoedaLimpa(c.raw) : dcNumeroLimpo(c.raw, 2)); } } },
-      dcValueLabels: { formatter: function(v){ return prefix ? dcValorCompacto(v) : dcNumeroLimpo(v, 0); }, color: '#0A2F2F' }
+      tooltip: { callbacks: { label: function(c){ return ' ' + dcNumeroLimpo(c.raw, 0); } } },
+      dcValueLabels: { formatter: function(v){ return dcValorCompacto(v); }, color: '#0A2F2F' }
     },
     scales: {
-      x: { ticks: { color: '#5A7A74', font: { size: 10 }, callback: function(v){ return this && this.type === 'category' ? this.getLabelForValue(v) : (prefix ? dcValorCompacto(v) : dcNumeroLimpo(v, 0)); } }, grid: { color: '#D5EDE8' } },
-      y: { ticks: { color: '#5A7A74', font: { size: 10 }, callback: function(v){ return this && this.type === 'category' ? this.getLabelForValue(v) : (prefix ? dcValorCompacto(v) : dcNumeroLimpo(v, 0)); } }, grid: { color: '#D5EDE8' } }
+      x: { ticks: { color: '#5A7A74', font: { size: 10 }, callback: function(v){ return this && this.type === 'category' ? this.getLabelForValue(v) : (typeof v === 'number' ? dcValorCompacto(v) : v); } }, grid: { color: '#D5EDE8' } },
+      y: { ticks: { color: '#5A7A74', font: { size: 10 }, callback: function(v){ return this && this.type === 'category' ? this.getLabelForValue(v) : (typeof v === 'number' ? dcValorCompacto(v) : v); } }, grid: { color: '#D5EDE8' } }
     }
   };
 }
@@ -2488,7 +2493,7 @@ function dcChartProdutos(rows) {
   DC_CHARTS['produtos'] = new Chart(ctx, {
     type: 'bar',
     data: { labels: sorted.map(function(e){ return dcTextoCurto(e[0], 36); }), datasets:[{label:'Faturamento',data:sorted.map(function(e){ return e[1]; }),backgroundColor:'rgba(20,116,111,0.82)',borderRadius:4}] },
-    options: Object.assign(dcChartOpts('R$ '),{indexAxis:'y'}),
+    options: Object.assign(dcChartOpts(''),{indexAxis:'y'}),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
 }

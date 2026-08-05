@@ -90,7 +90,7 @@ function dcRenderizar() {
   var reps       = new Set(rows.map(function(r){ return r.vendedor; }).filter(Boolean)).size;
 
   // KPIs
-  function fmt(v){ return typeof fmtValor === 'function' ? fmtValor(v) : 'R$ '+Number(v || 0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:2}); }
+  function fmt(v){ return Number(v || 0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}); }
   function set(id,val){ var el=document.getElementById(id); if(el) el.textContent=val; }
 
   set('dc-faturamento', fmt(fatTotal));
@@ -140,7 +140,7 @@ function dcChartEvolucao(rows) {
         pointRadius: 4
       }]
     },
-    options: dcChartOpts('R$ ')
+    options: dcChartOpts('')
   });
 }
 
@@ -158,10 +158,10 @@ function dcChartTrimestre(rows) {
   DC_CHARTS['trimestre'] = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['Q1 Jan-Mar','Q2 Abr-Jun','Q3 Jul-Set','Q4 Out-Dez'],
+      labels: ['Jan-Mar','Abr-Jun','Jul-Set','Out-Dez'],
       datasets: [{ data: Object.values(trim), backgroundColor: ['#14746F','#2DD4BF','#059669','#0D4F4F'], borderWidth: 0 }]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom',labels:{color:'#5A7A74',font:{size:10}}}, tooltip:{callbacks:{label:function(c){ return ' R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0}); }}} } }
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom',labels:{color:'#5A7A74',font:{size:10}}}, tooltip:{callbacks:{label:function(c){ return ' '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0}); }}} } }
   });
 }
 
@@ -179,7 +179,7 @@ function dcChartProdutos(rows) {
   DC_CHARTS['produtos'] = new Chart(ctx, {
     type: 'bar',
     data: { labels:labels, datasets:[{label:'Faturamento',data:data,backgroundColor:'rgba(20,116,111,0.82)',borderRadius:4}] },
-    options: Object.assign(dcChartOpts('R$ '),{indexAxis:'y'})
+    options: Object.assign(dcChartOpts(''),{indexAxis:'y'})
   });
 }
 
@@ -196,7 +196,7 @@ function dcChartGrupos(rows) {
   DC_CHARTS['grupos'] = new Chart(ctx, {
     type: 'pie',
     data: { labels:sorted.map(function(e){return e[0];}), datasets:[{data:sorted.map(function(e){return e[1];}),backgroundColor:cores,borderWidth:0}] },
-    options: { responsive:true,maintainAspectRatio:false, plugins:{ legend:{position:'right',labels:{color:'#5A7A74',font:{size:10},boxWidth:10}}, tooltip:{callbacks:{label:function(c){return ' R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0})+' ('+((c.raw/(DC_DATA.reduce(function(s,r){return s+(parseFloat(r.valor)||0);},0))||0)*100).toFixed(1)+'%)';}}} } }
+    options: { responsive:true,maintainAspectRatio:false, plugins:{ legend:{position:'right',labels:{color:'#5A7A74',font:{size:10},boxWidth:10}}, tooltip:{callbacks:{label:function(c){return ' '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:0})+' ('+((c.raw/(DC_DATA.reduce(function(s,r){return s+(parseFloat(r.valor)||0);},0))||0)*100).toFixed(1)+'%)';}}} } }
   });
 }
 
@@ -212,7 +212,7 @@ function dcTabelaReps(rows, fatTotal) {
     var pct = (e[1].fat/fatTotal*100).toFixed(1);
     var bar = (e[1].fat/max*100).toFixed(0);
     html += '<tr><td class="pos">'+(i+1)+'</td><td>'+e[0]+'</td><td>'+e[1].ped+'</td>'
-          + '<td class="num">R$ '+e[1].fat.toLocaleString('pt-BR',{minimumFractionDigits:0})+'</td>'
+          + '<td class="num">'+e[1].fat.toLocaleString('pt-BR',{minimumFractionDigits:0})+'</td>'
           + '<td style="min-width:80px"><div style="font-size:10px;color:#5A7A74;margin-bottom:2px">'+pct+'%</div>'
           + '<div class="dc-bar-wrap"><div class="dc-bar" style="width:'+bar+'%"></div></div></td></tr>';
   });
@@ -233,7 +233,7 @@ function dcTabelaUFs(rows, fatTotal) {
     var pct = (e[1]/fatTotal*100).toFixed(1);
     var bar = (e[1]/max*100).toFixed(0);
     html += '<tr><td class="pos">'+(i+1)+'</td><td>'+e[0]+'</td>'
-          + '<td class="num">R$ '+e[1].toLocaleString('pt-BR',{minimumFractionDigits:0})+'</td>'
+          + '<td class="num">'+e[1].toLocaleString('pt-BR',{minimumFractionDigits:0})+'</td>'
           + '<td style="min-width:80px"><div style="font-size:10px;color:#5A7A74;margin-bottom:2px">'+pct+'%</div>'
           + '<div class="dc-bar-wrap"><div class="dc-bar" style="width:'+bar+'%;background:#059669"></div></div></td></tr>';
   });
@@ -251,7 +251,7 @@ function dcTabelaClientes(rows, fatTotal) {
   var html = '<table class="dc-tabela"><thead><tr><th>#</th><th>Cliente</th><th>Pedidos</th><th style="text-align:right">Faturamento</th></tr></thead><tbody>';
   sorted.forEach(function(e,i){
     html += '<tr><td class="pos">'+(i+1)+'</td><td>'+e[0]+'</td><td>'+e[1].ped+'</td>'
-          + '<td class="num">R$ '+e[1].fat.toLocaleString('pt-BR',{minimumFractionDigits:0})+'</td></tr>';
+          + '<td class="num">'+e[1].fat.toLocaleString('pt-BR',{minimumFractionDigits:0})+'</td></tr>';
   });
   html += '</tbody></table>';
   var el = document.getElementById('dc-tabela-clientes');
@@ -308,7 +308,7 @@ function dcChartOpts(prefix) {
     },
     scales: {
       x: { ticks: { color: '#5A7A74', font: { size: 10 } }, grid: { color: '#D5EDE8' } },
-      y: { ticks: { color: '#5A7A74', font: { size: 10 }, callback: function(v){ return 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:0}); } }, grid: { color: '#D5EDE8' } }
+      y: { ticks: { color: '#5A7A74', font: { size: 10 }, callback: function(v){ return v.toLocaleString('pt-BR',{minimumFractionDigits:0}); } }, grid: { color: '#D5EDE8' } }
     }
   };
 }

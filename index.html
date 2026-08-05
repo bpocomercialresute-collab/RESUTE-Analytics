@@ -1056,24 +1056,20 @@
         <div class="dc-grid-2-1">
           <div class="dc-card">
             <div class="dc-card-title">Evolução Mensal</div>
-            <div class="dc-card-note">Mostra o faturamento mes a mes dentro do ano ou periodo selecionado.</div>
             <div class="dc-chart-box"><canvas id="dc-chart-evolucao"></canvas></div>
           </div>
           <div class="dc-card">
             <div class="dc-card-title">Por Trimestre</div>
-            <div class="dc-card-note">Compara o faturamento por trimestre em barras para leitura direta.</div>
             <div class="dc-chart-box"><canvas id="dc-chart-trimestre"></canvas></div>
           </div>
         </div>
         <div class="dc-grid-2">
           <div class="dc-card">
             <div class="dc-card-title">Comparativo Anual</div>
-            <div class="dc-card-note">Compara todos os anos carregados para acompanhar crescimento e queda.</div>
             <div class="dc-chart-box"><canvas id="dc-chart-ano"></canvas></div>
           </div>
           <div class="dc-card">
             <div class="dc-card-title">Faturamento por Dia da Semana</div>
-            <div class="dc-card-note">Identifica os dias que concentram mais faturamento no recorte.</div>
             <div class="dc-chart-box"><canvas id="dc-chart-diasem"></canvas></div>
           </div>
         </div>
@@ -1085,24 +1081,20 @@
         <div class="dc-grid-2">
           <div class="dc-card">
             <div class="dc-card-title">Top 10 Produtos por Faturamento</div>
-            <div class="dc-card-note">Produtos com maior participacao em valor no periodo filtrado.</div>
             <div class="dc-chart-box-tall"><canvas id="dc-chart-produtos"></canvas></div>
           </div>
           <div class="dc-card">
             <div class="dc-card-title">Top 10 Produtos por Quantidade</div>
-            <div class="dc-card-note">Produtos com maior volume vendido, independente do valor unitario.</div>
             <div class="dc-chart-box-tall"><canvas id="dc-chart-prodqtd"></canvas></div>
           </div>
         </div>
         <div class="dc-grid-2">
           <div class="dc-card">
             <div class="dc-card-title">Faturamento por Grupo</div>
-            <div class="dc-card-note">Agrupa produtos por grupo, familia ou categoria informada.</div>
             <div class="dc-chart-box"><canvas id="dc-chart-grupos"></canvas></div>
           </div>
           <div class="dc-card">
             <div class="dc-card-title">Faturamento por Marca</div>
-            <div class="dc-card-note">Mostra participacao por marca, industria ou familia.</div>
             <div class="dc-chart-box"><canvas id="dc-chart-marca"></canvas></div>
           </div>
         </div>
@@ -1114,7 +1106,6 @@
         <div class="dc-grid-3-2">
           <div class="dc-card">
             <div class="dc-card-title">Ranking Geral</div>
-            <div class="dc-card-note">Representantes ordenados por faturamento, pedidos ou nome.</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label>Ordenar
                 <select id="dc-ordem-dc-tab-reps" class="dc-filtro" onchange="dcRenderizar()">
@@ -1129,7 +1120,6 @@
           </div>
           <div class="dc-card">
             <div class="dc-card-title">Positivação (clientes únicos)</div>
-            <div class="dc-card-note">Clientes unicos atendidos por representante dentro do periodo.</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label>Ordenar
                 <select id="dc-ordem-positiv" class="dc-filtro" onchange="_dcTabelaPositivacao(DC_DATA)">
@@ -1158,7 +1148,6 @@
         <div class="dc-grid-2">
           <div class="dc-card">
             <div class="dc-card-title">Faturamento por Estado</div>
-            <div class="dc-card-note">Participacao de cada estado no faturamento do recorte.</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label>Ordenar
                 <select id="dc-ordem-dc-tab-ufs" class="dc-filtro" onchange="dcRenderizar()">
@@ -1173,7 +1162,6 @@
           </div>
           <div class="dc-card">
             <div class="dc-card-title">Top 10 Cidades</div>
-            <div class="dc-card-note">Cidades filtradas por UF quando um estado e selecionado.</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label>Ordenar
                 <select id="dc-ordem-dc-tab-cidades" class="dc-filtro" onchange="dcRenderizar()">
@@ -1195,7 +1183,6 @@
         <div class="dc-grid-2">
           <div class="dc-card">
             <div class="dc-card-title">Top 10 Clientes</div>
-            <div class="dc-card-note">Clientes com maior faturamento ou volume de pedidos no periodo.</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label>Ordenar
                 <select id="dc-ordem-dc-tab-cli" class="dc-filtro" onchange="dcRenderizar()">
@@ -1210,14 +1197,12 @@
           </div>
           <div class="dc-card">
             <div class="dc-card-title">Sem Compra Recente (30+ dias)</div>
-            <div class="dc-card-note">Clientes cuja ultima compra na base ja passou de 30 dias.</div>
             <div id="dc-tab-inat" class="dc-tabela-wrap"></div>
           </div>
         </div>
         <div class="dc-grid-2">
           <div class="dc-card">
             <div class="dc-card-title">Novos Clientes no Período</div>
-            <div class="dc-card-note">Clientes cuja primeira compra ocorreu dentro do filtro ativo.</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label>
                 Organizar
@@ -1232,7 +1217,6 @@
           </div>
           <div class="dc-card">
             <div class="dc-card-title">Ticket Médio por Cliente</div>
-            <div class="dc-card-note">Ticket medio por cliente considerando apenas clientes com 2+ pedidos.</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label>Ordenar
                 <select id="dc-ordem-ticket" class="dc-filtro" onchange="_dcTabelaTicketCliente(DC_DATA)">
@@ -1346,12 +1330,10 @@
           <div class="dc-grid-2">
             <div class="dc-card">
               <div class="dc-card-title">Receitas x Despesas</div>
-              <div class="dc-card-note">Compara entradas e saídas mês a mês no período selecionado.</div>
               <div class="dc-chart-box"><canvas id="fin-chart-receita-despesa"></canvas></div>
             </div>
             <div class="dc-card">
               <div class="dc-card-title">Evolução do Saldo</div>
-              <div class="dc-card-note">Saldo acumulado ao longo do período.</div>
               <div class="dc-chart-box"><canvas id="fin-chart-saldo"></canvas></div>
             </div>
           </div>
