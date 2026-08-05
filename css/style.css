@@ -10757,21 +10757,24 @@ textarea:focus {
    ADMIN CONSOLE COMPACTO — menos espaço, interface mais densa
    ═══════════════════════════════════════════════════════════════════ */
 
-/* Hero: mais baixo e compacto */
+/* Content: menos padding superior */
+body.bpo-admin-mode .admin-console-content {
+  padding: 14px 20px 40px !important;
+}
+
+/* Hero: strip para uma barra compacta de título */
 body.bpo-admin-mode .admin-console-hero {
-  min-height: 82px !important;
-  padding: 14px 20px !important;
+  min-height: 0 !important;
+  padding: 12px 20px !important;
   margin-bottom: 12px !important;
-  border-radius: 18px !important;
-  gap: 16px !important;
+  border-radius: 14px !important;
+  gap: 12px !important;
 }
+body.bpo-admin-mode .admin-console-hero .admin-console-kicker { display: none !important; }
+body.bpo-admin-mode .admin-console-hero p { display: none !important; }
 body.bpo-admin-mode .admin-console-hero h1 {
-  font-size: clamp(18px, 2vw, 26px) !important;
-}
-body.bpo-admin-mode .admin-console-hero p {
-  font-size: 12px !important;
-  margin-top: 5px !important;
-  line-height: 1.5 !important;
+  font-size: clamp(16px, 1.6vw, 22px) !important;
+  margin: 0 !important;
 }
 body.bpo-admin-mode .admin-console-session {
   min-width: 160px !important;
