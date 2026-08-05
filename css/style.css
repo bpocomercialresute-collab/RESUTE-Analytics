@@ -2661,30 +2661,47 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   .lp-nav-right { flex-shrink: 0; }
   .lp-nav-more { padding: 9px 14px; font-size: 12px; }
 
-  /* Main: centraliza o form verticalmente */
-  .lp-main { padding: 20px 16px 40px; align-items: flex-start; justify-content: center; }
+  /* Main */
+  .lp-main { padding: 20px 16px 40px !important; align-items: flex-start !important; justify-content: center !important; }
 
-  /* Hero: coluna única, form ocupa tudo */
-  .lp-hero { grid-template-columns: 1fr; gap: 0; max-width: 480px; margin: 0 auto; width: 100%; }
+  /* Hero: muda de grid para flex para evitar problemas de colunas implícitas */
+  .lp-hero {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 480px !important;
+    margin: 0 auto !important;
+    gap: 0 !important;
+  }
 
   /* Esconde conteúdo marketing — form fica sozinho e no topo */
   .lp-hero-kicker,
   .lp-hero-title,
   .lp-hero-sub { display: none !important; }
 
-  /* Form: reset grid, largura total */
-  .lp-form-wrap { grid-column: 1; grid-row: auto; width: 100%; max-width: 100%; }
-  .lp-form-box { padding: 28px 22px 24px; border-radius: 20px; }
-  .lp-form-title { font-size: 24px; margin-bottom: 8px; }
-  .lp-form-sub { font-size: 14px; margin-bottom: 20px; }
-  .lp-label { margin-bottom: 7px; }
+  /* Form: força largura total */
+  .lp-form-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-column: unset !important;
+    grid-row: unset !important;
+  }
+  .lp-form-box {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 28px 22px 24px !important;
+    border-radius: 20px !important;
+  }
+  .lp-form-title { font-size: 24px !important; margin-bottom: 8px !important; }
+  .lp-form-sub { font-size: 14px !important; margin-bottom: 20px !important; }
+  .lp-label { margin-bottom: 7px !important; }
 
   /* font-size 16px previne zoom automático no iOS */
-  .lp-input { font-size: 16px !important; padding: 15px 16px; border-radius: 12px; }
-  .lp-btn { border-radius: 12px; padding: 16px; font-size: 16px; }
+  .lp-input { font-size: 16px !important; padding: 15px 16px !important; border-radius: 12px !important; }
+  .lp-btn { border-radius: 12px !important; padding: 16px !important; font-size: 16px !important; }
 
   /* Mostra assurance no mobile */
-  .lp-form-assurance { display: flex; }
+  .lp-form-assurance { display: flex !important; }
 
   /* About page */
   .lp-about-topbar { flex-direction: column; align-items: flex-start; }
