@@ -2159,7 +2159,7 @@ function _dcChartAno(rows) {
   var ctx = document.getElementById('dc-chart-ano'); if (!ctx) return;
   DC_CHARTS['ano'] = new Chart(ctx, {
     type: 'bar',
-    data: { labels: anos, datasets: [{ data: anos.map(function(a){return porAno[a];}), backgroundColor: '#14746F', borderRadius: 6 }] },
+    data: { labels: anos, datasets: [{ data: anos.map(function(a){return porAno[a];}), backgroundColor: '#1E3A5F', borderRadius: 6 }] },
     options: _dcOpts(false),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
@@ -2177,7 +2177,7 @@ function _dcChartDiaSemana(rows) {
   var ctx = document.getElementById('dc-chart-diasem'); if (!ctx) return;
   DC_CHARTS['diasem'] = new Chart(ctx, {
     type: 'bar',
-    data: { labels: dias, datasets: [{ data: mp, backgroundColor: '#7C3AED', borderRadius: 6 }] },
+    data: { labels: dias, datasets: [{ data: mp, backgroundColor: '#1C1C1E', borderRadius: 6 }] },
     options: _dcOpts(false),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
@@ -2189,12 +2189,12 @@ function _dcOpts(horizontal) {
     indexAxis: horizontal ? 'y' : 'x',
     plugins: { legend: { display: false },
       tooltip: { callbacks: { label: function(c){ return ' ' + dcNumeroLimpo(c.raw, 0); } } },
-      dcValueLabels: { formatter: function(v){ return dcValorCompacto(v); }, color: '#0A2F2F' } },
+      dcValueLabels: { formatter: function(v){ return dcValorCompacto(v); }, color: '#1C1C1E' } },
     scales: {
-      x: { ticks: { color: '#5A7A74', font: { size: 10 }, callback: function(v){ return this && this.type === 'category' ? this.getLabelForValue(v) : (typeof v==='number' ? dcValorCompacto(v) : v); } }, grid: { color: '#D5EDE8' } },
-      y: { ticks: { color: '#5A7A74', font: { size: 10 },
+      x: { ticks: { color: '#4A4A4C', font: { size: 10 }, callback: function(v){ return this && this.type === 'category' ? this.getLabelForValue(v) : (typeof v==='number' ? dcValorCompacto(v) : v); } }, grid: { color: '#E2E8F0' } },
+      y: { ticks: { color: '#4A4A4C', font: { size: 10 },
             callback: function(v){ return this && this.type === 'category' ? this.getLabelForValue(v) : (typeof v==='number' ? dcValorCompacto(v) : v); } },
-           grid: { color: '#D5EDE8' } }
+           grid: { color: '#E2E8F0' } }
     }
   };
 }
@@ -2236,7 +2236,7 @@ function dcChartEvolucao(rows) {
     porAnoMes[ano][m] = (porAnoMes[ano][m] || 0) + dcValorLinha(r);
   });
   var anos = Object.keys(porAnoMes).sort();
-  var cores = ['#2563EB','#14746F','#D97706','#7C3AED','#DC2626','#059669','#0D4F4F','#93C5FD'];
+  var cores = ['#1E3A5F','#92700C','#1C1C1E','#6B2114','#3B1F6E','#0C4A3E','#5C3D0E','#4A4A4C'];
   var datasets = anos.map(function(ano, i) {
     var d = [];
     for (var m = 1; m <= 12; m++) d.push(porAnoMes[ano][m] || 0);
@@ -2281,7 +2281,7 @@ function dcChartTrimestre(rows) {
     type: 'bar',
     data: {
       labels: ['Jan-Mar', 'Abr-Jun', 'Jul-Set', 'Out-Dez'],
-      datasets: [{ data: trim, backgroundColor: ['#14746F', '#2DD4BF', '#059669', '#0D4F4F'], borderWidth: 0, borderRadius: 8 }]
+      datasets: [{ data: trim, backgroundColor: ['#92700C', '#1E3A5F', '#1C1C1E', '#4A4A4C'], borderWidth: 0, borderRadius: 8 }]
     },
     options: _dcOpts(false),
     plugins: [DC_VALUE_LABEL_PLUGIN]
@@ -2311,11 +2311,11 @@ function dcChartOpts(prefix) {
     plugins: {
       legend: { display: false },
       tooltip: { callbacks: { label: function(c){ return ' ' + dcNumeroLimpo(c.raw, 0); } } },
-      dcValueLabels: { formatter: function(v){ return dcValorCompacto(v); }, color: '#0A2F2F' }
+      dcValueLabels: { formatter: function(v){ return dcValorCompacto(v); }, color: '#1C1C1E' }
     },
     scales: {
-      x: { ticks: { color: '#5A7A74', font: { size: 10 }, callback: function(v){ return this && this.type === 'category' ? this.getLabelForValue(v) : (typeof v === 'number' ? dcValorCompacto(v) : v); } }, grid: { color: '#D5EDE8' } },
-      y: { ticks: { color: '#5A7A74', font: { size: 10 }, callback: function(v){ return this && this.type === 'category' ? this.getLabelForValue(v) : (typeof v === 'number' ? dcValorCompacto(v) : v); } }, grid: { color: '#D5EDE8' } }
+      x: { ticks: { color: '#4A4A4C', font: { size: 10 }, callback: function(v){ return this && this.type === 'category' ? this.getLabelForValue(v) : (typeof v === 'number' ? dcValorCompacto(v) : v); } }, grid: { color: '#E2E8F0' } },
+      y: { ticks: { color: '#4A4A4C', font: { size: 10 }, callback: function(v){ return this && this.type === 'category' ? this.getLabelForValue(v) : (typeof v === 'number' ? dcValorCompacto(v) : v); } }, grid: { color: '#E2E8F0' } }
     }
   };
 }
@@ -2330,7 +2330,7 @@ function _dcChartProdQtd(rows) {
   DC_CHARTS['prodqtd'] = new Chart(ctx, {
     type: 'bar',
     data: { labels: s.map(function(e){return dcTextoCurto(e[0], 34);}),
-            datasets: [{ data: s.map(function(e){return e[1];}), backgroundColor: '#059669', borderRadius: 4 }] },
+            datasets: [{ data: s.map(function(e){return e[1];}), backgroundColor: '#92700C', borderRadius: 4 }] },
     options: Object.assign(_dcOpts(false), {
       indexAxis: 'y',
       plugins: Object.assign(_dcOpts(false).plugins, {
@@ -2351,7 +2351,7 @@ function _dcChartMarca(rows) {
     type: 'bar',
     data: { labels: s.map(function(e){return dcTextoCurto(e[0], 24);}),
             datasets: [{ data: s.map(function(e){return e[1];}),
-              backgroundColor: ['#14746F','#2DD4BF','#059669','#0D4F4F','#D97706','#7C3AED','#DC2626','#5A7A74'], borderWidth: 0, borderRadius: 6 }] },
+              backgroundColor: ['#1E3A5F','#92700C','#1C1C1E','#4A4A4C','#6B2114','#3B1F6E','#0C4A3E','#5C3D0E'], borderWidth: 0, borderRadius: 6 }] },
     options: Object.assign(_dcOpts(false), { indexAxis: 'y' }),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
@@ -2492,7 +2492,7 @@ function dcChartProdutos(rows) {
   if (!ctx) return;
   DC_CHARTS['produtos'] = new Chart(ctx, {
     type: 'bar',
-    data: { labels: sorted.map(function(e){ return dcTextoCurto(e[0], 36); }), datasets:[{label:'Faturamento',data:sorted.map(function(e){ return e[1]; }),backgroundColor:'rgba(20,116,111,0.82)',borderRadius:4}] },
+    data: { labels: sorted.map(function(e){ return dcTextoCurto(e[0], 36); }), datasets:[{label:'Faturamento',data:sorted.map(function(e){ return e[1]; }),backgroundColor:'#1E3A5F',borderRadius:4}] },
     options: Object.assign(dcChartOpts(''),{indexAxis:'y'}),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
@@ -2502,7 +2502,7 @@ function dcChartGrupos(rows) {
   var map = {};
   rows.forEach(function(r){ var k = dcGrupoNome(r); if (k && k.trim()) map[k] = (map[k] || 0) + dcValorLinha(r); });
   var sorted = Object.entries(map).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
-  var cores = ['#14746F','#2DD4BF','#059669','#0D4F4F','#D97706','#7C3AED','#DC2626','#5A7A74'];
+  var cores = ['#1E3A5F','#92700C','#1C1C1E','#4A4A4C','#6B2114','#3B1F6E','#0C4A3E','#5C3D0E'];
   dcDestroyChart('dc-chart-grupos');
   var ctx = document.getElementById('dc-chart-grupos');
   if (!ctx) return;
