@@ -9871,8 +9871,13 @@ body.bpo-admin-mode .adm-sync-log-body   { background: #111827; }
   .admin-section-intro p { display: none !important; }
   .admin-section-intro { padding: 10px 14px !important; flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
   .admin-section-intro .admin-btn-secondary,
-  .admin-section-intro .admin-inline-actions,
   .admin-section-intro > button { align-self: stretch !important; text-align: center !important; }
+  .admin-section-intro .admin-inline-actions { flex-direction: column !important; width: 100% !important; }
+  .admin-section-intro .admin-inline-actions button { width: 100% !important; text-align: center !important; justify-content: center !important; }
+  /* Integration card: info compacta */
+  .admin-integration-info { margin: 10px 0 !important; gap: 6px !important; }
+  .admin-integration-info span { padding: 7px 10px !important; font-size: 9px !important; }
+  .admin-integration-info strong { font-size: 10px !important; max-width: 60% !important; }
   /* Module row: compacto, sem descriptions, botoes inline */
   .admin-module-info { flex: none !important; width: 100% !important; }
   .admin-module-info small { display: none !important; }

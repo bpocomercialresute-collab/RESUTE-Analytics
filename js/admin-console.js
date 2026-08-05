@@ -702,9 +702,8 @@ function adminConsoleRenderIntegracoes() {
       + adminConsoleBadge(status.label, status.type) + '</div>'
       + '<div class="admin-integration-info"><span>URL <strong>' + adminConsoleEscape(api.api_url || 'Nao configurada') + '</strong></span>'
       + '<span>Ultima sincronizacao <strong>' + adminConsoleEscape(adminConsoleDate(log.ultima_sync || log.atualizado_em || log.criado_em || log.ultima_data, true)) + '</strong></span>'
-      + '<span>Estado operacional <strong>' + adminConsoleEscape(status.label) + '</strong></span>'
       + ((log.mensagem || log.erro) ? '<span>Resumo <strong>' + adminConsoleEscape(adminConsoleSafeText(log.mensagem || log.erro, 120)) + '</strong></span>' : '')
-      + '<span>Client ID <strong>Protegido na Vercel</strong></span><span>Client Secret <strong>************</strong></span></div>'
+      + '</div>'
       + '<div class="admin-company-actions"><button onclick="adminConsoleEditarIntegracao(\'' + adminConsoleEscape(api.empresa_id) + '\')">Editar configuracao</button>'
       + '<button onclick="adminConsoleTestarIntegracao(\'' + adminConsoleEscape(api.empresa_id) + '\', this)">Testar conexao</button></div></article>';
   }).join('');
