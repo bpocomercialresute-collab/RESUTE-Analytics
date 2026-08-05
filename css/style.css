@@ -9867,14 +9867,25 @@ body.bpo-admin-mode .adm-sync-log-body   { background: #111827; }
   .admin-section-toolbar .admin-btn-primary { flex: none !important; }
   .admin-btn-primary,
   .admin-btn-secondary { width: 100% !important; text-align: center !important; justify-content: center !important; }
-  /* Section intro: esconde paragrafo verbose, compacta */
+  /* Section intro: sem paragrafo, coluna compacta */
   .admin-section-intro p { display: none !important; }
-  .admin-section-intro { padding: 10px 14px !important; flex-direction: row !important; align-items: center !important; }
-  .admin-section-intro > div { flex: 1 !important; min-width: 0 !important; }
-  /* Module row: corrige flex-grow vertical em coluna */
+  .admin-section-intro { padding: 10px 14px !important; flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
+  .admin-section-intro .admin-btn-secondary,
+  .admin-section-intro .admin-inline-actions,
+  .admin-section-intro > button { align-self: stretch !important; text-align: center !important; }
+  /* Module row: compacto, sem descriptions, botoes inline */
   .admin-module-info { flex: none !important; width: 100% !important; }
-  .admin-module-row { gap: 8px !important; padding-top: 10px !important; }
-  .admin-module-row .admin-btn-primary { width: 100% !important; }
+  .admin-module-info small { display: none !important; }
+  .admin-module-row { gap: 6px !important; padding-top: 8px !important; flex-wrap: wrap !important; }
+  .admin-module-row button { flex: 1 1 auto !important; width: auto !important; min-width: 0 !important; font-size: 11px !important; min-height: 36px !important; }
+  .admin-module-row select { width: 100% !important; font-size: 12px !important; }
+  /* Expiry input: compacto e inline */
+  .admin-module-expira { flex-direction: row !important; align-items: center !important; gap: 6px !important; width: 100% !important; }
+  .admin-module-expira input { flex: 1 !important; padding: 5px 8px !important; font-size: 11px !important; min-height: 34px !important; box-sizing: border-box !important; }
+  /* User list na aba modulos */
+  .admin-fin-users li { flex-wrap: wrap !important; gap: 6px !important; }
+  .admin-fin-users li span { flex: 1 !important; min-width: 0 !important; }
+  .admin-fin-users li button { flex: 0 0 auto !important; width: auto !important; font-size: 11px !important; min-height: 32px !important; }
 
   /* ── FONTES ILEGÍVEIS ── */
   .cui-brand-sub { font-size: 11px !important; }
