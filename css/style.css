@@ -10752,3 +10752,170 @@ textarea:focus {
 
 
 
+
+/* ═══════════════════════════════════════════════════════════════════
+   ADMIN CONSOLE COMPACTO — menos espaço, interface mais densa
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Hero: mais baixo e compacto */
+body.bpo-admin-mode .admin-console-hero {
+  min-height: 82px !important;
+  padding: 14px 20px !important;
+  margin-bottom: 12px !important;
+  border-radius: 18px !important;
+  gap: 16px !important;
+}
+body.bpo-admin-mode .admin-console-hero h1 {
+  font-size: clamp(18px, 2vw, 26px) !important;
+}
+body.bpo-admin-mode .admin-console-hero p {
+  font-size: 12px !important;
+  margin-top: 5px !important;
+  line-height: 1.5 !important;
+}
+body.bpo-admin-mode .admin-console-session {
+  min-width: 160px !important;
+  padding: 8px 12px !important;
+  gap: 8px !important;
+  border-radius: 12px !important;
+}
+body.bpo-admin-mode .admin-console-session strong { font-size: 11px !important; }
+body.bpo-admin-mode .admin-console-session small  { font-size: 9px  !important; }
+
+/* KPI grid: mais compacto */
+body.bpo-admin-mode .admin-overview-kpis {
+  gap: 8px !important;
+  margin-bottom: 10px !important;
+}
+body.bpo-admin-mode .admin-kpi-card {
+  min-height: 78px !important;
+  padding: 12px 14px !important;
+  border-radius: 14px !important;
+}
+body.bpo-admin-mode .admin-kpi-card strong {
+  font-size: 20px !important;
+  margin: 4px 0 3px !important;
+}
+body.bpo-admin-mode .admin-kpi-card span {
+  font-size: 9px !important;
+  margin-bottom: 0 !important;
+}
+body.bpo-admin-mode .admin-kpi-card small {
+  font-size: 8px !important;
+}
+
+/* Overview grid */
+body.bpo-admin-mode .admin-overview-grid {
+  gap: 10px !important;
+}
+
+/* Panel cards */
+body.bpo-admin-mode .admin-panel-card {
+  padding: 14px 16px !important;
+  border-radius: 14px !important;
+}
+body.bpo-admin-mode .admin-card-heading {
+  margin-bottom: 10px !important;
+  gap: 10px !important;
+}
+body.bpo-admin-mode .admin-card-heading h2,
+body.bpo-admin-mode .admin-section-intro h2 {
+  font-size: 14px !important;
+  letter-spacing: -.02em !important;
+}
+body.bpo-admin-mode .admin-card-heading span,
+body.bpo-admin-mode .admin-section-intro > div > span {
+  font-size: 9px !important;
+  margin-bottom: 2px !important;
+}
+
+/* Health items */
+body.bpo-admin-mode .admin-health-list { gap: 6px !important; }
+body.bpo-admin-mode .admin-health-item {
+  min-height: 46px !important;
+  padding: 8px 12px !important;
+  border-radius: 10px !important;
+  gap: 10px !important;
+}
+body.bpo-admin-mode .admin-health-item strong { font-size: 11px !important; }
+body.bpo-admin-mode .admin-health-item small  { font-size: 9px  !important; }
+
+/* Quick actions */
+body.bpo-admin-mode .admin-quick-actions { gap: 6px !important; }
+body.bpo-admin-mode .admin-quick-actions button {
+  min-height: 44px !important;
+  padding: 8px 34px 8px 12px !important;
+  border-radius: 10px !important;
+  font-size: 11px !important;
+}
+body.bpo-admin-mode .admin-quick-actions small { font-size: 9px !important; }
+
+/* Section toolbar */
+body.bpo-admin-mode .admin-section-toolbar {
+  gap: 8px !important;
+  padding: 10px 12px !important;
+  margin-bottom: 10px !important;
+  border-radius: 12px !important;
+}
+body.bpo-admin-mode .admin-section-toolbar input,
+body.bpo-admin-mode .admin-section-toolbar select {
+  min-height: 34px !important;
+  font-size: 11px !important;
+  border-radius: 8px !important;
+}
+
+/* Section intro */
+body.bpo-admin-mode .admin-section-intro {
+  margin-bottom: 12px !important;
+  gap: 12px !important;
+}
+body.bpo-admin-mode .admin-section-intro p {
+  font-size: 12px !important;
+  margin-top: 3px !important;
+}
+
+/* Botões */
+body.bpo-admin-mode .admin-btn-primary,
+body.bpo-admin-mode .admin-btn-secondary,
+body.bpo-admin-mode .admin-company-actions button,
+body.bpo-admin-mode .admin-table-action {
+  min-height: 34px !important;
+  padding: 0 12px !important;
+  font-size: 10px !important;
+  border-radius: 8px !important;
+}
+
+/* Activity list */
+body.bpo-admin-mode .admin-activity-list { gap: 6px !important; }
+body.bpo-admin-mode .admin-activity-item {
+  padding: 8px 12px !important;
+  border-radius: 10px !important;
+  gap: 10px !important;
+}
+
+/* Tabela de dados */
+body.bpo-admin-mode .admin-data-table th,
+body.bpo-admin-mode .admin-data-table td { padding: 8px 10px !important; font-size: 11px !important; }
+body.bpo-admin-mode .admin-table-card { border-radius: 14px !important; }
+
+/* Company/integration grid */
+body.bpo-admin-mode .admin-company-card,
+body.bpo-admin-mode .admin-integration-card {
+  padding: 14px 16px !important;
+  border-radius: 14px !important;
+}
+body.bpo-admin-mode .admin-company-card h2 { font-size: 14px !important; }
+
+/* Modules grid */
+body.bpo-admin-mode .admin-modules-grid { gap: 8px !important; }
+body.bpo-admin-mode .adm-module-card { padding: 12px 14px !important; border-radius: 12px !important; }
+body.bpo-admin-mode .adm-module-name { font-size: 13px !important; }
+body.bpo-admin-mode .adm-module-meta { font-size: 9px  !important; }
+
+/* Notice */
+body.bpo-admin-mode .admin-console-notice {
+  padding: 9px 14px !important;
+  font-size: 11px !important;
+  border-radius: 10px !important;
+  margin-bottom: 10px !important;
+}
