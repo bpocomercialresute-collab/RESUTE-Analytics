@@ -9887,6 +9887,37 @@ body.bpo-admin-mode .adm-sync-log-body   { background: #111827; }
   .admin-fin-users li span { flex: 1 !important; min-width: 0 !important; }
   .admin-fin-users li button { flex: 0 0 auto !important; width: auto !important; font-size: 11px !important; min-height: 32px !important; }
 
+  /* ── TABELA USUARIOS → CARDS ── */
+  /* Desativa scroll horizontal e min-width fixo */
+  .admin-table-scroll { overflow: visible !important; }
+  .admin-data-table { display: block !important; min-width: 0 !important; width: 100% !important; border-collapse: unset !important; }
+  .admin-data-table thead { display: none !important; }
+  .admin-data-table tbody { display: flex !important; flex-direction: column !important; gap: 6px !important; }
+  /* Cada tr vira um card */
+  .admin-data-table tr {
+    display: flex !important; flex-wrap: wrap !important; align-items: center !important;
+    gap: 4px 6px !important; padding: 10px 12px !important;
+    border-radius: 10px !important; border: 1px solid #E4F0ED !important;
+    background: #fff !important; margin-bottom: 0 !important;
+  }
+  .admin-data-table td { border-bottom: none !important; padding: 0 !important; font-size: 10px !important; }
+  /* Coluna 1: usuario — linha inteira */
+  .admin-data-table td:nth-child(1) { flex: 1 1 100% !important; padding-bottom: 4px !important; }
+  /* Colunas 2–4: empresa, papel, status — inline na mesma linha */
+  .admin-data-table td:nth-child(2) { color: var(--admin-muted, #5A7A74) !important; font-size: 10px !important; }
+  .admin-data-table td:nth-child(3),
+  .admin-data-table td:nth-child(4) { flex-shrink: 0 !important; }
+  /* Colunas 5–6: datas — esconder em mobile */
+  .admin-data-table td:nth-child(5),
+  .admin-data-table td:nth-child(6) { display: none !important; }
+  /* Coluna 7: acoes — linha inteira com botoes inline */
+  .admin-data-table td:nth-child(7) {
+    flex: 1 1 100% !important; padding-top: 8px !important;
+    border-top: 1px solid #E4F0ED !important; margin-top: 4px !important;
+  }
+  .admin-table-actions { display: flex !important; gap: 6px !important; flex-wrap: wrap !important; }
+  .admin-table-action { flex: 1 1 auto !important; text-align: center !important; min-height: 34px !important; font-size: 11px !important; padding: 0 10px !important; }
+
   /* ── FONTES ILEGÍVEIS ── */
   .cui-brand-sub { font-size: 11px !important; }
   .cui-nav-title { font-size: 11px !important; }
