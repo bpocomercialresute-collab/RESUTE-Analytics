@@ -1294,6 +1294,22 @@ async function dcCarregarDados(empresa_id_param) {
   DC_IS_LOADING = true;
 
   try {
+    // Tenta cache PRIMEIRO — sem loading screen, sem fetch de origem
+    dcStatus('Abrindo painel...');
+    var snapshotRapido = window.ReportCache
+      ? await window.ReportCache.getLatest(eid, 'dashboard_cliente', null)
+      : null;
+    if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
+    if (snapshotRapido && snapshotRapido.dados && Array.isArray(snapshotRapido.dados.vendas) && snapshotRapido.dados.vendas.length) {
+      dcAplicarVendasCarregadas(snapshotRapido.dados.vendas);
+      dcCarregarUltimaSync(eid).catch(function() {});
+      if ((DC_DATA || []).length) {
+        dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
+      }
+      return;
+    }
+
+    // Cache miss — mostra loading e busca tudo do banco
     dcLoading(true, 'Buscando dados e preparando os relatorios...');
     dcSetUltimaSync('Conferindo ultima sincronizacao...', false);
     // Busca qual origem o admin configurou para este cliente ver
@@ -1310,18 +1326,6 @@ async function dcCarregarDados(empresa_id_param) {
       20000,
       'A consulta da ultima sincronizacao demorou mais que o esperado.'
     );
-
-    dcStatus('Conferindo relatorios salvos...');
-    var snapshot = await dcTentarSnapshotCliente(eid, exibir);
-    if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
-    if (snapshot && snapshot.dados && Array.isArray(snapshot.dados.vendas)) {
-      dcStatus('OK relatorios salvos encontrados - abrindo painel', true);
-      dcAplicarVendasCarregadas(snapshot.dados.vendas);
-      if ((DC_DATA || []).length) {
-        dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
-      }
-      return;
-    }
 
     // Paginação: busca TODOS os registros em lotes (sem limite de 1000)
     dcStatus('⏳ Carregando dados...');
