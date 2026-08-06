@@ -1,7 +1,7 @@
 // =============================================================================
 // AUTH.JS — Login, sessão, sync API e salvar dados manuais
 // =============================================================================
-console.log('%c[RESUTE] auth.js v42 carregado', 'color:#1C64C0;font-weight:bold;font-size:14px');
+console.log('%c[RESUTE] auth.js v43 carregado', 'color:#1C64C0;font-weight:bold;font-size:14px');
 
 const SUPA_URL = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
 const SUPA_KEY = '__SERVER_ONLY__';
@@ -2344,7 +2344,7 @@ function _dcChartAno(rows) {
   DC_CHARTS['ano'] = new Chart(ctx, {
     type: 'bar',
     data: { labels: anos, datasets: [{ data: anos.map(function(a){return porAno[a];}), backgroundColor: '#1C64C0', borderRadius: 6 }] },
-    options: _dcOptsLabels(false, function(v){ return 'R$ ' + dcValorCompacto(v); }, { top: 28 }),
+    options: _dcOptsLabels(false, function(v){ return dcValorCompacto(v); }, { top: 28 }),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
 }
@@ -2412,7 +2412,7 @@ function _dcChartDiaSemana(rows) {
   DC_CHARTS['diasem'] = new Chart(ctx, {
     type: 'bar',
     data: { labels: dias, datasets: [{ data: mp, backgroundColor: '#1C64C0', borderRadius: 6 }] },
-    options: _dcOptsLabels(false, function(v){ return 'R$ ' + dcValorCompacto(v); }, { top: 28 }),
+    options: _dcOptsLabels(false, function(v){ return dcValorCompacto(v); }, { top: 28 }),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
 }
@@ -2503,7 +2503,7 @@ function dcChartEvolucao(rows) {
       layout: { padding: { top: 32, right: 8, left: 8 } },
       plugins: {
         legend: { display: true, labels: { color: '#334155', font: { size: 11, weight: 700 } } },
-        tooltip: { callbacks: { label: function(c){ return c.dataset.label + ': R$ ' + dcValorCompacto(c.raw); } } },
+        tooltip: { callbacks: { label: function(c){ return c.dataset.label + ': ' + dcValorCompacto(c.raw); } } },
         dcValueLabels: { display: false }
       }
     }),
@@ -2519,10 +2519,11 @@ function dcChartEvolucao(rows) {
           var meta = chart.getDatasetMeta(di);
           if (!meta || meta.hidden) return;
           c.fillStyle = String(ds.borderColor || '#1C64C0');
+          var offset = 8 + di * 14;
           meta.data.forEach(function(pt, i) {
             var v = Number(ds.data[i]);
             if (!v || !isFinite(v)) return;
-            c.fillText('R$ ' + dcValorCompacto(v), pt.x, pt.y - 6);
+            c.fillText(dcValorCompacto(v), pt.x, pt.y - offset);
           });
         });
         c.restore();
@@ -2615,7 +2616,7 @@ function _dcChartMarca(rows) {
     data: { labels: s.map(function(e){return dcTextoCurto(e[0], 24);}),
             datasets: [{ data: s.map(function(e){return e[1];}),
               backgroundColor: '#1C64C0', borderWidth: 0, borderRadius: 6 }] },
-    options: _dcOptsLabels(true, function(v){ return 'R$ ' + dcValorCompacto(v); }, { right: 80 }),
+    options: _dcOptsLabels(true, function(v){ return dcValorCompacto(v); }, { right: 80 }),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
 }
@@ -2756,7 +2757,7 @@ function dcChartProdutos(rows) {
   DC_CHARTS['produtos'] = new Chart(ctx, {
     type: 'bar',
     data: { labels: sorted.map(function(e){ return dcTextoCurto(e[0], 36); }), datasets:[{label:'Faturamento',data:sorted.map(function(e){ return e[1]; }),backgroundColor:'#1C64C0',borderRadius:4}] },
-    options: _dcOptsLabels(true, function(v){ return 'R$ ' + dcValorCompacto(v); }, { right: 80 }),
+    options: _dcOptsLabels(true, function(v){ return dcValorCompacto(v); }, { right: 80 }),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
 }
