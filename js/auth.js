@@ -1,7 +1,7 @@
 // =============================================================================
 // AUTH.JS — Login, sessão, sync API e salvar dados manuais
 // =============================================================================
-console.log('%c[RESUTE] auth.js v41 carregado', 'color:#1C64C0;font-weight:bold;font-size:14px');
+console.log('%c[RESUTE] auth.js v42 carregado', 'color:#1C64C0;font-weight:bold;font-size:14px');
 
 const SUPA_URL = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
 const SUPA_KEY = '__SERVER_ONLY__';
@@ -2499,8 +2499,35 @@ function dcChartEvolucao(rows) {
   DC_CHARTS['evolucao'] = new Chart(ctx, {
     type: 'line',
     data: { labels: MESES, datasets: datasets },
-    options: Object.assign(dcChartOpts(''), { layout: { padding: { top: 30 } }, plugins: { legend: { display: true, labels: { color: '#334155', font: { size: 11, weight: 700 } } }, tooltip: { callbacks: { label: function(c){ return c.dataset.label + ': R$ ' + dcValorCompacto(c.raw); } } }, dcValueLabels: { display: true, formatter: function(v){ return 'R$ ' + dcValorCompacto(v); }, color: '#1C1C1E', fontSize: 9, fontWeight: '700' } } }),
-    plugins: [DC_VALUE_LABEL_PLUGIN]
+    options: Object.assign(dcChartOpts(''), {
+      layout: { padding: { top: 32, right: 8, left: 8 } },
+      plugins: {
+        legend: { display: true, labels: { color: '#334155', font: { size: 11, weight: 700 } } },
+        tooltip: { callbacks: { label: function(c){ return c.dataset.label + ': R$ ' + dcValorCompacto(c.raw); } } },
+        dcValueLabels: { display: false }
+      }
+    }),
+    plugins: [{
+      id: 'evoLabels',
+      afterDraw: function(chart) {
+        var c = chart.ctx;
+        c.save();
+        c.font = 'bold 9px sans-serif';
+        c.textAlign = 'center';
+        c.textBaseline = 'bottom';
+        chart.data.datasets.forEach(function(ds, di) {
+          var meta = chart.getDatasetMeta(di);
+          if (!meta || meta.hidden) return;
+          c.fillStyle = String(ds.borderColor || '#1C64C0');
+          meta.data.forEach(function(pt, i) {
+            var v = Number(ds.data[i]);
+            if (!v || !isFinite(v)) return;
+            c.fillText('R$ ' + dcValorCompacto(v), pt.x, pt.y - 6);
+          });
+        });
+        c.restore();
+      }
+    }]
   });
 }
 
