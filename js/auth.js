@@ -1,7 +1,7 @@
 // =============================================================================
 // AUTH.JS — Login, sessão, sync API e salvar dados manuais
 // =============================================================================
-console.log('%c[RESUTE] auth.js v37 carregado', 'color:#1C64C0;font-weight:bold;font-size:14px');
+console.log('%c[RESUTE] auth.js v38 carregado', 'color:#1C64C0;font-weight:bold;font-size:14px');
 
 const SUPA_URL = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
 const SUPA_KEY = '__SERVER_ONLY__';
@@ -2085,10 +2085,9 @@ function dcVariacaoAtualAnterior(atual, anterior) {
 function dcMetricasDashboard(rows) {
   var fat = dcSomarValor(rows);
   var pedidos = dcContarPedidosUnicos(rows);
-  var base = Array.isArray(DC_RAW) && DC_RAW.length ? DC_RAW : rows;
-  var clientes = new Set(base.map(function(r){ return dcClienteNome(r); }).filter(function(v){ return v && v !== 'Sem cliente'; })).size;
-  var produtos = new Set(base.map(function(r){ return dcProdutoNome(r); }).filter(function(v){ return v && v !== 'Sem produto'; })).size;
-  var representantes = new Set(base.map(function(r){ return dcRepresentanteNome(r); }).filter(function(v){ return v && v !== 'Sem representante'; })).size;
+  var clientes = new Set(rows.map(function(r){ return dcClienteNome(r); }).filter(function(v){ return v && v !== 'Sem cliente'; })).size;
+  var produtos = new Set(rows.map(function(r){ return dcProdutoNome(r); }).filter(function(v){ return v && v !== 'Sem produto'; })).size;
+  var representantes = new Set(rows.map(function(r){ return dcRepresentanteNome(r); }).filter(function(v){ return v && v !== 'Sem representante'; })).size;
   var anterior = dcPeriodoAnteriorRows();
   var fatAnterior = dcSomarValor(anterior);
   return {
@@ -2304,7 +2303,13 @@ function _dcDiaSemFiltroChange() {
   var mes = document.getElementById('dc-diasem-mes');
   var sem = document.getElementById('dc-diasem-sem');
   if (sem) sem.disabled = !mes || !mes.value;
-  _dcChartDiaSemana(Array.isArray(DC_DATA) ? DC_DATA : []);
+  _dcChartDiaSemana([]);
+}
+
+function _dcDiaSemLocalDate(str) {
+  // Parse ISO date string as local date (avoids UTC midnight timezone shift)
+  var p = String(str || '').split('-');
+  return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : new Date(str);
 }
 
 function _dcChartDiaSemana(rows) {
@@ -2312,13 +2317,15 @@ function _dcChartDiaSemana(rows) {
   var mesSel = document.getElementById('dc-diasem-mes');
   var semSel = document.getElementById('dc-diasem-sem');
 
-  // Populate year dropdown from DC_RAW, preserving current selection
+  // Chart uses DC_RAW as source — independent of top period filter
+  var source = Array.isArray(DC_RAW) && DC_RAW.length ? DC_RAW : rows;
+
+  // Populate year dropdown from source, preserving current selection
   var anosMap = {};
-  var fonte = Array.isArray(DC_RAW) && DC_RAW.length ? DC_RAW : rows;
-  fonte.forEach(function(r) {
+  source.forEach(function(r) {
     if (!r.dt_saida) return;
-    var d = new Date(r.dt_saida);
-    if (!isNaN(d.getTime())) anosMap[d.getFullYear()] = true;
+    var yr = +String(r.dt_saida).split('-')[0];
+    if (yr > 1900) anosMap[yr] = true;
   });
   if (anoSel) {
     var prevAno = anoSel.value;
@@ -2333,20 +2340,21 @@ function _dcChartDiaSemana(rows) {
   var semFilter = semSel ? semSel.value : '';
   if (semSel) semSel.disabled = !mesFilter;
 
-  var filtered = rows.filter(function(r) {
+  var filtered = source.filter(function(r) {
     if (!r.dt_saida) return false;
-    var d = new Date(r.dt_saida);
-    if (isNaN(d.getTime())) return false;
-    if (anoFilter && d.getFullYear() !== parseInt(anoFilter, 10)) return false;
-    if (mesFilter !== '' && d.getMonth() !== parseInt(mesFilter, 10)) return false;
-    if (semFilter && mesFilter !== '' && Math.ceil(d.getDate() / 7) !== parseInt(semFilter, 10)) return false;
+    var p = String(r.dt_saida).split('-');
+    if (p.length < 3) return false;
+    var yr = +p[0], mo = +p[1] - 1, dy = +p[2];
+    if (anoFilter && yr !== parseInt(anoFilter, 10)) return false;
+    if (mesFilter !== '' && mo !== parseInt(mesFilter, 10)) return false;
+    if (semFilter && mesFilter !== '' && Math.ceil(dy / 7) !== parseInt(semFilter, 10)) return false;
     return true;
   });
 
   var dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   var mp = [0,0,0,0,0,0,0];
   filtered.forEach(function(r) {
-    var d = new Date(r.dt_saida);
+    var d = _dcDiaSemLocalDate(r.dt_saida);
     if (!isNaN(d.getTime())) mp[d.getDay()] += dcValorLinha(r);
   });
   _dcDestroy('dc-chart-diasem');
