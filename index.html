@@ -1141,8 +1141,21 @@
           <div class="dc-card">
             <div class="dc-card-title">Positivação (clientes únicos)</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
+              <label>Período
+                <select id="dc-positiv-periodo" class="dc-filtro" onchange="_dcTabelaPositivacao()" style="font-size:11px">
+                  <option value="30">Último mês</option>
+                  <option value="90">3 meses</option>
+                  <option value="180">6 meses</option>
+                  <option value="365">12 meses</option>
+                  <option value="0">Todo o período</option>
+                </select>
+              </label>
+              <label style="display:flex;align-items:center;gap:4px">Dias
+                <input type="number" id="dc-positiv-dias" class="dc-filtro" min="1" placeholder="ex: 45" oninput="_dcTabelaPositivacao()" style="font-size:11px;width:64px;padding:4px 6px">
+              </label>
+              <input type="text" id="dc-positiv-busca" placeholder="Buscar rep..." class="dc-filtro" oninput="_dcTabelaPositivacao()" style="font-size:11px;min-width:110px;padding:4px 8px">
               <label>Ordenar
-                <select id="dc-ordem-positiv" class="dc-filtro" onchange="_dcTabelaPositivacao(DC_DATA)">
+                <select id="dc-ordem-positiv" class="dc-filtro" onchange="_dcTabelaPositivacao()">
                   <option value="clientes">Mais clientes</option>
                   <option value="pedidos">Mais pedidos</option>
                   <option value="az">A-Z</option>
@@ -1442,7 +1455,7 @@
   <script src="js/charts.js?v=3"></script>
   <script src="js/actions.js?v=2"></script>
   <script src="js/modulos.js?v=3"></script>
-  <script src="js/auth.js?v=45"></script>
+  <script src="js/auth.js?v=46"></script>
   <script src="js/report-cache.js?v=1"></script>
   <script src="js/admin-console.js?v=25"></script>
   <script src="js/financeiro/financeiro-core.js?v=4"></script>

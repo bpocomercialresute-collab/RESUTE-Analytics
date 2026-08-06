@@ -984,6 +984,7 @@ var DC_CLI_CAD_TOTAL = null;    // total de clientes cadastrados (clientes_cad)
 var DC_PROD_TOTAL    = null;    // total de produtos cadastrados (produtos)
 var DC_REP_TOTAL     = null;    // total de representantes cadastrados (representantes)
 var DC_CLI_LISTA     = [];      // nomes de todos os clientes do cadastro (clientes_cad)
+var DC_REP_LISTA     = [];      // nomes de todos os representantes do cadastro (representantes)
 
 var MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 var MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -1239,6 +1240,27 @@ function _dcAtualizarKpiCard(label, total) {
   });
 }
 
+async function _dcFetchRepresentantesLista(eid) {
+  DC_REP_LISTA = [];
+  var from = 0, pageSize = 1000, pages = 0;
+  while (pages < 10) {
+    var resp = await fetch(
+      SUPA_URL + '/rest/v1/representantes?empresa_id=eq.' + encodeURIComponent(eid) + '&select=nome&order=nome.asc',
+      { headers: { 'Range': from + '-' + (from + pageSize - 1) } }
+    );
+    if (!resp.ok && resp.status !== 206) break;
+    var batch = await resp.json();
+    if (!Array.isArray(batch) || !batch.length) break;
+    batch.forEach(function(item) {
+      var n = String(item.nome || '').trim().toUpperCase();
+      if (n) DC_REP_LISTA.push(n);
+    });
+    pages++;
+    if (batch.length < pageSize) break;
+    from += pageSize;
+  }
+}
+
 async function _dcFetchClientesLista(eid) {
   DC_CLI_LISTA = [];
   var from = 0, pageSize = 1000, pages = 0;
@@ -1288,6 +1310,7 @@ async function _dcCarregarTotaisCadastros(eid) {
   if (results[1] !== null) { DC_PROD_TOTAL    = results[1]; _dcAtualizarKpiCard('Produtos',         results[1]); }
   if (results[2] !== null) { DC_REP_TOTAL     = results[2]; _dcAtualizarKpiCard('Representantes',   results[2]); }
   _dcFetchClientesLista(eid).then(function() { _dcTabelaTicketCliente(); }).catch(function(){});
+  _dcFetchRepresentantesLista(eid).then(function() { _dcTabelaPositivacao(); }).catch(function(){});
 }
 
 function dcAplicarVendasCarregadas(vendas) {
@@ -2339,7 +2362,7 @@ function dcRenderizar() {
   // ── Tabelas ──
   dcAtualizarFiltroUfCidade(rows);
   _dcTabela('dc-tab-reps',     'vendedor', rows, fat, 'Representante');
-  _dcTabelaPositivacao(rows);
+  _dcTabelaPositivacao();
   _dcTabela('dc-tab-ufs',      'uf',       rows, fat, 'Estado');
   _dcTabela('dc-tab-cidades',  'cidade',   dcFiltrarCidadesPorUf(rows), fat, 'Cidade');
   _dcTabela('dc-tab-cli',      'cliente',  rows, fat, 'Cliente');
@@ -2646,32 +2669,116 @@ function _dcChartMarca(rows) {
   });
 }
 
-function _dcTabelaPositivacao(rows) {
-  var mp = {};
-  rows.forEach(function(r) {
-    var v = dcRepresentanteNome(r);
-    if (!mp[v]) mp[v] = { clientes: new Set(), pedidos: new Set() };
-    mp[v].clientes.add(dcClienteNome(r));
-    mp[v].pedidos.add(dcPedidoChave(r));
+function _dcSparkline(points, w, h, color) {
+  var width = w || 80, height = h || 24, clr = color || '#1C64C0';
+  if (!points || !points.length) return '<span style="color:#cbd5e1;font-size:10px">—</span>';
+  if (points.length === 1) {
+    return '<svg width="' + width + '" height="' + height + '" style="display:block">'
+      + '<circle cx="' + (width / 2) + '" cy="' + (height / 2) + '" r="3" fill="' + clr + '"/></svg>';
+  }
+  var max = Math.max.apply(null, points);
+  var min = Math.min.apply(null, points);
+  var range = max - min || 1;
+  var pad = 3;
+  var pts = points.map(function(v, i) {
+    var x = pad + (i / (points.length - 1)) * (width - pad * 2);
+    var y = pad + (1 - (v - min) / range) * (height - pad * 2);
+    return x.toFixed(1) + ',' + y.toFixed(1);
   });
-  var arr = Object.entries(mp).map(function(e){ return { nome:e[0], cli:e[1].clientes.size, ped:e[1].pedidos.size }; });
-  var ordemPositiv = document.getElementById('dc-ordem-positiv');
-  ordemPositiv = ordemPositiv ? String(ordemPositiv.value || 'clientes') : 'clientes';
-  arr.sort(function(a,b) {
-    if (ordemPositiv === 'az') return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
-    if (ordemPositiv === 'pedidos') return b.ped - a.ped;
+  return '<svg width="' + width + '" height="' + height + '" style="display:block">'
+    + '<polyline points="' + pts.join(' ') + '" fill="none" stroke="' + clr + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>'
+    + '</svg>';
+}
+
+function _dcTabelaPositivacao() {
+  // Período próprio do relatório (dias a partir da data máxima do DC_RAW)
+  var diasInput = parseInt((document.getElementById('dc-positiv-dias') || {}).value || '0') || 0;
+  var diasSel   = parseInt((document.getElementById('dc-positiv-periodo') || {}).value || '0') || 0;
+  var periodoDias = diasInput > 0 ? diasInput : diasSel;
+
+  var endDate = null;
+  DC_RAW.forEach(function(r) {
+    var d = dcDataValor(r);
+    if (d && (!endDate || d > endDate)) endDate = d;
+  });
+  if (!endDate) endDate = new Date();
+  var startDate = periodoDias > 0 ? new Date(endDate.getTime() - periodoDias * 86400000) : null;
+
+  var source = DC_RAW;
+  if (startDate) {
+    source = DC_RAW.filter(function(r) {
+      var d = dcDataValor(r);
+      return d && d >= startDate && d <= endDate;
+    });
+  }
+
+  // Mapa de vendas + dados mensais para sparkline
+  var mp = {}, monthData = {}, monthSet = new Set();
+  source.forEach(function(r) {
+    var rep = dcRepresentanteNome(r);
+    var cli = dcClienteNome(r);
+    var d   = dcDataValor(r);
+    if (!mp[rep]) mp[rep] = { clientes: new Set(), pedidos: new Set() };
+    mp[rep].clientes.add(cli);
+    mp[rep].pedidos.add(dcPedidoChave(r));
+    if (d) {
+      var mkey = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      monthSet.add(mkey);
+      if (!monthData[rep]) monthData[rep] = {};
+      if (!monthData[rep][mkey]) monthData[rep][mkey] = new Set();
+      monthData[rep][mkey].add(cli);
+    }
+  });
+
+  var allMonths = Array.from(monthSet).sort();
+
+  // Merge com todo o cadastro de representantes
+  var repSet = new Set(DC_REP_LISTA);
+  var todos = DC_REP_LISTA.slice();
+  Object.keys(mp).forEach(function(nome) { if (!repSet.has(nome)) todos.push(nome); });
+  if (!todos.length) todos = Object.keys(mp);
+
+  var arr = todos.map(function(nome) {
+    var d = mp[nome] || { clientes: new Set(), pedidos: new Set() };
+    var spark = allMonths.map(function(m) {
+      return monthData[nome] && monthData[nome][m] ? monthData[nome][m].size : 0;
+    });
+    return { nome: nome, cli: d.clientes.size, ped: d.pedidos.size, spark: spark };
+  });
+
+  // Busca
+  var busca = String((document.getElementById('dc-positiv-busca') || {}).value || '').trim().toUpperCase();
+  if (busca) arr = arr.filter(function(e) { return e.nome.indexOf(busca) >= 0; });
+
+  // Ordenação
+  var modo = String((document.getElementById('dc-ordem-positiv') || {}).value || 'clientes');
+  arr.sort(function(a, b) {
+    if (modo === 'az')      return String(a.nome).localeCompare(String(b.nome), 'pt-BR');
+    if (modo === 'pedidos') return b.ped - a.ped;
     return b.cli - a.cli;
   });
-  arr = arr.slice(0,12);
-  var max = arr.length ? arr[0].cli : 1;
-  var h = '<table class="dc-tabela"><thead><tr><th>#</th><th>Representante</th><th>Clientes unicos</th><th>Pedidos unicos</th><th>Cobertura</th></tr></thead><tbody>';
-  arr.forEach(function(e,i){
-    var bar = (e.cli/max*100).toFixed(0);
-    h += '<tr><td class="pos">'+(i+1)+'</td><td>'+escapeHtml(e.nome)+'</td><td class="num">'+e.cli+'</td><td>'+e.ped+'</td>'
-      + '<td><div class="dc-bar-track" style="width:90px"><div class="dc-bar-fill" style="width:'+bar+'%"></div></div></td></tr>';
-  });
+
   var el = document.getElementById('dc-tab-positiv');
-  if (el) el.innerHTML = arr.length ? h+'</tbody></table>' : '<div class="dc-empty">Sem dados para este recorte.</div>';
+  if (!el) return;
+  if (!arr.length) { el.innerHTML = '<div class="dc-empty">Sem dados.</div>'; return; }
+
+  var visible = arr.slice(0, 200);
+  var h = '<table class="dc-tabela"><thead><tr>'
+    + '<th>#</th><th>Representante</th><th class="num">Clientes únicos</th>'
+    + '<th class="num">Pedidos únicos</th><th style="min-width:88px">Evolução</th>'
+    + '</tr></thead><tbody>';
+  visible.forEach(function(e, i) {
+    h += '<tr><td class="pos">' + (i + 1) + '</td>'
+      + '<td>' + escapeHtml(e.nome) + '</td>'
+      + '<td class="num">' + e.cli + '</td>'
+      + '<td class="num">' + e.ped + '</td>'
+      + '<td>' + _dcSparkline(e.spark, 80, 24, '#1C64C0') + '</td></tr>';
+  });
+  if (arr.length > 200) {
+    h += '<tr><td colspan="5" style="text-align:center;color:#7f8ba3;font-size:11px;padding:8px">'
+      + 'Exibindo 200 de ' + arr.length.toLocaleString('pt-BR') + ' representantes.</td></tr>';
+  }
+  el.innerHTML = h + '</tbody></table>';
 }
 
 function _dcTabelaNovosClientes(rows) {
