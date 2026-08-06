@@ -1236,6 +1236,63 @@ async function dcTentarSnapshotCliente(eid, origem) {
   return cache;
 }
 
+// ── IndexedDB cache (sem limite de tamanho, leitura ~10ms) ────────────────────
+var _DC_IDB_NAME = 'resute_dc';
+var _DC_IDB_STORE = 'cache';
+
+function _dcIdbOpen() {
+  return new Promise(function(resolve) {
+    try {
+      var req = indexedDB.open(_DC_IDB_NAME, 1);
+      req.onupgradeneeded = function(e) {
+        try { e.target.result.createObjectStore(_DC_IDB_STORE); } catch (_e) {}
+      };
+      req.onsuccess = function(e) { resolve(e.target.result); };
+      req.onerror = function() { resolve(null); };
+    } catch (e) { resolve(null); }
+  });
+}
+
+async function _dcIdbGet(key) {
+  var db = await _dcIdbOpen();
+  if (!db) return null;
+  return new Promise(function(resolve) {
+    try {
+      var tx = db.transaction(_DC_IDB_STORE, 'readonly');
+      var req = tx.objectStore(_DC_IDB_STORE).get(key);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { resolve(null); };
+    } catch (e) { resolve(null); }
+  });
+}
+
+async function _dcIdbSet(key, value) {
+  var db = await _dcIdbOpen();
+  if (!db) return;
+  return new Promise(function(resolve) {
+    try {
+      var tx = db.transaction(_DC_IDB_STORE, 'readwrite');
+      tx.objectStore(_DC_IDB_STORE).put(value, key);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { resolve(); };
+    } catch (e) { resolve(); }
+  });
+}
+
+async function _dcIdbDelete(key) {
+  var db = await _dcIdbOpen();
+  if (!db) return;
+  return new Promise(function(resolve) {
+    try {
+      var tx = db.transaction(_DC_IDB_STORE, 'readwrite');
+      tx.objectStore(_DC_IDB_STORE).delete(key);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { resolve(); };
+    } catch (e) { resolve(); }
+  });
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 var _DC_SLIM_FIELDS = ['id_externo','num_pedido','produto','qtd','dt_emissao','dt_saida',
   'valor','vendedor','industria','cliente','grupo','grupo_produto','marca','familia',
   'uf','cidade','ano','mes'];
@@ -1278,7 +1335,7 @@ async function _dcAtualizarCacheBackground(eid, lsKey, localGeradoEm, loadSequen
     var remoteEm = snap.dados.gerado_em || '';
     if (remoteEm <= (localGeradoEm || '')) return;
     var novas = snap.dados.vendas;
-    try { localStorage.setItem(lsKey, JSON.stringify({ gerado_em: remoteEm, vendas: novas })); } catch (_e) {}
+    _dcIdbSet(lsKey, { gerado_em: remoteEm, vendas: novas });
     DC_RAW = [];
     DC_DATA = [];
     dcAplicarVendasCarregadas(novas);
@@ -1318,24 +1375,21 @@ async function dcCarregarDados(empresa_id_param) {
   var _dcLsKey = 'resute_dc_cache_' + eid;
 
   try {
-    // 1. localStorage — renderiza instantaneamente, sem rede
-    try {
-      var _lsRaw = localStorage.getItem(_dcLsKey);
-      if (_lsRaw) {
-        var _lsData = JSON.parse(_lsRaw);
-        if (_lsData && Array.isArray(_lsData.vendas) && _lsData.vendas.length) {
-          dcAplicarVendasCarregadas(_lsData.vendas);
-          if ((DC_DATA || []).length) {
-            dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
-          }
-          dcCarregarUltimaSync(eid).catch(function() {});
-          _dcAtualizarCacheBackground(eid, _dcLsKey, _lsData.gerado_em || '', loadSequence);
-          return;
-        }
+    // 1. IndexedDB — leitura local ~10ms, sem limite de tamanho
+    var _idbData = await _dcIdbGet(_dcLsKey);
+    if (_idbData && Array.isArray(_idbData.vendas) && _idbData.vendas.length) {
+      if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
+      dcAplicarVendasCarregadas(_idbData.vendas);
+      if ((DC_DATA || []).length) {
+        dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
       }
-    } catch (_lsErr) {}
+      dcCarregarUltimaSync(eid).catch(function() {});
+      _dcAtualizarCacheBackground(eid, _dcLsKey, _idbData.gerado_em || '', loadSequence);
+      return;
+    }
 
-    // 2. Sem localStorage — tenta Supabase cache (mostra loading para não ficar em branco)
+    // 2. Sem IndexedDB — tenta Supabase cache (mostra loading para não ficar em branco)
+    if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
     dcLoading(true, 'Abrindo painel...');
     var snapshotRapido = window.ReportCache
       ? await window.ReportCache.getLatest(eid, 'dashboard_cliente', null)
@@ -1344,7 +1398,7 @@ async function dcCarregarDados(empresa_id_param) {
     if (snapshotRapido && snapshotRapido.dados && Array.isArray(snapshotRapido.dados.vendas) && snapshotRapido.dados.vendas.length) {
       var _supaVendas = snapshotRapido.dados.vendas;
       var _supaEm = snapshotRapido.dados.gerado_em || new Date().toISOString();
-      try { localStorage.setItem(_dcLsKey, JSON.stringify({ gerado_em: _supaEm, vendas: _supaVendas })); } catch (_e) {}
+      _dcIdbSet(_dcLsKey, { gerado_em: _supaEm, vendas: _supaVendas });
       dcAplicarVendasCarregadas(_supaVendas);
       dcCarregarUltimaSync(eid).catch(function() {});
       if ((DC_DATA || []).length) {
@@ -4103,7 +4157,7 @@ adminSincronizar = async function() {
     if (window.ReportCache) {
       await window.ReportCache.clearEmpresa(EMPRESA_ATIVA.empresa_id);
     }
-    try { localStorage.removeItem('resute_dc_cache_' + EMPRESA_ATIVA.empresa_id); } catch (_e) {}
+    _dcIdbDelete('resute_dc_cache_' + EMPRESA_ATIVA.empresa_id);
 
     // Insere
     var inseridos = 0;
@@ -4176,17 +4230,17 @@ adminSincronizar = async function() {
       var pcData = await pcResp.json();
       if (pcData.ok) {
         _syncLog('Cache gerado: ' + pcData.total_registros.toLocaleString('pt-BR') + ' registros prontos para o cliente.', 'ok');
-        // Pré-popula localStorage para que a próxima entrada do cliente seja instantânea
+        // Pré-popula IndexedDB para que a próxima entrada do cliente seja instantânea
         try {
           var pcSnap = window.ReportCache
             ? await window.ReportCache.getLatest(EMPRESA_ATIVA.empresa_id, 'dashboard_cliente', null)
             : null;
           if (pcSnap && pcSnap.dados && Array.isArray(pcSnap.dados.vendas) && pcSnap.dados.vendas.length) {
             var pcLsKey = 'resute_dc_cache_' + EMPRESA_ATIVA.empresa_id;
-            localStorage.setItem(pcLsKey, JSON.stringify({
+            await _dcIdbSet(pcLsKey, {
               gerado_em: pcSnap.dados.gerado_em || new Date().toISOString(),
               vendas: pcSnap.dados.vendas
-            }));
+            });
             _syncLog('Cache local atualizado (' + pcSnap.dados.vendas.length.toLocaleString('pt-BR') + ' registros).', 'ok');
           }
         } catch (_pcLsErr) { _syncLog('Aviso: cache local nao atualizado.', 'warn'); }
