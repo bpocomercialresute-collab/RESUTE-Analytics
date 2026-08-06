@@ -1,6 +1,7 @@
 // =============================================================================
 // AUTH.JS — Login, sessão, sync API e salvar dados manuais
 // =============================================================================
+console.log('%c[RESUTE] auth.js v35 carregado', 'color:#1C64C0;font-weight:bold;font-size:14px');
 
 const SUPA_URL = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
 const SUPA_KEY = '__SERVER_ONLY__';
