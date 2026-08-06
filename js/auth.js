@@ -1,7 +1,7 @@
 // =============================================================================
 // AUTH.JS — Login, sessão, sync API e salvar dados manuais
 // =============================================================================
-console.log('%c[RESUTE] auth.js v39 carregado', 'color:#1C64C0;font-weight:bold;font-size:14px');
+console.log('%c[RESUTE] auth.js v40 carregado', 'color:#1C64C0;font-weight:bold;font-size:14px');
 
 const SUPA_URL = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
 const SUPA_KEY = '__SERVER_ONLY__';
@@ -981,6 +981,8 @@ var DC_ADMIN_PREVIEW = false;
 var DC_ADMIN_PREVIEW_COMPANY = null;
 var DC_ABORT_CONTROLLER = null; // cancela fetches obsoletos ao trocar empresa
 var DC_CLI_CAD_TOTAL = null;    // total de clientes cadastrados (clientes_cad)
+var DC_PROD_TOTAL    = null;    // total de produtos cadastrados (produtos)
+var DC_REP_TOTAL     = null;    // total de representantes cadastrados (representantes)
 
 var MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 var MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -1224,41 +1226,52 @@ function dcPreencherFiltroAnos(rows) {
   }
 }
 
-async function _dcCarregarTotalClientesCad(eid) {
-  DC_CLI_CAD_TOTAL = null;
-  try {
-    var resp = await fetch(
-      SUPA_URL + '/rest/v1/clientes_cad?empresa_id=eq.' + encodeURIComponent(eid) + '&select=id',
-      { headers: { 'Prefer': 'count=exact', 'Range': '0-0' } }
-    );
-    var range = resp.headers.get('content-range');
-    if (range && range.includes('/')) {
-      var total = parseInt(range.split('/')[1], 10);
-      if (Number.isFinite(total) && total >= 0) {
-        DC_CLI_CAD_TOTAL = total;
-        _dcAtualizarKpiClientes(total);
-      }
-    }
-  } catch (e) {}
-}
-
-function _dcAtualizarKpiClientes(total) {
+function _dcAtualizarKpiCard(label, total) {
   var kEl = document.getElementById('dc-kpis');
   if (!kEl) return;
   kEl.querySelectorAll('.dc-kpi-card').forEach(function(card) {
     var lbl = card.querySelector('.dc-kpi-label');
     var val = card.querySelector('.dc-kpi-value');
-    if (lbl && val && lbl.textContent.trim() === 'Clientes') {
+    if (lbl && val && lbl.textContent.trim() === label) {
       val.textContent = total.toLocaleString('pt-BR');
     }
   });
+}
+
+async function _dcFetchCadastroCount(tabela, eid) {
+  try {
+    var resp = await fetch(
+      SUPA_URL + '/rest/v1/' + tabela + '?empresa_id=eq.' + encodeURIComponent(eid) + '&select=id',
+      { headers: { 'Prefer': 'count=exact', 'Range': '0-0' } }
+    );
+    var range = resp.headers.get('content-range');
+    if (range && range.includes('/')) {
+      var total = parseInt(range.split('/')[1], 10);
+      return Number.isFinite(total) && total >= 0 ? total : null;
+    }
+  } catch (e) {}
+  return null;
+}
+
+async function _dcCarregarTotaisCadastros(eid) {
+  DC_CLI_CAD_TOTAL = null;
+  DC_PROD_TOTAL    = null;
+  DC_REP_TOTAL     = null;
+  var results = await Promise.all([
+    _dcFetchCadastroCount('clientes_cad',  eid),
+    _dcFetchCadastroCount('produtos',       eid),
+    _dcFetchCadastroCount('representantes', eid)
+  ]);
+  if (results[0] !== null) { DC_CLI_CAD_TOTAL = results[0]; _dcAtualizarKpiCard('Clientes',        results[0]); }
+  if (results[1] !== null) { DC_PROD_TOTAL    = results[1]; _dcAtualizarKpiCard('Produtos',         results[1]); }
+  if (results[2] !== null) { DC_REP_TOTAL     = results[2]; _dcAtualizarKpiCard('Representantes',   results[2]); }
 }
 
 function dcAplicarVendasCarregadas(vendas) {
   DC_RAW = Array.isArray(vendas) ? vendas : [];
   dcPreencherFiltroAnos(DC_RAW);
   dcDefinirPeriodoInicial(DC_RAW);
-  if (DC_ACTIVE_COMPANY) _dcCarregarTotalClientesCad(DC_ACTIVE_COMPANY).catch(function(){});
+  if (DC_ACTIVE_COMPANY) _dcCarregarTotaisCadastros(DC_ACTIVE_COMPANY).catch(function(){});
   dcAplicarFiltro();
 }
 
@@ -2117,11 +2130,14 @@ function dcVariacaoAtualAnterior(atual, anterior) {
 function dcMetricasDashboard(rows) {
   var fat = dcSomarValor(rows);
   var pedidos = dcContarPedidosUnicos(rows);
-  // clientes_cad = total cadastrado na API externa (mais preciso que contar em vendas)
+  // Clientes/Produtos/Representantes: totais das tabelas de cadastro (API externa),
+  // independentes do filtro de período — fallback conta únicos em vendas
   var clientes = (DC_CLI_CAD_TOTAL !== null) ? DC_CLI_CAD_TOTAL
     : new Set(rows.map(function(r){ return dcClienteNome(r); }).filter(function(v){ return v && v !== 'Sem cliente'; })).size;
-  var produtos = new Set(rows.map(function(r){ return dcProdutoNome(r); }).filter(function(v){ return v && v !== 'Sem produto'; })).size;
-  var representantes = new Set(rows.map(function(r){ return dcRepresentanteNome(r); }).filter(function(v){ return v && v !== 'Sem representante'; })).size;
+  var produtos = (DC_PROD_TOTAL !== null) ? DC_PROD_TOTAL
+    : new Set(rows.map(function(r){ return dcProdutoNome(r); }).filter(function(v){ return v && v !== 'Sem produto'; })).size;
+  var representantes = (DC_REP_TOTAL !== null) ? DC_REP_TOTAL
+    : new Set(rows.map(function(r){ return dcRepresentanteNome(r); }).filter(function(v){ return v && v !== 'Sem representante'; })).size;
   var anterior = dcPeriodoAnteriorRows();
   var fatAnterior = dcSomarValor(anterior);
   return {
