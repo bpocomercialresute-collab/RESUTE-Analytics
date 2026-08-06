@@ -1309,7 +1309,7 @@ async function _dcCarregarTotaisCadastros(eid) {
   if (results[0] !== null) { DC_CLI_CAD_TOTAL = results[0]; _dcAtualizarKpiCard('Clientes',        results[0]); }
   if (results[1] !== null) { DC_PROD_TOTAL    = results[1]; _dcAtualizarKpiCard('Produtos',         results[1]); }
   if (results[2] !== null) { DC_REP_TOTAL     = results[2]; _dcAtualizarKpiCard('Representantes',   results[2]); }
-  _dcFetchClientesLista(eid).then(function() { _dcTabelaTicketCliente(); }).catch(function(){});
+  _dcFetchClientesLista(eid).then(function() { _dcTabelaTicketCliente(); dcTabelaInativos(); }).catch(function(){});
   _dcFetchRepresentantesLista(eid).then(function() { _dcTabelaPositivacao(); }).catch(function(){});
 }
 
@@ -2984,51 +2984,107 @@ function dcChartGrupos(rows) {
 
 function dcTabelaInativos(rows) {
   var fonte = Array.isArray(DC_RAW) && DC_RAW.length ? DC_RAW : (rows || []);
+
+  // Data de referência = data mais recente nos dados
+  var refDate = new Date(0);
+  fonte.forEach(function(r) {
+    var d = dcDataValor(r);
+    if (d && !isNaN(d.getTime()) && d > refDate) refDate = d;
+  });
+  if (refDate.getTime() === 0) refDate = new Date();
+
+  // Mapa de pedidos: chave → valor total do pedido
+  var pedidoValores = {};
+  fonte.forEach(function(r) {
+    var pk = dcPedidoChave(r);
+    pedidoValores[pk] = (pedidoValores[pk] || 0) + dcValorLinha(r);
+  });
+
+  // Mapa por cliente: última data e chave do último pedido
   var mapa = {};
-  fonte.forEach(function(r){
+  fonte.forEach(function(r) {
     var k = dcClienteNome(r);
     var d = dcDataValor(r);
     if (!d || isNaN(d.getTime())) return;
-    if (!mapa[k]) mapa[k] = { ultima: d, fat: 0 };
-    mapa[k].fat += dcValorLinha(r);
-    if (d > mapa[k].ultima) mapa[k].ultima = d;
+    if (!mapa[k]) mapa[k] = { ultimaData: d, ultimaPedidoKey: dcPedidoChave(r) };
+    if (d > mapa[k].ultimaData) {
+      mapa[k].ultimaData = d;
+      mapa[k].ultimaPedidoKey = dcPedidoChave(r);
+    }
   });
-  var hoje = fonte.reduce(function(max, r) {
-    var d = dcDataValor(r);
-    return d && !isNaN(d.getTime()) && d > max ? d : max;
-  }, new Date());
-  var inativos = Object.entries(mapa).map(function(e){
-    var dias = Math.floor((hoje - e[1].ultima) / 86400000);
-    return { nome: e[0], dias: dias, ultima: e[1].ultima.toLocaleDateString('pt-BR'), fat: e[1].fat };
-  }).filter(function(e){ return e.dias >= 30; }).sort(function(a,b){ return b.dias-a.dias; }).slice(0,10);
-  var el = document.getElementById('dc-tabela-inativos') || document.getElementById('dc-tab-inat');
+
+  // Threshold configurável
+  var threshold = Math.max(0, parseInt((document.getElementById('dc-inat-dias') || {}).value || '30') || 0);
+
+  // Base: todo cadastro + clientes com vendas fora do cadastro
+  var cadSet = new Set(DC_CLI_LISTA);
+  var todos = DC_CLI_LISTA.slice();
+  Object.keys(mapa).forEach(function(nome) { if (!cadSet.has(nome)) todos.push(nome); });
+  if (!todos.length) todos = Object.keys(mapa);
+
+  // Montar array
+  var arr = todos.map(function(nome) {
+    var d = mapa[nome];
+    if (!d) return { nome: nome, ultimaStr: '—', dias: null, valorUltima: 0, semHistorico: true };
+    var dias = Math.floor((refDate - d.ultimaData) / 86400000);
+    return {
+      nome: nome,
+      ultimaStr: d.ultimaData.toLocaleDateString('pt-BR'),
+      dias: dias,
+      valorUltima: pedidoValores[d.ultimaPedidoKey] || 0,
+      semHistorico: false
+    };
+  });
+
+  // Filtrar por threshold (sem histórico sempre aparece)
+  arr = arr.filter(function(e) { return e.semHistorico || e.dias >= threshold; });
+
+  // Busca
+  var busca = String((document.getElementById('dc-inat-busca') || {}).value || '').trim().toUpperCase();
+  if (busca) arr = arr.filter(function(e) { return e.nome.indexOf(busca) >= 0; });
+
+  // Ordenação
+  var modo = String((document.getElementById('dc-inat-ordem') || {}).value || 'dias');
+  arr.sort(function(a, b) {
+    if (modo === 'az') return String(a.nome).localeCompare(String(b.nome), 'pt-BR');
+    if (modo === 'valor') return b.valorUltima - a.valorUltima;
+    var da = a.semHistorico ? 999999 : (a.dias || 0);
+    var db = b.semHistorico ? 999999 : (b.dias || 0);
+    return db - da;
+  });
+
+  var el = document.getElementById('dc-tab-inat') || document.getElementById('dc-tabela-inativos');
   if (!el) return;
-  if (!inativos.length) {
-    el.innerHTML = '<div class="dc-inactive-empty">'
-      + '<strong>Sem alerta de inatividade</strong>'
-      + '<span>Nenhum cliente da base ficou 30 dias ou mais sem compra.</span>'
-      + '<small>Referência: última data encontrada nos dados carregados.</small>'
-      + '</div>';
+  if (!arr.length) {
+    el.innerHTML = '<div class="dc-empty">Nenhum cliente sem compra há ' + threshold + '+ dias.</div>';
     return;
   }
-  var total60 = inativos.filter(function(e){ return e.dias >= 60; }).length;
-  var total90 = inativos.filter(function(e){ return e.dias >= 90; }).length;
-  var html = '<div class="dc-inactive-summary">'
-    + '<div><strong>'+inativos.length+'</strong><span>clientes 30+ dias</span></div>'
-    + '<div><strong>'+total60+'</strong><span>clientes 60+ dias</span></div>'
-    + '<div><strong>'+total90+'</strong><span>clientes 90+ dias</span></div>'
-    + '</div>'
-    + '<table class="dc-tabela dc-inactive-table"><thead><tr><th>Cliente</th><th>Última compra</th><th class="num">Sem compra</th><th class="num">Histórico</th><th>Status</th></tr></thead><tbody>';
-  inativos.forEach(function(e){
-    var status = e.dias >= 90 ? 'Crítico' : (e.dias >= 60 ? 'Atenção' : 'Monitorar');
-    var classe = e.dias >= 90 ? 'critico' : (e.dias >= 60 ? 'atencao' : 'ok');
-    html += '<tr><td>'+escapeHtml(e.nome)+'</td>'
-      + '<td style="color:#5A7A74">'+e.ultima+'</td>'
-      + '<td class="num"><strong>'+e.dias+' dias</strong></td>'
-      + '<td class="num">'+dcMoedaLimpa(e.fat)+'</td>'
-      + '<td><span class="dc-inactive-badge '+classe+'">'+status+'</span></td></tr>';
+
+  var visible = arr.slice(0, 300);
+  var h = '<table class="dc-tabela"><thead><tr>'
+    + '<th>#</th><th>Cliente</th><th>Última compra</th>'
+    + '<th class="num">Dias sem compra</th><th class="num">Valor última compra</th><th>Status</th>'
+    + '</tr></thead><tbody>';
+  visible.forEach(function(e, i) {
+    var status, classe;
+    if (e.semHistorico)    { status = 'Sem histórico'; classe = 'ok'; }
+    else if (e.dias >= 90) { status = 'Crítico';       classe = 'critico'; }
+    else if (e.dias >= 60) { status = 'Atenção';       classe = 'atencao'; }
+    else                   { status = 'Monitorar';     classe = 'ok'; }
+    var diasStr = e.semHistorico ? '—' : (e.dias + ' dias');
+    h += '<tr><td class="pos">' + (i + 1) + '</td>'
+      + '<td>' + escapeHtml(e.nome) + '</td>'
+      + '<td style="color:#5A7A74">' + e.ultimaStr + '</td>'
+      + '<td class="num"><strong>' + diasStr + '</strong></td>'
+      + '<td class="num">' + (e.semHistorico ? '—' : dcMoedaLimpa(e.valorUltima)) + '</td>'
+      + '<td><span class="dc-inactive-badge ' + classe + '">' + status + '</span></td></tr>';
   });
-  el.innerHTML = html + '</tbody></table>';
+  if (arr.length > 300) {
+    h += '<tr><td colspan="6" style="text-align:center;color:#7f8ba3;font-size:11px;padding:8px">'
+      + 'Exibindo 300 de ' + arr.length.toLocaleString('pt-BR') + ' clientes. Use a busca para filtrar.'
+      + '</td></tr>';
+  }
+  el.innerHTML = h + '</tbody></table>';
 }
 
 function dcStatus(msg, ok) {
