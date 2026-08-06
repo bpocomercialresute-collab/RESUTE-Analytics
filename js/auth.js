@@ -3051,11 +3051,14 @@ function dcTabelaInativos(rows) {
     };
   });
 
-  // Threshold: 0 ou vazio = mostrar todos
+  // Threshold:
+  //   vazio / 0 → mostrar todos (com histórico + sem histórico)
+  //   N > 0     → mostrar APENAS clientes com compras que não compraram há N+ dias
+  //               (sem histórico OCULTOS pois não têm dias calculáveis)
   var threshRaw = String((document.getElementById('dc-inat-dias') || {}).value || '').trim();
   var threshold = threshRaw === '' ? 0 : Math.max(0, parseInt(threshRaw) || 0);
   if (threshold > 0) {
-    arr = arr.filter(function(e) { return e.semHistorico || e.dias >= threshold; });
+    arr = arr.filter(function(e) { return !e.semHistorico && e.dias >= threshold; });
   }
 
   // Busca
