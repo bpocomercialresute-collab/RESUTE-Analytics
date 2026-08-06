@@ -2982,10 +2982,21 @@ function dcChartGrupos(rows) {
   });
 }
 
+function _dcInatNorm(s) {
+  return String(s || '').toUpperCase().replace(/\s+/g, ' ').trim();
+}
+
 function dcTabelaInativos(rows) {
   var fonte = Array.isArray(DC_RAW) && DC_RAW.length ? DC_RAW : (rows || []);
+  var el = document.getElementById('dc-tab-inat') || document.getElementById('dc-tabela-inativos');
+  if (!el) return;
 
-  // Data de referência = data mais recente nos dados
+  if (!fonte.length) {
+    el.innerHTML = '<div class="dc-empty">Sem dados carregados.</div>';
+    return;
+  }
+
+  // Data de referência = data mais recente nos dados (não new Date())
   var refDate = new Date(0);
   fonte.forEach(function(r) {
     var d = dcDataValor(r);
@@ -2993,39 +3004,46 @@ function dcTabelaInativos(rows) {
   });
   if (refDate.getTime() === 0) refDate = new Date();
 
-  // Mapa de pedidos: chave → valor total do pedido
+  // Valor total por pedido
   var pedidoValores = {};
   fonte.forEach(function(r) {
     var pk = dcPedidoChave(r);
-    pedidoValores[pk] = (pedidoValores[pk] || 0) + dcValorLinha(r);
+    if (pk) pedidoValores[pk] = (pedidoValores[pk] || 0) + dcValorLinha(r);
   });
 
-  // Mapa por cliente: última data e chave do último pedido
+  // Mapa vendas: nome do cliente → {ultimaData, ultimaPedidoKey}
   var mapa = {};
   fonte.forEach(function(r) {
     var k = dcClienteNome(r);
     var d = dcDataValor(r);
-    if (!d || isNaN(d.getTime())) return;
-    if (!mapa[k]) mapa[k] = { ultimaData: d, ultimaPedidoKey: dcPedidoChave(r) };
-    if (d > mapa[k].ultimaData) {
-      mapa[k].ultimaData = d;
-      mapa[k].ultimaPedidoKey = dcPedidoChave(r);
+    if (!k || !d || isNaN(d.getTime())) return;
+    if (!mapa[k] || d > mapa[k].ultimaData) {
+      mapa[k] = { ultimaData: d, ultimaPedidoKey: dcPedidoChave(r) };
     }
   });
 
-  // Threshold configurável
+  // Threshold
   var threshold = Math.max(0, parseInt((document.getElementById('dc-inat-dias') || {}).value || '30') || 0);
 
-  // Base: todo cadastro + clientes com vendas fora do cadastro
-  var cadSet = new Set(DC_CLI_LISTA);
-  var todos = DC_CLI_LISTA.slice();
-  Object.keys(mapa).forEach(function(nome) { if (!cadSet.has(nome)) todos.push(nome); });
-  if (!todos.length) todos = Object.keys(mapa);
+  // DEPARA: DC_RAW é fonte primária; DC_CLI_LISTA suplementa com clientes sem histórico.
+  // Deduplicação por nome normalizado (evita duplicatas quando os nomes diferem levemente).
+  var mapaKeys = Object.keys(mapa);
+  var normParaChave = {};
+  mapaKeys.forEach(function(n) { normParaChave[_dcInatNorm(n)] = n; });
 
-  // Montar array
+  var extras = [];
+  DC_CLI_LISTA.forEach(function(n) {
+    if (!normParaChave[_dcInatNorm(n)]) extras.push(n);
+  });
+
+  var todos = mapaKeys.concat(extras);
+
+  // Montar array com dados
   var arr = todos.map(function(nome) {
     var d = mapa[nome];
-    if (!d) return { nome: nome, ultimaStr: '—', dias: null, valorUltima: 0, semHistorico: true };
+    if (!d) {
+      return { nome: nome, ultimaStr: '—', dias: null, valorUltima: 0, semHistorico: true };
+    }
     var dias = Math.floor((refDate - d.ultimaData) / 86400000);
     return {
       nome: nome,
@@ -3036,12 +3054,13 @@ function dcTabelaInativos(rows) {
     };
   });
 
-  // Filtrar por threshold (sem histórico sempre aparece)
+  // Filtrar: clientes com compras → só aparecem se dias >= threshold
+  //          sem histórico → aparecem sempre
   arr = arr.filter(function(e) { return e.semHistorico || e.dias >= threshold; });
 
   // Busca
-  var busca = String((document.getElementById('dc-inat-busca') || {}).value || '').trim().toUpperCase();
-  if (busca) arr = arr.filter(function(e) { return e.nome.indexOf(busca) >= 0; });
+  var busca = _dcInatNorm((document.getElementById('dc-inat-busca') || {}).value || '');
+  if (busca) arr = arr.filter(function(e) { return _dcInatNorm(e.nome).indexOf(busca) >= 0; });
 
   // Ordenação
   var modo = String((document.getElementById('dc-inat-ordem') || {}).value || 'dias');
@@ -3053,36 +3072,49 @@ function dcTabelaInativos(rows) {
     return db - da;
   });
 
-  var el = document.getElementById('dc-tab-inat') || document.getElementById('dc-tabela-inativos');
-  if (!el) return;
   if (!arr.length) {
     el.innerHTML = '<div class="dc-empty">Nenhum cliente sem compra há ' + threshold + '+ dias.</div>';
     return;
   }
 
+  // Resumo de status
+  var cnt90 = 0, cnt60 = 0, cnt30 = 0, cntSem = 0;
+  arr.forEach(function(e) {
+    if (e.semHistorico)    cntSem++;
+    else if (e.dias >= 90) cnt90++;
+    else if (e.dias >= 60) cnt60++;
+    else                   cnt30++;
+  });
+  var resumo = '<div class="dc-inactive-summary">'
+    + '<div><strong>' + arr.length + '</strong><span>total</span></div>'
+    + '<div><strong style="color:#DC2626">' + cnt90 + '</strong><span>Crítico 90+d</span></div>'
+    + '<div><strong style="color:#D97706">' + cnt60 + '</strong><span>Atenção 60+d</span></div>'
+    + '<div><strong style="color:#2563EB">' + cnt30 + '</strong><span>Monitorar</span></div>'
+    + '<div><strong style="color:#6B7280">' + cntSem + '</strong><span>Sem histórico</span></div>'
+    + '</div>';
+
   var visible = arr.slice(0, 300);
-  var h = '<table class="dc-tabela"><thead><tr>'
+  var h = resumo + '<table class="dc-tabela"><thead><tr>'
     + '<th>#</th><th>Cliente</th><th>Última compra</th>'
     + '<th class="num">Dias sem compra</th><th class="num">Valor última compra</th><th>Status</th>'
     + '</tr></thead><tbody>';
   visible.forEach(function(e, i) {
-    var status, classe;
-    if (e.semHistorico)    { status = 'Sem histórico'; classe = 'ok'; }
-    else if (e.dias >= 90) { status = 'Crítico';       classe = 'critico'; }
-    else if (e.dias >= 60) { status = 'Atenção';       classe = 'atencao'; }
-    else                   { status = 'Monitorar';     classe = 'ok'; }
+    var status, badgeStyle;
+    if (e.semHistorico)    { status = 'Sem histórico'; badgeStyle = 'background:#E5E7EB;color:#374151'; }
+    else if (e.dias >= 90) { status = 'Crítico';       badgeStyle = 'background:#FEE2E2;color:#DC2626'; }
+    else if (e.dias >= 60) { status = 'Atenção';       badgeStyle = 'background:#FEF3C7;color:#D97706'; }
+    else                   { status = 'Monitorar';     badgeStyle = 'background:#DBEAFE;color:#2563EB'; }
     var diasStr = e.semHistorico ? '—' : (e.dias + ' dias');
     h += '<tr><td class="pos">' + (i + 1) + '</td>'
       + '<td>' + escapeHtml(e.nome) + '</td>'
       + '<td style="color:#5A7A74">' + e.ultimaStr + '</td>'
       + '<td class="num"><strong>' + diasStr + '</strong></td>'
       + '<td class="num">' + (e.semHistorico ? '—' : dcMoedaLimpa(e.valorUltima)) + '</td>'
-      + '<td><span class="dc-inactive-badge ' + classe + '">' + status + '</span></td></tr>';
+      + '<td><span style="' + badgeStyle + ';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap">' + status + '</span></td></tr>';
   });
   if (arr.length > 300) {
     h += '<tr><td colspan="6" style="text-align:center;color:#7f8ba3;font-size:11px;padding:8px">'
-      + 'Exibindo 300 de ' + arr.length.toLocaleString('pt-BR') + ' clientes. Use a busca para filtrar.'
-      + '</td></tr>';
+      + 'Exibindo 300 de ' + arr.length.toLocaleString('pt-BR') + '. Use a busca para filtrar.</td></tr>';
   }
   el.innerHTML = h + '</tbody></table>';
 }
