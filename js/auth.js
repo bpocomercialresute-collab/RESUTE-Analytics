@@ -1,7 +1,7 @@
 // =============================================================================
 // AUTH.JS — Login, sessão, sync API e salvar dados manuais
 // =============================================================================
-console.log('%c[RESUTE] auth.js v40 carregado', 'color:#1C64C0;font-weight:bold;font-size:14px');
+console.log('%c[RESUTE] auth.js v41 carregado', 'color:#1C64C0;font-weight:bold;font-size:14px');
 
 const SUPA_URL = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
 const SUPA_KEY = '__SERVER_ONLY__';
@@ -1943,7 +1943,7 @@ function dcProdutoNome(row) {
     'produto', 'produto_nome', 'nome_produto', 'descricao_produto',
     'descricao_item', 'descricaoItem', 'descricaoitem', 'nome',
     'cod_prod', 'codigo_item', 'codigoItem', 'codigo', 'id_externo'
-  ], 'Sem produto');
+  ], 'Sem produto').toUpperCase();
 }
 
 function dcGrupoNome(row) {
@@ -1964,14 +1964,14 @@ function dcRepresentanteNome(row) {
   return dcCampoTexto(row, [
     'vendedor', 'representante', 'nome_vendedor', 'vendedor_nome',
     'nome_representante', 'representante_nome'
-  ], 'Sem representante');
+  ], 'Sem representante').toUpperCase();
 }
 
 function dcClienteNome(row) {
   return dcCampoTexto(row, [
     'cliente', 'nome_cliente', 'cliente_nome', 'razao_social',
     'razaoSocial', 'fantasia', 'nome_fantasia'
-  ], 'Sem cliente');
+  ], 'Sem cliente').toUpperCase();
 }
 
 function dcCidadeNome(row) {
@@ -1997,7 +1997,7 @@ function dcValorCompacto(valor) {
   var n = dcNumeroBase(valor);
   if (!Number.isFinite(n)) n = 0;
   var abs = Math.abs(n);
-  if (abs >= 1000000) return dcNumeroLimpo(n / 1000000, 1) + ' mi';
+  if (abs >= 1000000) return dcNumeroLimpo(n / 1000000, 0) + ' mi';
   if (abs >= 1000) return dcNumeroLimpo(n / 1000, 0) + ' mil';
   return dcNumeroLimpo(n, 0);
 }
@@ -2499,7 +2499,7 @@ function dcChartEvolucao(rows) {
   DC_CHARTS['evolucao'] = new Chart(ctx, {
     type: 'line',
     data: { labels: MESES, datasets: datasets },
-    options: Object.assign(dcChartOpts(''), { plugins: { legend: { display: true, labels: { color: '#334155', font: { size: 11, weight: 700 } } }, tooltip: { callbacks: { label: function(c){ return c.dataset.label + ': ' + dcNumeroLimpo(c.raw, 0); } } }, dcValueLabels: { display: false } } }),
+    options: Object.assign(dcChartOpts(''), { layout: { padding: { top: 30 } }, plugins: { legend: { display: true, labels: { color: '#334155', font: { size: 11, weight: 700 } } }, tooltip: { callbacks: { label: function(c){ return c.dataset.label + ': R$ ' + dcValorCompacto(c.raw); } } }, dcValueLabels: { display: true, formatter: function(v){ return 'R$ ' + dcValorCompacto(v); }, color: '#1C1C1E', fontSize: 9, fontWeight: '700' } } }),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
 }
