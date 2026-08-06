@@ -1388,9 +1388,10 @@ async function dcCarregarDados(empresa_id_param) {
       return;
     }
 
-    // 2. Sem IndexedDB — tenta Supabase cache (mostra loading para não ficar em branco)
+    // 2. Sem IndexedDB — tenta Supabase cache (sem overlay, mostra esqueleto)
     if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
-    dcLoading(true, 'Abrindo painel...');
+    dcMostrarEsqueleto();
+    dcStatus('⏳ Abrindo painel...');
     var snapshotRapido = window.ReportCache
       ? await window.ReportCache.getLatest(eid, 'dashboard_cliente', null)
       : null;
@@ -1407,8 +1408,9 @@ async function dcCarregarDados(empresa_id_param) {
       return;
     }
 
-    // 3. Cache miss — mostra loading e busca tudo do banco
-    dcLoading(true, 'Buscando dados e preparando os relatorios...');
+    // 3. Cache miss — busca tudo do banco (sem overlay)
+    dcMostrarEsqueleto();
+    dcStatus('⏳ Buscando dados...');
     dcSetUltimaSync('Conferindo ultima sincronizacao...', false);
     // Busca qual origem o admin configurou para este cliente ver
     var origemR = await dcComTimeout(
@@ -2185,6 +2187,19 @@ function dcRenderGraficoSeguro(nome, fn) {
     console.error('[dashboard chart]', nome, e);
     dcStatus('Erro ao renderizar ' + nome + ': ' + (e && e.message ? e.message : e));
   }
+}
+
+// Esqueleto de KPIs enquanto dados carregam — sem overlay, sem "Gerando relatórios"
+function dcMostrarEsqueleto() {
+  var kEl = document.getElementById('dc-kpis');
+  if (!kEl) return;
+  var lbls = ['Faturamento','Pedidos','Ticket Médio','Clientes','Produtos','Representantes'];
+  kEl.innerHTML = lbls.map(function(lbl) {
+    return '<div class="dc-kpi-card">'
+         + '<div class="dc-kpi-label">' + lbl + '</div>'
+         + '<div class="dc-kpi-value" style="opacity:.35">—</div>'
+         + '</div>';
+  }).join('');
 }
 
 // ── RENDERIZA TUDO ────────────────────────────────────────────────────────────
