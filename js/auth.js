@@ -2165,11 +2165,14 @@ var DC_VALUE_LABEL_PLUGIN = {
           if (!valor || !Number.isFinite(valor)) return;
           var label = pluginOpts.formatter ? pluginOpts.formatter(valor, chart.data.labels[index], index) : dcNumeroLimpo(valor, 0);
           label = dcTextoValor(label);
-          if (!label || !element || typeof element.tooltipPosition !== 'function') return;
-          var pos = element.tooltipPosition();
-          if (!pos) return;
+          if (!label || !element) return;
+          // Usa element.x / element.y diretamente — compatível Chart.js v3 e v4
+          var ex = typeof element.x === 'number' ? element.x : 0;
+          var ey = typeof element.y === 'number' ? element.y : 0;
           ctx.textAlign = horizontal ? 'left' : 'center';
-          ctx.fillText(label, horizontal ? pos.x + 8 : pos.x, horizontal ? pos.y : pos.y - 10);
+          // Horizontal: label à direita da barra (ex = borda direita)
+          // Vertical:   label acima da barra (ey = topo)
+          ctx.fillText(label, horizontal ? ex + 6 : ex, horizontal ? ey : ey - 9);
         });
       });
       ctx.restore();
