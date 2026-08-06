@@ -1309,7 +1309,10 @@ async function _dcCarregarTotaisCadastros(eid) {
   if (results[0] !== null) { DC_CLI_CAD_TOTAL = results[0]; _dcAtualizarKpiCard('Clientes',        results[0]); }
   if (results[1] !== null) { DC_PROD_TOTAL    = results[1]; _dcAtualizarKpiCard('Produtos',         results[1]); }
   if (results[2] !== null) { DC_REP_TOTAL     = results[2]; _dcAtualizarKpiCard('Representantes',   results[2]); }
-  _dcFetchClientesLista(eid).then(function() { _dcTabelaTicketCliente(); dcTabelaInativos(); }).catch(function(){});
+  _dcFetchClientesLista(eid).then(function() {
+    _dcTabelaTicketCliente();
+    dcTabelaInativos();
+  }).catch(function(){});
   _dcFetchRepresentantesLista(eid).then(function() { _dcTabelaPositivacao(); }).catch(function(){});
 }
 
@@ -2987,22 +2990,24 @@ function _dcInatNorm(s) {
 }
 
 function dcTabelaInativos(rows) {
-  var fonte = Array.isArray(DC_RAW) && DC_RAW.length ? DC_RAW : (rows || []);
-  var el = document.getElementById('dc-tab-inat') || document.getElementById('dc-tabela-inativos');
+  var el    = document.getElementById('dc-tab-inat') || document.getElementById('dc-tabela-inativos');
+  var elRes = document.getElementById('dc-inat-resumo');
   if (!el) return;
 
+  var fonte = Array.isArray(DC_RAW) && DC_RAW.length ? DC_RAW : (Array.isArray(rows) ? rows : []);
   if (!fonte.length) {
     el.innerHTML = '<div class="dc-empty">Sem dados carregados.</div>';
+    if (elRes) elRes.style.display = 'none';
     return;
   }
 
-  // Data de referência = data mais recente nos dados (não new Date())
+  // Referência de data = data máxima nos dados (não new Date())
   var refDate = new Date(0);
   fonte.forEach(function(r) {
     var d = dcDataValor(r);
     if (d && !isNaN(d.getTime()) && d > refDate) refDate = d;
   });
-  if (refDate.getTime() === 0) refDate = new Date();
+  if (refDate.getTime() < 1000) refDate = new Date();
 
   // Valor total por pedido
   var pedidoValores = {};
@@ -3011,52 +3016,47 @@ function dcTabelaInativos(rows) {
     if (pk) pedidoValores[pk] = (pedidoValores[pk] || 0) + dcValorLinha(r);
   });
 
-  // Mapa vendas: nome do cliente → {ultimaData, ultimaPedidoKey}
+  // Mapa por cliente: última data e pedido chave
   var mapa = {};
   fonte.forEach(function(r) {
     var k = dcClienteNome(r);
     var d = dcDataValor(r);
-    if (!k || !d || isNaN(d.getTime())) return;
+    if (!k || k === 'SEM CLIENTE' || !d || isNaN(d.getTime())) return;
     if (!mapa[k] || d > mapa[k].ultimaData) {
       mapa[k] = { ultimaData: d, ultimaPedidoKey: dcPedidoChave(r) };
     }
   });
 
-  // Threshold
-  var threshold = Math.max(0, parseInt((document.getElementById('dc-inat-dias') || {}).value || '30') || 0);
-
-  // DEPARA: DC_RAW é fonte primária; DC_CLI_LISTA suplementa com clientes sem histórico.
-  // Deduplicação por nome normalizado (evita duplicatas quando os nomes diferem levemente).
+  // DEPARA: DC_RAW primário, DC_CLI_LISTA suplementa via nome normalizado
   var mapaKeys = Object.keys(mapa);
   var normParaChave = {};
-  mapaKeys.forEach(function(n) { normParaChave[_dcInatNorm(n)] = n; });
-
+  mapaKeys.forEach(function(n) { normParaChave[_dcInatNorm(n)] = true; });
   var extras = [];
   DC_CLI_LISTA.forEach(function(n) {
-    if (!normParaChave[_dcInatNorm(n)]) extras.push(n);
+    if (n && !normParaChave[_dcInatNorm(n)]) extras.push(n);
   });
-
   var todos = mapaKeys.concat(extras);
 
-  // Montar array com dados
+  // Montar registros
   var arr = todos.map(function(nome) {
     var d = mapa[nome];
-    if (!d) {
-      return { nome: nome, ultimaStr: '—', dias: null, valorUltima: 0, semHistorico: true };
-    }
-    var dias = Math.floor((refDate - d.ultimaData) / 86400000);
+    if (!d) return { nome: nome, ultimaStr: '—', dias: -1, valorUltima: 0, semHistorico: true };
+    var dias = Math.floor((refDate.getTime() - d.ultimaData.getTime()) / 86400000);
     return {
       nome: nome,
       ultimaStr: d.ultimaData.toLocaleDateString('pt-BR'),
-      dias: dias,
+      dias: Math.max(0, dias),
       valorUltima: pedidoValores[d.ultimaPedidoKey] || 0,
       semHistorico: false
     };
   });
 
-  // Filtrar: clientes com compras → só aparecem se dias >= threshold
-  //          sem histórico → aparecem sempre
-  arr = arr.filter(function(e) { return e.semHistorico || e.dias >= threshold; });
+  // Threshold: 0 ou vazio = mostrar todos
+  var threshRaw = String((document.getElementById('dc-inat-dias') || {}).value || '').trim();
+  var threshold = threshRaw === '' ? 0 : Math.max(0, parseInt(threshRaw) || 0);
+  if (threshold > 0) {
+    arr = arr.filter(function(e) { return e.semHistorico || e.dias >= threshold; });
+  }
 
   // Busca
   var busca = _dcInatNorm((document.getElementById('dc-inat-busca') || {}).value || '');
@@ -3067,17 +3067,18 @@ function dcTabelaInativos(rows) {
   arr.sort(function(a, b) {
     if (modo === 'az') return String(a.nome).localeCompare(String(b.nome), 'pt-BR');
     if (modo === 'valor') return b.valorUltima - a.valorUltima;
-    var da = a.semHistorico ? 999999 : (a.dias || 0);
-    var db = b.semHistorico ? 999999 : (b.dias || 0);
+    var da = a.semHistorico ? 999999 : a.dias;
+    var db = b.semHistorico ? 999999 : b.dias;
     return db - da;
   });
 
   if (!arr.length) {
-    el.innerHTML = '<div class="dc-empty">Nenhum cliente sem compra há ' + threshold + '+ dias.</div>';
+    el.innerHTML = '<div class="dc-empty">Nenhum cliente' + (threshold > 0 ? ' sem compra há ' + threshold + '+ dias' : '') + '.</div>';
+    if (elRes) elRes.style.display = 'none';
     return;
   }
 
-  // Resumo de status
+  // Resumo (fora do tabela-wrap para não entrar no scroll)
   var cnt90 = 0, cnt60 = 0, cnt30 = 0, cntSem = 0;
   arr.forEach(function(e) {
     if (e.semHistorico)    cntSem++;
@@ -3085,32 +3086,41 @@ function dcTabelaInativos(rows) {
     else if (e.dias >= 60) cnt60++;
     else                   cnt30++;
   });
-  var resumo = '<div class="dc-inactive-summary">'
-    + '<div><strong>' + arr.length + '</strong><span>total</span></div>'
-    + '<div><strong style="color:#DC2626">' + cnt90 + '</strong><span>Crítico 90+d</span></div>'
-    + '<div><strong style="color:#D97706">' + cnt60 + '</strong><span>Atenção 60+d</span></div>'
-    + '<div><strong style="color:#2563EB">' + cnt30 + '</strong><span>Monitorar</span></div>'
-    + '<div><strong style="color:#6B7280">' + cntSem + '</strong><span>Sem histórico</span></div>'
-    + '</div>';
+  if (elRes) {
+    elRes.style.display = 'flex';
+    elRes.innerHTML = [
+      { n: arr.length, label: 'Total',         c: '#1C64C0' },
+      { n: cnt90,      label: 'Crítico 90+d',  c: '#DC2626' },
+      { n: cnt60,      label: 'Atenção 60+d',  c: '#D97706' },
+      { n: cnt30,      label: 'Monitorar',     c: '#059669' },
+      { n: cntSem,     label: 'Sem histórico', c: '#6B7280' }
+    ].map(function(item) {
+      return '<div style="border:1px solid #1a2640;border-radius:8px;padding:6px 12px;min-width:70px;text-align:center">'
+        + '<strong style="display:block;font-size:18px;font-weight:900;color:' + item.c + '">' + item.n + '</strong>'
+        + '<span style="font-size:9px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.05em">' + item.label + '</span>'
+        + '</div>';
+    }).join('');
+  }
 
+  // Tabela
   var visible = arr.slice(0, 300);
-  var h = resumo + '<table class="dc-tabela"><thead><tr>'
+  var h = '<table class="dc-tabela dc-inactive-table"><thead><tr>'
     + '<th>#</th><th>Cliente</th><th>Última compra</th>'
     + '<th class="num">Dias sem compra</th><th class="num">Valor última compra</th><th>Status</th>'
     + '</tr></thead><tbody>';
   visible.forEach(function(e, i) {
-    var status, badgeStyle;
-    if (e.semHistorico)    { status = 'Sem histórico'; badgeStyle = 'background:#E5E7EB;color:#374151'; }
-    else if (e.dias >= 90) { status = 'Crítico';       badgeStyle = 'background:#FEE2E2;color:#DC2626'; }
-    else if (e.dias >= 60) { status = 'Atenção';       badgeStyle = 'background:#FEF3C7;color:#D97706'; }
-    else                   { status = 'Monitorar';     badgeStyle = 'background:#DBEAFE;color:#2563EB'; }
+    var status, classe;
+    if (e.semHistorico)    { status = 'Sem histórico'; classe = 'ok'; }
+    else if (e.dias >= 90) { status = 'Crítico';       classe = 'critico'; }
+    else if (e.dias >= 60) { status = 'Atenção';       classe = 'atencao'; }
+    else                   { status = 'Monitorar';     classe = 'ok'; }
     var diasStr = e.semHistorico ? '—' : (e.dias + ' dias');
     h += '<tr><td class="pos">' + (i + 1) + '</td>'
       + '<td>' + escapeHtml(e.nome) + '</td>'
-      + '<td style="color:#5A7A74">' + e.ultimaStr + '</td>'
+      + '<td>' + e.ultimaStr + '</td>'
       + '<td class="num"><strong>' + diasStr + '</strong></td>'
       + '<td class="num">' + (e.semHistorico ? '—' : dcMoedaLimpa(e.valorUltima)) + '</td>'
-      + '<td><span style="' + badgeStyle + ';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap">' + status + '</span></td></tr>';
+      + '<td><span class="dc-inactive-badge ' + classe + '">' + status + '</span></td></tr>';
   });
   if (arr.length > 300) {
     h += '<tr><td colspan="6" style="text-align:center;color:#7f8ba3;font-size:11px;padding:8px">'
