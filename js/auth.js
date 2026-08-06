@@ -1268,6 +1268,28 @@ async function dcSalvarSnapshotCliente(eid, origem, vendas, periodoInicio, perio
   });
 }
 
+async function _dcAtualizarCacheBackground(eid, lsKey, localGeradoEm, loadSequence) {
+  try {
+    var snap = window.ReportCache
+      ? await window.ReportCache.getLatest(eid, 'dashboard_cliente', null)
+      : null;
+    if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
+    if (!snap || !snap.dados || !Array.isArray(snap.dados.vendas) || !snap.dados.vendas.length) return;
+    var remoteEm = snap.dados.gerado_em || '';
+    if (remoteEm <= (localGeradoEm || '')) return;
+    var novas = snap.dados.vendas;
+    try { localStorage.setItem(lsKey, JSON.stringify({ gerado_em: remoteEm, vendas: novas })); } catch (_e) {}
+    DC_RAW = [];
+    DC_DATA = [];
+    dcAplicarVendasCarregadas(novas);
+    if ((DC_DATA || []).length) {
+      dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros atualizados', true);
+    }
+  } catch (e) {
+    console.warn('[dcAtualizarCacheBackground]', e);
+  }
+}
+
 async function dcCarregarDados(empresa_id_param) {
   var eid = empresa_id_param || SESSION.empresa_id;
   if (!eid) { dcStatus('⚠ Empresa não selecionada.'); return; }
@@ -1293,15 +1315,37 @@ async function dcCarregarDados(empresa_id_param) {
   DC_ACTIVE_COMPANY = eid;
   DC_IS_LOADING = true;
 
+  var _dcLsKey = 'resute_dc_cache_' + eid;
+
   try {
-    // Tenta cache PRIMEIRO — sem loading screen, sem fetch de origem
+    // 1. localStorage — renderiza instantaneamente, sem rede
+    try {
+      var _lsRaw = localStorage.getItem(_dcLsKey);
+      if (_lsRaw) {
+        var _lsData = JSON.parse(_lsRaw);
+        if (_lsData && Array.isArray(_lsData.vendas) && _lsData.vendas.length) {
+          dcAplicarVendasCarregadas(_lsData.vendas);
+          if ((DC_DATA || []).length) {
+            dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
+          }
+          dcCarregarUltimaSync(eid).catch(function() {});
+          _dcAtualizarCacheBackground(eid, _dcLsKey, _lsData.gerado_em || '', loadSequence);
+          return;
+        }
+      }
+    } catch (_lsErr) {}
+
+    // 2. Sem localStorage — tenta Supabase cache (sem loading overlay)
     dcStatus('Abrindo painel...');
     var snapshotRapido = window.ReportCache
       ? await window.ReportCache.getLatest(eid, 'dashboard_cliente', null)
       : null;
     if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
     if (snapshotRapido && snapshotRapido.dados && Array.isArray(snapshotRapido.dados.vendas) && snapshotRapido.dados.vendas.length) {
-      dcAplicarVendasCarregadas(snapshotRapido.dados.vendas);
+      var _supaVendas = snapshotRapido.dados.vendas;
+      var _supaEm = snapshotRapido.dados.gerado_em || new Date().toISOString();
+      try { localStorage.setItem(_dcLsKey, JSON.stringify({ gerado_em: _supaEm, vendas: _supaVendas })); } catch (_e) {}
+      dcAplicarVendasCarregadas(_supaVendas);
       dcCarregarUltimaSync(eid).catch(function() {});
       if ((DC_DATA || []).length) {
         dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
@@ -1309,7 +1353,7 @@ async function dcCarregarDados(empresa_id_param) {
       return;
     }
 
-    // Cache miss — mostra loading e busca tudo do banco
+    // 3. Cache miss — mostra loading e busca tudo do banco
     dcLoading(true, 'Buscando dados e preparando os relatorios...');
     dcSetUltimaSync('Conferindo ultima sincronizacao...', false);
     // Busca qual origem o admin configurou para este cliente ver
@@ -4059,6 +4103,7 @@ adminSincronizar = async function() {
     if (window.ReportCache) {
       await window.ReportCache.clearEmpresa(EMPRESA_ATIVA.empresa_id);
     }
+    try { localStorage.removeItem('resute_dc_cache_' + EMPRESA_ATIVA.empresa_id); } catch (_e) {}
 
     // Insere
     var inseridos = 0;
