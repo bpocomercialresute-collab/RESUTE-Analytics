@@ -2291,7 +2291,12 @@ function _dcChartAno(rows) {
   DC_CHARTS['ano'] = new Chart(ctx, {
     type: 'bar',
     data: { labels: anos, datasets: [{ data: anos.map(function(a){return porAno[a];}), backgroundColor: '#1C64C0', borderRadius: 6 }] },
-    options: _dcOpts(false),
+    options: Object.assign(_dcOpts(false), {
+      layout: { padding: { top: 28 } },
+      plugins: Object.assign(_dcOpts(false).plugins, {
+        dcValueLabels: { formatter: function(v){ return 'R$ ' + dcValorCompacto(v); }, color: '#1C1C1E', fontSize: 10, fontWeight: '700' }
+      })
+    }),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
 }
@@ -2464,8 +2469,9 @@ function _dcChartProdQtd(rows) {
             datasets: [{ data: s.map(function(e){return e[1];}), backgroundColor: '#1C64C0', borderRadius: 4 }] },
     options: Object.assign(_dcOpts(false), {
       indexAxis: 'y',
+      layout: { padding: { right: 70 } },
       plugins: Object.assign(_dcOpts(false).plugins, {
-        dcValueLabels: { formatter: function(v){ return dcNumeroLimpo(v, 0); }, color: '#0A2F2F' }
+        dcValueLabels: { formatter: function(v){ return dcNumeroLimpo(v, 0); }, color: '#0A2F2F', fontSize: 10, fontWeight: '700' }
       })
     }),
     plugins: [DC_VALUE_LABEL_PLUGIN]
@@ -2483,7 +2489,13 @@ function _dcChartMarca(rows) {
     data: { labels: s.map(function(e){return dcTextoCurto(e[0], 24);}),
             datasets: [{ data: s.map(function(e){return e[1];}),
               backgroundColor: '#1C64C0', borderWidth: 0, borderRadius: 6 }] },
-    options: Object.assign(_dcOpts(false), { indexAxis: 'y' }),
+    options: Object.assign(_dcOpts(false), {
+      indexAxis: 'y',
+      layout: { padding: { right: 80 } },
+      plugins: Object.assign(_dcOpts(false).plugins, {
+        dcValueLabels: { formatter: function(v){ return 'R$ ' + dcValorCompacto(v); }, color: '#1C1C1E', fontSize: 10, fontWeight: '700' }
+      })
+    }),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
 }
@@ -2624,7 +2636,13 @@ function dcChartProdutos(rows) {
   DC_CHARTS['produtos'] = new Chart(ctx, {
     type: 'bar',
     data: { labels: sorted.map(function(e){ return dcTextoCurto(e[0], 36); }), datasets:[{label:'Faturamento',data:sorted.map(function(e){ return e[1]; }),backgroundColor:'#1C64C0',borderRadius:4}] },
-    options: Object.assign(dcChartOpts(''),{indexAxis:'y'}),
+    options: Object.assign(dcChartOpts(''), {
+      indexAxis: 'y',
+      layout: { padding: { right: 80 } },
+      plugins: Object.assign(dcChartOpts('').plugins, {
+        dcValueLabels: { formatter: function(v){ return 'R$ ' + dcValorCompacto(v); }, color: '#1C1C1E', fontSize: 10, fontWeight: '700' }
+      })
+    }),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
 }
