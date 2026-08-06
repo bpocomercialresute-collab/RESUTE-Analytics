@@ -1238,8 +1238,15 @@
           <div class="dc-card">
             <div class="dc-card-title">Ticket Médio por Cliente</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
+              <label style="display:flex;align-items:center;gap:4px">De
+                <input type="date" id="dc-ticket-inicio" class="dc-filtro" onchange="_dcTabelaTicketCliente()" style="font-size:11px">
+              </label>
+              <label style="display:flex;align-items:center;gap:4px">Até
+                <input type="date" id="dc-ticket-fim" class="dc-filtro" onchange="_dcTabelaTicketCliente()" style="font-size:11px">
+              </label>
+              <input type="text" id="dc-ticket-busca" placeholder="Buscar cliente..." class="dc-filtro" oninput="_dcTabelaTicketCliente()" style="font-size:11px;min-width:130px;padding:4px 8px">
               <label>Ordenar
-                <select id="dc-ordem-ticket" class="dc-filtro" onchange="_dcTabelaTicketCliente(DC_DATA)">
+                <select id="dc-ordem-ticket" class="dc-filtro" onchange="_dcTabelaTicketCliente()">
                   <option value="ticket">Maior ticket</option>
                   <option value="fat">Maior faturamento</option>
                   <option value="pedidos">Mais pedidos</option>
@@ -1435,7 +1442,7 @@
   <script src="js/charts.js?v=3"></script>
   <script src="js/actions.js?v=2"></script>
   <script src="js/modulos.js?v=3"></script>
-  <script src="js/auth.js?v=44"></script>
+  <script src="js/auth.js?v=45"></script>
   <script src="js/report-cache.js?v=1"></script>
   <script src="js/admin-console.js?v=25"></script>
   <script src="js/financeiro/financeiro-core.js?v=4"></script>

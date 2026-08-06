@@ -983,6 +983,7 @@ var DC_ABORT_CONTROLLER = null; // cancela fetches obsoletos ao trocar empresa
 var DC_CLI_CAD_TOTAL = null;    // total de clientes cadastrados (clientes_cad)
 var DC_PROD_TOTAL    = null;    // total de produtos cadastrados (produtos)
 var DC_REP_TOTAL     = null;    // total de representantes cadastrados (representantes)
+var DC_CLI_LISTA     = [];      // nomes de todos os clientes do cadastro (clientes_cad)
 
 var MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 var MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -1238,6 +1239,27 @@ function _dcAtualizarKpiCard(label, total) {
   });
 }
 
+async function _dcFetchClientesLista(eid) {
+  DC_CLI_LISTA = [];
+  var from = 0, pageSize = 1000, pages = 0;
+  while (pages < 10) {
+    var resp = await fetch(
+      SUPA_URL + '/rest/v1/clientes_cad?empresa_id=eq.' + encodeURIComponent(eid) + '&select=nome,razao_social&order=nome.asc',
+      { headers: { 'Range': from + '-' + (from + pageSize - 1) } }
+    );
+    if (!resp.ok && resp.status !== 206) break;
+    var batch = await resp.json();
+    if (!Array.isArray(batch) || !batch.length) break;
+    batch.forEach(function(item) {
+      var n = String(item.nome || item.razao_social || '').trim().toUpperCase();
+      if (n) DC_CLI_LISTA.push(n);
+    });
+    pages++;
+    if (batch.length < pageSize) break;
+    from += pageSize;
+  }
+}
+
 async function _dcFetchCadastroCount(tabela, eid) {
   try {
     var resp = await fetch(
@@ -1265,6 +1287,7 @@ async function _dcCarregarTotaisCadastros(eid) {
   if (results[0] !== null) { DC_CLI_CAD_TOTAL = results[0]; _dcAtualizarKpiCard('Clientes',        results[0]); }
   if (results[1] !== null) { DC_PROD_TOTAL    = results[1]; _dcAtualizarKpiCard('Produtos',         results[1]); }
   if (results[2] !== null) { DC_REP_TOTAL     = results[2]; _dcAtualizarKpiCard('Representantes',   results[2]); }
+  _dcFetchClientesLista(eid).then(function() { _dcTabelaTicketCliente(); }).catch(function(){});
 }
 
 function dcAplicarVendasCarregadas(vendas) {
@@ -2322,7 +2345,7 @@ function dcRenderizar() {
   _dcTabela('dc-tab-cli',      'cliente',  rows, fat, 'Cliente');
   _dcTabelaInativos(rows);
   _dcTabelaNovosClientes(rows);
-  _dcTabelaTicketCliente(rows);
+  _dcTabelaTicketCliente();
 
   // ── Última atualização ──
   var lu = document.getElementById('dc-last-update');
@@ -2693,33 +2716,85 @@ function _dcTabelaNovosClientes(rows) {
   el.innerHTML = h+'</tbody></table>';
 }
 
-function _dcTabelaTicketCliente(rows) {
+function _dcTabelaTicketCliente() {
+  var inicio = (document.getElementById('dc-ticket-inicio') || {}).value || '';
+  var fim    = (document.getElementById('dc-ticket-fim')    || {}).value || '';
+  var busca  = String((document.getElementById('dc-ticket-busca') || {}).value || '').trim().toUpperCase();
+
+  // Filtrar DC_RAW pelo período próprio do relatório (independente do filtro global)
+  var source = DC_RAW;
+  if (inicio || fim) {
+    var dtIni = inicio ? new Date(inicio + 'T00:00:00') : null;
+    var dtFim = fim    ? new Date(fim    + 'T23:59:59') : null;
+    source = DC_RAW.filter(function(r) {
+      var d = dcDataValor(r);
+      if (!d) return false;
+      if (dtIni && d < dtIni) return false;
+      if (dtFim && d > dtFim) return false;
+      return true;
+    });
+  }
+
+  // Mapa de vendas: nome do cliente → {fat, pedidos}
   var mp = {};
-  rows.forEach(function(r) {
+  source.forEach(function(r) {
     var c = dcClienteNome(r);
-    if (!mp[c]) mp[c] = { fat:0, pedidos:new Set() };
+    if (!mp[c]) mp[c] = { fat: 0, pedidos: new Set() };
     mp[c].fat += dcValorLinha(r);
     mp[c].pedidos.add(dcPedidoChave(r));
   });
-  var arr = Object.entries(mp).map(function(e){ return { nome:e[0], fat:e[1].fat, ped:e[1].pedidos.size, pedidos:e[1].pedidos.size, tick:e[1].pedidos.size ? e[1].fat/e[1].pedidos.size : 0 }; })
-    .filter(function(e){ return e.ped >= 2; });
-  var modoTicket = document.getElementById('dc-ordem-ticket');
-  modoTicket = modoTicket ? String(modoTicket.value || 'ticket') : 'ticket';
+
+  // Base: todos do cadastro + clientes em vendas não presentes no cadastro
+  var cadSet = new Set(DC_CLI_LISTA);
+  var todos = DC_CLI_LISTA.slice();
+  Object.keys(mp).forEach(function(nome) {
+    if (!cadSet.has(nome)) todos.push(nome);
+  });
+  if (!todos.length) todos = Object.keys(mp);
+
+  var arr = todos.map(function(nome) {
+    var d = mp[nome];
+    var fat = d ? d.fat : 0;
+    var ped = d ? d.pedidos.size : 0;
+    return { nome: nome, fat: fat, ped: ped, tick: ped ? fat / ped : 0 };
+  });
+
+  // Filtro de busca por nome
+  if (busca) {
+    arr = arr.filter(function(e) { return e.nome.indexOf(busca) >= 0; });
+  }
+
+  // Ordenação
+  var modo = String((document.getElementById('dc-ordem-ticket') || {}).value || 'ticket');
   arr.sort(function(a, b) {
-    if (modoTicket === 'az') return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
-    if (modoTicket === 'fat') return b.fat - a.fat;
-    if (modoTicket === 'pedidos') return b.ped - a.ped;
+    if (modo === 'az')      return String(a.nome).localeCompare(String(b.nome), 'pt-BR');
+    if (modo === 'fat')     return b.fat - a.fat;
+    if (modo === 'pedidos') return b.ped - a.ped;
     return b.tick - a.tick;
   });
-  arr = arr.slice(0,10);
+
   var el = document.getElementById('dc-tab-ticket');
   if (!el) return;
-  if (!arr.length) { el.innerHTML = '<div class="dc-empty">Sem dados suficientes.</div>'; return; }
-  var h = '<table class="dc-tabela"><thead><tr><th>#</th><th>Cliente</th><th>Pedidos</th><th class="num">Ticket</th></tr></thead><tbody>';
-  arr.forEach(function(e,i){
-    h += '<tr><td class="pos">'+(i+1)+'</td><td>'+escapeHtml(e.nome)+'</td><td>'+e.ped+'</td><td class="num">'+dcMoedaLimpa(e.tick)+'</td></tr>';
+  if (!arr.length) { el.innerHTML = '<div class="dc-empty">Sem dados.</div>'; return; }
+
+  var visible = arr.slice(0, 300);
+  var h = '<table class="dc-tabela"><thead><tr>'
+    + '<th>#</th><th>Cliente</th><th>Pedidos</th>'
+    + '<th class="num">Faturamento</th><th class="num">Ticket Médio</th>'
+    + '</tr></thead><tbody>';
+  visible.forEach(function(e, i) {
+    h += '<tr><td class="pos">' + (i + 1) + '</td>'
+      + '<td>' + escapeHtml(e.nome) + '</td>'
+      + '<td>' + e.ped + '</td>'
+      + '<td class="num">' + dcMoedaLimpa(e.fat) + '</td>'
+      + '<td class="num">' + dcMoedaLimpa(e.tick) + '</td></tr>';
   });
-  el.innerHTML = h+'</tbody></table>';
+  if (arr.length > 300) {
+    h += '<tr><td colspan="5" style="text-align:center;color:#7f8ba3;font-size:11px;padding:8px">'
+      + 'Exibindo 300 de ' + arr.length.toLocaleString('pt-BR') + ' clientes. Use a busca para filtrar.'
+      + '</td></tr>';
+  }
+  el.innerHTML = h + '</tbody></table>';
 }
 
 function _dcTabela(id, campo, rows, fatTotal, label) {
