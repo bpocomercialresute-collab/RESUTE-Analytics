@@ -1335,8 +1335,8 @@ async function dcCarregarDados(empresa_id_param) {
       }
     } catch (_lsErr) {}
 
-    // 2. Sem localStorage — tenta Supabase cache (sem loading overlay)
-    dcStatus('Abrindo painel...');
+    // 2. Sem localStorage — tenta Supabase cache (mostra loading para não ficar em branco)
+    dcLoading(true, 'Abrindo painel...');
     var snapshotRapido = window.ReportCache
       ? await window.ReportCache.getLatest(eid, 'dashboard_cliente', null)
       : null;
@@ -4176,6 +4176,20 @@ adminSincronizar = async function() {
       var pcData = await pcResp.json();
       if (pcData.ok) {
         _syncLog('Cache gerado: ' + pcData.total_registros.toLocaleString('pt-BR') + ' registros prontos para o cliente.', 'ok');
+        // Pré-popula localStorage para que a próxima entrada do cliente seja instantânea
+        try {
+          var pcSnap = window.ReportCache
+            ? await window.ReportCache.getLatest(EMPRESA_ATIVA.empresa_id, 'dashboard_cliente', null)
+            : null;
+          if (pcSnap && pcSnap.dados && Array.isArray(pcSnap.dados.vendas) && pcSnap.dados.vendas.length) {
+            var pcLsKey = 'resute_dc_cache_' + EMPRESA_ATIVA.empresa_id;
+            localStorage.setItem(pcLsKey, JSON.stringify({
+              gerado_em: pcSnap.dados.gerado_em || new Date().toISOString(),
+              vendas: pcSnap.dados.vendas
+            }));
+            _syncLog('Cache local atualizado (' + pcSnap.dados.vendas.length.toLocaleString('pt-BR') + ' registros).', 'ok');
+          }
+        } catch (_pcLsErr) { _syncLog('Aviso: cache local nao atualizado.', 'warn'); }
       } else if (pcData.aviso) {
         _syncLog(pcData.aviso, 'warn');
       } else {
