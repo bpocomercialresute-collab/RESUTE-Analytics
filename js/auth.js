@@ -1,7 +1,7 @@
 // =============================================================================
 // AUTH.JS — Login, sessão, sync API e salvar dados manuais
 // =============================================================================
-console.log('%c[RESUTE] auth.js v35 carregado', 'color:#1C64C0;font-weight:bold;font-size:14px');
+console.log('%c[RESUTE] auth.js v36 carregado', 'color:#1C64C0;font-weight:bold;font-size:14px');
 
 const SUPA_URL = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
 const SUPA_KEY = '__SERVER_ONLY__';
@@ -2164,7 +2164,7 @@ var DC_VALUE_LABEL_PLUGIN = {
         meta.data.forEach(function(element, index) {
           var valor = dcNumeroBase(ds.data[index]);
           if (!valor || !Number.isFinite(valor)) return;
-          var label = pluginOpts.formatter ? pluginOpts.formatter(valor, chart.data.labels[index], index) : dcNumeroLimpo(valor, 0);
+          var label = typeof pluginOpts.formatter === 'function' ? pluginOpts.formatter(valor, chart.data.labels[index], index) : dcNumeroLimpo(valor, 0);
           label = dcTextoValor(label);
           if (!label || !element) return;
           // Usa element.x / element.y diretamente — compatível Chart.js v3 e v4
@@ -2295,12 +2295,7 @@ function _dcChartAno(rows) {
   DC_CHARTS['ano'] = new Chart(ctx, {
     type: 'bar',
     data: { labels: anos, datasets: [{ data: anos.map(function(a){return porAno[a];}), backgroundColor: '#1C64C0', borderRadius: 6 }] },
-    options: Object.assign(_dcOpts(false), {
-      layout: { padding: { top: 28 } },
-      plugins: Object.assign(_dcOpts(false).plugins, {
-        dcValueLabels: { formatter: function(v){ return 'R$ ' + dcValorCompacto(v); }, color: '#1C1C1E', fontSize: 10, fontWeight: '700' }
-      })
-    }),
+    options: _dcOptsLabels(false, function(v){ return 'R$ ' + dcValorCompacto(v); }, { top: 28 }),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
 }
@@ -2321,6 +2316,13 @@ function _dcChartDiaSemana(rows) {
     options: _dcOpts(false),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
+}
+
+function _dcOptsLabels(horizontal, fmtFn, pad) {
+  var o = _dcOpts(horizontal);
+  o.plugins.dcValueLabels = { formatter: fmtFn, color: '#1C1C1E', fontSize: 10, fontWeight: '700' };
+  if (pad) o.layout = { padding: pad };
+  return o;
 }
 
 function _dcOpts(horizontal) {
@@ -2471,13 +2473,7 @@ function _dcChartProdQtd(rows) {
     type: 'bar',
     data: { labels: s.map(function(e){return dcTextoCurto(e[0], 34);}),
             datasets: [{ data: s.map(function(e){return e[1];}), backgroundColor: '#1C64C0', borderRadius: 4 }] },
-    options: Object.assign(_dcOpts(false), {
-      indexAxis: 'y',
-      layout: { padding: { right: 70 } },
-      plugins: Object.assign(_dcOpts(false).plugins, {
-        dcValueLabels: { formatter: function(v){ return dcNumeroLimpo(v, 0); }, color: '#0A2F2F', fontSize: 10, fontWeight: '700' }
-      })
-    }),
+    options: _dcOptsLabels(true, function(v){ return dcNumeroLimpo(v, 0); }, { right: 70 }),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
 }
@@ -2493,13 +2489,7 @@ function _dcChartMarca(rows) {
     data: { labels: s.map(function(e){return dcTextoCurto(e[0], 24);}),
             datasets: [{ data: s.map(function(e){return e[1];}),
               backgroundColor: '#1C64C0', borderWidth: 0, borderRadius: 6 }] },
-    options: Object.assign(_dcOpts(false), {
-      indexAxis: 'y',
-      layout: { padding: { right: 80 } },
-      plugins: Object.assign(_dcOpts(false).plugins, {
-        dcValueLabels: { formatter: function(v){ return 'R$ ' + dcValorCompacto(v); }, color: '#1C1C1E', fontSize: 10, fontWeight: '700' }
-      })
-    }),
+    options: _dcOptsLabels(true, function(v){ return 'R$ ' + dcValorCompacto(v); }, { right: 80 }),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
 }
@@ -2640,13 +2630,7 @@ function dcChartProdutos(rows) {
   DC_CHARTS['produtos'] = new Chart(ctx, {
     type: 'bar',
     data: { labels: sorted.map(function(e){ return dcTextoCurto(e[0], 36); }), datasets:[{label:'Faturamento',data:sorted.map(function(e){ return e[1]; }),backgroundColor:'#1C64C0',borderRadius:4}] },
-    options: Object.assign(dcChartOpts(''), {
-      indexAxis: 'y',
-      layout: { padding: { right: 80 } },
-      plugins: Object.assign(dcChartOpts('').plugins, {
-        dcValueLabels: { formatter: function(v){ return 'R$ ' + dcValorCompacto(v); }, color: '#1C1C1E', fontSize: 10, fontWeight: '700' }
-      })
-    }),
+    options: _dcOptsLabels(true, function(v){ return 'R$ ' + dcValorCompacto(v); }, { right: 80 }),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
 }
