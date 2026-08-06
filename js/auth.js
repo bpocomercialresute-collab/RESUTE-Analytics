@@ -2500,9 +2500,9 @@ function dcChartEvolucao(rows) {
     type: 'line',
     data: { labels: MESES, datasets: datasets },
     options: Object.assign(dcChartOpts(''), {
-      layout: { padding: { top: 32, right: 8, left: 8 } },
+      layout: { padding: { top: 56, right: 8, left: 8 } },
       plugins: {
-        legend: { display: true, labels: { color: '#334155', font: { size: 11, weight: 700 } } },
+        legend: { display: true, position: 'top', labels: { color: '#334155', font: { size: 11, weight: 700 }, padding: 16 } },
         tooltip: { callbacks: { label: function(c){ return c.dataset.label + ': ' + dcValorCompacto(c.raw); } } },
         dcValueLabels: { display: false }
       }
@@ -2520,10 +2520,12 @@ function dcChartEvolucao(rows) {
           if (!meta || meta.hidden) return;
           c.fillStyle = String(ds.borderColor || '#1C64C0');
           var offset = 8 + di * 14;
+          var minY = chart.chartArea.top + 4;
           meta.data.forEach(function(pt, i) {
             var v = Number(ds.data[i]);
             if (!v || !isFinite(v)) return;
-            c.fillText(dcValorCompacto(v), pt.x, pt.y - offset);
+            var labelY = Math.max(pt.y - offset, minY);
+            c.fillText(dcValorCompacto(v), pt.x, labelY);
           });
         });
         c.restore();
