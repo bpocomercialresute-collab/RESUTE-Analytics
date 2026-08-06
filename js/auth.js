@@ -1,7 +1,7 @@
 // =============================================================================
 // AUTH.JS — Login, sessão, sync API e salvar dados manuais
 // =============================================================================
-console.log('%c[RESUTE] auth.js v36 carregado', 'color:#1C64C0;font-weight:bold;font-size:14px');
+console.log('%c[RESUTE] auth.js v37 carregado', 'color:#1C64C0;font-weight:bold;font-size:14px');
 
 const SUPA_URL = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
 const SUPA_KEY = '__SERVER_ONLY__';
@@ -2300,11 +2300,52 @@ function _dcChartAno(rows) {
   });
 }
 
+function _dcDiaSemFiltroChange() {
+  var mes = document.getElementById('dc-diasem-mes');
+  var sem = document.getElementById('dc-diasem-sem');
+  if (sem) sem.disabled = !mes || !mes.value;
+  _dcChartDiaSemana(Array.isArray(DC_DATA) ? DC_DATA : []);
+}
+
 function _dcChartDiaSemana(rows) {
+  var anoSel = document.getElementById('dc-diasem-ano');
+  var mesSel = document.getElementById('dc-diasem-mes');
+  var semSel = document.getElementById('dc-diasem-sem');
+
+  // Populate year dropdown from DC_RAW, preserving current selection
+  var anosMap = {};
+  var fonte = Array.isArray(DC_RAW) && DC_RAW.length ? DC_RAW : rows;
+  fonte.forEach(function(r) {
+    if (!r.dt_saida) return;
+    var d = new Date(r.dt_saida);
+    if (!isNaN(d.getTime())) anosMap[d.getFullYear()] = true;
+  });
+  if (anoSel) {
+    var prevAno = anoSel.value;
+    anoSel.innerHTML = '<option value="">Todos os anos</option>'
+      + Object.keys(anosMap).sort().map(function(a) {
+          return '<option value="'+a+'"'+(a===prevAno?' selected':'')+'>'+a+'</option>';
+        }).join('');
+  }
+
+  var anoFilter = anoSel ? anoSel.value : '';
+  var mesFilter = mesSel ? mesSel.value : '';
+  var semFilter = semSel ? semSel.value : '';
+  if (semSel) semSel.disabled = !mesFilter;
+
+  var filtered = rows.filter(function(r) {
+    if (!r.dt_saida) return false;
+    var d = new Date(r.dt_saida);
+    if (isNaN(d.getTime())) return false;
+    if (anoFilter && d.getFullYear() !== parseInt(anoFilter, 10)) return false;
+    if (mesFilter !== '' && d.getMonth() !== parseInt(mesFilter, 10)) return false;
+    if (semFilter && mesFilter !== '' && Math.ceil(d.getDate() / 7) !== parseInt(semFilter, 10)) return false;
+    return true;
+  });
+
   var dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   var mp = [0,0,0,0,0,0,0];
-  rows.forEach(function(r) {
-    if (!r.dt_saida) return;
+  filtered.forEach(function(r) {
     var d = new Date(r.dt_saida);
     if (!isNaN(d.getTime())) mp[d.getDay()] += dcValorLinha(r);
   });
@@ -2313,7 +2354,7 @@ function _dcChartDiaSemana(rows) {
   DC_CHARTS['diasem'] = new Chart(ctx, {
     type: 'bar',
     data: { labels: dias, datasets: [{ data: mp, backgroundColor: '#1C64C0', borderRadius: 6 }] },
-    options: _dcOpts(false),
+    options: _dcOptsLabels(false, function(v){ return 'R$ ' + dcValorCompacto(v); }, { top: 28 }),
     plugins: [DC_VALUE_LABEL_PLUGIN]
   });
 }

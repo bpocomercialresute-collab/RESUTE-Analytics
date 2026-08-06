@@ -1069,7 +1069,27 @@
             <div class="dc-chart-box"><canvas id="dc-chart-ano"></canvas></div>
           </div>
           <div class="dc-card">
-            <div class="dc-card-title">Faturamento por Dia da Semana</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+              <div class="dc-card-title" style="margin-bottom:0">Faturamento por Dia da Semana</div>
+              <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                <select id="dc-diasem-ano" class="dc-filtro" onchange="_dcDiaSemFiltroChange()" style="font-size:11px"><option value="">Todos os anos</option></select>
+                <select id="dc-diasem-mes" class="dc-filtro" onchange="_dcDiaSemFiltroChange()" style="font-size:11px">
+                  <option value="">Todos os meses</option>
+                  <option value="0">Janeiro</option><option value="1">Fevereiro</option>
+                  <option value="2">Março</option><option value="3">Abril</option>
+                  <option value="4">Maio</option><option value="5">Junho</option>
+                  <option value="6">Julho</option><option value="7">Agosto</option>
+                  <option value="8">Setembro</option><option value="9">Outubro</option>
+                  <option value="10">Novembro</option><option value="11">Dezembro</option>
+                </select>
+                <select id="dc-diasem-sem" class="dc-filtro" onchange="_dcDiaSemFiltroChange()" style="font-size:11px" disabled>
+                  <option value="">Todas as semanas</option>
+                  <option value="1">1ª semana</option><option value="2">2ª semana</option>
+                  <option value="3">3ª semana</option><option value="4">4ª semana</option>
+                  <option value="5">5ª semana</option>
+                </select>
+              </div>
+            </div>
             <div class="dc-chart-box"><canvas id="dc-chart-diasem"></canvas></div>
           </div>
         </div>
@@ -1415,7 +1435,7 @@
   <script src="js/charts.js?v=3"></script>
   <script src="js/actions.js?v=2"></script>
   <script src="js/modulos.js?v=3"></script>
-  <script src="js/auth.js?v=36"></script>
+  <script src="js/auth.js?v=37"></script>
   <script src="js/report-cache.js?v=1"></script>
   <script src="js/admin-console.js?v=25"></script>
   <script src="js/financeiro/financeiro-core.js?v=4"></script>
