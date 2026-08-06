@@ -2690,27 +2690,48 @@ function _dcSparkline(points, w, h, color) {
     + '</svg>';
 }
 
+function _dcPositivFiltroChange() {
+  var mes = document.getElementById('dc-positiv-mes');
+  var sem = document.getElementById('dc-positiv-sem');
+  if (sem) sem.disabled = !mes || !mes.value;
+  _dcTabelaPositivacao();
+}
+
 function _dcTabelaPositivacao() {
-  // Período próprio do relatório (dias a partir da data máxima do DC_RAW)
-  var diasInput = parseInt((document.getElementById('dc-positiv-dias') || {}).value || '0') || 0;
-  var diasSel   = parseInt((document.getElementById('dc-positiv-periodo') || {}).value || '0') || 0;
-  var periodoDias = diasInput > 0 ? diasInput : diasSel;
+  var anoSel = document.getElementById('dc-positiv-ano');
+  var mesSel = document.getElementById('dc-positiv-mes');
+  var semSel = document.getElementById('dc-positiv-sem');
 
-  var endDate = null;
+  // Popula anos a partir de DC_RAW, preservando seleção
+  var anosMap = {};
   DC_RAW.forEach(function(r) {
-    var d = dcDataValor(r);
-    if (d && (!endDate || d > endDate)) endDate = d;
+    if (!r.dt_saida) return;
+    var yr = +String(r.dt_saida).split('-')[0];
+    if (yr > 1900) anosMap[yr] = true;
   });
-  if (!endDate) endDate = new Date();
-  var startDate = periodoDias > 0 ? new Date(endDate.getTime() - periodoDias * 86400000) : null;
-
-  var source = DC_RAW;
-  if (startDate) {
-    source = DC_RAW.filter(function(r) {
-      var d = dcDataValor(r);
-      return d && d >= startDate && d <= endDate;
-    });
+  if (anoSel) {
+    var prevAno = anoSel.value;
+    anoSel.innerHTML = '<option value="">Todos os anos</option>'
+      + Object.keys(anosMap).sort().map(function(a) {
+          return '<option value="' + a + '"' + (a === prevAno ? ' selected' : '') + '>' + a + '</option>';
+        }).join('');
   }
+
+  var anoFilter = anoSel ? anoSel.value : '';
+  var mesFilter = mesSel ? mesSel.value : '';
+  var semFilter = semSel ? semSel.value : '';
+  if (semSel) semSel.disabled = !mesFilter;
+
+  var source = DC_RAW.filter(function(r) {
+    if (!r.dt_saida) return false;
+    var p = String(r.dt_saida).split('-');
+    if (p.length < 3) return false;
+    var yr = +p[0], mo = +p[1] - 1, dy = +p[2];
+    if (anoFilter && yr !== parseInt(anoFilter, 10)) return false;
+    if (mesFilter !== '' && mo !== parseInt(mesFilter, 10)) return false;
+    if (semFilter && mesFilter !== '' && Math.ceil(dy / 7) !== parseInt(semFilter, 10)) return false;
+    return true;
+  });
 
   // Mapa de vendas + dados mensais para sparkline
   var mp = {}, monthData = {}, monthSet = new Set();

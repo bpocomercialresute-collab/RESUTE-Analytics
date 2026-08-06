@@ -1141,18 +1141,19 @@
           <div class="dc-card">
             <div class="dc-card-title">Positivação (clientes únicos)</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
-              <label>Período
-                <select id="dc-positiv-periodo" class="dc-filtro" onchange="_dcTabelaPositivacao()" style="font-size:11px">
-                  <option value="30">Último mês</option>
-                  <option value="90">3 meses</option>
-                  <option value="180">6 meses</option>
-                  <option value="365">12 meses</option>
-                  <option value="0">Todo o período</option>
-                </select>
-              </label>
-              <label style="display:flex;align-items:center;gap:4px">Dias
-                <input type="number" id="dc-positiv-dias" class="dc-filtro" min="1" placeholder="ex: 45" oninput="_dcTabelaPositivacao()" style="font-size:11px;width:64px;padding:4px 6px">
-              </label>
+              <select id="dc-positiv-ano" class="dc-filtro" onchange="_dcPositivFiltroChange()" style="font-size:11px"><option value="">Todos os anos</option></select>
+              <select id="dc-positiv-mes" class="dc-filtro" onchange="_dcPositivFiltroChange()" style="font-size:11px">
+                <option value="">Todos os meses</option>
+                <option value="0">Janeiro</option><option value="1">Fevereiro</option><option value="2">Março</option>
+                <option value="3">Abril</option><option value="4">Maio</option><option value="5">Junho</option>
+                <option value="6">Julho</option><option value="7">Agosto</option><option value="8">Setembro</option>
+                <option value="9">Outubro</option><option value="10">Novembro</option><option value="11">Dezembro</option>
+              </select>
+              <select id="dc-positiv-sem" class="dc-filtro" onchange="_dcTabelaPositivacao()" style="font-size:11px" disabled>
+                <option value="">Todas as semanas</option>
+                <option value="1">1ª semana</option><option value="2">2ª semana</option>
+                <option value="3">3ª semana</option><option value="4">4ª semana</option><option value="5">5ª semana</option>
+              </select>
               <input type="text" id="dc-positiv-busca" placeholder="Buscar rep..." class="dc-filtro" oninput="_dcTabelaPositivacao()" style="font-size:11px;min-width:110px;padding:4px 8px">
               <label>Ordenar
                 <select id="dc-ordem-positiv" class="dc-filtro" onchange="_dcTabelaPositivacao()">
@@ -1455,7 +1456,7 @@
   <script src="js/charts.js?v=3"></script>
   <script src="js/actions.js?v=2"></script>
   <script src="js/modulos.js?v=3"></script>
-  <script src="js/auth.js?v=46"></script>
+  <script src="js/auth.js?v=47"></script>
   <script src="js/report-cache.js?v=1"></script>
   <script src="js/admin-console.js?v=25"></script>
   <script src="js/financeiro/financeiro-core.js?v=4"></script>
