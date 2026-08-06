@@ -1236,8 +1236,21 @@ async function dcTentarSnapshotCliente(eid, origem) {
   return cache;
 }
 
+var _DC_SLIM_FIELDS = ['id_externo','num_pedido','produto','qtd','dt_emissao','dt_saida',
+  'valor','vendedor','industria','cliente','grupo','grupo_produto','marca','familia',
+  'uf','cidade','ano','mes'];
+
+function _dcSlimVenda(v) {
+  var out = {};
+  _DC_SLIM_FIELDS.forEach(function(k) {
+    if (v[k] !== undefined && v[k] !== null && v[k] !== '') out[k] = v[k];
+  });
+  return out;
+}
+
 async function dcSalvarSnapshotCliente(eid, origem, vendas, periodoInicio, periodoFim) {
   if (!window.ReportCache || !eid || !Array.isArray(vendas) || !vendas.length) return false;
+  var slim = vendas.map(_dcSlimVenda);
   return window.ReportCache.save({
     empresa_id: eid,
     tipo: 'dashboard_cliente',
@@ -1245,11 +1258,11 @@ async function dcSalvarSnapshotCliente(eid, origem, vendas, periodoInicio, perio
     origem: origem || 'manual',
     periodo_inicio: periodoInicio || null,
     periodo_fim: periodoFim || null,
-    total_registros: vendas.length,
+    total_registros: slim.length,
     dados: {
-      vendas: vendas,
+      vendas: slim,
       origem: origem || 'manual',
-      total_registros: vendas.length,
+      total_registros: slim.length,
       gerado_em: new Date().toISOString()
     }
   });
@@ -4099,11 +4112,32 @@ adminSincronizar = async function() {
     try { bdMapColumns(); } catch(e) { console.error(e); }
     try { bdAutoFill(); }   catch(e) { console.error(e); }
     try { bdUpdateAllTabs(); } catch(e) { console.error(e); }
-    if (window.ReportCache) {
-      var periodoInicioCache = dataInicio instanceof Date ? dataInicio.toISOString().slice(0,10) : null;
-      var periodoFimCache = dataFim instanceof Date ? dataFim.toISOString().slice(0,10) : null;
-      var cacheOk = await dcSalvarSnapshotCliente(EMPRESA_ATIVA.empresa_id, 'api', regs, periodoInicioCache, periodoFimCache);
-      _syncLog(cacheOk ? 'Snapshot dos relatórios salvo para o cliente.' : 'Snapshot não salvo: tabela relatorios_cache ainda não disponível.', cacheOk ? 'ok' : 'warn');
+    // Gera cache server-side (lê dados já enriquecidos do BD, sem trafegar pelo browser)
+    _syncLog('Gerando cache de relatórios no servidor...');
+    try {
+      var pcController = new AbortController();
+      var pcTimer = setTimeout(function() { pcController.abort(); }, 45000);
+      var pcResp = await NATIVE_FETCH('/api/precache', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-session-token': SESSION ? SESSION.token : '' },
+        body: JSON.stringify({ empresa_id: EMPRESA_ATIVA.empresa_id }),
+        signal: pcController.signal
+      });
+      clearTimeout(pcTimer);
+      var pcData = await pcResp.json();
+      if (pcData.ok) {
+        _syncLog('Cache gerado: ' + pcData.total_registros.toLocaleString('pt-BR') + ' registros prontos para o cliente.', 'ok');
+      } else if (pcData.aviso) {
+        _syncLog(pcData.aviso, 'warn');
+      } else {
+        _syncLog('Cache não gerado: ' + (pcData.erro || 'erro desconhecido'), 'warn');
+      }
+    } catch (pcErr) {
+      if (pcErr && pcErr.name === 'AbortError') {
+        _syncLog('Cache não gerado: timeout (empresa muito grande). O cliente carregará os dados na primeira entrada.', 'warn');
+      } else {
+        _syncLog('Cache não gerado (erro): ' + pcErr.message, 'warn');
+      }
     }
     if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
       GRIDS.bd.allData = BD_DATA.rows; GRIDS.bd.filtered = null;
