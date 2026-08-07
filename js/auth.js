@@ -3041,7 +3041,7 @@ function dcTabelaInativos(rows) {
     var d = dcDataValor(r);
     if (!k || k === 'SEM CLIENTE' || !d || isNaN(d.getTime())) return;
     if (!mapa[k] || d > mapa[k].ultimaData) {
-      mapa[k] = { ultimaData: d, ultimaPedidoKey: dcPedidoChave(r) };
+      mapa[k] = { ultimaData: d, ultimaPedidoKey: dcPedidoChave(r), ultimaRep: dcRepresentanteNome(r) };
     }
   });
 
@@ -3060,10 +3060,11 @@ function dcTabelaInativos(rows) {
   // Montar registros
   var arr = todos.map(function(nome) {
     var d = mapa[nome];
-    if (!d) return { nome: nome, ultimaStr: '—', dias: -1, valorUltima: 0, semHistorico: true };
+    if (!d) return { nome: nome, rep: '—', ultimaStr: '—', dias: -1, valorUltima: 0, semHistorico: true };
     var dias = Math.floor((hoje.getTime() - d.ultimaData.getTime()) / 86400000);
     return {
       nome: nome,
+      rep: d.ultimaRep || '—',
       ultimaStr: d.ultimaData.toLocaleDateString('pt-BR'),
       dias: Math.max(0, dias),
       valorUltima: pedidoValores[d.ultimaPedidoKey] || 0,
@@ -3125,7 +3126,7 @@ function dcTabelaInativos(rows) {
 
   // Tabela
   var h = '<table class="dc-tabela dc-inactive-table"><thead><tr>'
-    + '<th>#</th><th>Cliente</th><th>Última compra</th>'
+    + '<th>#</th><th>Cliente</th><th>Rep</th><th>Última compra</th>'
     + '<th class="num">Dias sem compra</th><th class="num">Valor última compra</th><th>Status</th>'
     + '</tr></thead><tbody>';
   arr.forEach(function(e, i) {
@@ -3137,6 +3138,7 @@ function dcTabelaInativos(rows) {
     var diasStr = e.semHistorico ? '—' : (e.dias + ' dias');
     h += '<tr><td class="pos">' + (i + 1) + '</td>'
       + '<td>' + escapeHtml(e.nome) + '</td>'
+      + '<td style="font-size:11px;color:#5A7A74">' + escapeHtml(e.rep) + '</td>'
       + '<td>' + e.ultimaStr + '</td>'
       + '<td class="num"><strong>' + diasStr + '</strong></td>'
       + '<td class="num">' + (e.semHistorico ? '—' : dcMoedaLimpa(e.valorUltima)) + '</td>'
