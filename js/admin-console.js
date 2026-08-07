@@ -581,6 +581,7 @@ function adminConsoleRenderEmpresas(list) {
         ? '<button onclick="adminConsoleEditarIntegracao(\'' + adminConsoleEscape(id) + '\')">Config. API</button>'
         : '<button onclick="adminConsoleNovaIntegracao(\'' + adminConsoleEscape(id) + '\')">Conectar API</button>')
       + '<button onclick="adminConsoleFiltrarPorEmpresa(\'' + adminConsoleEscape(id) + '\')">Usuarios</button>'
+      + '<button onclick="adminConsoleGerenciarFiliais(\'' + adminConsoleEscape(id) + '\')">Grupo</button>'
       + '<button class="admin-company-danger" onclick="adminConsoleArquivarEmpresa(\'' + adminConsoleEscape(id) + '\')">Arquivar</button>'
       + '<button class="admin-company-delete" onclick="adminConsoleExcluirEmpresa(\'' + adminConsoleEscape(id) + '\')">Excluir</button>'
       + '</div>'
@@ -1524,6 +1525,112 @@ function adminConsoleEmpresaModal(company) {
     }
   });
 }
+
+// ── FILIAIS (grupo de empresas) ──────────────────────────────────────────────
+
+async function adminConsoleGerenciarFiliais(empresaId) {
+  var company = ADMIN_CONSOLE.companies.find(function(c) {
+    return String(c.id || c.empresa_id) === String(empresaId);
+  });
+  if (!company) return;
+
+  var filiais = [];
+  try {
+    var r = await adminConsoleFetch('/rest/v1/empresa_filiais?empresa_pai_id=eq.' + encodeURIComponent(empresaId) + '&select=id,empresa_filial_id,nome_exibicao,ativo,ordem&order=ordem.asc');
+    filiais = Array.isArray(r.data) ? r.data : [];
+  } catch (e) {
+    adminConsoleAviso('Erro ao carregar grupo: ' + e.message, 'error');
+    return;
+  }
+
+  var filList = filiais.map(function(f) {
+    var filEmpresa = ADMIN_CONSOLE.companies.find(function(c) {
+      return String(c.id || c.empresa_id) === String(f.empresa_filial_id);
+    });
+    var nomeEmpresa = filEmpresa ? adminConsoleEscape(filEmpresa.nome) : adminConsoleEscape(f.empresa_filial_id.slice(0, 8));
+    var nomeExib = f.nome_exibicao ? adminConsoleEscape(f.nome_exibicao) : '<em style="color:#9ca3af">—</em>';
+    return '<tr>'
+      + '<td style="padding:6px 8px">' + nomeEmpresa + '</td>'
+      + '<td style="padding:6px 8px">' + nomeExib + '</td>'
+      + '<td style="padding:6px 8px">' + (f.ativo !== false ? 'Ativa' : 'Inativa') + '</td>'
+      + '<td style="padding:6px 8px"><button type="button" style="color:#ef4444;background:none;border:none;cursor:pointer;font-size:12px" onclick="adminConsoleRemoverFilial(\'' + adminConsoleEscape(f.id) + '\',\'' + adminConsoleEscape(empresaId) + '\')">Remover</button></td>'
+      + '</tr>';
+  }).join('');
+
+  var html = '<p style="margin:0 0 12px;color:#6b7280;font-size:13px">Empresas do grupo de <strong>' + adminConsoleEscape(company.nome) + '</strong>. O cliente pode alternar entre elas no painel.</p>'
+    + (filiais.length
+      ? '<div style="overflow-x:auto;margin-bottom:16px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:1px solid #e5e7eb"><th style="text-align:left;padding:6px 8px;font-weight:600">Empresa</th><th style="text-align:left;padding:6px 8px;font-weight:600">Exibir como</th><th style="text-align:left;padding:6px 8px;font-weight:600">Status</th><th></th></tr></thead><tbody>' + filList + '</tbody></table></div>'
+      : '<p style="color:#9ca3af;font-size:13px;font-style:italic;margin-bottom:16px">Nenhuma empresa filial cadastrada. Adicione empresas ao grupo para o cliente poder alternar entre elas.</p>')
+    + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleAdicionarFilial(\'' + adminConsoleEscape(empresaId) + '\')">+ Adicionar empresa</button><button type="button" onclick="adminConsoleFecharModal()">Fechar</button></div>';
+
+  adminConsoleAbrirModal('EMPRESAS', 'Grupo — ' + adminConsoleEscape(company.nome), html, function() {});
+}
+
+async function adminConsoleAdicionarFilial(empresaPaiId) {
+  var existingIds = [];
+  try {
+    var rEx = await adminConsoleFetch('/rest/v1/empresa_filiais?empresa_pai_id=eq.' + encodeURIComponent(empresaPaiId) + '&select=empresa_filial_id');
+    existingIds = (Array.isArray(rEx.data) ? rEx.data : []).map(function(f) { return String(f.empresa_filial_id); });
+  } catch (e) {}
+
+  var options = ADMIN_CONSOLE.companies.filter(function(c) {
+    var cid = String(c.id || c.empresa_id);
+    return cid !== String(empresaPaiId) && existingIds.indexOf(cid) === -1;
+  });
+
+  if (!options.length) {
+    adminConsoleAviso('Nao ha outras empresas disponiveis para adicionar ao grupo.', 'warn');
+    return;
+  }
+
+  var selectOpts = options.map(function(c) {
+    return '<option value="' + adminConsoleEscape(String(c.id || c.empresa_id)) + '">' + adminConsoleEscape(c.nome) + '</option>';
+  }).join('');
+
+  var html = '<div class="admin-form-grid">'
+    + '<label class="admin-field admin-field-full"><span>Empresa filial</span><select name="empresa_filial_id"><option value="">Selecione a empresa...</option>' + selectOpts + '</select></label>'
+    + '<label class="admin-field admin-field-full"><span>Nome de exibicao no painel do cliente (opcional)</span><input name="nome_exibicao" maxlength="120" placeholder="Ex: Plastrio, Treino..."></label>'
+    + '<label class="admin-field"><span>Ordem</span><input name="ordem" type="number" value="0" min="0" style="width:80px"></label>'
+    + '</div><div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Cancelar</button><button class="admin-btn-primary" type="submit">Adicionar ao grupo</button></div>';
+
+  adminConsoleAbrirModal('EMPRESAS', 'Adicionar empresa ao grupo', html, async function(data, form) {
+    var filialId = String(data.get('empresa_filial_id') || '').trim();
+    var nomeExib = String(data.get('nome_exibicao') || '').trim();
+    var ordem = parseInt(data.get('ordem') || '0', 10) || 0;
+    if (!filialId) { adminConsoleAviso('Selecione uma empresa.', 'error'); return; }
+    var btn = form.querySelector('[type="submit"]');
+    if (btn) btn.disabled = true;
+    try {
+      await adminConsoleFetch('/rest/v1/empresa_filiais', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ empresa_pai_id: empresaPaiId, empresa_filial_id: filialId, nome_exibicao: nomeExib || null, ordem: ordem })
+      });
+      adminConsoleFecharModal();
+      adminConsoleAviso('Empresa adicionada ao grupo com sucesso.', 'success');
+      adminConsoleGerenciarFiliais(empresaPaiId);
+    } catch (e) {
+      adminConsoleAviso('Erro ao adicionar: ' + e.message, 'error');
+      if (btn) btn.disabled = false;
+    }
+  });
+}
+
+async function adminConsoleRemoverFilial(filialId, empresaPaiId) {
+  if (!window.confirm('Remover esta empresa do grupo? O cliente perdera acesso a essa opcao no painel.')) return;
+  try {
+    await adminConsoleFetch('/rest/v1/empresa_filiais?id=eq.' + encodeURIComponent(filialId), {
+      method: 'DELETE',
+      headers: { Prefer: 'return=minimal' }
+    });
+    adminConsoleAviso('Empresa removida do grupo.', 'success');
+    adminConsoleGerenciarFiliais(empresaPaiId);
+  } catch (e) {
+    adminConsoleAviso('Erro ao remover: ' + e.message, 'error');
+  }
+}
+
+// ── FIM FILIAIS ──────────────────────────────────────────────────────────────
 
 function adminConsoleNovoUsuario() {
   adminConsoleUsuarioModal(null, '');

@@ -201,6 +201,7 @@ function _saveSession(sessionData) {
 // ── NOMES DE LOJAS (populado dinamicamente) ───────────────────────────────────
 var LOJA_NOMES = {};
 var ADMIN_PREVIEW_COMPANIES = [];
+var DC_FILIAIS = []; // filiais do grupo de empresas carregadas ao abrir o dashboard
 
 function abrirAnaliseVendas() {
   SESSION = _readStoredSession();
@@ -1075,6 +1076,11 @@ function _abrirDashCliente(empresaIdPreview) {
     }
     if (eid) dcCarregarDados(eid);
     else dcStatus('⚠ Empresa não configurada.');
+  }
+
+  // Carrega filiais do grupo (async, não bloqueante) — apenas para clientes não-preview
+  if (!previewAdmin && SESSION && SESSION.empresa_id) {
+    _dcCarregarFiliais(SESSION.empresa_id);
   }
 
   // Botão de sync/atualizar no header do dashboard
@@ -4217,6 +4223,16 @@ function _adminSetStatus(msg, ok) {
 }
 
 function dcSelecionarLoja(empresa_id) {
+  // Modo "Todas" — carrega dados consolidados do grupo
+  if (empresa_id === 'todas') {
+    document.querySelectorAll('.dc-loja-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.id === 'todas');
+    });
+    var badge = document.getElementById('dc-empresa');
+    if (badge) badge.textContent = 'Todas as empresas';
+    _dcCarregarTodas();
+    return;
+  }
   // Destaca loja ativa
   document.querySelectorAll('.dc-loja-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.id === empresa_id);
@@ -4243,6 +4259,124 @@ function _montarSeletorLojas() {
   // Seleciona a primeira por padrão
   dcSelecionarLoja(ids[0]);
 }
+
+// =============================================================================
+// SISTEMA FILIAIS — grupo de empresas (multi-empresa por cliente)
+// =============================================================================
+
+async function _dcCarregarFiliais(empresaPaiId) {
+  DC_FILIAIS = [];
+  if (!empresaPaiId) return;
+  try {
+    var r = await fetch(
+      SUPA_URL + '/rest/v1/empresa_filiais?empresa_pai_id=eq.' + encodeURIComponent(empresaPaiId)
+        + '&ativo=eq.true&select=empresa_filial_id,nome_exibicao&order=ordem.asc',
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
+    );
+    if (!r.ok) return;
+    var data = await r.json();
+    if (!Array.isArray(data) || !data.length) return;
+    DC_FILIAIS = data.map(function(row) {
+      var nome = (row.nome_exibicao && row.nome_exibicao.trim()) || row.empresa_filial_id.slice(0, 8);
+      LOJA_NOMES[row.empresa_filial_id] = nome;
+      return { empresa_filial_id: row.empresa_filial_id, nome: nome };
+    });
+    _dcRenderizarSeletorFiliais(empresaPaiId);
+  } catch (e) {
+    console.warn('[Filiais]', e.message);
+  }
+}
+
+function _dcRenderizarSeletorFiliais(empresaPaiId) {
+  var sel = document.getElementById('dc-loja-selector');
+  if (!sel || !DC_FILIAIS.length) return;
+  var paiNome = LOJA_NOMES[empresaPaiId] || (SESSION && SESSION.empresa_nome) || 'Principal';
+  LOJA_NOMES[empresaPaiId] = paiNome;
+  var esc = typeof escapeHtml === 'function' ? escapeHtml : function(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  };
+  var btns = '<button class="dc-loja-btn dc-loja-btn-todas" data-id="todas">Todas</button>';
+  btns += '<button class="dc-loja-btn active" data-id="' + esc(empresaPaiId) + '">' + esc(paiNome) + '</button>';
+  DC_FILIAIS.forEach(function(f) {
+    btns += '<button class="dc-loja-btn" data-id="' + esc(f.empresa_filial_id) + '">' + esc(f.nome) + '</button>';
+  });
+  sel.innerHTML = btns;
+  sel.style.display = 'flex';
+  sel.querySelectorAll('.dc-loja-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { dcSelecionarLoja(this.dataset.id); });
+  });
+}
+
+async function _dcCarregarTodas() {
+  if (!DC_FILIAIS.length || !SESSION || !SESSION.empresa_id) return;
+  var ids = [SESSION.empresa_id].concat(DC_FILIAIS.map(function(f) { return f.empresa_filial_id; }));
+
+  if (DC_ABORT_CONTROLLER) { try { DC_ABORT_CONTROLLER.abort(); } catch (e) {} }
+  DC_ABORT_CONTROLLER = new AbortController();
+  var sig = DC_ABORT_CONTROLLER.signal;
+  var seq = ++DC_LOAD_SEQUENCE;
+
+  DC_ACTIVE_COMPANY = 'todas';
+  DC_IS_LOADING = true;
+  DC_RAW = [];
+  DC_DATA = [];
+
+  dcMostrarEsqueleto();
+  dcLoading(true);
+  dcStatus('⏳ Carregando ' + ids.length + ' empresas...');
+
+  try {
+    var allVendas = [];
+    for (var i = 0; i < ids.length; i++) {
+      if (sig.aborted || seq !== DC_LOAD_SEQUENCE) return;
+      var eid = ids[i];
+      // IDB cache primeiro (evita re-fetch se já carregado individualmente)
+      var lsKey = 'resute_dc_cache_' + eid;
+      var cached = await _dcIdbGet(lsKey);
+      if (cached && Array.isArray(cached.vendas) && cached.vendas.length) {
+        allVendas = allVendas.concat(cached.vendas);
+        dcStatus('⏳ Empresa ' + (i + 1) + '/' + ids.length + ' (cache)...');
+        continue;
+      }
+      // Busca origem configurada
+      var origemR = await fetch(
+        SUPA_URL + '/rest/v1/empresas?id=eq.' + encodeURIComponent(eid) + '&select=exibir_origem',
+        { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }, signal: sig }
+      );
+      var origemD = await origemR.json();
+      var exibir = (origemD && origemD[0] && origemD[0].exibir_origem) || 'manual';
+      // Busca vendas paginadas
+      dcStatus('⏳ Empresa ' + (i + 1) + '/' + ids.length + ' — buscando dados...');
+      var vendas = await _fetchAll(
+        SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + encodeURIComponent(eid) + '&origem=eq.' + encodeURIComponent(exibir) + '&select=*&order=dt_saida.asc',
+        { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY },
+        sig
+      );
+      if (Array.isArray(vendas) && vendas.length) {
+        _dcIdbSet(lsKey, { gerado_em: new Date().toISOString(), vendas: vendas });
+        allVendas = allVendas.concat(vendas);
+      }
+    }
+    if (sig.aborted || seq !== DC_LOAD_SEQUENCE) return;
+    if (!allVendas.length) {
+      dcLimparPainelVazio('Nenhum dado disponível', 'Sincronize as APIs no painel admin ou confirme configuração das empresas.');
+      dcStatus('⚠ Nenhum dado disponível.');
+      return;
+    }
+    dcStatus('⏳ ' + allVendas.length.toLocaleString('pt-BR') + ' registros — gerando relatórios...');
+    dcAplicarVendasCarregadas(allVendas);
+    dcStatus('OK ' + allVendas.length.toLocaleString('pt-BR') + ' registros (todas as empresas)', true);
+  } catch (e) {
+    if (e.name === 'AbortError' || (sig && sig.aborted)) return;
+    dcStatus('✗ Erro ao carregar: ' + e.message);
+  } finally {
+    if (seq === DC_LOAD_SEQUENCE) {
+      DC_IS_LOADING = false;
+      dcLoading(false);
+    }
+  }
+}
+
 // =============================================================================
 // SISTEMA MULTI-ORIGEM — API vs Manual · Toggle cliente
 // =============================================================================
