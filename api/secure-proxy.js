@@ -680,13 +680,14 @@ async function proxyExternalGeneric(req, res, targetUrl, method, incomingHeaders
   }
   if (!empresaId) return res.status(400).json({ erro: 'empresa_id obrigatorio para proxying externo.' });
 
-  // Busca api_url autorizada para esta empresa
+  // Busca config autorizada para esta empresa (inclui credenciais para injetar no login)
   const cfgResp = await fetch(
-    `${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(empresaId)}&ativo=eq.true&select=api_url,sistema&limit=1`,
+    `${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(empresaId)}&ativo=eq.true&select=api_url,api_user,api_pass,sistema&limit=1`,
     { headers: { 'apikey': env.serviceKey, 'Authorization': `Bearer ${env.serviceKey}` } }
   );
   const cfgData = cfgResp.ok ? await cfgResp.json() : [];
-  const authorizedUrl = cfgData && cfgData[0] && cfgData[0].api_url ? cfgData[0].api_url.replace(/\/$/, '') : null;
+  const cfg = cfgData && cfgData[0];
+  const authorizedUrl = cfg && cfg.api_url ? cfg.api_url.replace(/\/$/, '') : null;
   if (!authorizedUrl) {
     return res.status(403).json({ erro: 'Nenhuma API configurada e ativa para esta empresa.' });
   }
@@ -701,7 +702,16 @@ async function proxyExternalGeneric(req, res, targetUrl, method, incomingHeaders
   if (incomingHeaders['x-visual-codigo-empresa']) forwardHeaders['x-visual-codigo-empresa'] = incomingHeaders['x-visual-codigo-empresa'];
   if (incomingHeaders['content-type']) forwardHeaders['Content-Type'] = incomingHeaders['content-type'];
 
-  const upstream = await fetch(targetUrl.href, {
+  // Para /login: injeta credenciais da api_config como query params (padrão Visual Saef)
+  let finalHref = targetUrl.href;
+  if (targetUrl.pathname === '/login' && cfg && cfg.api_user && cfg.api_pass) {
+    const loginUrl = new URL(authorizedUrl + '/login');
+    loginUrl.searchParams.set('client_id', cfg.api_user);
+    loginUrl.searchParams.set('client_secret', cfg.api_pass);
+    finalHref = loginUrl.toString();
+  }
+
+  const upstream = await fetch(finalHref, {
     method,
     headers: forwardHeaders,
     ...(body && method !== 'GET' && method !== 'HEAD' ? { body } : {})
@@ -712,7 +722,7 @@ async function proxyExternalGeneric(req, res, targetUrl, method, incomingHeaders
   return res.send(text);
 }
 
-async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env) {
+async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, empresaId, env) {
   const sessionToken = req.headers['x-session-token']
     || String(incomingHeaders['authorization'] || '').replace(/^Bearer\s+/i, '');
   const appUser = await getAppUser(sessionToken, env.supaUrl, env.anonKey, env.serviceKey);
@@ -729,8 +739,27 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, env
 
   let upstream;
   if (targetUrl.pathname === '/login') {
+    let loginClientId = env.visualClientId;
+    let loginClientSecret = env.visualClientSecret;
+    let loginBase = env.visualUrl;
+
+    // Busca credenciais por empresa quando empresa_id fornecido
+    if (empresaId) {
+      const cfgResp = await fetch(
+        `${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(empresaId)}&ativo=eq.true&select=api_url,api_user,api_pass&limit=1`,
+        { headers: { 'apikey': env.serviceKey, 'Authorization': `Bearer ${env.serviceKey}` } }
+      );
+      const cfgData = cfgResp.ok ? await cfgResp.json() : [];
+      const cfg = cfgData && cfgData[0];
+      if (cfg && cfg.api_user && cfg.api_pass) {
+        loginClientId = cfg.api_user;
+        loginClientSecret = cfg.api_pass;
+        if (cfg.api_url) loginBase = cfg.api_url.replace(/\/+$/, '');
+      }
+    }
+
     upstream = await fetch(
-      `${env.visualUrl}/login?client_id=${encodeURIComponent(env.visualClientId)}&client_secret=${encodeURIComponent(env.visualClientSecret)}`,
+      `${loginBase}/login?client_id=${encodeURIComponent(loginClientId)}&client_secret=${encodeURIComponent(loginClientSecret)}`,
       { method: 'GET', headers: { 'Accept': 'application/json' } }
     );
   } else if (isVisualCadastroPath(targetUrl.pathname)) {
@@ -1490,10 +1519,7 @@ export default async function handler(req, res) {
     }
 
     if (targetUrl.origin === visualOrigin) {
-      if (!env.visualClientId || !env.visualClientSecret) {
-        return res.status(500).json({ erro: 'Credenciais da API Visual Saef nao configuradas na Vercel.' });
-      }
-      return await proxyVisualSaef(req, res, targetUrl, httpMethod, incomingHeaders, env);
+      return await proxyVisualSaef(req, res, targetUrl, httpMethod, incomingHeaders, empresa_id || null, env);
     }
 
     // API externa de outro sistema (Bling, Winthor, Omie, TOTVS, etc.)
