@@ -2987,10 +2987,11 @@ function _dcTabela(id, campo, rows, fatTotal, label) {
   dcOrdenarItensRelatorio(lista, id);
   lista = lista.slice(0, 12);
   var max = lista.length ? lista[0].fat : 1;
+  var listaTotal = lista.reduce(function(s, e) { return s + e.fat; }, 0) || 1;
   var html = '<table class="dc-tabela"><thead><tr><th>#</th><th>' + (label || 'Item') + '</th><th>Pedidos</th><th class="num">Faturamento</th><th class="num">%</th></tr></thead><tbody>';
   lista.forEach(function(item, idx) {
-    var pct = fatTotal ? (item.fat / fatTotal * 100) : 0;
-    var bar = max ? (item.fat / max * 100) : 0;
+    var pct = item.fat / listaTotal * 100;
+    var bar = item.fat / max * 100;
     html += '<tr><td class="pos">' + (idx + 1) + '</td><td>' + escapeHtml(item.nome) + '</td><td class="num">' + item.pedidos + '</td>'
       + '<td class="num">' + dcMoedaLimpa(item.fat) + '</td>'
       + '<td class="num" style="min-width:64px">'
