@@ -1241,12 +1241,10 @@
                 </select>
               </label>
               <input type="text" id="dc-inat-busca" placeholder="Buscar cliente..." class="dc-filtro" style="font-size:11px;min-width:130px;padding:4px 8px">
-              <label>Ordenar
+              <label>Ordenar por dias
                 <select id="dc-inat-ordem" class="dc-filtro" style="font-size:11px">
-                  <option value="dias_asc">Menos dias (60→90+)</option>
-                  <option value="dias">Mais dias (90+→60)</option>
-                  <option value="valor">Maior valor</option>
-                  <option value="az">A-Z</option>
+                  <option value="dias_asc">Menor</option>
+                  <option value="dias">Maior</option>
                 </select>
               </label>
               <button onclick="dcTabelaInativos()" class="dc-filtro" style="font-size:11px;padding:4px 12px;cursor:pointer;background:#1C64C0;color:#fff;border:none;border-radius:6px;font-weight:700">Aplicar</button>
@@ -1477,7 +1475,7 @@
   <script src="js/charts.js?v=3"></script>
   <script src="js/actions.js?v=2"></script>
   <script src="js/modulos.js?v=3"></script>
-  <script src="js/auth.js?v=53"></script>
+  <script src="js/auth.js?v=54"></script>
   <script src="js/report-cache.js?v=1"></script>
   <script src="js/admin-console.js?v=25"></script>
   <script src="js/financeiro/financeiro-core.js?v=4"></script>

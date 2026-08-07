@@ -3085,15 +3085,12 @@ function dcTabelaInativos(rows) {
   var busca = _dcInatNorm((document.getElementById('dc-inat-busca') || {}).value || '');
   if (busca) arr = arr.filter(function(e) { return _dcInatNorm(e.nome).indexOf(busca) >= 0; });
 
-  // Ordenação
+  // Ordenação por dias sem compra
   var modo = String((document.getElementById('dc-inat-ordem') || {}).value || 'dias_asc');
   arr.sort(function(a, b) {
-    if (modo === 'az') return String(a.nome).localeCompare(String(b.nome), 'pt-BR');
-    if (modo === 'valor') return b.valorUltima - a.valorUltima;
     var da = a.semHistorico ? 999999 : a.dias;
     var db = b.semHistorico ? 999999 : b.dias;
-    if (modo === 'dias_asc') return da - db; // crescente: 60, 61, 62...
-    return db - da;                          // decrescente: 90+, 80, 70...
+    return modo === 'dias_asc' ? da - db : db - da;
   });
 
   if (!arr.length) {
