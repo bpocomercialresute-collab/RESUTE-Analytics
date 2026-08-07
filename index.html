@@ -1255,16 +1255,23 @@
         </div>
         <div class="dc-grid-2">
           <div class="dc-card">
-            <div class="dc-card-title">Novos Clientes no Período</div>
+            <div class="dc-card-title">Clientes no Período</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
-              <label>
-                Organizar
-                <select id="dc-ordem-novos" class="dc-filtro" onchange="_dcTabelaNovosClientes(DC_DATA)">
+              <label style="display:flex;align-items:center;gap:4px">De
+                <input type="date" id="dc-novos-inicio" class="dc-filtro" style="font-size:11px">
+              </label>
+              <label style="display:flex;align-items:center;gap:4px">Até
+                <input type="date" id="dc-novos-fim" class="dc-filtro" style="font-size:11px">
+              </label>
+              <input type="text" id="dc-novos-busca" placeholder="Buscar cliente..." class="dc-filtro" style="font-size:11px;min-width:120px;padding:4px 8px">
+              <label>Organizar
+                <select id="dc-ordem-novos" class="dc-filtro" style="font-size:11px">
                   <option value="recente">Mais recentes</option>
                   <option value="antigo">Mais antigos</option>
                   <option value="maior">Maior valor</option>
                 </select>
               </label>
+              <button onclick="_dcTabelaNovosClientes()" class="dc-filtro" style="font-size:11px;padding:4px 12px;cursor:pointer;background:#1C64C0;color:#fff;border:none;border-radius:6px;font-weight:700">Aplicar</button>
             </div>
             <div id="dc-tab-novos" class="dc-tabela-wrap"></div>
           </div>
@@ -1475,7 +1482,7 @@
   <script src="js/charts.js?v=3"></script>
   <script src="js/actions.js?v=2"></script>
   <script src="js/modulos.js?v=3"></script>
-  <script src="js/auth.js?v=55"></script>
+  <script src="js/auth.js?v=56"></script>
   <script src="js/report-cache.js?v=1"></script>
   <script src="js/admin-console.js?v=25"></script>
   <script src="js/financeiro/financeiro-core.js?v=4"></script>
