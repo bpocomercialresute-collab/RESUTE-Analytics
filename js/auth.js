@@ -2987,14 +2987,18 @@ function _dcTabela(id, campo, rows, fatTotal, label) {
   dcOrdenarItensRelatorio(lista, id);
   lista = lista.slice(0, 12);
   var max = lista.length ? lista[0].fat : 1;
-  var html = '<table class="dc-tabela"><thead><tr><th>#</th><th>' + (label || 'Item') + '</th><th>Pedidos</th><th class="num">Faturamento</th><th>%</th></tr></thead><tbody>';
+  var html = '<table class="dc-tabela"><thead><tr><th>#</th><th>' + (label || 'Item') + '</th><th>Pedidos</th><th class="num">Faturamento</th><th class="num">%</th></tr></thead><tbody>';
   lista.forEach(function(item, idx) {
     var pct = fatTotal ? (item.fat / fatTotal * 100) : 0;
     var bar = max ? (item.fat / max * 100) : 0;
-    html += '<tr><td class="pos">' + (idx + 1) + '</td><td>' + escapeHtml(item.nome) + '</td><td>' + item.pedidos + '</td>'
+    html += '<tr><td class="pos">' + (idx + 1) + '</td><td>' + escapeHtml(item.nome) + '</td><td class="num">' + item.pedidos + '</td>'
       + '<td class="num">' + dcMoedaLimpa(item.fat) + '</td>'
-      + '<td><div style="font-size:10px;color:#7f8ba3;margin-bottom:3px">' + dcNumeroLimpo(pct, 1) + '%</div>'
-      + '<div class="dc-bar-wrap"><div class="dc-bar" style="width:' + bar.toFixed(0) + '%"></div></div></td></tr>';
+      + '<td class="num" style="min-width:64px">'
+      +   '<span style="font-size:11px;font-weight:700">' + dcNumeroLimpo(pct, 1) + '%</span>'
+      +   '<div style="height:3px;background:#e2e8f0;border-radius:2px;margin-top:4px">'
+      +     '<div style="height:3px;width:' + bar.toFixed(0) + '%;background:#1C64C0;border-radius:2px"></div>'
+      +   '</div>'
+      + '</td></tr>';
   });
   html += '</tbody></table>';
   var el = document.getElementById(id);
