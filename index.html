@@ -1233,12 +1233,13 @@
             <div class="dc-card-title">Sem Compra Recente</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label style="display:flex;align-items:center;gap:4px">Sem compra há mais de
-                <input type="number" id="dc-inat-dias" class="dc-filtro" min="0" placeholder="0" style="font-size:11px;width:58px;padding:4px 6px"> dias
+                <input type="number" id="dc-inat-dias" class="dc-filtro" min="0" value="30" placeholder="dias" style="font-size:11px;width:58px;padding:4px 6px"> dias
               </label>
               <input type="text" id="dc-inat-busca" placeholder="Buscar cliente..." class="dc-filtro" style="font-size:11px;min-width:130px;padding:4px 8px">
               <label>Ordenar
                 <select id="dc-inat-ordem" class="dc-filtro" style="font-size:11px">
-                  <option value="dias">Mais dias</option>
+                  <option value="dias_asc">Menos dias (60→90+)</option>
+                  <option value="dias">Mais dias (90+→60)</option>
                   <option value="valor">Maior valor</option>
                   <option value="az">A-Z</option>
                 </select>
@@ -1471,7 +1472,7 @@
   <script src="js/charts.js?v=3"></script>
   <script src="js/actions.js?v=2"></script>
   <script src="js/modulos.js?v=3"></script>
-  <script src="js/auth.js?v=51"></script>
+  <script src="js/auth.js?v=52"></script>
   <script src="js/report-cache.js?v=1"></script>
   <script src="js/admin-console.js?v=25"></script>
   <script src="js/financeiro/financeiro-core.js?v=4"></script>

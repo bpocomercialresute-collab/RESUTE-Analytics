@@ -2319,10 +2319,11 @@ function dcRenderizar() {
     ['dc-chart-evolucao','dc-chart-trimestre','dc-chart-ano','dc-chart-diasem','dc-chart-produtos','dc-chart-prodqtd','dc-chart-grupos','dc-chart-marca'].forEach(function(id) {
       if (typeof dcDestroyChart === 'function') dcDestroyChart(id);
     });
-    ['dc-tab-reps','dc-tab-positiv','dc-tab-ufs','dc-tab-cidades','dc-tab-cli','dc-tab-inat','dc-tab-novos','dc-tab-ticket'].forEach(function(id) {
+    ['dc-tab-reps','dc-tab-positiv','dc-tab-ufs','dc-tab-cidades','dc-tab-cli','dc-tab-novos','dc-tab-ticket'].forEach(function(id) {
       var el = document.getElementById(id);
       if (el) el.innerHTML = '<div class="dc-empty">Sem dados para este recorte.</div>';
     });
+    _dcTabelaInativos(rows); // usa DC_RAW independente do período
     return;
   }
 
@@ -3001,13 +3002,7 @@ function dcTabelaInativos(rows) {
     return;
   }
 
-  // Referência de data = data máxima nos dados (não new Date())
-  var refDate = new Date(0);
-  fonte.forEach(function(r) {
-    var d = dcDataValor(r);
-    if (d && !isNaN(d.getTime()) && d > refDate) refDate = d;
-  });
-  if (refDate.getTime() < 1000) refDate = new Date();
+  var hoje = new Date();
 
   // Valor total por pedido
   var pedidoValores = {};
@@ -3041,7 +3036,7 @@ function dcTabelaInativos(rows) {
   var arr = todos.map(function(nome) {
     var d = mapa[nome];
     if (!d) return { nome: nome, ultimaStr: '—', dias: -1, valorUltima: 0, semHistorico: true };
-    var dias = Math.floor((refDate.getTime() - d.ultimaData.getTime()) / 86400000);
+    var dias = Math.floor((hoje.getTime() - d.ultimaData.getTime()) / 86400000);
     return {
       nome: nome,
       ultimaStr: d.ultimaData.toLocaleDateString('pt-BR'),
@@ -3066,13 +3061,14 @@ function dcTabelaInativos(rows) {
   if (busca) arr = arr.filter(function(e) { return _dcInatNorm(e.nome).indexOf(busca) >= 0; });
 
   // Ordenação
-  var modo = String((document.getElementById('dc-inat-ordem') || {}).value || 'dias');
+  var modo = String((document.getElementById('dc-inat-ordem') || {}).value || 'dias_asc');
   arr.sort(function(a, b) {
     if (modo === 'az') return String(a.nome).localeCompare(String(b.nome), 'pt-BR');
     if (modo === 'valor') return b.valorUltima - a.valorUltima;
     var da = a.semHistorico ? 999999 : a.dias;
     var db = b.semHistorico ? 999999 : b.dias;
-    return db - da;
+    if (modo === 'dias_asc') return da - db; // crescente: 60, 61, 62...
+    return db - da;                          // decrescente: 90+, 80, 70...
   });
 
   if (!arr.length) {
@@ -3106,12 +3102,11 @@ function dcTabelaInativos(rows) {
   }
 
   // Tabela
-  var visible = arr.slice(0, 300);
   var h = '<table class="dc-tabela dc-inactive-table"><thead><tr>'
     + '<th>#</th><th>Cliente</th><th>Última compra</th>'
     + '<th class="num">Dias sem compra</th><th class="num">Valor última compra</th><th>Status</th>'
     + '</tr></thead><tbody>';
-  visible.forEach(function(e, i) {
+  arr.forEach(function(e, i) {
     var status, classe;
     if (e.semHistorico)    { status = 'Sem histórico'; classe = 'ok'; }
     else if (e.dias >= 90) { status = 'Crítico';       classe = 'critico'; }
@@ -3125,10 +3120,6 @@ function dcTabelaInativos(rows) {
       + '<td class="num">' + (e.semHistorico ? '—' : dcMoedaLimpa(e.valorUltima)) + '</td>'
       + '<td><span class="dc-inactive-badge ' + classe + '">' + status + '</span></td></tr>';
   });
-  if (arr.length > 300) {
-    h += '<tr><td colspan="6" style="text-align:center;color:#7f8ba3;font-size:11px;padding:8px">'
-      + 'Exibindo 300 de ' + arr.length.toLocaleString('pt-BR') + '. Use a busca para filtrar.</td></tr>';
-  }
   el.innerHTML = h + '</tbody></table>';
 }
 
