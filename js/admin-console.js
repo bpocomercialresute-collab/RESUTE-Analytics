@@ -1551,22 +1551,34 @@ async function adminConsoleGerenciarFiliais(empresaId) {
   }
 
   var filList = filiais.map(function(f) {
+    var fid = String(f.empresa_filial_id);
     var filEmpresa = ADMIN_CONSOLE.companies.find(function(c) {
-      return String(c.id || c.empresa_id) === String(f.empresa_filial_id);
+      return String(c.id || c.empresa_id) === fid;
     });
     var nomeEmpresa = filEmpresa ? adminConsoleEscape(filEmpresa.nome) : adminConsoleEscape(f.empresa_filial_id.slice(0, 8));
     var nomeExib = f.nome_exibicao ? adminConsoleEscape(f.nome_exibicao) : '<em style="color:#9ca3af">—</em>';
-    return '<tr>'
-      + '<td style="padding:6px 8px">' + nomeEmpresa + '</td>'
-      + '<td style="padding:6px 8px">' + nomeExib + '</td>'
-      + '<td style="padding:6px 8px">' + (f.ativo !== false ? 'Ativa' : 'Inativa') + '</td>'
-      + '<td style="padding:6px 8px"><button type="button" style="color:#ef4444;background:none;border:none;cursor:pointer;font-size:12px" onclick="adminConsoleRemoverFilial(\'' + adminConsoleEscape(f.id) + '\',\'' + adminConsoleEscape(empresaId) + '\')">Remover</button></td>'
+    var integracao = ADMIN_CONSOLE.integrations.find(function(i) { return String(i.empresa_id) === fid; });
+    var apiLabel = integracao
+      ? (integracao.ativo !== false ? '<span style="color:#16a34a">&#10003; ' + adminConsoleEscape(integracao.sistema || 'API') + '</span>' : '<span style="color:#d97706">Inativa</span>')
+      : '<span style="color:#9ca3af">Sem API</span>';
+    var apiFn = integracao
+      ? 'adminConsoleEditarIntegracao(\'' + adminConsoleEscape(fid) + '\')'
+      : 'adminConsoleNovaIntegracao(\'' + adminConsoleEscape(fid) + '\')';
+    var apiBtnLabel = integracao ? 'Config. API' : 'Conectar API';
+    return '<tr style="border-bottom:1px solid #f3f4f6">'
+      + '<td style="padding:7px 8px;font-weight:500">' + nomeEmpresa + '</td>'
+      + '<td style="padding:7px 8px">' + nomeExib + '</td>'
+      + '<td style="padding:7px 8px;font-size:12px">' + apiLabel + '</td>'
+      + '<td style="padding:7px 8px;white-space:nowrap">'
+        + '<button type="button" style="margin-right:6px;font-size:12px;cursor:pointer" onclick="' + apiFn + '">' + apiBtnLabel + '</button>'
+        + '<button type="button" style="color:#ef4444;background:none;border:none;cursor:pointer;font-size:12px" onclick="adminConsoleRemoverFilial(\'' + adminConsoleEscape(f.id) + '\',\'' + adminConsoleEscape(empresaId) + '\')">Remover</button>'
+      + '</td>'
       + '</tr>';
   }).join('');
 
   var html = '<p style="margin:0 0 12px;color:#6b7280;font-size:13px">Empresas do grupo de <strong>' + adminConsoleEscape(company.nome) + '</strong>. O cliente pode alternar entre elas no painel.</p>'
     + (filiais.length
-      ? '<div style="overflow-x:auto;margin-bottom:16px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:1px solid #e5e7eb"><th style="text-align:left;padding:6px 8px;font-weight:600">Empresa</th><th style="text-align:left;padding:6px 8px;font-weight:600">Exibir como</th><th style="text-align:left;padding:6px 8px;font-weight:600">Status</th><th></th></tr></thead><tbody>' + filList + '</tbody></table></div>'
+      ? '<div style="overflow-x:auto;margin-bottom:16px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:2px solid #e5e7eb"><th style="text-align:left;padding:6px 8px;font-weight:600">Empresa</th><th style="text-align:left;padding:6px 8px;font-weight:600">Exibir como</th><th style="text-align:left;padding:6px 8px;font-weight:600">API</th><th></th></tr></thead><tbody>' + filList + '</tbody></table></div>'
       : '<p style="color:#9ca3af;font-size:13px;font-style:italic;margin-bottom:16px">Nenhuma empresa filial cadastrada. Adicione empresas ao grupo para o cliente poder alternar entre elas.</p>')
     + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleAdicionarFilial(\'' + adminConsoleEscape(empresaId) + '\')">+ Adicionar empresa</button><button type="button" onclick="adminConsoleFecharModal()">Fechar</button></div>';
 
