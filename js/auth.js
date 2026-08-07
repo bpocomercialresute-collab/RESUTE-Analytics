@@ -1327,7 +1327,9 @@ function dcAplicarVendasCarregadas(vendas) {
   DC_RAW = Array.isArray(vendas) ? vendas : [];
   dcPreencherFiltroAnos(DC_RAW);
   dcDefinirPeriodoInicial(DC_RAW);
-  if (DC_ACTIVE_COMPANY) _dcCarregarTotaisCadastros(DC_ACTIVE_COMPANY).catch(function(){});
+  // No modo "Todas" usa empresa pai para cadastros (clientes/produtos/reps)
+  var cadEid = DC_ACTIVE_COMPANY === 'todas' ? SESSION && SESSION.empresa_id : DC_ACTIVE_COMPANY;
+  if (cadEid) _dcCarregarTotaisCadastros(cadEid).catch(function(){});
   dcAplicarFiltro();
 }
 

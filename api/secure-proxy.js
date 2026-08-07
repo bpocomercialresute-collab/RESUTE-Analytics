@@ -35,6 +35,7 @@ const ALLOWED_SUPABASE_PATHS = [
   '/rest/v1/representantes',
   '/rest/v1/grupos',
   '/rest/v1/empresa_modulos',
+  '/rest/v1/empresa_filiais',
   '/functions/v1/sync-visual-saef'
 ];
 
@@ -318,6 +319,31 @@ async function getAppUser(sessionToken, supaUrl, anonKey, serviceKey) {
 
   appUser.email = email;
   appUser.empresa_ids = getSessionEmpresaIds(appUser);
+
+  // Estende empresa_ids com filiais do grupo — permite que clientes acessem
+  // vendas/cadastros das empresas filiais sem precisar de regra extra por rota.
+  appUser.empresa_ids_own = [...appUser.empresa_ids]; // IDs próprias, sem filiais
+  if (appUser.empresa_ids.length && appUser.papel !== 'super_admin') {
+    try {
+      const inFilter = appUser.empresa_ids.map(id => encodeURIComponent(id)).join(',');
+      const filiaisResp = await fetch(
+        `${supaUrl}/rest/v1/empresa_filiais?empresa_pai_id=in.(${inFilter})&ativo=eq.true&select=empresa_filial_id`,
+        { headers: { 'apikey': serviceKey || anonKey, 'Authorization': `Bearer ${serviceKey || sessionToken}` } }
+      );
+      if (filiaisResp.ok) {
+        const filiaisData = await filiaisResp.json();
+        if (Array.isArray(filiaisData) && filiaisData.length) {
+          const filialIds = filiaisData.map(f => f.empresa_filial_id).filter(Boolean);
+          const allIds = Array.from(new Set([...appUser.empresa_ids, ...filialIds]));
+          appUser.empresa_ids = allIds;
+          appUser.empresa_filial_ids = filialIds;
+        }
+      }
+    } catch (e) {
+      // falha silenciosa — acesso continua com empresa_ids original
+    }
+  }
+
   return appUser;
 }
 
@@ -427,6 +453,26 @@ function assertAuthorized(appUser, targetUrl, method, body) {
       var empresaIds2 = extractEmpresaIdsFromUrl(targetUrl);
       if (!empresaIds2.length || !empresaIds2.every(function(id) { return canAccessEmpresa(appUser, id); })) {
         throw new Error('Filtro de empresa obrigatorio.');
+      }
+    }
+    return;
+  }
+
+  if (targetUrl.pathname === '/rest/v1/empresa_filiais') {
+    if (appUser.papel !== 'super_admin') {
+      // Cliente pode apenas ler filiais da sua própria empresa pai (não de filiais)
+      if (isWrite) {
+        throw new Error('Apenas super_admin pode alterar grupos de empresas.');
+      }
+      const paiFilter = targetUrl.searchParams.get('empresa_pai_id') || '';
+      if (paiFilter.startsWith('eq.')) {
+        const paiId = decodeURIComponent(paiFilter.slice(3));
+        const ownIds = appUser.empresa_ids_own || getSessionEmpresaIds(appUser);
+        if (!ownIds.includes(paiId)) {
+          throw new Error('Acesso negado a este grupo de empresas.');
+        }
+      } else {
+        throw new Error('Filtro empresa_pai_id obrigatorio para empresa_filiais.');
       }
     }
     return;
