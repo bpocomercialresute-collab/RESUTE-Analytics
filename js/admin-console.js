@@ -12,6 +12,7 @@ var ADMIN_CONSOLE = {
   integrations: [],
   syncLogs: [],
   persistentAudit: [],
+  filiais: [], // [{empresa_pai_id, empresa_filial_id}] — filiadas ficam fora do grid principal
   metricsByCompany: {},
   salesCount: 0,
   userPage: 1,
@@ -241,11 +242,13 @@ async function adminConsoleInicializar(force) {
     var syncRequest = adminConsoleFetch('/rest/v1/sync_log?select=*&order=ultima_sync.desc.nullslast');
     var auditRequest = adminConsoleFetch('/rest/v1/admin_audit_log?select=id,criado_em,ator_email,acao,entidade,entidade_id,empresa_id,resumo,metadados&order=criado_em.desc&limit=200')
       .catch(function() { return { data: [] }; });
+    var filiaisRequest = adminConsoleFetch('/rest/v1/empresa_filiais?select=empresa_pai_id,empresa_filial_id&ativo=eq.true')
+      .catch(function() { return { data: [] }; });
 
-    var requests = [companyRequest, userRequest, integrationRequest, syncRequest, auditRequest];
-    var labels = ['empresas', 'usuarios', 'integracoes', 'sincronizacoes', 'auditoria'];
+    var requests = [companyRequest, userRequest, integrationRequest, syncRequest, auditRequest, filiaisRequest];
+    var labels = ['empresas', 'usuarios', 'integracoes', 'sincronizacoes', 'auditoria', 'filiais'];
     var results = await Promise.allSettled(requests);
-    var targets = ['companies', 'users', 'integrations', 'syncLogs', 'persistentAudit'];
+    var targets = ['companies', 'users', 'integrations', 'syncLogs', 'persistentAudit', 'filiais'];
     results.forEach(function(result, index) {
       if (result.status === 'fulfilled') {
         ADMIN_CONSOLE[targets[index]] = Array.isArray(result.value.data) ? result.value.data : [];
@@ -529,7 +532,11 @@ function adminConsoleFiltrarEmpresas() {
   var query = String((document.getElementById('admin-company-search') || {}).value || '').trim().toLowerCase();
   var status = String((document.getElementById('admin-company-status') || {}).value || '');
   var origin = String((document.getElementById('admin-company-origin') || {}).value || '');
+  // Empresas que pertencem a algum grupo ficam fora do grid principal
+  var filialIds = new Set((ADMIN_CONSOLE.filiais || []).map(function(f) { return String(f.empresa_filial_id); }));
   var list = ADMIN_CONSOLE.companies.filter(function(company) {
+    var id = String(company.id || company.empresa_id);
+    if (filialIds.has(id)) return false; // membro de grupo — não aparece aqui
     var matchesQuery = !query || String(company.nome || '').toLowerCase().indexOf(query) >= 0
       || String(company.slug || '').toLowerCase().indexOf(query) >= 0;
     var active = company.ativo !== false;
@@ -1606,6 +1613,10 @@ async function adminConsoleAdicionarFilial(empresaPaiId) {
         headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' },
         body: JSON.stringify({ empresa_pai_id: empresaPaiId, empresa_filial_id: filialId, nome_exibicao: nomeExib || null, ordem: ordem })
       });
+      // Atualiza cache local e re-renderiza grid imediatamente
+      if (!ADMIN_CONSOLE.filiais) ADMIN_CONSOLE.filiais = [];
+      ADMIN_CONSOLE.filiais.push({ empresa_pai_id: empresaPaiId, empresa_filial_id: filialId });
+      adminConsoleFiltrarEmpresas();
       adminConsoleFecharModal();
       adminConsoleAviso('Empresa adicionada ao grupo com sucesso.', 'success');
       adminConsoleGerenciarFiliais(empresaPaiId);
@@ -1616,14 +1627,30 @@ async function adminConsoleAdicionarFilial(empresaPaiId) {
   });
 }
 
-async function adminConsoleRemoverFilial(filialId, empresaPaiId) {
-  if (!window.confirm('Remover esta empresa do grupo? O cliente perdera acesso a essa opcao no painel.')) return;
+async function adminConsoleRemoverFilial(filialRowId, empresaPaiId) {
+  // filialRowId = UUID da linha em empresa_filiais (campo "id")
+  if (!window.confirm('Remover esta empresa do grupo? Ela voltara a aparecer no painel de empresas.')) return;
   try {
-    await adminConsoleFetch('/rest/v1/empresa_filiais?id=eq.' + encodeURIComponent(filialId), {
+    // Descobre empresa_filial_id antes de deletar para atualizar o cache local
+    var rowResp = await adminConsoleFetch('/rest/v1/empresa_filiais?id=eq.' + encodeURIComponent(filialRowId) + '&select=empresa_filial_id');
+    var empresaFilialId = (Array.isArray(rowResp.data) && rowResp.data[0])
+      ? String(rowResp.data[0].empresa_filial_id)
+      : null;
+
+    await adminConsoleFetch('/rest/v1/empresa_filiais?id=eq.' + encodeURIComponent(filialRowId), {
       method: 'DELETE',
       headers: { Prefer: 'return=minimal' }
     });
-    adminConsoleAviso('Empresa removida do grupo.', 'success');
+
+    // Atualiza cache local e re-renderiza grid (empresa volta ao painel imediatamente)
+    if (empresaFilialId) {
+      ADMIN_CONSOLE.filiais = (ADMIN_CONSOLE.filiais || []).filter(function(f) {
+        return String(f.empresa_filial_id) !== empresaFilialId;
+      });
+      adminConsoleFiltrarEmpresas();
+    }
+
+    adminConsoleAviso('Empresa removida do grupo. Ja aparece no painel de empresas.', 'success');
     adminConsoleGerenciarFiliais(empresaPaiId);
   } catch (e) {
     adminConsoleAviso('Erro ao remover: ' + e.message, 'error');
