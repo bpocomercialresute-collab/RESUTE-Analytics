@@ -3004,16 +3004,39 @@ function dcTabelaInativos(rows) {
 
   var hoje = new Date();
 
-  // Valor total por pedido
+  // Popula select de representante com reps únicos de DC_RAW
+  var repSel = document.getElementById('dc-inat-rep');
+  if (repSel) {
+    var repSet = new Set();
+    fonte.forEach(function(r) {
+      var rep = dcRepresentanteNome(r);
+      if (rep && rep !== 'SEM REPRESENTANTE') repSet.add(rep);
+    });
+    var savedRep = repSel.value;
+    repSel.innerHTML = '<option value="">Todos os representantes</option>'
+      + Array.from(repSet).sort().map(function(rep) {
+          return '<option value="' + escapeHtml(rep) + '"'
+            + (rep === savedRep ? ' selected' : '') + '>'
+            + escapeHtml(rep) + '</option>';
+        }).join('');
+  }
+
+  // Filtro de representante: restringe fonte às linhas do rep selecionado
+  var repFiltro = repSel ? _dcInatNorm(repSel.value || '') : '';
+  var fonteRep = repFiltro
+    ? fonte.filter(function(r) { return _dcInatNorm(dcRepresentanteNome(r)) === repFiltro; })
+    : fonte;
+
+  // Valor total por pedido (restrito ao rep se filtrado)
   var pedidoValores = {};
-  fonte.forEach(function(r) {
+  fonteRep.forEach(function(r) {
     var pk = dcPedidoChave(r);
     if (pk) pedidoValores[pk] = (pedidoValores[pk] || 0) + dcValorLinha(r);
   });
 
-  // Mapa por cliente: última data e pedido chave
+  // Mapa por cliente: última data e pedido chave (restrito ao rep se filtrado)
   var mapa = {};
-  fonte.forEach(function(r) {
+  fonteRep.forEach(function(r) {
     var k = dcClienteNome(r);
     var d = dcDataValor(r);
     if (!k || k === 'SEM CLIENTE' || !d || isNaN(d.getTime())) return;
@@ -3022,14 +3045,16 @@ function dcTabelaInativos(rows) {
     }
   });
 
-  // DEPARA: DC_RAW primário, DC_CLI_LISTA suplementa via nome normalizado
+  // DEPARA: DC_RAW primário, DC_CLI_LISTA suplementa (apenas sem filtro de rep)
   var mapaKeys = Object.keys(mapa);
   var normParaChave = {};
   mapaKeys.forEach(function(n) { normParaChave[_dcInatNorm(n)] = true; });
   var extras = [];
-  DC_CLI_LISTA.forEach(function(n) {
-    if (n && !normParaChave[_dcInatNorm(n)]) extras.push(n);
-  });
+  if (!repFiltro) {
+    DC_CLI_LISTA.forEach(function(n) {
+      if (n && !normParaChave[_dcInatNorm(n)]) extras.push(n);
+    });
+  }
   var todos = mapaKeys.concat(extras);
 
   // Montar registros
