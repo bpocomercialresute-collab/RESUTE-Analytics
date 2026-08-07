@@ -225,7 +225,7 @@ function readJwtExpiry(token) {
   }
 }
 
-async function getVisualLoginToken(env, clientId, clientSecret) {
+async function getVisualLoginToken(env, clientId, clientSecret, baseUrl) {
   if (!clientId || !clientSecret) {
     return {
       ok: false,
@@ -234,14 +234,15 @@ async function getVisualLoginToken(env, clientId, clientSecret) {
     };
   }
 
-  const cacheKey = `${clientId}:${clientSecret}`;
+  const loginBase = (baseUrl || env.visualUrl || '').replace(/\/+$/, '');
+  const cacheKey = `${loginBase}:${clientId}:${clientSecret}`;
   const cached = VISUAL_LOGIN_TOKEN_CACHE.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.value;
   }
 
   const upstream = await fetch(
-    `${env.visualUrl}/login?client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}`,
+    `${loginBase}/login?client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}`,
     {
       method: 'GET',
       headers: { 'Accept': 'application/json' }
@@ -1189,21 +1190,20 @@ async function handleAdminCompanyArchive(res, appUser, payload, env) {
 
 async function handleAdminIntegrationTest(res, env, appUser, payload) {
   const empresaId = payload && payload.empresa_id ? String(payload.empresa_id) : null;
-  if (empresaId) {
-    const configResponse = await fetch(
-      `${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(empresaId)}&select=empresa_id,sistema,api_url,ativo&limit=1`,
-      { headers: adminActionHeaders(env) }
-    );
-    const configs = await adminActionReadJson(configResponse);
-    const config = Array.isArray(configs) ? configs[0] : null;
-    if (!config) throw new Error('Integracao nao cadastrada para esta empresa.');
-    if (config.ativo === false) throw new Error('A integracao desta empresa esta inativa.');
-  }
-  const auth = await getVisualLoginToken(
-    env,
-    env.visualCadastroClientId || env.visualClientId,
-    env.visualCadastroClientSecret || env.visualClientSecret
+  if (!empresaId) throw new Error('empresa_id obrigatorio para testar integracao.');
+
+  const configResponse = await fetch(
+    `${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(empresaId)}&select=empresa_id,sistema,api_url,api_user,api_pass,ativo&limit=1`,
+    { headers: adminActionHeaders(env) }
   );
+  const configs = await adminActionReadJson(configResponse);
+  const config = Array.isArray(configs) ? configs[0] : null;
+  if (!config) throw new Error('Integracao nao cadastrada para esta empresa.');
+  if (config.ativo === false) throw new Error('A integracao desta empresa esta inativa.');
+  if (!config.api_url) throw new Error('URL da API nao configurada para esta empresa.');
+  if (!config.api_user || !config.api_pass) throw new Error('Credenciais nao configuradas (api_user / api_pass ausentes). Configure no modal de integracao.');
+
+  const auth = await getVisualLoginToken(env, config.api_user, config.api_pass, config.api_url);
   if (!auth.ok || !auth.token) {
     await writeAdminAudit(env, appUser, {
       action: 'testar_integracao',

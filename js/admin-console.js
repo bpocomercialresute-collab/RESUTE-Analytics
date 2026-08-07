@@ -1830,19 +1830,34 @@ function adminConsoleIntegracaoModal(api, companyId) {
         return '<label class="admin-field"><span>Sistema</span><select name="sistema" required>' + opts + '</select></label>';
       }())
     + '<label class="admin-field admin-field-full"><span>URL da API</span><input name="api_url" type="url" required placeholder="https://api.seuservidor.com" value="' + adminConsoleEscape(api && api.api_url || '') + '"></label>'
+    + '<label class="admin-field"><span>Client ID / Usuário</span><input name="api_user" type="text" autocomplete="off" placeholder="' + (editing ? 'Deixe em branco para manter' : 'Client ID da API') + '" value="' + adminConsoleEscape(api && api.api_user || '') + '"></label>'
+    + '<label class="admin-field"><span>Client Secret / Senha</span><input name="api_pass" type="password" autocomplete="new-password" placeholder="' + (editing ? 'Deixe em branco para manter' : 'Client Secret da API') + '"></label>'
+    + '<label class="admin-field"><span>API Key (opcional)</span><input name="api_key" type="password" autocomplete="new-password" placeholder="' + (editing ? 'Deixe em branco para manter' : 'Chave de API (se aplicavel)') + '"></label>'
     + '<label class="admin-field admin-field-switch"><input name="ativo" type="checkbox"' + (!api || api.ativo !== false ? ' checked' : '') + '><span>Integracao ativa</span></label>'
-    + '</div><div class="admin-form-help">Client ID e Client Secret ficam protegidos nas variaveis de ambiente da Vercel. Este formulario nao recupera nem revela esses valores.</div>'
+    + '</div>' + (editing ? '<div class="admin-form-help">Campos de senha em branco = manter valor atual. Client ID preenchido e visivel pois nao e secreto.</div>' : '')
     + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Cancelar</button><button class="admin-btn-primary" type="submit">' + (editing ? 'Salvar configuracao' : 'Criar integracao') + '</button></div>';
   adminConsoleAbrirModal('INTEGRACOES', editing ? 'Editar integracao' : 'Nova integracao', html, async function(data, form) {
     var button = form.querySelector('[type="submit"]');
     if (button) button.disabled = true;
     var targetCompany = String(data.get('empresa_id') || '').trim();
+    var apiUser = String(data.get('api_user') || '').trim();
+    var apiPass = String(data.get('api_pass') || '').trim();
+    var apiKey  = String(data.get('api_key')  || '').trim();
     var payload = {
       empresa_id: targetCompany,
       sistema: String(data.get('sistema') || '').trim(),
       api_url: String(data.get('api_url') || '').trim().replace(/\/+$/, ''),
       ativo: data.get('ativo') === 'on'
     };
+    if (!editing) {
+      payload.api_user = apiUser || null;
+      payload.api_pass = apiPass || null;
+      payload.api_key  = apiKey  || null;
+    } else {
+      if (apiUser) payload.api_user = apiUser;
+      if (apiPass) payload.api_pass = apiPass;
+      if (apiKey)  payload.api_key  = apiKey;
+    }
     try {
       if (!editing && ADMIN_CONSOLE.integrations.some(function(item) {
         return String(item.empresa_id) === targetCompany;
