@@ -734,13 +734,13 @@ function bdUpdateVendaProduto() {
     const p  = modoAgrupado ? relProdutoAgrupadoNome(produtoOriginal) : produtoOriginal;
     const mi = MES_IDX[g(r,'mes').toLowerCase()] ?? -1;
     const v  = metrica(r);
-    const gr = g(r,'grupo'), ma = g(r,'marca');
+    const gr = g(r,'grupo');
     if (!p || mi < 0) return;
-    var marcaNorm = (ma || '').toUpperCase().trim();
-    var marcaFinal = marcaNorm.indexOf('PLASTRIO') >= 0 ? 'PLASTRIO' : 'VARREMASTER';
-    if (!pivot.has(p)) pivot.set(p, {meses:Array(12).fill(0), total:0, grupo:gr, marca:marcaFinal, label:p});
-    pivot.get(p).meses[mi] += v;
-    pivot.get(p).total += v;
+    var marcaFinal = (produtoOriginal || '').toUpperCase().indexOf('PLASTRIO') >= 0 ? 'PLASTRIO' : 'VARREMASTER';
+    var nomeLimpo = p.replace(/\s*PLASTRIO\s*/gi, ' ').replace(/\s{2,}/g, ' ').trim();
+    if (!pivot.has(nomeLimpo)) pivot.set(nomeLimpo, {meses:Array(12).fill(0), total:0, grupo:gr, marca:marcaFinal, label:nomeLimpo});
+    pivot.get(nomeLimpo).meses[mi] += v;
+    pivot.get(nomeLimpo).total += v;
     totalGeral += v;
   });
 
