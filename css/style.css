@@ -5359,6 +5359,48 @@ textarea:focus {
   color: #2F3848 !important;
 }
 
+/* ── Bordas reforçadas tabelas meses/anos ── */
+.av-table-wrap,
+.rep-scroll-area {
+  border: 2px solid #2F3848 !important;
+  border-radius: 10px !important;
+}
+
+.laudo-tbl {
+  border: 2px solid #2F3848 !important;
+  border-radius: 10px !important;
+}
+
+.av-table td,
+.rep-tbl td,
+.laudo-tbl td {
+  border-bottom: 1.5px solid #D0D5DD !important;
+  border-right: 1px solid #D0D5DD !important;
+}
+
+.av-table th,
+.rep-tbl thead td,
+.laudo-tbl th {
+  border-bottom: 2.5px solid #0E1424 !important;
+  border-right: 1px solid rgba(255,255,255,.15) !important;
+}
+
+.av-table th:last-child,
+.rep-tbl thead td:last-child,
+.laudo-tbl th:last-child,
+.av-table td:last-child,
+.rep-tbl td:last-child,
+.laudo-tbl td:last-child {
+  border-right: none !important;
+}
+
+.rel-subtotal-row td,
+.rep-row-total td,
+.laudo-tot td {
+  border-top: 2.5px solid #2F3848 !important;
+  border-bottom: 2.5px solid #2F3848 !important;
+}
+
 .rel-mini-value,
 .rep-mini-cell span,
 .rel-share-cell strong,
