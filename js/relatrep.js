@@ -1624,12 +1624,9 @@ function repMix() {
       <tr class="rep-th-semana">
         <td colspan="2">VENDEDOR</td>
         ${dias.map(d=>`<td>${d}</td>`).join('')}
-        <td>MEDIA</td><td>TOTAL MIX</td><td>MED_ANT</td><td>RESULTADO</td>
+        <td>MEDIA</td><td>TOTAL MIX</td>
       </tr></thead><tbody>`;
 
-    // Totais para calcular MED_ANT (semana anterior)
-    const idxAnt = semanasOrdenadas.indexOf(chave) - 1;
-    const semAnt = idxAnt >= 0 ? semanas[semanasOrdenadas[idxAnt]] : null;
     const maxDia = Math.max(1, ...Object.values(semanas[chave]).flat());
 
     vendedores.forEach(vend => {
@@ -1638,18 +1635,11 @@ function repMix() {
       if (tot === 0) return;
       const ativos = dias7.filter(v=>v>0);
       const media  = ativos.length ? tot/ativos.length : 0;
-      const antTot = semAnt && semAnt[vend] ? semAnt[vend].reduce((s,v)=>s+v,0) : 0;
-      const antAtivos = semAnt && semAnt[vend] ? semAnt[vend].filter(v=>v>0).length : 0;
-      const medAnt = antAtivos ? antTot/antAtivos : 0;
-      const result = medAnt > 0 ? ((media/medAnt)-1)*100 : 0;
-      const cor = result >= 0 ? '#059669' : '#DC2626';
       html += `<tr>
         <td colspan="2" class="rep-lbl">${vend.toUpperCase()}</td>
         ${dias7.map(v=>`<td>${repMiniCell(v, maxDia)}</td>`).join('')}
         <td>${repMiniCell(media, maxDia)}</td>
         <td class="rep-total-cell">${repMiniCell(tot, Math.max(1, tot))}</td>
-        <td>${repMiniCell(medAnt, maxDia)}</td>
-        <td><span class="rep-trend" style="color:${cor}">${result>=0?'▲':'▼'} ${Math.abs(result).toFixed(1)}%</span></td>
       </tr>`;
     });
 
@@ -1659,7 +1649,7 @@ function repMix() {
     html += `<tr class="rep-row-total">
       <td colspan="2">TOTAL</td>
       ${totSemana.map(v=>`<td>${repMiniCell(v, Math.max(1, ...totSemana))}</td>`).join('')}
-      <td colspan="3"></td><td></td>
+      <td colspan="2"></td>
     </tr></tbody></table><div style="height:16px"></div>`;
   });
 
@@ -1781,8 +1771,8 @@ function repSem() {
   const SEMS = ['SEM1','SEM2','SEM3','SEM4','SEM5'];
   const vendedores = repGetVendedores();
 
-  const pivot = {}, pivotAnt = {};
-  vendedores.forEach(v => { pivot[v] = {}; pivotAnt[v] = {}; SEMS.forEach(s=>{pivot[v][s]=0;pivotAnt[v][s]=0;}); });
+  const pivot = {};
+  vendedores.forEach(v => { pivot[v] = {}; SEMS.forEach(s=>{pivot[v][s]=0;}); });
 
   repDataRows().forEach(r => {
     const vend = String(r[IDX.vendedor]||'').trim();
@@ -1792,15 +1782,11 @@ function repSem() {
     const sem = repGetSemanaDoMes(dt);
     if (String(r[IDX.ano]||'')=== anoAtual && dt.getMonth()===mesAtual)
       pivot[vend][sem] += repVal(r);
-    else if (String(r[IDX.ano]||'')=== anoAtual && dt.getMonth()===mesAtual-1)
-      pivotAnt[vend][sem] += repVal(r);
   });
 
   let totalGeral = 0;
   const totVend = {};
   vendedores.forEach(v => { totVend[v]=SEMS.reduce((s,sem)=>s+pivot[v][sem],0); totalGeral+=totVend[v]; });
-  const totAntVend = {};
-  vendedores.forEach(v => totAntVend[v]=SEMS.reduce((s,sem)=>s+pivotAnt[v][sem],0));
   const maxSem = Math.max(1, ...vendedores.flatMap(v => SEMS.map(s => pivot[v][s])), ...Object.values(totVend));
 
   let html = `<div class="rel-header-bar">
@@ -1811,27 +1797,20 @@ function repSem() {
       <td>REPRESENTANTE</td>
       ${SEMS.map(s=>`<td>${s}</td>`).join('')}
       <td>MED</td><td>Total</td><td>%</td>
-      <td>COMP MÊS ANT</td><td>VAR %</td>
     </tr>
   </thead><tbody>`;
 
   vendedores.forEach(vend => {
     const tot = totVend[vend];
     if (tot === 0) return;
-    const pct = totalGeral > 0 ? (tot/totalGeral*100).toFixed(1) : '0.0';
     const ativos = SEMS.filter(s=>pivot[vend][s]>0).length;
     const media = ativos > 0 ? tot/ativos : 0;
-    const ant = totAntVend[vend];
-    const varp = ant > 0 ? ((tot-ant)/ant*100) : 0;
-    const cor = varp >= 0 ? '#059669' : '#DC2626';
     html += `<tr>
       <td class="rep-lbl">${vend.toUpperCase()}</td>
       ${SEMS.map(s=>`<td>${repMiniCell(pivot[vend][s], maxSem)}</td>`).join('')}
       <td>${repMiniCell(media, maxSem)}</td>
       <td class="rep-total-cell">${repFmtFull(tot)}</td>
       <td>${repShareCell(tot, totalGeral)}</td>
-      <td>${repMiniCell(ant, maxSem)}</td>
-      <td><span class="rep-trend" style="color:${cor}">${varp>=0?'▲':'▼'} ${Math.abs(varp).toFixed(1)}%</span></td>
     </tr>`;
   });
 
@@ -1841,12 +1820,12 @@ function repSem() {
     <td>TOTAL</td>
     ${totSems.map(v=>`<td>${repMiniCell(v, Math.max(1, ...totSems))}</td>`).join('')}
     <td></td><td class="rep-total-cell">${repFmtFull(totalGeral)}</td>
-    <td>100%</td><td colspan="2"></td>
+    <td>100%</td>
   </tr>
   <tr class="rep-row-pct">
     <td>% DO TOTAL</td>
     ${totSems.map(v=>`<td>${totalGeral>0?(v/totalGeral*100).toFixed(1)+'%':'-'}</td>`).join('')}
-    <td colspan="4"></td>
+    <td colspan="3"></td>
   </tr>`;
   html += '</tbody></table></div>';
   el.innerHTML = html;
