@@ -1741,14 +1741,106 @@ function repPositiv() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// REP_SEM_ANO — Semanal por ano (mesma estrutura compacta)
+// REP_SEM_ANO — Vendas por semana ISO do ano (1–52)
 // ════════════════════════════════════════════════════════════════════════
+function repSemAnoISO(dt) {
+  var d = new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+}
+
 function repSemAno() {
-  // Usa os mesmos dados mas mostra totais por semana do mês, de forma mensal
-  repPositiv(); // Reutiliza por ora
-  const src = document.getElementById('rep-tab-positiv');
-  const dst = document.getElementById('rep-tab-semano');
-  if (src && dst) dst.innerHTML = src.innerHTML;
+  var el = document.getElementById('rep-tab-semano');
+  if (!el) return;
+
+  var rows = repFiltrarRowsPremiacao(repDataRows());
+  var anos = [].concat(new Set(rows.map(function(r){ return String(r[IDX.ano]||'').trim(); }).filter(Boolean)));
+  anos = anos.filter(function(v, i, a){ return a.indexOf(v) === i; }).sort();
+  var anoAtual = anos[anos.length - 1] || String(new Date().getFullYear());
+  var vendedores = repGetVendedores();
+
+  var pivot = {};
+  var semanasSet = {};
+  vendedores.forEach(function(v) { pivot[v] = {}; });
+
+  rows.forEach(function(r) {
+    if (String(r[IDX.ano]||'').trim() !== anoAtual) return;
+    var vend = String(r[IDX.vendedor]||'').trim();
+    var dtStr = String(r[IDX.saida]||r[IDX.emissao]||'').trim();
+    var dt = repParseDate(dtStr);
+    if (!vend || !dt || !pivot[vend]) return;
+    var sem = repSemAnoISO(dt);
+    semanasSet[sem] = true;
+    pivot[vend][sem] = (pivot[vend][sem] || 0) + repVal(r);
+  });
+
+  var semanas = Object.keys(semanasSet).map(Number).sort(function(a,b){ return a-b; });
+  if (semanas.length === 0) { el.innerHTML = '<p style="padding:24px;color:#888">Sem dados para o ano ' + anoAtual + '</p>'; return; }
+
+  var totalGeral = 0;
+  var totVend = {};
+  vendedores.forEach(function(v) {
+    totVend[v] = semanas.reduce(function(s, sem){ return s + (pivot[v][sem] || 0); }, 0);
+    totalGeral += totVend[v];
+  });
+
+  var maxVal = Math.max(1, Math.max.apply(null, vendedores.flatMap(function(v){ return semanas.map(function(s){ return pivot[v][s]||0; }); }).concat(Object.values(totVend))));
+
+  var semMes = {};
+  semanas.forEach(function(sem) {
+    var d = new Date(Number(anoAtual), 0, 1 + (sem - 1) * 7);
+    semMes[sem] = d.getMonth();
+  });
+
+  var mesesPresentes = [];
+  var semsPorMes = {};
+  semanas.forEach(function(sem) {
+    var m = semMes[sem];
+    if (!semsPorMes[m]) { semsPorMes[m] = []; mesesPresentes.push(m); }
+    semsPorMes[m].push(sem);
+  });
+
+  var html = '<div class="rel-header-bar">'
+    + repToggleHtml()
+    + '<div class="rel-title">VENDAS POR SEMANA DO ANO — ' + anoAtual + '</div>'
+    + '</div><div class="rep-scroll-area"><table class="rep-tbl"><thead>'
+    + '<tr class="rep-th-semana">'
+    + '<td>REPRESENTANTE</td>'
+    + mesesPresentes.map(function(m){ return '<td colspan="' + semsPorMes[m].length + '">' + MES_LABEL_PT[m].toUpperCase() + '</td>'; }).join('')
+    + '<td>TOTAL</td><td>%</td>'
+    + '</tr>'
+    + '<tr class="rep-th-sem">'
+    + '<td></td>'
+    + semanas.map(function(s){ return '<td>S' + s + '</td>'; }).join('')
+    + '<td></td><td></td>'
+    + '</tr>'
+    + '</thead><tbody>';
+
+  vendedores.forEach(function(vend) {
+    var tot = totVend[vend];
+    if (tot === 0) return;
+    var celulas = semanas.map(function(s){ return '<td>' + repMiniCell(pivot[vend][s]||0, maxVal) + '</td>'; }).join('');
+    html += '<tr>'
+      + '<td class="rep-lbl">' + vend.toUpperCase() + '</td>'
+      + celulas
+      + '<td class="rep-total-cell">' + repFmtFull(tot) + '</td>'
+      + '<td>' + repShareCell(tot, totalGeral) + '</td>'
+      + '</tr>';
+  });
+
+  var totSem = semanas.map(function(s){
+    return vendedores.reduce(function(sum, v){ return sum + (pivot[v][s]||0); }, 0);
+  });
+  html += '<tr class="rep-row-total">'
+    + '<td>TOTAL</td>'
+    + totSem.map(function(v){ return '<td>' + repMiniCell(v, maxVal) + '</td>'; }).join('')
+    + '<td class="rep-total-cell">' + repFmtFull(totalGeral) + '</td>'
+    + '<td>100%</td>'
+    + '</tr>';
+
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
 }
 
 // ════════════════════════════════════════════════════════════════════════
