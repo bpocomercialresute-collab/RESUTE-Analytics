@@ -772,7 +772,7 @@ function bdUpdateVendaProduto() {
     <thead>
       <tr class="rel-subtotal-row">
         <td colspan="3">SUBTOTAL MENSAL</td>
-        ${totMes.map(v=>`<td>${relMiniBarCell(v, maxCell, fmtMetrica(v))}</td>`).join('')}
+        ${totMes.map(v=>`<td>${fmtMetrica(v)}</td>`).join('')}
         <td></td>
         <td><strong>${fmtMetricaFull(totalGeral)}</strong></td>
         <td></td>
@@ -801,8 +801,8 @@ function bdUpdateVendaProduto() {
     const nomeProduto = (d.label || p || '').toUpperCase();
     html += `<tr>
       <td><span class="rel-prod-name">${nomeProduto}</span></td><td>${(d.grupo || 'Sem grupo').toUpperCase()}</td><td>${d.marca || 'VARREMASTER'}</td>
-      ${d.meses.map(v=>`<td>${relMiniBarCell(v, maxCell, fmtMetrica(v))}</td>`).join('')}
-      <td>${relMiniBarCell(media, maxCell, fmtMetrica(media))}</td>
+      ${d.meses.map(v=>`<td>${fmtMetrica(v)}</td>`).join('')}
+      <td>${fmtMetrica(media)}</td>
       <td><strong>${fmtMetricaFull(d.total)}</strong></td>
       <td>${relShareCell(d.total, totalGeral)}</td>
     </tr>`;
