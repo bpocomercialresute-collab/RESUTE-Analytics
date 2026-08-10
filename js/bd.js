@@ -584,20 +584,10 @@ function toggleBtnHtml() {
   </div>`;
 }
 
-function relMiniBarCell(valor, max, label) {
-  const pct = max > 0 ? Math.max(3, Math.min(100, (valor / max) * 100)) : 0;
-  return `<div class="rel-mini-cell">
-    <span class="rel-mini-value">${label || fmtMetrica(valor)}</span>
-    <span class="rel-mini-track"><span style="width:${pct}%"></span></span>
-  </div>`;
-}
 
 function relShareCell(valor, total) {
   const pct = total > 0 ? (valor / total) * 100 : 0;
-  return `<div class="rel-share-cell">
-    <strong>${pct.toFixed(1)}%</strong>
-    <span class="rel-mini-track"><span style="width:${Math.max(3, Math.min(100, pct))}%"></span></span>
-  </div>`;
+  return `${pct.toFixed(1)}%`;
 }
 
 function relToggleVendaProduto(modo) {

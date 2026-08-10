@@ -48,10 +48,7 @@ function repMiniCell(valor, max) {
 
 function repShareCell(valor, total) {
   const pct = total > 0 ? (valor / total) * 100 : 0;
-  return `<div class="rep-share-cell">
-    <strong>${pct.toFixed(1)}%</strong>
-    <i><b style="width:${Math.max(3, Math.min(100, pct))}%"></b></i>
-  </div>`;
+  return `${pct.toFixed(1)}%`;
 }
 
 // ── TOGGLE BUTTON HTML ────────────────────────────────────────────────────────
@@ -782,7 +779,7 @@ function repPremiacaoTabelaTop(titulo, lista, campo, fmt) {
         <td class="premio-pos">${i + 1}</td>
         <td><strong>${repEsc((r.nome||'').toUpperCase())}</strong><span>${repEsc(r.tipo || 'Representante')}</span></td>
         <td>${campo === 'score'
-          ? `<div class="rep-mini-cell"><span>${Number(r[campo] || 0).toFixed(1)}</span><i><b style="width:${Math.max(3, Math.min(100, ((r[campo] || 0) / max) * 100))}%"></b></i></div>`
+          ? Number(r[campo] || 0).toFixed(1)
           : repMiniCell(r[campo] || 0, max)}</td>
         <td>${fmt ? fmt(r[campo] || 0, r) : repFmtFull(r[campo] || 0)}</td>
       </tr>`).join('')}
