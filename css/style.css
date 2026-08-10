@@ -3058,6 +3058,7 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   .dc-grid-2, .dc-grid-2-1, .dc-grid-3-2 { grid-template-columns: 1fr; }
   .dc-chart-box, .dc-chart-box-tall { height: 240px; }
   .laudo-charts-row { grid-template-columns: 1fr; }
+  .laudo-grid-2 { grid-template-columns: 1fr !important; }
   .rep-filter-grid,
   .rel-filter-grid,
   .premio-campanha-grid,

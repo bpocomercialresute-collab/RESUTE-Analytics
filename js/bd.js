@@ -903,66 +903,80 @@ function bdUpdateLaudoGrupo() {
       </div>
     </div>
 
-    <div class="laudo-doc">
-      <div class="laudo-doc-head">
+    <div class="laudo-doc" style="gap:14px;padding:16px">
+      <div class="laudo-doc-head" style="padding-bottom:10px">
         <div>
-          <div class="laudo-titulo-rel">LAUDO — ${titulo}</div>
-          <div class="laudo-sub">Emitido em ${new Date().toLocaleDateString('pt-BR')} · ${rows.length.toLocaleString('pt-BR')} registros · modo: ${RELATORIO_MODO.toUpperCase()}</div>
+          <div class="laudo-titulo-rel" style="font-size:18px">LAUDO — ${titulo}</div>
+          <div class="laudo-sub">${new Date().toLocaleDateString('pt-BR')} · ${rows.length.toLocaleString('pt-BR')} registros · ${RELATORIO_MODO.toUpperCase()}</div>
         </div>
       </div>
 
-      <div class="laudo-section-title">FLUXO POR TRIMESTRE</div>
-      <table class="laudo-tbl">
-        <thead><tr><th>TRIM</th>${anos.map(a=>`<th style="color:${anosColors[a]}">${a}</th>`).join('')}</tr></thead>
-        <tbody>
-          ${['1º TRIM','2º TRIM','3º TRIM','4º TRIM'].map((lbl,ti)=>
-            `<tr><td class="laudo-lbl">${lbl}</td>${anos.map(a=>`<td>${fmtMetrica(trimData[a][ti])}</td>`).join('')}</tr>`
-          ).join('')}
-          <tr class="laudo-tot"><td>TOT</td>${anos.map(a=>`<td>${fmtMetrica(trimData[a].reduce((s,v)=>s+v,0))}</td>`).join('')}</tr>
-          <tr class="laudo-med"><td>MED</td>${anos.map(a=>`<td>${fmtMetrica(trimData[a].reduce((s,v)=>s+v,0)/4)}</td>`).join('')}</tr>
-        </tbody>
-      </table>
-
-      <div class="laudo-section-title" style="margin-top:24px">FLUXO MENSAL</div>
-      <table class="laudo-tbl">
-        <thead><tr><th>MÊS</th>${anos.map(a=>`<th style="color:${anosColors[a]}">${a}</th>`).join('')}</tr></thead>
-        <tbody>
-          ${MESES_LABEL.map((mlbl,mi)=>
-            `<tr><td class="laudo-lbl">${mlbl}</td>${anos.map(a=>`<td>${fmtMetrica(pivotMesAno[a][mi])}</td>`).join('')}</tr>`
-          ).join('')}
-          <tr class="laudo-tot"><td>TOT</td>${anos.map(a=>`<td>${fmtMetrica(pivotMesAno[a].reduce((s,v)=>s+v,0))}</td>`).join('')}</tr>
-          <tr class="laudo-med"><td>MED</td>${anos.map(a=>`<td>${fmtMetrica(pivotMesAno[a].reduce((s,v)=>s+v,0)/12)}</td>`).join('')}</tr>
-          <tr class="laudo-cresc"><td>CRESC</td>${anos.map((a,i)=>{
-            if(i===0) return '<td>—</td>';
-            const at=pivotMesAno[a].reduce((s,v)=>s+v,0);
-            const an=pivotMesAno[anos[i-1]].reduce((s,v)=>s+v,0);
-            const cr=an>0?((at-an)/an)*100:0;
-            const cor=cr>=0?'#059669':'#DC2626';
-            return `<td style="color:${cor};font-weight:700">${cr>=0?'▲':'▼'} ${Math.abs(cr).toFixed(1)}%</td>`;
-          }).join('')}</tr>
-        </tbody>
-      </table>
-
-      <div class="laudo-section-title" style="margin-top:24px">% MENSAL SOBRE TOTAL ANUAL</div>
-      <table class="laudo-tbl">
-        <thead><tr><th>MÊS</th>${anos.map(a=>`<th style="color:${anosColors[a]}">${a}</th>`).join('')}</tr></thead>
-        <tbody>
-          ${MESES_LABEL.map((mlbl,mi)=>
-            `<tr><td class="laudo-lbl">${mlbl}</td>${anos.map(a=>`<td>${pctMesAno[a][mi].toFixed(2)}%</td>`).join('')}</tr>`
-          ).join('')}
-          <tr class="laudo-med"><td>MED</td>${anos.map(a=>`<td>${(pctMesAno[a].reduce((s,v)=>s+v,0)/12).toFixed(2)}%</td>`).join('')}</tr>
-        </tbody>
-      </table>
-
-      <div class="laudo-section-title" style="margin-top:24px">GRÁFICOS</div>
-      <div class="laudo-charts-row">
-        <div class="laudo-chart-box">
-          <div class="laudo-chart-title">FLUXO MENSAL POR ANO</div>
-          <canvas id="chart-laudo-linha" height="220"></canvas>
+      <div class="laudo-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div>
+          <div class="laudo-section-title" style="margin-bottom:8px">FLUXO POR TRIMESTRE</div>
+          <table class="laudo-tbl" style="font-size:12px">
+            <thead><tr><th>TRIM</th>${anos.map(a=>`<th style="color:${anosColors[a]}">${a}</th>`).join('')}</tr></thead>
+            <tbody>
+              ${['1º TRIM','2º TRIM','3º TRIM','4º TRIM'].map((lbl,ti)=>
+                `<tr><td class="laudo-lbl">${lbl}</td>${anos.map(a=>`<td>${fmtMetrica(trimData[a][ti])}</td>`).join('')}</tr>`
+              ).join('')}
+              <tr class="laudo-tot"><td>TOT</td>${anos.map(a=>`<td>${fmtMetrica(trimData[a].reduce((s,v)=>s+v,0))}</td>`).join('')}</tr>
+              <tr class="laudo-med"><td>MED</td>${anos.map(a=>`<td>${fmtMetrica(trimData[a].reduce((s,v)=>s+v,0)/4)}</td>`).join('')}</tr>
+            </tbody>
+          </table>
         </div>
-        <div class="laudo-chart-box">
+        <div>
+          <div class="laudo-section-title" style="margin-bottom:8px">% MENSAL SOBRE TOTAL ANUAL</div>
+          <table class="laudo-tbl" style="font-size:12px">
+            <thead><tr><th>MÊS</th>${anos.map(a=>`<th style="color:${anosColors[a]}">${a}</th>`).join('')}</tr></thead>
+            <tbody>
+              ${MESES_LABEL.map((mlbl,mi)=>
+                `<tr><td class="laudo-lbl">${mlbl}</td>${anos.map(a=>`<td>${pctMesAno[a][mi].toFixed(1)}%</td>`).join('')}</tr>`
+              ).join('')}
+              <tr class="laudo-med"><td>MED</td>${anos.map(a=>`<td>${(pctMesAno[a].reduce((s,v)=>s+v,0)/12).toFixed(1)}%</td>`).join('')}</tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <div class="laudo-section-title" style="margin-bottom:8px">FLUXO MENSAL</div>
+        <table class="laudo-tbl" style="font-size:12px">
+          <thead><tr><th>MÊS</th>${anos.map(a=>`<th style="color:${anosColors[a]}">${a}</th>`).join('')}${anos.length>=2?'<th>VAR %</th>':''}</tr></thead>
+          <tbody>
+            ${MESES_LABEL.map((mlbl,mi)=>{
+              let varHtml = '';
+              if (anos.length >= 2) {
+                const vAtual = pivotMesAno[anos[anos.length-1]][mi];
+                const vAnt   = pivotMesAno[anos[anos.length-2]][mi];
+                if (vAnt > 0) {
+                  const cr = ((vAtual-vAnt)/vAnt)*100;
+                  const cor = cr>=0?'#059669':'#DC2626';
+                  varHtml = `<td style="color:${cor};font-weight:700">${cr>=0?'▲':'▼'} ${Math.abs(cr).toFixed(1)}%</td>`;
+                } else { varHtml = '<td>—</td>'; }
+              }
+              return `<tr><td class="laudo-lbl">${mlbl}</td>${anos.map(a=>`<td>${fmtMetrica(pivotMesAno[a][mi])}</td>`).join('')}${varHtml}</tr>`;
+            }).join('')}
+            <tr class="laudo-tot"><td>TOT</td>${anos.map(a=>`<td>${fmtMetrica(pivotMesAno[a].reduce((s,v)=>s+v,0))}</td>`).join('')}${anos.length>=2?(()=>{
+              const at=pivotMesAno[anos[anos.length-1]].reduce((s,v)=>s+v,0);
+              const an=pivotMesAno[anos[anos.length-2]].reduce((s,v)=>s+v,0);
+              const cr=an>0?((at-an)/an)*100:0;
+              const cor=cr>=0?'#059669':'#DC2626';
+              return `<td style="color:${cor};font-weight:700">${cr>=0?'▲':'▼'} ${Math.abs(cr).toFixed(1)}%</td>`;
+            })():''}</tr>
+            <tr class="laudo-med"><td>MED</td>${anos.map(a=>`<td>${fmtMetrica(pivotMesAno[a].reduce((s,v)=>s+v,0)/12)}</td>`).join('')}${anos.length>=2?'<td></td>':''}</tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="laudo-charts-row" style="gap:12px">
+        <div class="laudo-chart-box" style="min-height:240px;padding:12px">
+          <div class="laudo-chart-title">FLUXO MENSAL POR ANO</div>
+          <canvas id="chart-laudo-linha" height="200"></canvas>
+        </div>
+        <div class="laudo-chart-box" style="min-height:240px;padding:12px">
           <div class="laudo-chart-title">BARRAS POR MÊS E ANO</div>
-          <canvas id="chart-laudo-barra" height="220"></canvas>
+          <canvas id="chart-laudo-barra" height="200"></canvas>
         </div>
       </div>
     </div>`;
