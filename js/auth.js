@@ -1698,7 +1698,7 @@ function dcLimparPainelVazio(titulo, detalhe) {
     + '<span>' + (detalhe || 'Selecione outro periodo ou sincronize a API no painel admin.') + '</span>'
     + '</div>';
   if (kEl) kEl.innerHTML = html;
-  ['dc-chart-evolucao','dc-chart-trimestre','dc-chart-ano','dc-chart-diasem','dc-chart-produtos','dc-chart-prodqtd','dc-chart-grupos','dc-chart-marca'].forEach(function(id) {
+  ['dc-chart-evolucao','dc-chart-trimestre','dc-chart-ano','dc-chart-diasem','dc-chart-produtos','dc-chart-prodqtd','dc-chart-grupos'].forEach(function(id) {
     if (typeof dcDestroyChart === 'function') dcDestroyChart(id);
   });
   ['dc-tab-reps','dc-tab-positiv','dc-tab-ufs','dc-tab-cidades','dc-tab-cli','dc-tab-inat','dc-tab-novos','dc-tab-ticket'].forEach(function(id) {
@@ -2325,7 +2325,7 @@ function dcRenderizar() {
     if (resumoEl) resumoEl.innerHTML = '';
     var alertasEl = document.getElementById('dc-alertas');
     if (alertasEl) alertasEl.innerHTML = '';
-    ['dc-chart-evolucao','dc-chart-trimestre','dc-chart-ano','dc-chart-diasem','dc-chart-produtos','dc-chart-prodqtd','dc-chart-grupos','dc-chart-marca'].forEach(function(id) {
+    ['dc-chart-evolucao','dc-chart-trimestre','dc-chart-ano','dc-chart-diasem','dc-chart-produtos','dc-chart-prodqtd','dc-chart-grupos'].forEach(function(id) {
       if (typeof dcDestroyChart === 'function') dcDestroyChart(id);
     });
     ['dc-tab-reps','dc-tab-positiv','dc-tab-ufs','dc-tab-cidades','dc-tab-cli','dc-tab-ticket'].forEach(function(id) {
@@ -2371,7 +2371,6 @@ function dcRenderizar() {
   dcRenderGraficoSeguro('Produtos por faturamento', function(){ _dcChartProd(rows); });
   dcRenderGraficoSeguro('Produtos por quantidade', function(){ _dcChartProdQtd(rows); });
   dcRenderGraficoSeguro('Grupos', function(){ _dcChartGrupo(rows); });
-  dcRenderGraficoSeguro('Marcas', function(){ _dcChartMarca(rows); });
 
   // ── Tabelas ──
   dcAtualizarFiltroUfCidade(rows);
@@ -2667,21 +2666,6 @@ function _dcChartProdQtd(rows) {
   });
 }
 
-function _dcChartMarca(rows) {
-  var m = {};
-  rows.forEach(function(r){ var k = dcMarcaNome(r); if (k && k.trim()) m[k] = (m[k] || 0) + dcValorLinha(r); });
-  var s = Object.entries(m).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
-  _dcDestroy('dc-chart-marca');
-  var ctx = document.getElementById('dc-chart-marca'); if (!ctx) return;
-  DC_CHARTS['marca'] = new Chart(ctx, {
-    type: 'bar',
-    data: { labels: s.map(function(e){return dcTextoCurto(e[0], 24);}),
-            datasets: [{ data: s.map(function(e){return e[1];}),
-              backgroundColor: '#1C64C0', borderWidth: 0, borderRadius: 6 }] },
-    options: _dcOptsLabels(true, function(v){ return dcValorCompacto(v); }, { right: 80 }),
-    plugins: [DC_VALUE_LABEL_PLUGIN]
-  });
-}
 
 function _dcSparkline(points, w, h, color) {
   var width = w || 80, height = h || 24, clr = color || '#1C64C0';

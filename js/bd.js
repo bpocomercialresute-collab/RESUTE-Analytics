@@ -333,7 +333,7 @@ function bdUpdateAllTabs() {
   // Relatórios primeiro (mais importantes)
   const relatorios = [
     bdUpdateCadastroInsights, bdUpdateVendaProduto, bdUpdateLaudoGrupo,
-    bdUpdateLaudoMarca, bdUpdateLaudoGruposAno, bdUpdateLaudoGruposAno02
+    bdUpdateLaudoGruposAno, bdUpdateLaudoGruposAno02
   ];
   relatorios.forEach(fn => { try { fn(); } catch(e) { console.warn(fn.name, e); } });
 
@@ -351,8 +351,7 @@ function relRenderTab(tabId) {
     'av-rel-venda-produto': bdUpdateVendaProduto,
     'av-rel-laudo-grupo': bdUpdateLaudoGrupo,
     'av-rel-laudo-ano': bdUpdateLaudoGruposAno,
-    'av-rel-laudo-ano02': bdUpdateLaudoGruposAno02,
-    'av-rel-laudo-marca': bdUpdateLaudoMarca
+    'av-rel-laudo-ano02': bdUpdateLaudoGruposAno02
   };
   if (map[tabId]) {
     try { map[tabId](); } catch (e) { console.warn(tabId, e); }
