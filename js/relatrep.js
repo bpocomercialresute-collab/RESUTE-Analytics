@@ -43,11 +43,7 @@ function repFmtFull(v) {
 }
 
 function repMiniCell(valor, max) {
-  const pct = max > 0 ? Math.max(3, Math.min(100, (valor / max) * 100)) : 0;
-  return `<div class="rep-mini-cell">
-    <span>${repFmt(valor)}</span>
-    <i><b style="width:${pct}%"></b></i>
-  </div>`;
+  return repFmt(valor);
 }
 
 function repShareCell(valor, total) {
