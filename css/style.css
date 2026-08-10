@@ -550,20 +550,21 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 }
 #av-rel-area .av-tabs-bar,
 #av-rep-area .av-tabs-bar {
-  gap: 8px;
-  padding: 8px;
+  gap: 4px;
+  padding: 4px;
   border: 1px solid rgba(96,165,250,.12);
-  border-radius: 14px;
+  border-radius: 10px;
   background: #081120;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
 }
 #av-rel-area .av-tab,
 #av-rep-area .av-tab {
   border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 10px 16px;
+  border-radius: 7px;
+  padding: 6px 10px;
   color: #7d91af;
-  font-weight: 900;
+  font-size: 10.5px;
+  font-weight: 800;
 }
 #av-rel-area .av-tab.active,
 #av-rep-area .av-tab.active,
@@ -595,30 +596,34 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 .rel-header-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 14px;
-  padding: 12px 14px;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
   border: 1px solid rgba(96,165,250,.14);
   border-radius: 8px;
   background: #0b1424;
+  flex-wrap: wrap;
 }
 .rel-title {
   color: #eef6ff;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: .02em;
+  text-align: center;
+  flex: 1 1 auto;
 }
-.rel-toggle { display: flex; gap: 6px; flex-wrap: wrap; }
+.rel-toggle { display: flex; gap: 4px; flex-wrap: wrap; }
 .rel-toggle-btn {
   background: #0f1d32;
   border: 1px solid rgba(96,165,250,.16);
   color: #8ea3c0;
-  border-radius: 7px;
-  padding: 7px 12px;
+  border-radius: 6px;
+  padding: 4px 10px;
   font: inherit;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
+  cursor: pointer;
 }
 .rel-toggle-btn.active {
   background: #2563eb;
@@ -633,55 +638,58 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 .rep-filterbar {
   display: flex;
   align-items: flex-end;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
-  padding: 12px;
+  padding: 8px 10px;
   border: 1px solid rgba(96,165,250,.12);
-  border-radius: 12px;
+  border-radius: 10px;
   background: #081120;
 }
 .rep-filter-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(150px, 1fr));
-  gap: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
   flex: 1;
 }
 .rel-filter-grid {
   grid-template-columns: repeat(5, minmax(140px, 1fr));
 }
 .rep-filter-field {
-  display: grid;
-  gap: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 1 auto;
 }
 .rep-filter-field span,
 .rep-filter-count {
   color: #7d91af;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: .1em;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .06em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 .rep-filter-field select {
-  height: 34px;
+  height: 28px;
   border: 1px solid rgba(96,165,250,.18);
-  border-radius: 9px;
+  border-radius: 7px;
   background: #0b1728;
   color: #dbeafe;
-  padding: 0 10px;
+  padding: 0 8px;
   font: inherit;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   min-width: 0;
 }
 .rep-clear-filter {
-  height: 34px;
+  height: 28px;
   border: 1px solid rgba(248,113,113,.22);
-  border-radius: 9px;
+  border-radius: 7px;
   background: rgba(127,29,29,.18);
   color: #fca5a5;
-  padding: 0 12px;
+  padding: 0 10px;
   font: inherit;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
   cursor: pointer;
 }
@@ -691,10 +699,10 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   text-transform: none;
 }
 .rel-kpi-strip {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 10px;
-  margin-bottom: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 .rel-inline-tabs {
   display: flex;
@@ -703,14 +711,14 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   margin: -2px 0 14px;
 }
 .rel-inline-tab {
-  height: 36px;
+  height: 28px;
   border: 1px solid rgba(96,165,250,.16);
   border-radius: 999px;
   background: #0b1728;
   color: #9cb3d1;
-  padding: 0 14px;
+  padding: 0 10px;
   font: inherit;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   cursor: pointer;
 }
@@ -723,21 +731,24 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   border: 1px solid rgba(96,165,250,.12);
   border-radius: 8px;
   background: #0d1728;
-  padding: 13px 14px;
+  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 auto;
 }
 .rel-kpi-card span {
-  display: block;
   color: #7d91af;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 800;
-  letter-spacing: .08em;
+  letter-spacing: .06em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 .rel-kpi-card strong {
-  display: block;
-  margin-top: 7px;
   color: #f8fafc;
-  font-size: 18px;
+  font-size: 13px;
+  white-space: nowrap;
 }
 .av-table-wrap,
 .rep-scroll-area {
@@ -5179,6 +5190,8 @@ textarea:focus {
   border: 1px solid #EAEAEB !important;
   color: #2F3848 !important;
   box-shadow: none !important;
+  font-size: 10.5px !important;
+  padding: 5px 10px !important;
 }
 
 #av-rel-area .av-tab.active,
@@ -5199,6 +5212,7 @@ textarea:focus {
 .rel-prod-meta,
 .premio-periodo-field span {
   color: #5A7A74 !important;
+  font-size: 9px !important;
 }
 
 .rep-filter-field select,
@@ -5208,6 +5222,10 @@ textarea:focus {
   border: 1px solid #EAEAEB !important;
   color: #0E1424 !important;
   box-shadow: none !important;
+  height: 28px !important;
+  font-size: 11px !important;
+  padding: 0 8px !important;
+  border-radius: 7px !important;
 }
 
 .rep-filter-field select:focus,
@@ -5223,12 +5241,12 @@ textarea:focus {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 8px !important;
-  min-height: 36px !important;
-  padding: 0 14px !important;
-  border-radius: 8px !important;
+  gap: 6px !important;
+  min-height: 28px !important;
+  padding: 0 10px !important;
+  border-radius: 7px !important;
   font: inherit !important;
-  font-size: 12px !important;
+  font-size: 10px !important;
   font-weight: 800 !important;
   background: transparent !important;
   border: 1px solid #DC2626 !important;
@@ -5298,6 +5316,7 @@ textarea:focus {
 .premio-growth-card-meta span,
 .premio-growth-head-side span {
   color: #5A7A74 !important;
+  font-size: 9.5px !important;
 }
 
 .rel-kpi-card strong,
@@ -5307,6 +5326,14 @@ textarea:focus {
 .premio-campanha-resumo strong,
 .premio-growth-head h3 {
   color: #0E1424 !important;
+}
+
+.rel-kpi-card {
+  padding: 6px 12px !important;
+  border-radius: 8px !important;
+}
+.rel-kpi-card strong {
+  font-size: 13px !important;
 }
 
 .av-table,
@@ -5806,23 +5833,23 @@ textarea:focus {
 
 .rep-mensal-bar {
   display: flex !important;
-  align-items: flex-start !important;
-  justify-content: space-between !important;
-  gap: 18px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
   flex-wrap: wrap !important;
 }
 
 .rep-mensal-filter-row {
   display: flex !important;
-  gap: 12px !important;
+  gap: 8px !important;
   flex-wrap: wrap !important;
-  align-items: flex-end !important;
+  align-items: center !important;
 }
 
 .rep-mensal-subfilters {
-  margin: 14px 0 16px !important;
+  margin: 8px 0 10px !important;
   border: 1px solid #D6EAE3 !important;
-  border-radius: 18px !important;
+  border-radius: 10px !important;
   background: #F8FCFB !important;
   overflow: hidden !important;
 }
@@ -5830,8 +5857,8 @@ textarea:focus {
 .rep-mensal-dropdown-header {
   display: flex !important;
   align-items: center !important;
-  gap: 12px !important;
-  padding: 14px 18px !important;
+  gap: 8px !important;
+  padding: 8px 12px !important;
   cursor: pointer !important;
   user-select: none !important;
   transition: background 0.15s !important;
@@ -5841,7 +5868,7 @@ textarea:focus {
 }
 
 .rep-mensal-dropdown-label {
-  font-size: 13px !important;
+  font-size: 10.5px !important;
   font-weight: 800 !important;
   color: #0E1424 !important;
   letter-spacing: 0.04em !important;
@@ -5849,40 +5876,40 @@ textarea:focus {
 }
 
 .rep-mensal-dropdown-badge {
-  font-size: 11.5px !important;
+  font-size: 9.5px !important;
   font-weight: 700 !important;
   color: #FFFFFF !important;
   background: #1C64C0 !important;
-  padding: 3px 12px !important;
+  padding: 2px 10px !important;
   border-radius: 100px !important;
 }
 
 .rep-mensal-dropdown-chevron {
   margin-left: auto !important;
-  font-size: 13px !important;
+  font-size: 11px !important;
   color: #6A8A84 !important;
 }
 
 .rep-mensal-dropdown-panel {
-  padding: 0 18px 16px !important;
+  padding: 0 12px 10px !important;
   border-top: 1px solid #D6EAE3 !important;
 }
 
 .rep-mensal-dropdown-toolbar {
   display: flex !important;
   align-items: center !important;
-  gap: 12px !important;
+  gap: 8px !important;
   flex-wrap: wrap !important;
-  padding: 14px 0 10px !important;
+  padding: 8px 0 6px !important;
 }
 
 .rep-mensal-search {
-  flex: 1 1 200px !important;
-  min-width: 180px !important;
-  padding: 8px 14px !important;
+  flex: 1 1 160px !important;
+  min-width: 140px !important;
+  padding: 5px 10px !important;
   border: 1px solid #D6EAE3 !important;
-  border-radius: 10px !important;
-  font-size: 13px !important;
+  border-radius: 7px !important;
+  font-size: 11px !important;
   background: #FFFFFF !important;
   color: #0E1424 !important;
   outline: none !important;
@@ -5897,34 +5924,34 @@ textarea:focus {
 
 .rep-mensal-actions {
   display: flex !important;
-  gap: 8px !important;
+  gap: 4px !important;
   flex-wrap: wrap !important;
 }
 
 .rep-mensal-checklist {
   display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
-  gap: 6px 12px !important;
-  max-height: 240px !important;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+  gap: 4px 10px !important;
+  max-height: 180px !important;
   overflow: auto !important;
-  padding: 10px 12px !important;
+  padding: 8px 10px !important;
   border: 1px solid #D6EAE3 !important;
-  border-radius: 14px !important;
+  border-radius: 10px !important;
   background: #FFFFFF !important;
 }
 
 .rep-mensal-check {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 5px !important;
   color: #0E1424 !important;
-  font-size: 12px !important;
+  font-size: 10.5px !important;
   font-weight: 700 !important;
 }
 
 .rep-mensal-check input {
-  width: 15px !important;
-  height: 15px !important;
+  width: 13px !important;
+  height: 13px !important;
   accent-color: #1C64C0 !important;
 }
 
