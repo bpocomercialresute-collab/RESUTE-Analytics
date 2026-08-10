@@ -48,7 +48,7 @@ function parseSmartNumber(value) {
 const fmtValor = v => {
   const n = parseSmartNumber(v);
   const frac = Math.round(Math.abs(n * 100)) % 100;
-  return 'R$ ' + new Intl.NumberFormat('pt-BR', {
+  return new Intl.NumberFormat('pt-BR', {
     minimumFractionDigits: frac === 0 ? 0 : 2,
     maximumFractionDigits: 2
   }).format(n);

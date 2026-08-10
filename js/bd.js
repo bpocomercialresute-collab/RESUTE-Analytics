@@ -97,7 +97,7 @@ function relLimparFiltros() {
 
 function relFiltroSelect(campo, label) {
   const atual = (window.REL_FILTER && window.REL_FILTER[campo]) || '';
-  const opts = relUnique(campo).map(v => `<option value="${relEsc(v)}" ${v===atual?'selected':''}>${relEsc(v)}</option>`).join('');
+  const opts = relUnique(campo).map(v => `<option value="${relEsc(v)}" ${v===atual?'selected':''}>${relEsc((v||'').toUpperCase())}</option>`).join('');
   return `<label class="rep-filter-field"><span>${label}</span><select onchange="relSetFiltro('${campo}', this.value)">
     <option value="">Todos</option>${opts}
   </select></label>`;
@@ -578,7 +578,7 @@ function bdUpdateProdutoServico() {
 function toggleBtnHtml() {
   return `<div class="rep-report-tools">
     <div class="rel-toggle">
-      <button class="rel-toggle-btn ${window.RELATORIO_MODO==='valor'?'active':''}" onclick="toggleModo('valor')">R$ VALOR</button>
+      <button class="rel-toggle-btn ${window.RELATORIO_MODO==='valor'?'active':''}" onclick="toggleModo('valor')">VALOR</button>
       <button class="rel-toggle-btn ${window.RELATORIO_MODO==='qtd'?'active':''}" onclick="toggleModo('qtd')">QTD</button>
     </div>
     ${relFiltroHtml()}
@@ -680,7 +680,7 @@ function bdUpdateCadastroInsights() {
       .sort((a,b) => b[1] - a[1])
       .slice(0, max)
       .map(function(entry, idx) {
-        return `<tr><td>${idx + 1}</td><td>${entry[0]}</td><td class="num">${fmtMetricaFull(entry[1])}</td></tr>`;
+        return `<tr><td>${idx + 1}</td><td>${(entry[0]||'').toUpperCase()}</td><td class="num">${fmtMetricaFull(entry[1])}</td></tr>`;
       }).join('');
   }
 
@@ -736,7 +736,9 @@ function bdUpdateVendaProduto() {
     const v  = metrica(r);
     const gr = g(r,'grupo'), ma = g(r,'marca');
     if (!p || mi < 0) return;
-    if (!pivot.has(p)) pivot.set(p, {meses:Array(12).fill(0), total:0, grupo:gr, marca:ma, label:p});
+    var marcaNorm = (ma || '').toUpperCase().trim();
+    var marcaFinal = marcaNorm.indexOf('PLASTRIO') >= 0 ? 'PLASTRIO' : 'VARREMASTER';
+    if (!pivot.has(p)) pivot.set(p, {meses:Array(12).fill(0), total:0, grupo:gr, marca:marcaFinal, label:p});
     pivot.get(p).meses[mi] += v;
     pivot.get(p).total += v;
     totalGeral += v;
@@ -769,14 +771,14 @@ function bdUpdateVendaProduto() {
     <div class="av-table-wrap" style="border-top:none"><table class="av-table">
     <thead>
       <tr class="rel-subtotal-row">
-        <td colspan="2">SUBTOTAL MENSAL</td>
+        <td colspan="3">SUBTOTAL MENSAL</td>
         ${totMes.map(v=>`<td>${relMiniBarCell(v, maxCell, fmtMetrica(v))}</td>`).join('')}
         <td></td>
         <td><strong>${fmtMetricaFull(totalGeral)}</strong></td>
         <td></td>
       </tr>
       <tr class="rel-evol-row">
-        <td colspan="2">EVOLUÇÃO MENSAL</td>
+        <td colspan="3">EVOLUÇÃO MENSAL</td>
         ${evol.map(e=>{
           if (e===null) return '<td></td>';
           const cls = e>=0?'up':'down';
@@ -786,7 +788,7 @@ function bdUpdateVendaProduto() {
         <td colspan="3"></td>
       </tr>
       <tr>
-        <th>PRODUTO</th><th>GRUPO</th>
+        <th>PRODUTO</th><th>GRUPO</th><th>MARCA</th>
         ${MESES_LABEL.map(m=>`<th>${m}</th>`).join('')}
         <th>MEDIA</th><th>TOT</th><th>%</th>
       </tr>
@@ -796,8 +798,9 @@ function bdUpdateVendaProduto() {
     const ativos = d.meses.filter(v=>v>0);
     const media  = ativos.length ? ativos.reduce((s,v)=>s+v,0)/ativos.length : 0;
     const pct    = totalGeral > 0 ? ((d.total/totalGeral)*100).toFixed(1) : '0.0';
+    const nomeProduto = (d.label || p || '').toUpperCase();
     html += `<tr>
-      <td><span class="rel-prod-name">${d.label || p}</span><span class="rel-prod-meta">${modoAgrupado ? 'Itens com cabo / sem cabo somados' : (d.marca || 'Sem marca')}</span></td><td>${d.grupo || 'Sem grupo'}</td>
+      <td><span class="rel-prod-name">${nomeProduto}</span></td><td>${(d.grupo || 'Sem grupo').toUpperCase()}</td><td>${d.marca || 'VARREMASTER'}</td>
       ${d.meses.map(v=>`<td>${relMiniBarCell(v, maxCell, fmtMetrica(v))}</td>`).join('')}
       <td>${relMiniBarCell(media, maxCell, fmtMetrica(media))}</td>
       <td><strong>${fmtMetricaFull(d.total)}</strong></td>
@@ -1072,7 +1075,7 @@ function bdUpdateLaudoMarca() {
     const tot = meses.reduce((s,v)=>s+v,0);
     const pct = totalGeral>0?((tot/totalGeral)*100).toFixed(1):'0.0';
     html += `<tr>
-      <td>${m}</td>
+      <td>${(m||'').toUpperCase()}</td>
       ${meses.map(v=>`<td>${fmtMetrica(v)}</td>`).join('')}
       <td><strong>${fmtMetricaFull(tot)}</strong></td>
       <td>${pct}%</td>
@@ -1141,7 +1144,7 @@ function bdUpdateLaudoGruposAno() {
     const totGr = anos.reduce((s,a) => s + pivot[gr][a].reduce((s2,v)=>s2+v,0), 0);
     if (totGr === 0) return;
     html += `<tr>
-      <td style="font-weight:600;color:#0A2F2F;min-width:140px">${gr}</td>
+      <td style="font-weight:600;color:#0A2F2F;min-width:140px">${(gr||'').toUpperCase()}</td>
       ${anos.map(a => {
         const meses = pivot[gr][a];
         const tot   = meses.reduce((s,v)=>s+v,0);
@@ -1220,7 +1223,7 @@ function bdUpdateLaudoGruposAno02() {
     const cor = dif>=0?'#059669':'#DC2626';
     const arrow = dif>=0?'▲':'▼';
     html += `<tr>
-      <td>${gr}</td>
+      <td>${(gr||'').toUpperCase()}</td>
       <td>${fmtMetrica(v1)}</td>
       <td>${fmtMetrica(v2)}</td>
       <td style="color:${cor}">${fmtMetrica(Math.abs(dif))}</td>

@@ -597,7 +597,7 @@ function repPremiacaoRelatorioHtml(rows, baseRows) {
     const linhas = atuais.sort((a, b) => b.produtos - a.produtos || b.fat - a.fat).map((r, i) => `
       <tr>
         <td>${i + 1}</td>
-        <td class="rep-lbl">${repEsc(r.nome)}</td>
+        <td class="rep-lbl">${repEsc((r.nome||'').toUpperCase())}</td>
         <td>${fmtInt(r.produtos)}</td>
         <td>${fmtValor(r.fat)}</td>
         <td>${r.produtos >= mediaMix ? 'Acima da média' : 'Abaixo da média'}</td>
@@ -631,7 +631,7 @@ function repPremiacaoRelatorioHtml(rows, baseRows) {
     })).sort((a, b) => b.reativados - a.reativados || b.bonus - a.bonus).map((r, i) => `
       <tr>
         <td>${i + 1}</td>
-        <td class="rep-lbl">${repEsc(r.nome)}</td>
+        <td class="rep-lbl">${repEsc((r.nome||'').toUpperCase())}</td>
         <td>${fmtInt(r.reativados)}</td>
         <td>${fmtValor(r.bonus)}</td>
         <td>${repEsc(r.clientes || '-')}</td>
@@ -657,7 +657,7 @@ function repPremiacaoRelatorioHtml(rows, baseRows) {
     }).sort((a, b) => b.cresc - a.cresc || b.atual - a.atual).map((r, i) => `
       <tr>
         <td>${i + 1}</td>
-        <td class="rep-lbl">${repEsc(r.nome)}</td>
+        <td class="rep-lbl">${repEsc((r.nome||'').toUpperCase())}</td>
         <td>${fmtInt(r.anterior)}</td>
         <td>${fmtInt(r.atual)}</td>
         <td>${r.cresc.toFixed(1)}%</td>
@@ -682,7 +682,7 @@ function repPremiacaoRelatorioHtml(rows, baseRows) {
     }).sort((a, b) => b.positivos - a.positivos || b.total - a.total).map((r, i) => `
       <tr>
         <td>${i + 1}</td>
-        <td class="rep-lbl">${repEsc(r.nome)}</td>
+        <td class="rep-lbl">${repEsc((r.nome||'').toUpperCase())}</td>
         <td>${fmtInt(r.positivos)} / 6</td>
         <td>${fmtValor(r.total)}</td>
         <td>${r.positivos === 6 ? 'Consistência máxima' : 'Em acompanhamento'}</td>
@@ -706,7 +706,7 @@ function repPremiacaoRelatorioHtml(rows, baseRows) {
     }).sort((a, b) => b.fat - a.fat || b.mediaMensalQtd - a.mediaMensalQtd).map((r, i) => `
       <tr>
         <td>${i + 1}</td>
-        <td class="rep-lbl">${repEsc(r.nome)}</td>
+        <td class="rep-lbl">${repEsc((r.nome||'').toUpperCase())}</td>
         <td>${fmtValor(r.fat)}</td>
         <td>${fmtInt(r.mediaMensalQtd)}</td>
         <td>${r.cresc.toFixed(1)}%</td>
@@ -730,7 +730,7 @@ function repPremiacaoRelatorioHtml(rows, baseRows) {
     return `
       <tr>
         <td>${i + 1}</td>
-        <td class="rep-lbl">${repEsc(r.nome)}</td>
+        <td class="rep-lbl">${repEsc((r.nome||'').toUpperCase())}</td>
         <td>${fmtValor(r.fat)}</td>
         <td>${faixa ? `${fmtValor(faixa.min)} a ${fmtValor(faixa.max)}` : 'Fora das faixas'}</td>
         <td>${repEsc(faixa?.premio || 'Sem prêmio nesta faixa')}</td>
@@ -784,7 +784,7 @@ function repPremiacaoTabelaTop(titulo, lista, campo, fmt) {
     <table class="premio-table"><tbody>
       ${itens.map((r, i) => `<tr>
         <td class="premio-pos">${i + 1}</td>
-        <td><strong>${repEsc(r.nome)}</strong><span>${repEsc(r.tipo || 'Representante')}</span></td>
+        <td><strong>${repEsc((r.nome||'').toUpperCase())}</strong><span>${repEsc(r.tipo || 'Representante')}</span></td>
         <td>${campo === 'score'
           ? `<div class="rep-mini-cell"><span>${Number(r[campo] || 0).toFixed(1)}</span><i><b style="width:${Math.max(3, Math.min(100, ((r[campo] || 0) / max) * 100))}%"></b></i></div>`
           : repMiniCell(r[campo] || 0, max)}</td>
@@ -807,10 +807,10 @@ function repPremiacaoGanhosHtml(rows) {
   return `<div class="premio-card premio-full">
     <div class="premio-card-title">Relatórios de vencedores</div>
     <div class="premio-kpis">
-      <div><span>1º geral</span><strong>${repEsc(geral?.nome || '-')}</strong></div>
+      <div><span>1º geral</span><strong>${repEsc((geral?.nome || '-').toUpperCase())}</strong></div>
       <div><span>Score</span><strong>${(geral?.score || 0).toFixed(1)}</strong></div>
-      <div><span>Maior faturamento</span><strong>${repEsc(porFat[0]?.nome || '-')}</strong></div>
-      <div><span>Maior quantidade</span><strong>${repEsc(porQtd[0]?.nome || '-')}</strong></div>
+      <div><span>Maior faturamento</span><strong>${repEsc((porFat[0]?.nome || '-').toUpperCase())}</strong></div>
+      <div><span>Maior quantidade</span><strong>${repEsc((porQtd[0]?.nome || '-').toUpperCase())}</strong></div>
     </div>
     <div class="premio-grid">
       ${repPremiacaoTabelaTop('Pontuação geral', arr, 'score', (v) => v.toFixed(1))}
@@ -1300,7 +1300,7 @@ function repLimparFiltros() {
 
 function repSelectFiltro(campo, label) {
   const atual = (window.REP_FILTER && window.REP_FILTER[campo]) || '';
-  const opts = repUnique(campo).map(v => `<option value="${repEsc(v)}" ${v===atual?'selected':''}>${repEsc(v)}</option>`).join('');
+  const opts = repUnique(campo).map(v => `<option value="${repEsc(v)}" ${v===atual?'selected':''}>${repEsc((v||'').toUpperCase())}</option>`).join('');
   return `<label class="rep-filter-field"><span>${label}</span><select onchange="repSetFiltro('${campo}', this.value)">
     <option value="">Todos</option>${opts}
   </select></label>`;
@@ -1324,7 +1324,7 @@ function repFilterHtml() {
 function repToggleHtml() {
   return `<div class="rep-report-tools">
     <div class="rel-toggle">
-      <button class="rel-toggle-btn ${REP_MODO==='valor'?'active':''}" onclick="repToggleModo('valor')">R$ VALOR</button>
+      <button class="rel-toggle-btn ${REP_MODO==='valor'?'active':''}" onclick="repToggleModo('valor')">VALOR</button>
       <button class="rel-toggle-btn ${REP_MODO==='qtd'?'active':''}" onclick="repToggleModo('qtd')">QTD</button>
     </div>
     ${repFilterHtml()}
@@ -1443,7 +1443,7 @@ function repMensalRep() {
   const ocultarVazios = filtro.ocultarVazios !== false;
 
   const anoOptions = info.anos.map(ano => `<option value="${ano}" ${String(ano) === String(anoAtivo) ? 'selected' : ''}>${ano}</option>`).join('');
-  const vendedorChecks = info.vendedores.map(v => `<label class="rep-mensal-check"><input type="checkbox" data-vendedor="${repEsc(v)}" ${vendedoresAtivos.has(v) ? 'checked' : ''} onchange="repMensalToggleVendedor(this.dataset.vendedor, this.checked)"><span>${repEsc(v)}</span></label>`).join('');
+  const vendedorChecks = info.vendedores.map(v => `<label class="rep-mensal-check"><input type="checkbox" data-vendedor="${repEsc(v)}" ${vendedoresAtivos.has(v) ? 'checked' : ''} onchange="repMensalToggleVendedor(this.dataset.vendedor, this.checked)"><span>${repEsc((v||'').toUpperCase())}</span></label>`).join('');
   const headerHtml = `<div class="rel-header-bar rep-mensal-bar"><div class="rel-title">VENDAS MENSAIS POR REPRESENTANTE EM ${anoAtivo}</div><div class="rep-mensal-filter-row"><label class="rep-filter-field"><span>Ano</span><select onchange="repMensalSetFiltro('ano', this.value)">${anoOptions}</select></label><label class="rep-filter-field rep-mensal-toggle"><span>Meses</span><button type="button" class="rel-toggle-btn ${ocultarVazios ? 'active' : ''}" onclick="repMensalSetFiltro('ocultarVazios', ${!ocultarVazios})">${ocultarVazios ? 'Ocultar vazios' : 'Mostrar todos'}</button></label></div></div>`;
   const repsFilterHtml = `<div class="rep-mensal-subfilters" data-export-ignore="true"><div class="rep-filter-field rep-mensal-reps-field"><span>Representantes exibidos</span><div class="rep-mensal-actions"><button type="button" class="rel-toggle-btn" onclick="repMensalSelecionarTodosVendedores()">Todos</button><button type="button" class="rel-toggle-btn" onclick="repMensalLimparVendedores()">Limpar</button></div><div class="rep-mensal-checklist">${vendedorChecks || '<span class="rep-mensal-check-empty">Sem representantes</span>'}</div></div></div>`;
 
@@ -1492,7 +1492,7 @@ function repMensalRep() {
     const mesesAtivos = item.meses.filter(v => v > 0).length || 1;
     const med = item.total / mesesAtivos;
     const share = totalGeral ? (item.total / totalGeral) * 100 : 0;
-    html += `<tr><td class="rep-mensal-rep-name">${repEsc(item.nome)}</td>${mesesVisiveis.map(i => `<td class="rep-mensal-num">${repMensalFmtNumero(item.meses[i])}</td>`).join('')}<td class="rep-mensal-med">${repMensalFmtNumero(med)}</td><td class="rep-mensal-total">${repMensalFmtNumero(item.total)}</td><td class="rep-mensal-share">${repMensalFmtPercent(share)}</td><td class="rep-mensal-graf">${repMensalSpark(mesesVisiveis.map(i => item.meses[i]))}</td></tr>`;
+    html += `<tr><td class="rep-mensal-rep-name">${repEsc((item.nome||'').toUpperCase())}</td>${mesesVisiveis.map(i => `<td class="rep-mensal-num">${repMensalFmtNumero(item.meses[i])}</td>`).join('')}<td class="rep-mensal-med">${repMensalFmtNumero(med)}</td><td class="rep-mensal-total">${repMensalFmtNumero(item.total)}</td><td class="rep-mensal-share">${repMensalFmtPercent(share)}</td><td class="rep-mensal-graf">${repMensalSpark(mesesVisiveis.map(i => item.meses[i]))}</td></tr>`;
   });
 
   html += `<tr class="rep-row-total rep-mensal-total-row"><td>TOTAL</td>${mesesVisiveis.map(i => `<td>${repMensalFmtNumero(totalMes[i])}</td>`).join('')}<td>${repMensalFmtNumero(mediaMensal)}</td><td>${repMensalFmtNumero(totalGeral)}</td><td>100%</td><td>${repMensalSpark(mesesVisiveis.map(i => totalMes[i]))}</td></tr>`;
@@ -1644,7 +1644,7 @@ function repMix() {
       const result = medAnt > 0 ? ((media/medAnt)-1)*100 : 0;
       const cor = result >= 0 ? '#059669' : '#DC2626';
       html += `<tr>
-        <td colspan="2" class="rep-lbl">${vend}</td>
+        <td colspan="2" class="rep-lbl">${vend.toUpperCase()}</td>
         ${dias7.map(v=>`<td>${repMiniCell(v, maxDia)}</td>`).join('')}
         <td>${repMiniCell(media, maxDia)}</td>
         <td class="rep-total-cell">${repMiniCell(tot, Math.max(1, tot))}</td>
@@ -1734,7 +1734,7 @@ function repPositiv() {
     const mesesComValor = mesesAtivos.filter(m => SEMS.some(s=>pivot[vend][m][s]>0)).length;
     const media = mesesComValor > 0 ? tot/mesesComValor : 0;
     html += `<tr>
-      <td class="rep-lbl">${vend}</td>
+      <td class="rep-lbl">${vend.toUpperCase()}</td>
       ${celulas}
       <td>${repMiniCell(media, maxGeral)}</td>
       <td class="rep-total-cell">${repFmtFull(tot)}</td>
@@ -1825,7 +1825,7 @@ function repSem() {
     const varp = ant > 0 ? ((tot-ant)/ant*100) : 0;
     const cor = varp >= 0 ? '#059669' : '#DC2626';
     html += `<tr>
-      <td class="rep-lbl">${vend}</td>
+      <td class="rep-lbl">${vend.toUpperCase()}</td>
       ${SEMS.map(s=>`<td>${repMiniCell(pivot[vend][s], maxSem)}</td>`).join('')}
       <td>${repMiniCell(media, maxSem)}</td>
       <td class="rep-total-cell">${repFmtFull(tot)}</td>
@@ -1911,7 +1911,7 @@ function repMeta() {
     const diasComVenda = diasArr.filter(d=>(vendasDia[`${vend}|${d}`]||0)>0).length;
     const media = diasComVenda>0 ? tot/diasComVenda : 0;
     html += `<tr>
-      <td class="rep-lbl">${vend}</td>
+      <td class="rep-lbl">${vend.toUpperCase()}</td>
       ${diasArr.map(d=>`<td>${repMiniCell(vendasDia[`${vend}|${d}`]||0, maxDiaMeta)}</td>`).join('')}
       <td>${repMiniCell(media, maxDiaMeta)}</td>
       <td class="rep-total-cell">${repFmtFull(tot)}</td>
@@ -2003,7 +2003,7 @@ function repCrescMes() {
 
     html += `<tr>
       <td style="font-size:10px;color:#7a9cc8">${tipo}</td>
-      <td class="rep-lbl">${vend}</td>
+      <td class="rep-lbl">${vend.toUpperCase()}</td>
       ${mesesAtivos.map(m=>`<td>${repMiniCell(pivot[vend][m], maxCresc)}</td>`).join('')}
       <td>${repMiniCell(media, maxCresc)}</td>
       <td class="rep-total-cell">${repFmtFull(tot)}</td>
@@ -2189,7 +2189,7 @@ function repPremiacao() {
     return `<div class="premio-card"><div class="premio-card-title">${titulo}</div><table class="premio-table"><tbody>
       ${lista.map((r,i)=>`<tr>
         <td class="premio-pos">${i+1}</td>
-        <td><strong>${repEsc(r.nome)}</strong><span>${repEsc(r.tipo || 'Representante')}</span></td>
+        <td><strong>${repEsc((r.nome||'').toUpperCase())}</strong><span>${repEsc(r.tipo || 'Representante')}</span></td>
         <td>${repMiniCell(r[campo] || 0, max)}</td>
         <td>${fmt ? fmt(r[campo] || 0, r) : (r[campo] || 0).toLocaleString('pt-BR')}</td>
       </tr>`).join('')}
@@ -2204,7 +2204,7 @@ function repPremiacao() {
       <table class="premio-table"><tbody>
         ${top.map((r,i)=>`<tr>
           <td class="premio-pos">${i+1}</td>
-          <td><strong>${repEsc(r.nome)}</strong><span>${r.pedidos} pedidos · ${r.clientes} clientes · ${r.produtos} produtos</span></td>
+          <td><strong>${repEsc((r.nome||'').toUpperCase())}</strong><span>${r.pedidos} pedidos · ${r.clientes} clientes · ${r.produtos} produtos</span></td>
           <td>${repMiniCell(r.fat, max)}</td>
           <td>${moeda(r.fat)}</td>
         </tr>`).join('') || '<tr><td>Sem vendas neste periodo.</td></tr>'}
@@ -2229,7 +2229,7 @@ function repPremiacao() {
           const dias = diaPivot[vend];
           const total = dias.reduce((s,v)=>s+v,0);
           return `<tr>
-            <td class="rep-lbl">${repEsc(vend)}</td>
+            <td class="rep-lbl">${repEsc(vend.toUpperCase())}</td>
             ${dias.map(v=>`<td>${repMiniCell(v, max)}</td>`).join('')}
             <td class="rep-total-cell">${repFmtFull(total)}</td>
           </tr>`;
@@ -2257,7 +2257,7 @@ function repPremiacao() {
     </div>
     <div class="premio-winner">
       <span>1º lugar geral</span>
-      <strong>${repEsc(geral[0]?.nome || '-')}</strong>
+      <strong>${repEsc((geral[0]?.nome || '-').toUpperCase())}</strong>
       <small>${(geral[0]?.score || 0).toFixed(1)} pontos</small>
     </div>
   </div>
@@ -2288,7 +2288,7 @@ function repPremiacao() {
       <td>#</td><td>Representante</td><td>Tipo</td><td>Faturamento</td><td>Qtd</td><td>Clientes</td><td>Produtos</td><td>Pedidos</td><td>Ticket</td><td>Pontos</td>
     </tr></thead><tbody>
       ${geral.map((r,i)=>`<tr>
-        <td class="premio-pos">${i+1}</td><td class="rep-lbl">${repEsc(r.nome)}</td><td>${repEsc(r.tipo)}</td>
+        <td class="premio-pos">${i+1}</td><td class="rep-lbl">${repEsc((r.nome||'').toUpperCase())}</td><td>${repEsc(r.tipo)}</td>
         <td>${moeda(r.fat)}</td><td>${r.qtd.toLocaleString('pt-BR')}</td><td>${r.clientes}</td><td>${r.produtos}</td><td>${r.pedidos}</td>
         <td>${moeda(r.ticket)}</td><td><strong>${r.score.toFixed(1)}</strong></td>
       </tr>`).join('')}
@@ -2488,7 +2488,7 @@ function repPremiacaoCrescimentoTabelaHtml(dados) {
         <thead>
           <tr>
             <th>Mês</th>
-            ${dados.representantes.map(rep => `<th>${repEsc(rep.nome)}</th><th>Variação</th>`).join('')}
+            ${dados.representantes.map(rep => `<th>${repEsc((rep.nome||'').toUpperCase())}</th><th>Variação</th>`).join('')}
             <th>Total do mês</th>
           </tr>
         </thead>
@@ -2530,7 +2530,7 @@ function repPremiacaoCrescimentoHtml(dados) {
     </div>
     <div class="premio-growth-cards">
       ${dados.representantes.map(rep => `<article class="premio-growth-card">
-        <span class="premio-growth-card-kicker">${repEsc(rep.nome)}</span>
+        <span class="premio-growth-card-kicker">${repEsc((rep.nome||'').toUpperCase())}</span>
         <strong>${fmtValor(rep.resumoMes?.fat || 0)}</strong>
         <p>${repEsc(rep.resumoMes?.label || `Ano ${dados.ano}`)}</p>
         <div class="premio-growth-card-meta">
