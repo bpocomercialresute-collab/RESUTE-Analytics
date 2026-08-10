@@ -985,6 +985,7 @@ var DC_CLI_CAD_TOTAL = null;    // total de clientes cadastrados (clientes_cad)
 var DC_PROD_TOTAL    = null;    // total de produtos cadastrados (produtos)
 var DC_REP_TOTAL     = null;    // total de representantes cadastrados (representantes)
 var DC_CLI_LISTA     = [];      // nomes de todos os clientes do cadastro (clientes_cad)
+var DC_CLI_FONE      = {};      // mapa nome_normalizado → telefone
 var DC_REP_LISTA     = [];      // nomes de todos os representantes do cadastro (representantes)
 
 var MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -1269,10 +1270,11 @@ async function _dcFetchRepresentantesLista(eid) {
 
 async function _dcFetchClientesLista(eid) {
   DC_CLI_LISTA = [];
+  DC_CLI_FONE  = {};
   var from = 0, pageSize = 1000, pages = 0;
   while (pages < 10) {
     var resp = await fetch(
-      SUPA_URL + '/rest/v1/clientes_cad?empresa_id=eq.' + encodeURIComponent(eid) + '&select=nome,razao_social&order=nome.asc',
+      SUPA_URL + '/rest/v1/clientes_cad?empresa_id=eq.' + encodeURIComponent(eid) + '&select=nome,razao_social,telefone&order=nome.asc',
       { headers: { 'Range': from + '-' + (from + pageSize - 1) } }
     );
     if (!resp.ok && resp.status !== 206) break;
@@ -1280,7 +1282,11 @@ async function _dcFetchClientesLista(eid) {
     if (!Array.isArray(batch) || !batch.length) break;
     batch.forEach(function(item) {
       var n = String(item.nome || item.razao_social || '').trim().toUpperCase();
-      if (n) DC_CLI_LISTA.push(n);
+      if (n) {
+        DC_CLI_LISTA.push(n);
+        var fone = String(item.telefone || '').trim();
+        if (fone) DC_CLI_FONE[n] = fone;
+      }
     });
     pages++;
     if (batch.length < pageSize) break;
@@ -3101,11 +3107,13 @@ function dcTabelaInativos(rows) {
 
   // Montar registros
   var arr = todos.map(function(nome) {
+    var fone = DC_CLI_FONE[nome.toUpperCase()] || DC_CLI_FONE[nome] || '';
     var d = mapa[nome];
-    if (!d) return { nome: nome, rep: '—', ultimaStr: '—', dias: -1, valorUltima: 0, semHistorico: true };
+    if (!d) return { nome: nome, telefone: fone, rep: '—', ultimaStr: '—', dias: -1, valorUltima: 0, semHistorico: true };
     var dias = Math.floor((hoje.getTime() - d.ultimaData.getTime()) / 86400000);
     return {
       nome: nome,
+      telefone: fone,
       rep: d.ultimaRep || '—',
       ultimaStr: d.ultimaData.toLocaleDateString('pt-BR'),
       dias: Math.max(0, dias),
@@ -3168,7 +3176,7 @@ function dcTabelaInativos(rows) {
 
   // Tabela
   var h = '<table class="dc-tabela dc-inactive-table"><thead><tr>'
-    + '<th>#</th><th>Cliente</th><th>Rep</th><th>Última compra</th>'
+    + '<th>#</th><th>Cliente</th><th>Telefone</th><th>Rep</th><th>Última compra</th>'
     + '<th class="num">Dias sem compra</th><th class="num">Valor última compra</th><th>Status</th>'
     + '</tr></thead><tbody>';
   arr.forEach(function(e, i) {
@@ -3178,8 +3186,10 @@ function dcTabelaInativos(rows) {
     else if (e.dias >= 60) { status = 'Atenção';       classe = 'atencao'; }
     else                   { status = 'Monitorar';     classe = 'ok'; }
     var diasStr = e.semHistorico ? '—' : (e.dias + ' dias');
+    var foneDisplay = e.telefone ? escapeHtml(e.telefone) : '<span style="color:#9CA3AF">—</span>';
     h += '<tr><td class="pos">' + (i + 1) + '</td>'
       + '<td>' + escapeHtml(e.nome) + '</td>'
+      + '<td style="font-size:11px;white-space:nowrap">' + foneDisplay + '</td>'
       + '<td style="font-size:11px;color:#5A7A74">' + escapeHtml(e.rep) + '</td>'
       + '<td>' + e.ultimaStr + '</td>'
       + '<td class="num"><strong>' + diasStr + '</strong></td>'
@@ -3196,21 +3206,22 @@ function dcExportarInatExcel() {
   if (!tbl) { alert('Nenhum dado para exportar. Aplique o filtro primeiro.'); return; }
 
   var rows = [];
-  var headers = ['#', 'CLIENTE', 'REPRESENTANTE', 'ULTIMA COMPRA', 'DIAS SEM COMPRA', 'VALOR ULTIMA COMPRA', 'STATUS'];
+  var headers = ['#', 'CLIENTE', 'TELEFONE', 'REPRESENTANTE', 'ULTIMA COMPRA', 'DIAS SEM COMPRA', 'VALOR ULTIMA COMPRA', 'STATUS'];
   rows.push(headers);
 
   var trs = tbl.querySelectorAll('tbody tr');
   trs.forEach(function(tr) {
     var tds = tr.querySelectorAll('td');
-    if (tds.length < 7) return;
+    if (tds.length < 8) return;
     var num = (tds[0].textContent || '').trim();
     var cli = (tds[1].textContent || '').trim();
-    var rep = (tds[2].textContent || '').trim();
-    var ult = (tds[3].textContent || '').trim();
-    var dias = (tds[4].textContent || '').trim().replace(' dias', '');
-    var valor = (tds[5].textContent || '').trim();
-    var status = (tds[6].textContent || '').trim();
-    rows.push([num, cli, rep, ult, dias, valor, status]);
+    var fone = (tds[2].textContent || '').trim();
+    var rep = (tds[3].textContent || '').trim();
+    var ult = (tds[4].textContent || '').trim();
+    var dias = (tds[5].textContent || '').trim().replace(' dias', '');
+    var valor = (tds[6].textContent || '').trim();
+    var status = (tds[7].textContent || '').trim();
+    rows.push([num, cli, fone, rep, ult, dias, valor, status]);
   });
 
   var xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -3220,6 +3231,7 @@ function dcExportarInatExcel() {
     + '<Styles>\n'
     + '  <Style ss:ID="header"><Font ss:Bold="1" ss:Size="11" ss:Color="#FFFFFF"/><Interior ss:Color="#2F3848" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center"/></Style>\n'
     + '  <Style ss:ID="txt"><Alignment ss:Horizontal="Left"/></Style>\n'
+    + '  <Style ss:ID="fone"><NumberFormat ss:Format="@"/><Alignment ss:Horizontal="Left"/></Style>\n'
     + '  <Style ss:ID="num"><NumberFormat ss:Format="#,##0"/><Alignment ss:Horizontal="Right"/></Style>\n'
     + '  <Style ss:ID="numDias"><NumberFormat ss:Format="0"/><Alignment ss:Horizontal="Right"/></Style>\n'
     + '  <Style ss:ID="critico"><Font ss:Color="#DC2626" ss:Bold="1"/></Style>\n'
@@ -3228,22 +3240,24 @@ function dcExportarInatExcel() {
     + '</Styles>\n'
     + '<Worksheet ss:Name="Sem Compra Recente">\n'
     + '<Table>\n'
-    + '<Column ss:Width="40"/><Column ss:Width="220"/><Column ss:Width="160"/><Column ss:Width="100"/><Column ss:Width="110"/><Column ss:Width="130"/><Column ss:Width="100"/>\n';
+    + '<Column ss:Width="40"/><Column ss:Width="220"/><Column ss:Width="130"/><Column ss:Width="160"/><Column ss:Width="100"/><Column ss:Width="110"/><Column ss:Width="130"/><Column ss:Width="100"/>\n';
 
   rows.forEach(function(row, ri) {
     xml += '<Row>';
     row.forEach(function(cell, ci) {
       if (ri === 0) {
         xml += '<Cell ss:StyleID="header"><Data ss:Type="String">' + _dcXmlEsc(cell) + '</Data></Cell>';
-      } else if (ci === 4 && cell !== '—') {
+      } else if (ci === 2) {
+        xml += '<Cell ss:StyleID="fone"><Data ss:Type="String">' + _dcXmlEsc(cell) + '</Data></Cell>';
+      } else if (ci === 5 && cell !== '—') {
         var diasNum = parseInt(cell) || 0;
         xml += '<Cell ss:StyleID="numDias"><Data ss:Type="Number">' + diasNum + '</Data></Cell>';
-      } else if (ci === 5 && cell !== '—') {
+      } else if (ci === 6 && cell !== '—') {
         var valNum = parseFloat(String(cell).replace(/\./g, '').replace(',', '.')) || 0;
         xml += '<Cell ss:StyleID="num"><Data ss:Type="Number">' + valNum + '</Data></Cell>';
       } else if (ci === 0 && ri > 0) {
         xml += '<Cell ss:StyleID="txt"><Data ss:Type="Number">' + (parseInt(cell) || 0) + '</Data></Cell>';
-      } else if (ci === 6 && ri > 0) {
+      } else if (ci === 7 && ri > 0) {
         var stId = cell === 'Crítico' ? 'critico' : cell === 'Atenção' ? 'atencao' : 'ok';
         xml += '<Cell ss:StyleID="' + stId + '"><Data ss:Type="String">' + _dcXmlEsc(cell) + '</Data></Cell>';
       } else {
