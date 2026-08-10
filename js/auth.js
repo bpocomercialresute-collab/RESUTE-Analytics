@@ -3189,6 +3189,81 @@ function dcTabelaInativos(rows) {
   el.innerHTML = h + '</tbody></table>';
 }
 
+function dcExportarInatExcel() {
+  var el = document.getElementById('dc-tab-inat') || document.getElementById('dc-tabela-inativos');
+  if (!el) return;
+  var tbl = el.querySelector('table');
+  if (!tbl) { alert('Nenhum dado para exportar. Aplique o filtro primeiro.'); return; }
+
+  var rows = [];
+  var headers = ['#', 'CLIENTE', 'REPRESENTANTE', 'ULTIMA COMPRA', 'DIAS SEM COMPRA', 'VALOR ULTIMA COMPRA', 'STATUS'];
+  rows.push(headers);
+
+  var trs = tbl.querySelectorAll('tbody tr');
+  trs.forEach(function(tr) {
+    var tds = tr.querySelectorAll('td');
+    if (tds.length < 7) return;
+    var num = (tds[0].textContent || '').trim();
+    var cli = (tds[1].textContent || '').trim();
+    var rep = (tds[2].textContent || '').trim();
+    var ult = (tds[3].textContent || '').trim();
+    var dias = (tds[4].textContent || '').trim().replace(' dias', '');
+    var valor = (tds[5].textContent || '').trim();
+    var status = (tds[6].textContent || '').trim();
+    rows.push([num, cli, rep, ult, dias, valor, status]);
+  });
+
+  var xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    + '<?mso-application progid="Excel.Sheet"?>\n'
+    + '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n'
+    + ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n'
+    + '<Styles>\n'
+    + '  <Style ss:ID="header"><Font ss:Bold="1" ss:Size="11" ss:Color="#FFFFFF"/><Interior ss:Color="#2F3848" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center"/></Style>\n'
+    + '  <Style ss:ID="txt"><Alignment ss:Horizontal="Left"/></Style>\n'
+    + '  <Style ss:ID="num"><NumberFormat ss:Format="#,##0"/><Alignment ss:Horizontal="Right"/></Style>\n'
+    + '  <Style ss:ID="numDias"><NumberFormat ss:Format="0"/><Alignment ss:Horizontal="Right"/></Style>\n'
+    + '  <Style ss:ID="critico"><Font ss:Color="#DC2626" ss:Bold="1"/></Style>\n'
+    + '  <Style ss:ID="atencao"><Font ss:Color="#D97706" ss:Bold="1"/></Style>\n'
+    + '  <Style ss:ID="ok"><Font ss:Color="#059669" ss:Bold="1"/></Style>\n'
+    + '</Styles>\n'
+    + '<Worksheet ss:Name="Sem Compra Recente">\n'
+    + '<Table>\n'
+    + '<Column ss:Width="40"/><Column ss:Width="220"/><Column ss:Width="160"/><Column ss:Width="100"/><Column ss:Width="110"/><Column ss:Width="130"/><Column ss:Width="100"/>\n';
+
+  rows.forEach(function(row, ri) {
+    xml += '<Row>';
+    row.forEach(function(cell, ci) {
+      if (ri === 0) {
+        xml += '<Cell ss:StyleID="header"><Data ss:Type="String">' + _dcXmlEsc(cell) + '</Data></Cell>';
+      } else if (ci === 4 && cell !== '—') {
+        var diasNum = parseInt(cell) || 0;
+        xml += '<Cell ss:StyleID="numDias"><Data ss:Type="Number">' + diasNum + '</Data></Cell>';
+      } else if (ci === 5 && cell !== '—') {
+        var valNum = parseFloat(String(cell).replace(/\./g, '').replace(',', '.')) || 0;
+        xml += '<Cell ss:StyleID="num"><Data ss:Type="Number">' + valNum + '</Data></Cell>';
+      } else if (ci === 0 && ri > 0) {
+        xml += '<Cell ss:StyleID="txt"><Data ss:Type="Number">' + (parseInt(cell) || 0) + '</Data></Cell>';
+      } else if (ci === 6 && ri > 0) {
+        var stId = cell === 'Crítico' ? 'critico' : cell === 'Atenção' ? 'atencao' : 'ok';
+        xml += '<Cell ss:StyleID="' + stId + '"><Data ss:Type="String">' + _dcXmlEsc(cell) + '</Data></Cell>';
+      } else {
+        xml += '<Cell ss:StyleID="txt"><Data ss:Type="String">' + _dcXmlEsc(cell) + '</Data></Cell>';
+      }
+    });
+    xml += '</Row>\n';
+  });
+
+  xml += '</Table></Worksheet></Workbook>';
+
+  var blob = new Blob(['﻿' + xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  var data = new Date().toISOString().slice(0, 10);
+  _downloadBlob(blob, 'sem-compra-recente-' + data + '.xls');
+}
+
+function _dcXmlEsc(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 function dcStatus(msg, ok) {
   var el = document.getElementById('dc-status');
   var texto = String(msg || '');
