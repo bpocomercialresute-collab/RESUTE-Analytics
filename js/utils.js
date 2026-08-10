@@ -44,14 +44,13 @@ function parseSmartNumber(value) {
   return Number.isFinite(num) ? num : 0;
 }
 
-/** Formata número como moeda brasileira, mostrando centavos só quando existirem */
+/** Formata número sem centavos */
 const fmtValor = v => {
   const n = parseSmartNumber(v);
-  const frac = Math.round(Math.abs(n * 100)) % 100;
   return new Intl.NumberFormat('pt-BR', {
-    minimumFractionDigits: frac === 0 ? 0 : 2,
-    maximumFractionDigits: 2
-  }).format(n);
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(Math.round(n));
 };
 
 /** Formata número inteiro com separador de milhar */

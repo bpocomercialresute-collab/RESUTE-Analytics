@@ -1407,9 +1407,9 @@ function repMensalLimparVendedores() {
 function repMensalFmtNumero(v) {
   const n = Number(v) || 0;
   return new Intl.NumberFormat('pt-BR', {
-    minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
-    maximumFractionDigits: 2
-  }).format(n);
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(Math.round(n));
 }
 
 function repMensalFmtPercent(v) {
