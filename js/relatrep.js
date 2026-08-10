@@ -1424,6 +1424,27 @@ function repMensalSpark(values) {
   return `<svg class="rep-mensal-spark" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${points}" fill="none" stroke="#14746F" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>`;
 }
 
+function _repMensalDropdownAberto() {
+  return window._repMensalDropOpen === true;
+}
+
+function repMensalToggleDropdown() {
+  window._repMensalDropOpen = !_repMensalDropdownAberto();
+  var panel = document.getElementById('rep-mensal-drop-panel');
+  if (panel) panel.style.display = window._repMensalDropOpen ? 'block' : 'none';
+  var chevron = document.getElementById('rep-mensal-drop-chevron');
+  if (chevron) chevron.textContent = window._repMensalDropOpen ? '▲' : '▼';
+}
+
+function repMensalBuscaRep(query) {
+  var items = document.querySelectorAll('#rep-mensal-drop-panel .rep-mensal-check');
+  var q = (query || '').trim().toUpperCase();
+  items.forEach(function(label) {
+    var texto = label.textContent.toUpperCase();
+    label.style.display = (!q || texto.indexOf(q) >= 0) ? '' : 'none';
+  });
+}
+
 function repMensalRep() {
   const el = document.getElementById('rep-tab-mensal');
   if (!el) return;
@@ -1435,10 +1456,33 @@ function repMensalRep() {
   const vendedoresAtivos = new Set((filtro.vendedores || []).map(String));
   const ocultarVazios = filtro.ocultarVazios !== false;
 
+  const totalReps = info.vendedores.length;
+  const selCount = vendedoresAtivos.size;
+  const selLabel = selCount === 0 ? 'Todos (' + totalReps + ')' : selCount + ' de ' + totalReps + ' selecionados';
+  const dropAberto = _repMensalDropdownAberto();
+
   const anoOptions = info.anos.map(ano => `<option value="${ano}" ${String(ano) === String(anoAtivo) ? 'selected' : ''}>${ano}</option>`).join('');
   const vendedorChecks = info.vendedores.map(v => `<label class="rep-mensal-check"><input type="checkbox" data-vendedor="${repEsc(v)}" ${vendedoresAtivos.has(v) ? 'checked' : ''} onchange="repMensalToggleVendedor(this.dataset.vendedor, this.checked)"><span>${repEsc((v||'').toUpperCase())}</span></label>`).join('');
+
   const headerHtml = `<div class="rel-header-bar rep-mensal-bar"><div class="rel-title">VENDAS MENSAIS POR REPRESENTANTE EM ${anoAtivo}</div><div class="rep-mensal-filter-row"><label class="rep-filter-field"><span>Ano</span><select onchange="repMensalSetFiltro('ano', this.value)">${anoOptions}</select></label><label class="rep-filter-field rep-mensal-toggle"><span>Meses</span><button type="button" class="rel-toggle-btn ${ocultarVazios ? 'active' : ''}" onclick="repMensalSetFiltro('ocultarVazios', ${!ocultarVazios})">${ocultarVazios ? 'Ocultar vazios' : 'Mostrar todos'}</button></label></div></div>`;
-  const repsFilterHtml = `<div class="rep-mensal-subfilters" data-export-ignore="true"><div class="rep-filter-field rep-mensal-reps-field"><span>Representantes exibidos</span><div class="rep-mensal-actions"><button type="button" class="rel-toggle-btn" onclick="repMensalSelecionarTodosVendedores()">Todos</button><button type="button" class="rel-toggle-btn" onclick="repMensalLimparVendedores()">Limpar</button></div><div class="rep-mensal-checklist">${vendedorChecks || '<span class="rep-mensal-check-empty">Sem representantes</span>'}</div></div></div>`;
+
+  const repsFilterHtml = `<div class="rep-mensal-subfilters" data-export-ignore="true">
+    <div class="rep-mensal-dropdown-header" onclick="repMensalToggleDropdown()">
+      <span class="rep-mensal-dropdown-label">Representantes</span>
+      <span class="rep-mensal-dropdown-badge">${selLabel}</span>
+      <span id="rep-mensal-drop-chevron" class="rep-mensal-dropdown-chevron">${dropAberto ? '▲' : '▼'}</span>
+    </div>
+    <div id="rep-mensal-drop-panel" class="rep-mensal-dropdown-panel" style="display:${dropAberto ? 'block' : 'none'}">
+      <div class="rep-mensal-dropdown-toolbar">
+        <input type="text" class="rep-mensal-search" placeholder="Buscar representante..." oninput="repMensalBuscaRep(this.value)">
+        <div class="rep-mensal-actions">
+          <button type="button" class="rel-toggle-btn" onclick="repMensalSelecionarTodosVendedores()">Todos</button>
+          <button type="button" class="rel-toggle-btn" onclick="repMensalLimparVendedores()">Limpar</button>
+        </div>
+      </div>
+      <div class="rep-mensal-checklist">${vendedorChecks || '<span class="rep-mensal-check-empty">Sem representantes</span>'}</div>
+    </div>
+  </div>`;
 
   const rows = repBaseRows().filter(row => {
     const dt = repParseDate(String(row[IDX.saida] || row[IDX.emissao] || '').trim());
