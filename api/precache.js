@@ -76,6 +76,8 @@ function setCorsHeaders(req, res) {
   res.setHeader('Vary', 'Origin');
 }
 
+export const config = { maxDuration: 60 };
+
 export default async function handler(req, res) {
   setCorsHeaders(req, res);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');

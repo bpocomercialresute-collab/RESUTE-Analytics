@@ -1545,8 +1545,8 @@ async function dcCarregarDados(empresa_id_param) {
         { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY },
         currentSignal
       ),
-      60000,
-      'O carregamento dos registros demorou mais de 60 segundos.'
+      180000,
+      'O carregamento dos registros demorou mais de 3 minutos.'
     );
 
     if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
@@ -1584,9 +1584,16 @@ async function dcCarregarDados(empresa_id_param) {
     dcStatus('✓ ' + vendas.length.toLocaleString('pt-BR') + ' registros carregados', true);
 
   } catch(e) {
-    if (e && e.name === 'AbortError') return; // fetch cancelado por nova requisição — silencioso
-    dcStatus('✗ ' + e.message);
+    if (e && e.name === 'AbortError') return;
     console.error(e);
+    var msgErro = String(e.message || '');
+    if (/tempo|timeout|demorou/i.test(msgErro)) {
+      dcLimparPainelVazio(
+        'Tempo limite excedido',
+        'A empresa possui muitos registros e o carregamento demorou demais. Tente novamente em alguns instantes — os dados podem estar sendo processados.'
+      );
+    }
+    dcStatus('✗ ' + e.message);
   } finally {
     if (loadSequence === DC_LOAD_SEQUENCE) {
       DC_IS_LOADING = false;
@@ -4947,7 +4954,7 @@ adminSincronizar = async function() {
     _syncLog('Gerando cache de relatórios no servidor...');
     try {
       var pcController = new AbortController();
-      var pcTimer = setTimeout(function() { pcController.abort(); }, 45000);
+      var pcTimer = setTimeout(function() { pcController.abort(); }, 120000);
       var pcResp = await NATIVE_FETCH('/api/precache', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-session-token': SESSION ? SESSION.token : '' },
