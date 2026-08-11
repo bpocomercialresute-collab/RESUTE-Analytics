@@ -464,7 +464,11 @@ LiteGrid.prototype._pasteAt = function(txt, startRow, startCol) {
   if (changes.length) this._pushUndo({ type:'cells', oldLength:oldLength, changes:changes });
   FULL_DATA[this.key] = this.allData.filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null; }); });
   this.filtered=null; this._render();
-  if (this._inp) this._inp.style.display = 'none';
+  if (this._inp) {
+    var _src = this.allData;
+    this._inp.value = (_src[this.selRow] && _src[this.selRow][this.selCol] !== undefined) ? _src[this.selRow][this.selCol] : '';
+    this._inp.style.display = 'none';
+  }
   this._updateStatus();
 };
 
@@ -488,7 +492,11 @@ LiteGrid.prototype._paste = function(txt) {
   this._pushUndo({ type:'replace', oldData:this.allData.map(function(r){ return (r || []).slice(); }), oldPage:this.page });
   FULL_DATA[this.key]=data; this.allData=data; this.filtered=null; this.page=0;
   this._render();
-  if (this._inp) this._inp.style.display = 'none';
+  if (this._inp) {
+    var _src2 = this.allData;
+    this._inp.value = (_src2[this.selRow] && _src2[this.selRow][this.selCol] !== undefined) ? _src2[this.selRow][this.selCol] : '';
+    this._inp.style.display = 'none';
+  }
   this._updateStatus();
 };
 
