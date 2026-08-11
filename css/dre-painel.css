@@ -375,6 +375,43 @@ td.fin-dre-col-med { background: #e8f0fb !important; color: var(--fin-ink); }
   font-size: 9pt; color: #b8bfc9; font-style: italic;
 }
 
+/* ── Cabeçalho de período ── */
+.fin-dre-periodo-label {
+  font-size: 11pt; font-weight: 700; color: var(--fin-navy);
+  letter-spacing: .4px; text-transform: uppercase;
+  padding: 4px 2px 10px; border-bottom: 2px solid var(--fin-navy);
+  margin-bottom: 14px;
+}
+
+/* ── Aviso contas orphan (#N/A) ── */
+.fin-dre-aviso-orfa {
+  background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px;
+  color: #92400e; font-size: 9.5pt; padding: 8px 14px; margin-bottom: 12px;
+  font-weight: 600;
+}
+
+/* ── Separadores de seção (DESP. VARIÁVEIS / FIXAS / RESULTADO) ── */
+.fin-dre-separador {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 14px; margin: 6px 0 2px;
+  background: var(--fin-yellow); border-radius: 3px;
+  border: 1px solid rgba(0,0,0,.12);
+}
+.fin-dre-sep-nome {
+  font-weight: 700; font-size: 9.5pt; text-transform: uppercase;
+  letter-spacing: .4px; color: #2b2200;
+}
+.fin-dre-sep-valor {
+  font-weight: 700; font-size: 10pt; color: var(--fin-ink);
+  font-variant-numeric: tabular-nums;
+}
+.fin-dre-sep-valor.fin-dre-sep-neg { color: var(--fin-red); }
+
+/* ── Botão importar arquivo ── */
+.fin-btn-import-label {
+  cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+}
+
 .fin-dre-tag-paralelo {
   display: inline-block; margin-left: 8px; padding: 1px 7px;
   border-radius: 999px; background: rgba(255,255,255,.2);

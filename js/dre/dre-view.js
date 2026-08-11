@@ -514,6 +514,21 @@ function _dreLigarSalvarGrades(empresaId) {
     };
   }
 
+  // ── Botão Exportar ──────────────────────────────────────────────────────────
+  var btnExportar = document.getElementById('fin-dre-btn-exportar');
+  if (btnExportar) btnExportar.onclick = _dreExportarCSV;
+
+  // ── Importar arquivo na aba BD ───────────────────────────────────────────────
+  var inputImportar = document.getElementById('fin-dre-bd-importar');
+  if (inputImportar) {
+    inputImportar.onchange = function() {
+      if (inputImportar.files && inputImportar.files[0]) {
+        _dreImportarArquivo(inputImportar.files[0]);
+        inputImportar.value = '';
+      }
+    };
+  }
+
   // ── Botão Limpar Plano ───────────────────────────────────────────────────────
   var btnLimparPlano = document.getElementById('fin-dre-plano-limpar');
   if (btnLimparPlano) {
@@ -534,6 +549,74 @@ function _dreLigarSalvarGrades(empresaId) {
       }
     };
   }
+}
+
+// ── EXPORT CSV ───────────────────────────────────────────────────────────────
+
+function _dreExportarCSV() {
+  var abaAtiva = document.querySelector('.fin-tab.active');
+  var pane = abaAtiva ? abaAtiva.dataset.finPane : '';
+  var rows, headers, nome;
+
+  if (pane === 'fin-dre-pane-bd' && GRIDS['dre_bd']) {
+    headers = (GRID_DEFS['dre_bd'] || {}).cols.map(function(c){ return c.t; });
+    rows = GRIDS['dre_bd'].getData();
+    nome = 'DRE_BD';
+  } else if (pane === 'fin-dre-pane-plano' && GRIDS['dre_plano']) {
+    headers = (GRID_DEFS['dre_plano'] || {}).cols.map(function(c){ return c.t; });
+    rows = GRIDS['dre_plano'].getData();
+    nome = 'DRE_Plano';
+  } else if (pane === 'fin-dre-pane-bddre' && GRIDS['dre_bddre']) {
+    headers = (GRID_DEFS['dre_bddre'] || {}).cols.map(function(c){ return c.t; });
+    rows = GRIDS['dre_bddre'].getData();
+    nome = 'DRE_BDDRE';
+  } else {
+    alert('Selecione uma aba (BD, Plano ou BD_DRE) para exportar.');
+    return;
+  }
+
+  var csv = [headers.map(function(h){ return '"'+String(h||'').replace(/"/g,'""')+'"'; }).join(';')];
+  rows.forEach(function(r) {
+    csv.push(r.map(function(c){ return '"'+String(c===null||c===undefined?'':c).replace(/"/g,'""')+'"'; }).join(';'));
+  });
+
+  var blob = new Blob(['﻿'+csv.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = nome + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+}
+
+// ── IMPORT ARQUIVO CSV/TSV ────────────────────────────────────────────────────
+
+function _dreImportarArquivo(file) {
+  if (!file) return;
+  var grid = GRIDS['dre_bd'];
+  if (!grid) { alert('Aba BD não está inicializada.'); return; }
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var txt = e.target.result || '';
+    // Detecta separador: tab, ponto-e-vírgula, vírgula
+    var sep = txt.indexOf('\t') >= 0 ? '\t' : (txt.indexOf(';') >= 0 ? ';' : ',');
+    var linhas = txt.split(/\r?\n/);
+    // Remove cabeçalho se primeira célula não parecer data
+    var primeira = (linhas[0] || '').split(sep)[0].trim();
+    var temCab = !/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(primeira) && !/^\d{4}-\d{2}-\d{2}/.test(primeira);
+    if (temCab) linhas = linhas.slice(1);
+    var dados = linhas
+      .filter(function(l){ return l.trim(); })
+      .map(function(l){
+        return l.split(sep).map(function(c){ return c.replace(/^"|"$/g,'').replace(/""/g,'"').trim(); });
+      });
+    if (!dados.length) { alert('Arquivo vazio ou formato não reconhecido.'); return; }
+    // Cola igual ao paste — usa o mesmo mecanismo do LiteGrid
+    var tsv = dados.map(function(r){ return r.join('\t'); }).join('\n');
+    grid._pasteAt(tsv, 0, 0);
+    _dreStatusGrade('fin-dre-status-bd', '✓ ' + dados.length + ' linha(s) importada(s) do arquivo.', 'ok');
+  };
+  reader.readAsText(file, 'UTF-8');
 }
 
 // ── GRADES LITEGRID (abas BD e Plano de Contas) ───────────────────────────────

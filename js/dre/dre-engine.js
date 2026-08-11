@@ -34,24 +34,28 @@ const DRE = (() => {
   // Estrutura do DRE — ordem igual ao Modelo Resultado - Balanço.xlsx
   const ESTRUTURA = [
     // ── Receitas ──────────────────────────────────────────────────
-    { tipo:'grupo', nome:'VALOR PRODUZIDO',         paralelo:true },
-    { tipo:'grupo', nome:'FATURAMENTO',             paralelo:true },
-    { tipo:'grupo', nome:'RECEITA OPERACIONAL',     sinal:'+' },
-    { tipo:'grupo', nome:'RECEITA NÃO OPERACIONAL', sinal:'+' },
+    { tipo:'grupo',      nome:'VALOR PRODUZIDO',         paralelo:true },
+    { tipo:'grupo',      nome:'FATURAMENTO',             paralelo:true },
+    { tipo:'grupo',      nome:'RECEITA OPERACIONAL',     sinal:'+' },
+    { tipo:'grupo',      nome:'RECEITA NÃO OPERACIONAL', sinal:'+' },
     // ── Despesas Variáveis ────────────────────────────────────────
-    { tipo:'grupo', nome:'DESP. OPERACIONAL',       sinal:'-' },
-    { tipo:'grupo', nome:'CUSTO. MP OU REVENDA',    sinal:'-' },
-    { tipo:'grupo', nome:'DESP. TRIBUTÁRIA',        sinal:'-' },
-    { tipo:'grupo', nome:'DESP. LOGÍSTICA',         sinal:'-' },
-    { tipo:'grupo', nome:'DESP. COMERCIAL',         sinal:'-' },
+    { tipo:'separador',  nome:'DESPESAS VARIÁVEIS',      chave:'despVariaveis' },
+    { tipo:'grupo',      nome:'DESP. OPERACIONAL',       sinal:'-' },
+    { tipo:'grupo',      nome:'CUSTO. MP OU REVENDA',    sinal:'-' },
+    { tipo:'grupo',      nome:'DESP. TRIBUTÁRIA',        sinal:'-' },
+    { tipo:'grupo',      nome:'DESP. LOGÍSTICA',         sinal:'-' },
+    { tipo:'grupo',      nome:'DESP. COMERCIAL',         sinal:'-' },
     // ── Despesas Fixas ────────────────────────────────────────────
-    { tipo:'grupo', nome:'DESP. ADM',               sinal:'-' },
-    { tipo:'grupo', nome:'MKT',                     sinal:'-' },
-    { tipo:'grupo', nome:'MANUT. E CONSERVAÇÃO',    sinal:'-' },
-    { tipo:'grupo', nome:'DESP. FINANCEIRA',        sinal:'-' },
-    { tipo:'grupo', nome:'PROLABORE E RETIRADA',    sinal:'-' },
+    { tipo:'separador',  nome:'DESPESAS FIXAS',          chave:'despFixa' },
+    { tipo:'grupo',      nome:'DESP. ADM',               sinal:'-' },
+    { tipo:'grupo',      nome:'MKT',                     sinal:'-' },
+    { tipo:'grupo',      nome:'MANUT. E CONSERVAÇÃO',    sinal:'-' },
+    { tipo:'grupo',      nome:'DESP. FINANCEIRA',        sinal:'-' },
+    { tipo:'grupo',      nome:'PROLABORE E RETIRADA',    sinal:'-' },
     // ── Investimentos ─────────────────────────────────────────────
-    { tipo:'grupo', nome:'INVESTIMENTOS',           sinal:'-' }
+    { tipo:'separador',  nome:'TOTAL DESPESAS',          chave:'totalDespesas' },
+    { tipo:'grupo',      nome:'INVESTIMENTOS',           sinal:'-' },
+    { tipo:'separador',  nome:'RESULTADO OPERACIONAL',   chave:'resultOperacional' }
   ];
 
   /* ---------- 2. ESTADO ---------- */
@@ -390,13 +394,46 @@ const DRE = (() => {
       </div></div>`;
   }
 
+  function renderSeparador(item, res) {
+    const v = res.total[item.chave] ?? null;
+    const ncols = (estado.mesFim - estado.mesInicio + 1) + 3;
+    const valHtml = v !== null
+      ? `<span class="fin-dre-sep-valor ${v < 0 ? 'fin-dre-sep-neg' : ''}">${fmt(v)}</span>`
+      : '';
+    return `<div class="fin-dre-separador">
+      <span class="fin-dre-sep-nome">${esc(item.nome)}</span>
+      ${valHtml}
+    </div>`;
+  }
+
+  function _dreOrfas() {
+    const orfas = (estado.lancamentos || []).filter(l => {
+      const planoIdx = new Map(estado.plano.map(c => [c.conta.trim().toLowerCase(), true]));
+      return !planoIdx.has((l.conta || '').trim().toLowerCase());
+    }).length;
+    return orfas;
+  }
+
   function renderDRE() {
     const res = calcularResultado();
     const alvo = document.getElementById('fin-dre-corpo');
     if (!alvo) return res;
-    alvo.innerHTML = ESTRUTURA.map(item =>
-      item.tipo === 'grupo' ? renderBloco(item) : renderResultado(item, res)
-    ).join('');
+
+    // Cabeçalho de período + aviso de orphans
+    const meI = MESES[estado.mesInicio], meF = MESES[estado.mesFim];
+    const periodo = meI === meF ? meI + ' ' + estado.ano : meI + ' a ' + meF + ' ' + estado.ano;
+    const orfas = _dreOrfas();
+    const avisoOrfa = orfas > 0
+      ? `<div class="fin-dre-aviso-orfa">⚠ ${orfas} lançamento(s) com conta fora do Plano (#N/A) — não entram no DRE.</div>`
+      : '';
+
+    const blocos = ESTRUTURA.map(item => {
+      if (item.tipo === 'grupo')     return renderBloco(item);
+      if (item.tipo === 'separador') return renderSeparador(item, res);
+      return renderResultado(item, res);
+    }).join('');
+
+    alvo.innerHTML = `<div class="fin-dre-periodo-label">${periodo}</div>${avisoOrfa}${blocos}`;
     return res;
   }
 

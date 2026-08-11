@@ -121,10 +121,13 @@ async function _adminCarregarSyncLog() {
     var log = d && d[0];
     if (log && (log.ultima_sync || log.ultima_data)) {
       var ref = log.ultima_sync || log.ultima_data;
-      var dt  = new Date(ref).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+      var refDate = new Date(ref);
+      var dt  = refDate.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
       var tot = (log.total_registros || 0).toLocaleString('pt-BR');
-      el.textContent = 'Último sync: ' + dt + ' — ' + tot + ' registros';
-      el.className = 'admin-sync-status ok';
+      var diasAtras = Math.floor((Date.now() - refDate.getTime()) / 86400000);
+      var stale = diasAtras > 7;
+      el.textContent = 'Último sync: ' + dt + ' — ' + tot + ' registros' + (stale ? ' ⚠ (' + diasAtras + ' dias atrás)' : '');
+      el.className = 'admin-sync-status ' + (stale ? 'stale' : 'ok');
     } else {
       el.textContent = 'Nunca sincronizado';
       el.className = 'admin-sync-status';

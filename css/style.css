@@ -2081,8 +2081,9 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 .admin-emp-info { display: flex; flex-direction: column; gap: 3px; }
 .admin-emp-ativa { font-size: 16px; font-weight: 800; color: #e2e8f0; }
 .admin-sync-status { font-size: 11px; color: #475569; }
-.admin-sync-status.ok   { color: #22c55e; }
-.admin-sync-status.erro { color: #ef4444; }
+.admin-sync-status.ok    { color: #22c55e; }
+.admin-sync-status.erro  { color: #ef4444; }
+.admin-sync-status.stale { color: #d97706; font-weight: 600; }
 .admin-emp-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 /* Dashboard Cliente */
 .cli-tab-btn{padding:10px 20px;border:none;background:none;color:#475569;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 150ms;}
@@ -2627,8 +2628,9 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 .admin-emp-info { display: flex; flex-direction: column; gap: 2px; }
 .admin-emp-ativa { font-size: 16px; font-weight: 800; color: #e2e8f0; }
 .admin-sync-status { font-size: 11px; color: #475569; }
-.admin-sync-status.ok   { color: #22c55e; }
-.admin-sync-status.erro { color: #ef4444; }
+.admin-sync-status.ok    { color: #22c55e; }
+.admin-sync-status.erro  { color: #ef4444; }
+.admin-sync-status.stale { color: #d97706; font-weight: 600; }
 .admin-emp-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* Dashboard cliente */

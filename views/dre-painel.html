@@ -69,6 +69,11 @@
   <section class="fin-pane active" id="fin-dre-pane-bd">
     <div class="fin-grid-acoes">
       <button type="button" id="fin-dre-bd-salvar" class="fin-btn-primario">Salvar no banco</button>
+      <label class="fin-btn-secundario fin-btn-import-label" title="Importar CSV ou Excel colado">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Importar arquivo
+        <input type="file" id="fin-dre-bd-importar" accept=".csv,.txt,.tsv,.xls,.xlsx" style="display:none">
+      </label>
       <button type="button" id="fin-dre-bd-limpar" class="fin-btn-perigo">Limpar BD</button>
       <span id="fin-dre-status-bd" class="fin-status"></span>
     </div>
