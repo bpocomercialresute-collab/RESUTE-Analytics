@@ -395,7 +395,14 @@ function _dreLigarSalvarGrades(empresaId) {
   var btnPlano = document.getElementById('fin-dre-salvar-plano');
   if (btnPlano) {
     btnPlano.onclick = async function() {
+      // Sincroniza do grid no momento do clique (evita estado desatualizado).
+      if (GRIDS['dre_plano']) DRE.estado.plano = _drePlanoDeRows(GRIDS['dre_plano'].getData());
+
       var registros = DRE.registrosPlanoParaSalvar();
+      if (!registros.length) {
+        _dreStatusGrade('fin-dre-status-plano', '⚠ Nenhuma conta encontrada. Preencha o Plano de Contas antes de salvar.', 'erro');
+        return;
+      }
       var semGrupo = registros.filter(function(r) { return !r.grupo || !(DRE.SE_POR_GRUPO && DRE.SE_POR_GRUPO[r.grupo]); });
       if (semGrupo.length) {
         _dreStatusGrade('fin-dre-status-plano', semGrupo.length + ' conta(s) com grupo inválido — corrija antes de salvar.', 'erro');
@@ -410,6 +417,7 @@ function _dreLigarSalvarGrades(empresaId) {
         _dreStatusGrade('fin-dre-status-plano', '✓ ' + enviados.toLocaleString('pt-BR') + ' conta(s) salva(s).', 'ok');
         _dreLimparDirtyPlano();
       } catch (e) {
+        console.error('[DRE] Falha ao salvar plano:', e);
         _dreStatusGrade('fin-dre-status-plano', 'Falha ao salvar: ' + e.message, 'erro');
       }
     };
@@ -418,7 +426,15 @@ function _dreLigarSalvarGrades(empresaId) {
   var btnBD = document.getElementById('fin-dre-bd-salvar');
   if (btnBD) {
     btnBD.onclick = async function() {
+      // Sincroniza do grid no momento do clique (evita estado desatualizado).
+      if (GRIDS['dre_bd']) DRE.estado.lancamentos = _dreLancDeRows(GRIDS['dre_bd'].getData());
+
       var registros = DRE.registrosBDParaSalvar();
+      if (!registros.length) {
+        _dreStatusGrade('fin-dre-status-bd',
+          '⚠ Nenhum lançamento válido encontrado. Verifique se a coluna DT_CAIXA (1ª col) e CONTA (4ª col) estão preenchidas.', 'erro');
+        return;
+      }
       if (!window.confirm('Salvar ' + registros.length + ' lançamento(s)? Substitui todos os lançamentos atuais desta empresa.')) return;
 
       _dreStatusGrade('fin-dre-status-bd', 'Salvando...', '');
@@ -427,6 +443,7 @@ function _dreLigarSalvarGrades(empresaId) {
           registros.map(function(r) { return Object.assign({}, r, { empresa_id: empresaId }); }));
         _dreStatusGrade('fin-dre-status-bd', '✓ ' + enviados.toLocaleString('pt-BR') + ' lançamento(s) salvo(s).', 'ok');
       } catch (e) {
+        console.error('[DRE] Falha ao salvar BD:', e);
         _dreStatusGrade('fin-dre-status-bd', 'Falha ao salvar: ' + e.message, 'erro');
       }
     };
@@ -770,6 +787,23 @@ function _dreAtualizarBDDRE() {
   var linhas = _dreBDDreFiltrar(DRE.estado.bdDre || []);
   grid.setData(_dreRowsBDDRE(linhas));
   FULL_DATA['dre_bddre'] = grid.allData.slice();
+
+  // Aviso quando Plano de Contas está vazio (BD_DRE depende de plano).
+  var alvo = document.getElementById('fin-dre-tab-bddre');
+  if (!alvo) return;
+  var aviso = alvo.querySelector('.dre-aviso-plano-vazio');
+  var semPlano = !DRE.estado.plano || !DRE.estado.plano.length;
+  if (semPlano && !aviso) {
+    var div = document.createElement('div');
+    div.className = 'dre-aviso-plano-vazio';
+    div.style.cssText = 'padding:14px 18px;color:#92400e;background:#fef3c7;border-radius:8px;margin:14px;font-size:.88rem;line-height:1.5;';
+    div.innerHTML = '<strong>⚠ BD_DRE vazio:</strong> o relatório precisa do <strong>Plano de Contas</strong> preenchido.'
+      + ' Vá até a aba <strong>Plano de Contas</strong>, cole as contas com seus grupos e clique em <strong>Salvar no banco</strong>.'
+      + ' Depois volte aqui — as colunas de Jan a Dez mostrarão os totais por conta.';
+    alvo.insertBefore(div, alvo.firstChild);
+  } else if (!semPlano && aviso) {
+    aviso.remove();
+  }
 }
 
 /** Aplica filtros client-side sobre estado.bdDre. */
