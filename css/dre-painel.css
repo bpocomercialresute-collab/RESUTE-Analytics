@@ -360,6 +360,21 @@ td.fin-dre-col-med { background: #e8f0fb !important; color: var(--fin-ink); }
 .fin-dre-bloco.fin-dre-paralelo thead th.fin-dre-col-tot { background: #5a6a7e; }
 .fin-dre-bloco.fin-dre-paralelo .fin-dre-val-saida { color: var(--fin-ink); }
 
+/* ── Grupo sem dados: linha compacta ── */
+.fin-dre-bloco-vazio {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 7px 14px;
+  border: 1px dashed var(--fin-line); border-radius: 4px;
+  background: #f7f8fa;
+}
+.fin-dre-bloco-vazio-nome {
+  font-weight: 600; font-size: 9.5pt; text-transform: uppercase;
+  color: var(--fin-mute); letter-spacing: .3px;
+}
+.fin-dre-bloco-vazio-msg {
+  font-size: 9pt; color: #b8bfc9; font-style: italic;
+}
+
 .fin-dre-tag-paralelo {
   display: inline-block; margin-left: 8px; padding: 1px 7px;
   border-radius: 999px; background: rgba(255,255,255,.2);

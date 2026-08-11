@@ -320,8 +320,24 @@ const DRE = (() => {
     const saida = seDoGrupo(item.nome) === 'S';
     const cls = v => num(v) === 0 ? 'fin-dre-val-zero'
                    : (saida ? 'fin-dre-val-saida' : 'fin-dre-val-entrada');
+    const prefixo = saida ? '(-)' : (item.paralelo ? '(=)' : '(+)');
 
-    const corpo = g.linhas.length ? g.linhas.map(l => {
+    // Apenas linhas com pelo menos um valor não-zero no recorte
+    const linhasVisiveis = g.linhas.filter(l => {
+      for (let i = estado.mesInicio; i <= estado.mesFim; i++)
+        if (l.meses[i] !== 0) return true;
+      return false;
+    });
+
+    // Grupo sem dados → linha compacta
+    if (!linhasVisiveis.length) {
+      return `<div class="fin-dre-bloco-vazio${item.paralelo ? ' fin-dre-paralelo' : ''}">
+        <span class="fin-dre-bloco-vazio-nome">${prefixo} ${esc(item.nome)}</span>
+        <span class="fin-dre-bloco-vazio-msg">Sem dados no período</span>
+      </div>`;
+    }
+
+    const corpo = linhasVisiveis.map(l => {
       const tds = [`<td class="fin-dre-col-conta">${esc(l.conta)}</td>`];
       for (let i = estado.mesInicio; i <= estado.mesFim; i++)
         tds.push(`<td class="${cls(l.meses[i])}">${fmt(l.meses[i])}</td>`);
@@ -329,10 +345,8 @@ const DRE = (() => {
       tds.push(`<td class="fin-dre-col-med ${cls(l.med)}">${fmt(l.med)}</td>`);
       tds.push(`<td class="fin-dre-col-pct">${fmtPct(l.pct)}</td>`);
       return `<tr>${tds.join('')}</tr>`;
-    }).join('') : `<tr><td colspan="${(estado.mesFim - estado.mesInicio + 1) + 4}" class="fin-tabela-vazia">
-      Sem contas cadastradas em ${esc(item.nome)}.</td></tr>`;
+    }).join('');
 
-    const prefixo = saida ? '(-)' : (item.paralelo ? '(=)' : '(+)');
     const rodape = [`<td class="fin-dre-col-conta">${prefixo} TOTAL ${esc(item.nome)}</td>`];
     for (let i = estado.mesInicio; i <= estado.mesFim; i++)
       rodape.push(`<td>${fmt(g.meses[i])}</td>`);
