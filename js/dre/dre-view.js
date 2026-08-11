@@ -377,12 +377,7 @@ function _dreStatusGrade(elId, msg, tipo) {
 
 function _dreMarcarDirtyPlano() {
   var btn = document.getElementById('fin-dre-salvar-plano');
-  var st  = document.getElementById('fin-dre-status-plano');
   if (btn) btn.classList.add('fin-btn-dirty');
-  if (st && !st.textContent.includes('salva')) {
-    st.textContent = '● alterações não salvas';
-    st.className = 'fin-status fin-status-aviso';
-  }
 }
 
 function _dreLimparDirtyPlano() {
