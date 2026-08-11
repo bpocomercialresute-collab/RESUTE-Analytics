@@ -57,15 +57,6 @@
     <span id="fin-status" class="fin-status"></span>
   </section>
 
-  <!-- ===================== RECORTE + RESUMO ===================== -->
-  <div id="fin-periodo-label" class="fin-periodo-label"></div>
-  <div id="fin-executive-summary" class="fin-resumo"></div>
-
-  <!-- ===================== KPIs E ALERTAS ===================== -->
-  <div id="fin-kpis" class="fin-kpis"></div>
-  <div id="fin-alertas" class="fin-alertas"></div>
-  <div id="fin-conteudo" class="fin-avisos"></div>
-
   <!-- ===================== ABAS ===================== -->
   <nav class="fin-tabs">
     <button class="fin-tab active" data-fin-pane="fin-dre-pane-bd">BD</button>
@@ -76,11 +67,6 @@
 
   <!-- ---------- ABA 1: BD (livro-razão, entrada de dados) ---------- -->
   <section class="fin-pane active" id="fin-dre-pane-bd">
-    <div class="fin-nota">
-      Livro-razão. Colunas em fundo claro são editáveis (cole do Excel com Ctrl+V).
-      Colunas em fundo escuro (S_E, GRUPO, STATUS, DIA, MÊS, DIA_SEM, ANO, VENC, SEMANA_ANO, ULTIMO_DIA_DO_MES, CNPJ_2, safra, CICLO) são calculadas automaticamente — conta ausente
-      no plano aparece como <code>#N/A</code>. Nada grava até "Salvar no banco".
-    </div>
     <div class="fin-grid-acoes">
       <button type="button" id="fin-dre-bd-salvar" class="fin-btn-primario">Salvar no banco</button>
       <button type="button" id="fin-dre-bd-limpar" class="fin-btn-perigo">Limpar BD</button>
@@ -107,10 +93,6 @@
         <option value="-">Não marcado</option>
       </select>
     </div>
-    <div class="fin-nota">
-      Grade editável. Cole do Excel com Ctrl+V, clique nos botões F_V/D_I para marcar.
-      <strong>F_V</strong> = Fixo ou Variável · <strong>D_I</strong> = Direto ou Indireto. Nada grava até "Salvar no banco".
-    </div>
     <div class="fin-grid-acoes">
       <button type="button" id="fin-dre-salvar-plano" class="fin-btn-primario">Salvar no banco</button>
       <button type="button" id="fin-dre-plano-limpar" class="fin-btn-perigo">Limpar Plano</button>
@@ -121,10 +103,6 @@
 
   <!-- ---------- ABA 3: BD_DRE ---------- -->
   <section class="fin-pane" id="fin-dre-pane-bddre">
-    <div class="fin-nota">
-      Matriz conta × mês. Cada célula é o SUMIFS do BD por conta, ano, mês e empresa.
-      Somente leitura — os valores vêm do cruzamento entre a aba <strong>BD</strong> e o <strong>Plano de Contas</strong>.
-    </div>
     <div class="fin-barra-filtro">
       <select id="fin-dre-bddre-filtro-ano">
         <option value="">Ano: todos</option>
