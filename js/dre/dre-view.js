@@ -386,6 +386,22 @@ function _dreLimparDirtyPlano() {
 }
 
 /**
+ * Parse de número aceita formato BR (1.234,56) e formato padrão (1234.56).
+ * Retorna null para célula vazia; 0 só quando o valor de fato é zero.
+ */
+function _dreParseNum(v) {
+  if (v === '' || v == null) return null;
+  var s = String(v).trim().replace(/\s/g, '').replace(/^R\$\s*/, '');
+  if (s === '' || s === '-') return null;
+  var n = Number(s);
+  if (Number.isFinite(n)) return n;
+  // Tenta formato BR: "1.234,56" → "1234.56"
+  var br = s.replace(/\./g, '').replace(',', '.');
+  n = Number(br);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
  * Converte datas BR (DD/MM/AAAA) para ISO (AAAA-MM-DD).
  * Formato ISO já passa sem alteração. Outros formatos passam como estão.
  */
@@ -443,6 +459,22 @@ function _dreLigarSalvarGrades(empresaId) {
         alert('Nenhum lançamento válido encontrado.\n\nVerifique:\n• DT_CAIXA preenchida (1ª coluna)\n• CONTA preenchida (4ª coluna)\n\nCole os dados do BD (Ctrl+V) e tente novamente.');
         return;
       }
+
+      // Aviso crítico: se TODOS os valores forem zero, a importação está errada.
+      var todosZero = registros.every(function(r) { return !r.valor || r.valor === 0; });
+      if (todosZero) {
+        var prosseguir = window.confirm(
+          '⚠ ATENÇÃO: todos os ' + registros.length + ' lançamentos têm VALOR = 0.\n\n' +
+          'Isso significa que o DRE não vai mostrar nenhum dado.\n\n' +
+          'Prováveis causas:\n' +
+          '• A coluna VALOR (6ª coluna) está vazia ou com texto\n' +
+          '• Os valores estão em outra coluna — verifique o mapeamento\n' +
+          '• Valores em formato BR (ex: 1.234,56) — tente trocar vírgula por ponto\n\n' +
+          'Deseja salvar mesmo assim?'
+        );
+        if (!prosseguir) return;
+      }
+
       if (!window.confirm('Salvar ' + registros.length + ' lançamento(s)? Substitui todos os lançamentos atuais desta empresa.')) return;
 
       _dreStatusGrade('fin-dre-status-bd', 'Salvando...', '');
@@ -457,6 +489,48 @@ function _dreLigarSalvarGrades(empresaId) {
         console.error('[DRE] Falha ao salvar BD:', e);
         alert('Falha ao salvar BD:\n' + e.message);
         _dreStatusGrade('fin-dre-status-bd', 'Falha ao salvar: ' + e.message, 'erro');
+      }
+    };
+  }
+
+  // ── Botão Limpar BD ──────────────────────────────────────────────────────────
+  var btnLimparBD = document.getElementById('fin-dre-bd-limpar');
+  if (btnLimparBD) {
+    btnLimparBD.onclick = async function() {
+      if (!window.confirm('Apagar TODOS os lançamentos desta empresa no banco?\nEsta ação não pode ser desfeita.')) return;
+      _dreStatusGrade('fin-dre-status-bd', 'Limpando...', '');
+      try {
+        await _dreSalvarTabela('fin_dre_lancamentos', empresaId, []);
+        // Limpa a grade local também
+        DRE.estado.lancamentos = [];
+        if (GRIDS['dre_bd']) { GRIDS['dre_bd'].allData = []; GRIDS['dre_bd']._render(); }
+        DRE.recalcular();
+        _dreStatusGrade('fin-dre-status-bd', '✓ BD apagado.', 'ok');
+      } catch (e) {
+        console.error('[DRE] Falha ao limpar BD:', e);
+        alert('Falha ao limpar BD:\n' + e.message);
+        _dreStatusGrade('fin-dre-status-bd', 'Falha: ' + e.message, 'erro');
+      }
+    };
+  }
+
+  // ── Botão Limpar Plano ───────────────────────────────────────────────────────
+  var btnLimparPlano = document.getElementById('fin-dre-plano-limpar');
+  if (btnLimparPlano) {
+    btnLimparPlano.onclick = async function() {
+      if (!window.confirm('Apagar TODO o Plano de Contas desta empresa no banco?\nEsta ação não pode ser desfeita.')) return;
+      _dreStatusGrade('fin-dre-status-plano', 'Limpando...', '');
+      try {
+        await _dreSalvarTabela('fin_dre_plano_contas', empresaId, []);
+        // Limpa a grade local também
+        DRE.estado.plano = [];
+        if (GRIDS['dre_plano']) { GRIDS['dre_plano'].allData = []; GRIDS['dre_plano']._render(); }
+        DRE.recalcular();
+        _dreStatusGrade('fin-dre-status-plano', '✓ Plano apagado.', 'ok');
+      } catch (e) {
+        console.error('[DRE] Falha ao limpar Plano:', e);
+        alert('Falha ao limpar Plano de Contas:\n' + e.message);
+        _dreStatusGrade('fin-dre-status-plano', 'Falha: ' + e.message, 'erro');
       }
     };
   }
@@ -1060,8 +1134,8 @@ function _dreLancDeRows(rows) {
         dt_venc:      _dreNormalizarData(r[1]) || null,
         dt_pag:       _dreNormalizarData(r[2]) || null,
         tipo:         r[4]  || null,
-        valor:        (r[5]  !== '' && r[5]  !== null) ? Number(r[5])  : null,
-        tot_pago:     (r[6]  !== '' && r[6]  !== null) ? Number(r[6])  : null,
+        valor:        _dreParseNum(r[5]),
+        tot_pago:     _dreParseNum(r[6]),
         parceiro:     r[7]  || null,
         documento:    r[8]  || null,
         banco:        r[9]  || null,

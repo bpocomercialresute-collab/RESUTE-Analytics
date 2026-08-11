@@ -106,12 +106,16 @@
   box-shadow: 0 0 0 2px rgba(0,32,96,.12);
 }
 
-.fin-btn-primario, .fin-btn-secundario {
+.fin-btn-primario, .fin-btn-secundario, .fin-btn-perigo {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 7px 14px; min-height: 30px; border-radius: 5px;
   font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
   transition: all .15s;
 }
+.fin-btn-perigo {
+  background: #fff; border: 1px solid var(--fin-red); color: var(--fin-red);
+}
+.fin-btn-perigo:hover { background: var(--fin-red); color: #fff; }
 .fin-btn-primario {
   background: var(--fin-navy); border: 1px solid var(--fin-navy); color: #fff;
 }
