@@ -292,7 +292,7 @@
 .fin-dre-val-zero    { color: #c0c8d4; }
 
 /* TOT (corpo): fundo verde bem suave */
-td.fin-dre-col-tot { background: #d6f0e0 !important; font-weight: 700; }
+td.fin-dre-col-tot { background: #eef8f2 !important; font-weight: 700; }
 
 /* MÉD (corpo): fundo branco, levemente diferenciado */
 td.fin-dre-col-med { background: #f8f9fb; color: var(--fin-ink); }
