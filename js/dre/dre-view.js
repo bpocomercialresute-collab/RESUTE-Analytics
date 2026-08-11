@@ -385,6 +385,24 @@ function _dreLimparDirtyPlano() {
   if (btn) btn.classList.remove('fin-btn-dirty');
 }
 
+/**
+ * Converte datas BR (DD/MM/AAAA) para ISO (AAAA-MM-DD).
+ * Formato ISO já passa sem alteração. Outros formatos passam como estão.
+ */
+function _dreNormalizarData(v) {
+  if (!v) return v || null;
+  var m = String(v).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? (m[3] + '-' + m[2] + '-' + m[1]) : String(v);
+}
+
+function _dreNormalizarDatasRegistro(r) {
+  var out = Object.assign({}, r);
+  ['dt_caixa', 'dt_venc', 'dt_pag', 'dt_custoria'].forEach(function(k) {
+    if (out[k]) out[k] = _dreNormalizarData(out[k]);
+  });
+  return out;
+}
+
 /** Liga os botões "Salvar no banco" das abas Plano de Contas e BD ao fetch acima. */
 function _dreLigarSalvarGrades(empresaId) {
   var btnPlano = document.getElementById('fin-dre-salvar-plano');
@@ -395,7 +413,7 @@ function _dreLigarSalvarGrades(empresaId) {
 
       var registros = DRE.registrosPlanoParaSalvar();
       if (!registros.length) {
-        _dreStatusGrade('fin-dre-status-plano', '⚠ Nenhuma conta encontrada. Preencha o Plano de Contas antes de salvar.', 'erro');
+        alert('Nenhuma conta encontrada na grade. Cole os dados do Plano de Contas (Ctrl+V) antes de salvar.');
         return;
       }
       if (!window.confirm('Salvar ' + registros.length + ' conta(s)? Substitui todo o plano atual desta empresa.')) return;
@@ -408,6 +426,7 @@ function _dreLigarSalvarGrades(empresaId) {
         _dreLimparDirtyPlano();
       } catch (e) {
         console.error('[DRE] Falha ao salvar plano:', e);
+        alert('Falha ao salvar Plano de Contas:\n' + e.message);
         _dreStatusGrade('fin-dre-status-plano', 'Falha ao salvar: ' + e.message, 'erro');
       }
     };
@@ -421,19 +440,22 @@ function _dreLigarSalvarGrades(empresaId) {
 
       var registros = DRE.registrosBDParaSalvar();
       if (!registros.length) {
-        _dreStatusGrade('fin-dre-status-bd',
-          '⚠ Nenhum lançamento válido encontrado. Verifique se a coluna DT_CAIXA (1ª col) e CONTA (4ª col) estão preenchidas.', 'erro');
+        alert('Nenhum lançamento válido encontrado.\n\nVerifique:\n• DT_CAIXA preenchida (1ª coluna)\n• CONTA preenchida (4ª coluna)\n\nCole os dados do BD (Ctrl+V) e tente novamente.');
         return;
       }
       if (!window.confirm('Salvar ' + registros.length + ' lançamento(s)? Substitui todos os lançamentos atuais desta empresa.')) return;
 
       _dreStatusGrade('fin-dre-status-bd', 'Salvando...', '');
       try {
-        var enviados = await _dreSalvarTabela('fin_dre_lancamentos', empresaId,
-          registros.map(function(r) { return Object.assign({}, r, { empresa_id: empresaId }); }));
+        // Normaliza datas BR (DD/MM/AAAA → AAAA-MM-DD) antes de enviar ao banco.
+        var lotes = registros.map(function(r) {
+          return _dreNormalizarDatasRegistro(Object.assign({}, r, { empresa_id: empresaId }));
+        });
+        var enviados = await _dreSalvarTabela('fin_dre_lancamentos', empresaId, lotes);
         _dreStatusGrade('fin-dre-status-bd', '✓ ' + enviados.toLocaleString('pt-BR') + ' lançamento(s) salvo(s).', 'ok');
       } catch (e) {
         console.error('[DRE] Falha ao salvar BD:', e);
+        alert('Falha ao salvar BD:\n' + e.message);
         _dreStatusGrade('fin-dre-status-bd', 'Falha ao salvar: ' + e.message, 'erro');
       }
     };
@@ -1034,9 +1056,9 @@ function _dreLancDeRows(rows) {
     .map(function(r) {
       return {
         conta:        r[3]  || '',
-        dt_caixa:     r[0]  || '',
-        dt_venc:      r[1]  || null,
-        dt_pag:       r[2]  || null,
+        dt_caixa:     _dreNormalizarData(r[0]) || '',   // normaliza DD/MM/AAAA → AAAA-MM-DD
+        dt_venc:      _dreNormalizarData(r[1]) || null,
+        dt_pag:       _dreNormalizarData(r[2]) || null,
         tipo:         r[4]  || null,
         valor:        (r[5]  !== '' && r[5]  !== null) ? Number(r[5])  : null,
         tot_pago:     (r[6]  !== '' && r[6]  !== null) ? Number(r[6])  : null,
