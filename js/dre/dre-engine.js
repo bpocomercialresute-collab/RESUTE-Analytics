@@ -34,30 +34,24 @@ const DRE = (() => {
   // Estrutura do DRE — ordem igual ao Modelo Resultado - Balanço.xlsx
   const ESTRUTURA = [
     // ── Receitas ──────────────────────────────────────────────────
-    { tipo:'resultado', nome:'TOT. RECEITA',           chave:'totReceita',       base:true },
-    { tipo:'grupo',     nome:'VALOR PRODUZIDO',         paralelo:true },
-    { tipo:'grupo',     nome:'FATURAMENTO',             paralelo:true },
-    { tipo:'grupo',     nome:'RECEITA OPERACIONAL',     sinal:'+' },
-    { tipo:'grupo',     nome:'RECEITA NÃO OPERACIONAL', sinal:'+' },
+    { tipo:'grupo', nome:'VALOR PRODUZIDO',         paralelo:true },
+    { tipo:'grupo', nome:'FATURAMENTO',             paralelo:true },
+    { tipo:'grupo', nome:'RECEITA OPERACIONAL',     sinal:'+' },
+    { tipo:'grupo', nome:'RECEITA NÃO OPERACIONAL', sinal:'+' },
     // ── Despesas Variáveis ────────────────────────────────────────
-    { tipo:'grupo',     nome:'DESP. OPERACIONAL',       sinal:'-' },
-    { tipo:'grupo',     nome:'CUSTO. MP OU REVENDA',    sinal:'-' },
-    { tipo:'grupo',     nome:'DESP. TRIBUTÁRIA',        sinal:'-' },
-    { tipo:'grupo',     nome:'DESP. LOGÍSTICA',         sinal:'-' },
-    { tipo:'grupo',     nome:'DESP. COMERCIAL',         sinal:'-' },
-    { tipo:'resultado', nome:'TOTAL DESP. VARIÁVEIS',   chave:'despVariaveis' },
+    { tipo:'grupo', nome:'DESP. OPERACIONAL',       sinal:'-' },
+    { tipo:'grupo', nome:'CUSTO. MP OU REVENDA',    sinal:'-' },
+    { tipo:'grupo', nome:'DESP. TRIBUTÁRIA',        sinal:'-' },
+    { tipo:'grupo', nome:'DESP. LOGÍSTICA',         sinal:'-' },
+    { tipo:'grupo', nome:'DESP. COMERCIAL',         sinal:'-' },
     // ── Despesas Fixas ────────────────────────────────────────────
-    { tipo:'grupo',     nome:'DESP. ADM',               sinal:'-' },
-    { tipo:'grupo',     nome:'MKT',                     sinal:'-' },
-    { tipo:'grupo',     nome:'MANUT. E CONSERVAÇÃO',    sinal:'-' },
-    { tipo:'grupo',     nome:'DESP. FINANCEIRA',        sinal:'-' },
-    { tipo:'grupo',     nome:'PROLABORE E RETIRADA',    sinal:'-' },
-    { tipo:'resultado', nome:'TOTAL DESP. FIXA',        chave:'despFixa' },
-    // ── Totais e Resultado ────────────────────────────────────────
-    { tipo:'resultado', nome:'TOTAL DESPESAS',          chave:'totalDespesas' },
-    { tipo:'grupo',     nome:'INVESTIMENTOS',           sinal:'-' },
-    { tipo:'resultado', nome:'RESULTADO FINANCEIRO',    chave:'resultFinanceiro' },
-    { tipo:'resultado', nome:'RESULTADO OPERACIONAL',   chave:'resultOperacional' }
+    { tipo:'grupo', nome:'DESP. ADM',               sinal:'-' },
+    { tipo:'grupo', nome:'MKT',                     sinal:'-' },
+    { tipo:'grupo', nome:'MANUT. E CONSERVAÇÃO',    sinal:'-' },
+    { tipo:'grupo', nome:'DESP. FINANCEIRA',        sinal:'-' },
+    { tipo:'grupo', nome:'PROLABORE E RETIRADA',    sinal:'-' },
+    // ── Investimentos ─────────────────────────────────────────────
+    { tipo:'grupo', nome:'INVESTIMENTOS',           sinal:'-' }
   ];
 
   /* ---------- 2. ESTADO ---------- */
