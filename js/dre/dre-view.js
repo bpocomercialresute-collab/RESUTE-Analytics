@@ -145,6 +145,82 @@ function _dreResolverEmpresaId(empresaIdPreview) {
  * Abre o painel DRE.
  * @param {object} [opts] { empresaIdPreview } — preview supervisionado do super_admin
  */
+/**
+ * Exibe modal de seleção de empresa para super_admin sem empresa_id.
+ * Retorna o empresa_id escolhido ou null se o usuário cancelar.
+ */
+async function _dreEscolherEmpresaAdmin(view) {
+  // Tenta usar ADMIN_PREVIEW_COMPANIES já carregado; senão busca do banco.
+  var lista = (typeof ADMIN_PREVIEW_COMPANIES !== 'undefined' && ADMIN_PREVIEW_COMPANIES && ADMIN_PREVIEW_COMPANIES.length)
+    ? ADMIN_PREVIEW_COMPANIES.map(function(c) { return { id: c.empresa_id, nome: c.nome }; })
+    : [];
+
+  if (!lista.length) {
+    try {
+      var resp = await fetch(SUPA_URL + '/rest/v1/empresas?select=id,nome&ativo=eq.true&order=nome', {
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
+      });
+      if (resp.ok) {
+        var arr = await resp.json();
+        if (Array.isArray(arr)) lista = arr;
+      }
+    } catch (_) {}
+  }
+
+  if (!lista.length) {
+    alert('Nenhuma empresa encontrada. Cadastre uma empresa antes de abrir o DRE.');
+    return null;
+  }
+
+  return new Promise(function(resolve) {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;';
+
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#fff;border-radius:12px;padding:32px 28px;min-width:320px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,.22);font-family:system-ui,sans-serif;';
+
+    var titulo = document.createElement('h2');
+    titulo.textContent = 'Selecionar empresa';
+    titulo.style.cssText = 'margin:0 0 8px;font-size:1.15rem;color:#0A2F2F;';
+
+    var sub = document.createElement('p');
+    sub.textContent = 'Escolha a empresa para abrir o DRE:';
+    sub.style.cssText = 'margin:0 0 18px;font-size:.9rem;color:#555;';
+
+    var sel = document.createElement('select');
+    sel.style.cssText = 'width:100%;padding:10px 12px;border:1.5px solid #ccc;border-radius:8px;font-size:1rem;margin-bottom:20px;box-sizing:border-box;';
+    lista.forEach(function(e) {
+      var op = document.createElement('option');
+      op.value = e.id;
+      op.textContent = e.nome;
+      sel.appendChild(op);
+    });
+
+    var btns = document.createElement('div');
+    btns.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;';
+
+    var btnCancel = document.createElement('button');
+    btnCancel.textContent = 'Cancelar';
+    btnCancel.style.cssText = 'padding:8px 18px;border:1px solid #ccc;background:#f5f5f5;border-radius:7px;cursor:pointer;font-size:.95rem;';
+
+    var btnOk = document.createElement('button');
+    btnOk.textContent = 'Abrir';
+    btnOk.style.cssText = 'padding:8px 20px;border:none;background:#14746F;color:#fff;border-radius:7px;cursor:pointer;font-size:.95rem;font-weight:600;';
+
+    btns.appendChild(btnCancel);
+    btns.appendChild(btnOk);
+    box.appendChild(titulo);
+    box.appendChild(sub);
+    box.appendChild(sel);
+    box.appendChild(btns);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    btnOk.onclick = function() { document.body.removeChild(overlay); resolve(sel.value); };
+    btnCancel.onclick = function() { document.body.removeChild(overlay); resolve(null); };
+  });
+}
+
 async function dreAbrir(opts) {
   opts = opts || {};
   if (typeof _touchSession === 'function') _touchSession();
@@ -179,6 +255,16 @@ async function dreAbrir(opts) {
     await _dreMontarHTML(view);
 
     var eid = _dreResolverEmpresaId(empresaIdPreview);
+
+    // Super_admin sem empresa selecionada: mostrar seletor antes de carregar.
+    if (!eid && typeof SESSION !== 'undefined' && SESSION && SESSION.papel === 'super_admin') {
+      var empresaEscolhida = await _dreEscolherEmpresaAdmin(view);
+      if (!empresaEscolhida) return; // fechou sem escolher
+      eid = empresaEscolhida;
+      empresaIdPreview = eid;
+      DRE_ADMIN_PREVIEW = true;
+    }
+
     if (!eid) {
       var status = document.getElementById('fin-status');
       if (status) status.textContent = '⚠ Empresa não configurada.';
