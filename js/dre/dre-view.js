@@ -403,11 +403,6 @@ function _dreLigarSalvarGrades(empresaId) {
         _dreStatusGrade('fin-dre-status-plano', '⚠ Nenhuma conta encontrada. Preencha o Plano de Contas antes de salvar.', 'erro');
         return;
       }
-      var semGrupo = registros.filter(function(r) { return !r.grupo || !(DRE.SE_POR_GRUPO && DRE.SE_POR_GRUPO[r.grupo]); });
-      if (semGrupo.length) {
-        _dreStatusGrade('fin-dre-status-plano', semGrupo.length + ' conta(s) com grupo inválido — corrija antes de salvar.', 'erro');
-        return;
-      }
       if (!window.confirm('Salvar ' + registros.length + ' conta(s)? Substitui todo o plano atual desta empresa.')) return;
 
       _dreStatusGrade('fin-dre-status-plano', 'Salvando...', '');
