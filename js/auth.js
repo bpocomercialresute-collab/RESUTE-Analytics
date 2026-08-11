@@ -282,7 +282,8 @@ async function abrirSeletorEmpresasCliente(force) {
     if (force || !ADMIN_PREVIEW_COMPANIES.length) {
       await _adminCarregarEmpresasMeta();
       ADMIN_PREVIEW_COMPANIES = (EMPRESAS_ADMIN || []).filter(function(empresa) {
-        return empresa && empresa.empresa_id && empresa.ativo !== false;
+        return empresa && empresa.empresa_id && empresa.ativo !== false
+          && !EMPRESAS_PAI_IDS[empresa.empresa_id];
       });
       ADMIN_PREVIEW_COMPANIES.forEach(function(empresa) {
         LOJA_NOMES[empresa.empresa_id] = empresa.nome || 'Empresa';
@@ -3302,6 +3303,7 @@ function dcStatus(msg, ok) {
 var EMPRESA_ATIVA = null;
 var EMPRESAS_ADMIN_BASE = [];
 var EMPRESAS_ADMIN = [];
+var EMPRESAS_PAI_IDS = {};
 
 async function _adminCarregarEmpresasMeta() {
   try {
@@ -3314,6 +3316,20 @@ async function _adminCarregarEmpresasMeta() {
       headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
     });
     var apiConfigs = await apiResp.json();
+
+    // Descobre quais empresas são grupos (aparecem como empresa_pai em empresa_filiais)
+    try {
+      var filiaisResp = await fetch(SUPA_URL + '/rest/v1/empresa_filiais?select=empresa_pai_id&ativo=eq.true', {
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
+      });
+      var filiaisRows = await filiaisResp.json();
+      EMPRESAS_PAI_IDS = {};
+      if (Array.isArray(filiaisRows)) {
+        filiaisRows.forEach(function(row) { if (row && row.empresa_pai_id) EMPRESAS_PAI_IDS[row.empresa_pai_id] = true; });
+      }
+    } catch (e) {
+      console.warn('[ADMIN] Filiais indisponíveis:', e && e.message);
+    }
 
     // Contratos de módulo — falha aqui não pode derrubar o painel admin
     var modulosPorEmpresa = {};
