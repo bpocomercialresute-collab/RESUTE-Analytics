@@ -312,10 +312,9 @@ td.fin-dre-col-med { background: #f8f9fb; color: var(--fin-ink); }
   text-transform: uppercase; letter-spacing: .2px;
   position: sticky; left: 0; z-index: 1;
 }
-/* TOT e MÉD no rodapé: sem amarelo, só texto vermelho */
 .fin-dre-tabela tfoot td.fin-dre-col-tot-foot,
 .fin-dre-tabela tfoot td.fin-dre-col-med-foot {
-  background: #fff !important; color: var(--fin-red); font-weight: 700;
+  background: var(--fin-yellow) !important; color: var(--fin-red); font-weight: 700;
 }
 
 /* ── Linhas de resultado (Receita Líquida, Lucro Bruto, EBITDA…) ──
