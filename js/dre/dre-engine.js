@@ -816,15 +816,27 @@ const DRE = (() => {
     }
   }
 
+  const ABAS_SEM_FILTRO = new Set(['fin-dre-pane-plano', 'fin-dre-pane-dre']);
+
+  function _dreAtualizarVisibilidadeFiltros(paneId) {
+    const filtros = document.querySelector('.fin-filtros');
+    if (filtros) filtros.style.display = ABAS_SEM_FILTRO.has(paneId) ? 'none' : '';
+  }
+
   function ligarAbas() {
     document.querySelectorAll('.fin-tab').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.fin-tab').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.fin-pane').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
-        document.getElementById(btn.dataset.finPane)?.classList.add('active');
+        const paneId = btn.dataset.finPane;
+        document.getElementById(paneId)?.classList.add('active');
+        _dreAtualizarVisibilidadeFiltros(paneId);
       });
     });
+    // Aplica estado inicial conforme aba já ativa
+    const abaAtiva = document.querySelector('.fin-tab.active');
+    if (abaAtiva) _dreAtualizarVisibilidadeFiltros(abaAtiva.dataset.finPane);
   }
 
   function montarFiltros() {
