@@ -1,9 +1,9 @@
-/* ============================================================
-   PAINEL DRE — RESUTE
-   Paleta extraída da aba DESIGN do Modelo_DRE_Matheus.xlsx:
+﻿/* ============================================================
+   PAINEL DRE - RESUTE
+   Replica visual da aba DESIGN do Modelo DRE Matheus.xlsx:
      cabeçalho  #002060   coluna TOT  #00B050
      despesas   #FF0000   linha total #FFFF00
-   Fonte Calibri 10 · números #,##0
+   Fonte Calibri 10 - números #,##0
    Todo seletor novo usa prefixo fin- (namespace fin-dre-).
    ============================================================ */
 
@@ -31,7 +31,7 @@
 .fin-wrap *::before,
 .fin-wrap *::after { box-sizing: border-box; }
 
-/* ===================== CABEÇALHO ===================== */
+/* ===================== CABEÃ‡ALHO ===================== */
 .fin-topo {
   display: flex; align-items: flex-start; justify-content: space-between;
   gap: 16px; flex-wrap: wrap;
@@ -125,6 +125,8 @@
 .fin-status.carregando { color: var(--fin-navy); font-weight: 600; }
 .fin-status.erro { color: var(--fin-red); font-weight: 600; }
 .fin-status.ok { color: var(--fin-green); font-weight: 600; }
+.fin-status.fin-status-aviso { color: #b45309; font-weight: 600; }
+.fin-btn-primario.fin-btn-dirty { background: #b45309; border-color: #b45309; }
 
 .fin-grid-acoes {
   display: flex; align-items: center; gap: 10px; margin: 10px 0;
@@ -218,7 +220,7 @@
 }
 
 /* ============================================================
-   BLOCO DRE — réplica da aba DESIGN
+   BLOCO DRE â€” rÃ©plica da aba DESIGN
    ============================================================ */
 .fin-dre-corpo { display: flex; flex-direction: column; gap: 18px; }
 
@@ -229,16 +231,18 @@
 
 .fin-dre-tabela {
   width: 100%; border-collapse: collapse;
-  font-family: Calibri, "Segoe UI", sans-serif; font-size: 12px;
+  font-family: Calibri, "Segoe UI", sans-serif; font-size: 10pt;
   font-variant-numeric: tabular-nums;
+  background: #fff;
 }
 
-/* --- cabeçalho azul-marinho #002060 --- */
+/* --- cabeÃ§alho azul-marinho #002060 --- */
 .fin-dre-tabela thead th {
-  padding: 6px 8px; white-space: nowrap;
+  padding: 4px 8px; white-space: nowrap;
   background: var(--fin-navy); color: #fff;
-  font-weight: 700; text-align: right;
-  border-right: 1px solid rgba(255,255,255,.14);
+  font-weight: 400; text-align: center;
+  border-right: 1px solid #000;
+  border-bottom: 1px solid #000;
   position: sticky; top: 0; z-index: 2;
 }
 .fin-dre-tabela thead th.fin-dre-col-conta {
@@ -252,10 +256,10 @@
 /* --- linhas de conta --- */
 .fin-dre-tabela tbody td {
   padding: 3px 8px; text-align: right; white-space: nowrap;
-  border-bottom: 1px solid var(--fin-line-soft);
+  border: 1px solid var(--fin-line);
 }
-.fin-dre-tabela tbody tr:nth-child(even) td { background: #fbfcfe; }
-.fin-dre-tabela tbody tr:hover td { background: #eef3fb; }
+.fin-dre-tabela tbody tr:nth-child(even) td { background: #fff; }
+.fin-dre-tabela tbody tr:hover td { background: #fff; }
 
 .fin-dre-tabela td.fin-dre-col-conta {
   text-align: left; color: var(--fin-ink);
@@ -263,15 +267,18 @@
   background: var(--fin-bg);
   border-right: 1px solid var(--fin-line);
 }
-.fin-dre-tabela tbody tr:nth-child(even) td.fin-dre-col-conta { background: #fbfcfe; }
-.fin-dre-tabela tbody tr:hover td.fin-dre-col-conta { background: #eef3fb; }
+.fin-dre-tabela tbody tr:nth-child(even) td.fin-dre-col-conta { background: #fff; }
+.fin-dre-tabela tbody tr:hover td.fin-dre-col-conta { background: #fff; }
 
-/* --- valores de saída em vermelho #FF0000 --- */
+/* --- valores de saÃ­da em vermelho #FF0000 --- */
 .fin-dre-val-saida   { color: var(--fin-red); }
 .fin-dre-val-entrada { color: var(--fin-ink); }
 .fin-dre-val-zero    { color: #b9c0cc; }
 
-.fin-dre-col-tot { font-weight: 700; }
+.fin-dre-col-tot {
+  font-weight: 700;
+  background: #E2F0D9;
+}
 .fin-dre-col-pct { color: var(--fin-mute); font-size: 11px; }
 
 /* --- linha de total: fundo amarelo #FFFF00 --- */
@@ -280,14 +287,14 @@
   padding: 5px 8px; text-align: right; white-space: nowrap;
   background: var(--fin-yellow) !important;
   color: var(--fin-red); font-weight: 700;
-  border-top: 1px solid #d4c400; border-bottom: 1px solid #d4c400;
+  border: 1px solid #000;
 }
 .fin-dre-tabela tfoot td.fin-dre-col-conta,
 .fin-dre-linha-total td.fin-dre-col-conta {
   text-align: left; color: #2b2200; text-transform: uppercase;
 }
 
-/* --- linhas de resultado (Receita Líquida, Lucro Bruto, EBITDA…) --- */
+/* --- linhas de resultado (Receita LÃ­quida, Lucro Bruto, EBITDAâ€¦) --- */
 .fin-dre-resultado {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; flex-wrap: wrap;
@@ -307,7 +314,7 @@
 .fin-dre-resultado.fin-dre-neg { background: #7a0f0f; }
 .fin-dre-resultado.fin-dre-pos { background: #0a6b39; }
 
-/* --- bloco extracontábil (FATURAMENTO / VALOR PRODUZIDO) --- */
+/* --- bloco extracontÃ¡bil (FATURAMENTO / VALOR PRODUZIDO) --- */
 .fin-dre-bloco.fin-dre-paralelo { border-style: dashed; }
 .fin-dre-bloco.fin-dre-paralelo thead th { background: #3d4a5c; }
 .fin-dre-bloco.fin-dre-paralelo thead th.fin-dre-col-tot { background: #5a6a7e; }
@@ -320,7 +327,7 @@
 }
 
 /* ============================================================
-   TABELAS GENÉRICAS
+   TABELAS GENÃ‰RICAS
    ============================================================ */
 .fin-tabela-scroll {
   max-height: 620px; overflow: auto;
@@ -353,7 +360,7 @@
 }
 
 /* ============================================================
-   PLANO DE CONTAS — seletores F_V e D_I
+   PLANO DE CONTAS â€” seletores F_V e D_I
    ============================================================ */
 .fin-barra-filtro {
   display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;
@@ -373,14 +380,14 @@
 .fin-dre-opt + .fin-dre-opt { border-left: 1px solid var(--fin-line); }
 .fin-dre-opt:hover { background: var(--fin-bg-soft); color: var(--fin-navy); }
 
-/* F = Fixo (azul-marinho) · V = Variável (verde) */
+/* F = Fixo (azul-marinho) Â· V = VariÃ¡vel (verde) */
 .fin-dre-toggle[data-campo="fv"] .fin-dre-opt.active[data-valor="F"] {
   background: var(--fin-navy); color: #fff;
 }
 .fin-dre-toggle[data-campo="fv"] .fin-dre-opt.active[data-valor="V"] {
   background: var(--fin-green); color: #fff;
 }
-/* D = Direto (verde) · I = Indireto (cinza-azulado) */
+/* D = Direto (verde) Â· I = Indireto (cinza-azulado) */
 .fin-dre-toggle[data-campo="di"] .fin-dre-opt.active[data-valor="D"] {
   background: var(--fin-green); color: #fff;
 }
@@ -401,7 +408,7 @@
 }
 
 /* ============================================================
-   ANÁLISE F/V E D/I
+   ANÃLISE F/V E D/I
    ============================================================ */
 .fin-dre-quadros {
   display: grid; gap: 14px;
@@ -457,7 +464,7 @@
 }
 
 /* ============================================================
-   GRÁFICOS
+   GRÃFICOS
    ============================================================ */
 .fin-grid-graficos {
   display: grid; gap: 14px;
@@ -496,16 +503,51 @@
    Estilo conforme Modelo_DRE_Matheus.xlsx
    ============================================================ */
 
-/* Cabeçalho azul-marinho */
+/* CabeÃ§alho azul-marinho */
 .lg-table thead th {
   background: #002060 !important;
   color: #ffffff !important;
   font-weight: 600;
   font-size: 11px;
   white-space: nowrap;
+  border-right: 1px solid rgba(255,255,255,.28) !important;
+  border-bottom: 2px solid #0b2e79 !important;
 }
 
-/* Barra de referência */
+.lg-table .lg-rn {
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+  text-align: center !important;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+}
+
+.lg-table tbody td {
+  border-right: 1px solid #d7dde8 !important;
+  border-bottom: 1px solid #e6eaf1 !important;
+}
+
+.lg-table tbody td.lg-rn {
+  background: #eef3f9 !important;
+  color: #35506f !important;
+  font-weight: 700;
+  border-right: 2px solid #aebbd0 !important;
+}
+
+#fin-dre-tab-bddre .lg-table thead th,
+#fin-dre-tab-bd .lg-table thead th,
+#fin-dre-tab-plano .lg-table thead th {
+  box-shadow: inset -1px 0 rgba(255,255,255,.22);
+}
+
+#fin-dre-tab-bddre .lg-table tbody td,
+#fin-dre-tab-bd .lg-table tbody td,
+#fin-dre-tab-plano .lg-table tbody td {
+  box-shadow: inset -1px 0 rgba(14,20,36,.035);
+}
+
+/* Barra de referÃªncia */
 .lg-ref-bar {
   background: var(--fin-bg-soft);
   border-bottom: 1px solid var(--fin-line);
@@ -525,11 +567,17 @@
   font-style: italic;
 }
 
-/* Célula selecionada */
+/* BD_DRE nÃ£o tem override prÃ³prio â€” herda o esquema visual da aba BD:
+   colunas auto (CAD e GRUPO) usam o realce padrÃ£o de "coluna derivada" e as
+   demais herdam o estilo de cÃ©lula editÃ¡vel. As colunas do BD_DRE sÃ£o todas
+   somente leitura por override em dre-view.js (_commit/_paste/_pasteAt/_select
+   sobrescritos), nÃ£o pelo esquema visual. */
+
+/* CÃ©lula selecionada */
 .lg-table td.lg-sel-cell { outline: 2px solid #002060; outline-offset: -1px; }
 .lg-table td.lg-sel-row  { background: #e8eef8 !important; }
 
-/* F_V e D_I no Plano — cursor pointer + centralizado */
+/* F_V e D_I no Plano â€” cursor pointer + centralizado */
 #fin-dre-tab-plano .lg-table tbody td:nth-child(5),
 #fin-dre-tab-plano .lg-table tbody td:nth-child(6) {
   cursor: pointer;
@@ -542,10 +590,18 @@
   background: #e0eaff !important;
 }
 
-/* Rodapé de paginação */
+.dre-tb-wrap { display:inline-flex; border:1px solid #d0d5dd; border-radius:4px; overflow:hidden; }
+.dre-tb { padding:2px 9px; font-size:11px; font-weight:700; color:#9ca3af; background:#f9fafb; cursor:pointer; user-select:none; transition:background .15s,color .15s; }
+.dre-tb-f.on { background:#0E1424; color:#fff; }
+.dre-tb-v.on { background:#1C64C0; color:#fff; }
+.dre-tb-d.on { background:#2492EA; color:#fff; }
+.dre-tb-i.on { background:#2F3848; color:#fff; }
+
+/* RodapÃ© de paginaÃ§Ã£o */
 .lg-pag { padding: 6px 10px; font-size: 11px; background: var(--fin-bg-soft); border-top: 1px solid var(--fin-line); }
 .lg-pb  { border: 1px solid var(--fin-line); background: #fff; border-radius: 3px; padding: 2px 7px; cursor: pointer; font-size: 11px; }
-.lg-pb:hover { background: #002060; color: #fff; }
+.lg-pb:hover { background: #1C64C0; color: #fff; }
 
-/* Filtro dropdown DRE — reutiliza .col-filter-dropdown do jss.js */
-.col-filter-dropdown { font-family: Calibri, "Segoe UI", system-ui, sans-serif; }
+/* Filtro dropdown DRE â€” reutiliza .col-filter-dropdown do jss.js */
+.col-filter-dropdown { font-family: "Outfit", "Segoe UI", system-ui, sans-serif; }
+

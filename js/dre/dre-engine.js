@@ -66,7 +66,8 @@ const DRE = (() => {
     cnpj: 1,
     mesInicio: 0,       // índice 0-11
     mesFim: 11,
-    charts: {}
+    charts: {},
+    empresa: ''
   };
 
   /* ---------- 3. UTILITÁRIOS ---------- */
@@ -115,15 +116,17 @@ const DRE = (() => {
       const c = idx.get(norm(l.conta));
       const d = new Date(l.dt_caixa);
       const valido = !isNaN(d);
+      // ISO date strings ("2024-01-15") são UTC midnight. getFullYear/getMonth usam
+      // fuso local — no Brasil (UTC-3) viram o dia anterior. getUTC* evita isso.
       return {
         ...l,
         grupo: c ? c.grupo : '#N/A',          // PROCV
         s_e:   c ? seDoGrupo(c.grupo) : '#N/A',
         fv:    c ? (c.fv || '') : '',
         di:    c ? (c.di || '') : '',
-        ano:   valido ? d.getFullYear() : null,
-        mesIdx: valido ? d.getMonth() : null,
-        mes:   valido ? MESES[d.getMonth()] : null,
+        ano:   valido ? d.getUTCFullYear() : null,
+        mesIdx: valido ? d.getUTCMonth() : null,
+        mes:   valido ? MESES[d.getUTCMonth()] : null,
         status: l.dt_pag ? 'PG' : 'N'
       };
     });
@@ -438,6 +441,12 @@ const DRE = (() => {
         documento: l.documento || null,
         banco: l.banco || null,
         forma: l.forma || null,
+        tipo: l.tipo || null,
+        parcela: l.parcela || null,
+        tot_parcelas: l.tot_parcelas || null,
+        obs: l.obs || null,
+        dt_custoria: l.dt_custoria || null,
+        historico: l.historico || null,
         origem: 'manual'
       }));
   }
@@ -638,7 +647,7 @@ const DRE = (() => {
 
     const lbl = document.getElementById('fin-periodo-label');
     if (lbl) lbl.textContent =
-      `${MESES[estado.mesInicio]} a ${MESES[estado.mesFim]} de ${estado.ano} · Empresa ${estado.cnpj}`;
+      `${MESES[estado.mesInicio]} a ${MESES[estado.mesFim]} de ${estado.ano}${estado.empresa ? ' · ' + estado.empresa : ''}`;
   }
 
   /* ---------- 15. GRÁFICOS (Chart.js já integrado no sistema) ---------- */
@@ -737,8 +746,8 @@ const DRE = (() => {
 
   function montarFiltros() {
     const anos = [...new Set(estado.lancamentos
-      .map(l => new Date(l.dt_caixa).getFullYear())
-      .filter(Number.isFinite))].sort();
+      .map(l => { const d = new Date(l.dt_caixa); return isNaN(d) ? null : d.getUTCFullYear(); })
+      .filter(v => v !== null))].sort();
     if (!anos.length) anos.push(new Date().getFullYear());
     estado.ano = estado.ano ?? anos[anos.length - 1];
 
@@ -766,6 +775,13 @@ const DRE = (() => {
         Object.keys(SE_POR_GRUPO).map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
     }
 
+    const selGrupoLanc = document.getElementById('fin-lanc-filtro-grupo');
+    if (selGrupoLanc) {
+      selGrupoLanc.innerHTML = '<option value="">Grupo: todos</option>' +
+        Object.keys(SE_POR_GRUPO).map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+      selGrupoLanc.addEventListener('change', renderLancamentos);
+    }
+
     document.getElementById('fin-btn-atualizar')?.addEventListener('click', recalcular);
   }
 
@@ -776,6 +792,8 @@ const DRE = (() => {
     estado.lancamentos = lancamentos;
     estado.cnpj = cnpj;
     estado.ano = ano;
+
+    estado.empresa = empresa || '';
 
     const el = document.getElementById('fin-empresa');
     if (el) el.textContent = empresa || 'RESUTE';
@@ -789,7 +807,7 @@ const DRE = (() => {
 
   return { init, recalcular, estado, MESES, SE_POR_GRUPO, ESTRUTURA,
            montarBDDRE, calcularResultado, analiseFVDI, totalGrupo,
-           registrosPlanoParaSalvar, registrosBDParaSalvar };
+           registrosPlanoParaSalvar, registrosBDParaSalvar, renderLancamentos };
 })();
 
 if (typeof module !== 'undefined') module.exports = DRE;

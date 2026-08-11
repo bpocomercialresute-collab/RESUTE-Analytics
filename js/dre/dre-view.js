@@ -196,6 +196,8 @@ async function dreAbrir(opts) {
 
     _dreAplicarHeader();
     _dreLigarSalvarGrades(eid);
+    _dreLigarExportar();
+    _dreLigarDateInputs();
     _dreIniciarGradesLiteGrid(dados.plano, dados.lancamentos);
 
   } catch (e) {
@@ -287,6 +289,21 @@ function _dreStatusGrade(elId, msg, tipo) {
   el.className = 'fin-status' + (tipo ? ' ' + tipo : '');
 }
 
+function _dreMarcarDirtyPlano() {
+  var btn = document.getElementById('fin-dre-salvar-plano');
+  var st  = document.getElementById('fin-dre-status-plano');
+  if (btn) btn.classList.add('fin-btn-dirty');
+  if (st && !st.textContent.includes('salva')) {
+    st.textContent = '● alterações não salvas';
+    st.className = 'fin-status fin-status-aviso';
+  }
+}
+
+function _dreLimparDirtyPlano() {
+  var btn = document.getElementById('fin-dre-salvar-plano');
+  if (btn) btn.classList.remove('fin-btn-dirty');
+}
+
 /** Liga os botões "Salvar no banco" das abas Plano de Contas e BD ao fetch acima. */
 function _dreLigarSalvarGrades(empresaId) {
   var btnPlano = document.getElementById('fin-dre-salvar-plano');
@@ -305,6 +322,7 @@ function _dreLigarSalvarGrades(empresaId) {
         var enviados = await _dreSalvarTabela('fin_dre_plano_contas', empresaId,
           registros.map(function(r) { return Object.assign({}, r, { empresa_id: empresaId }); }));
         _dreStatusGrade('fin-dre-status-plano', '✓ ' + enviados.toLocaleString('pt-BR') + ' conta(s) salva(s).', 'ok');
+        _dreLimparDirtyPlano();
       } catch (e) {
         _dreStatusGrade('fin-dre-status-plano', 'Falha ao salvar: ' + e.message, 'erro');
       }
@@ -465,6 +483,7 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
       if (GRIDS['dre_bd']) _dreAtualizarDerivadasBD(GRIDS['dre_bd']);
       DRE.recalcular();
       _dreAtualizarBDDRE();
+      _dreMarcarDirtyPlano();
     };
     var renderOriginalPlano = gridPlano._render.bind(gridPlano);
     gridPlano._render = function() {
@@ -683,10 +702,11 @@ function _dreBDDreFiltrar(bdDre) {
   });
 }
 
-/** Formata número no padrão pt-BR com 2 casas; zero e não-numérico viram ''. */
+/** Formata número no padrão pt-BR com 2 casas; zero vira '-', não-numérico vira ''. */
 function _dreBDDreNum(v) {
   var n = Number(v);
-  if (!isFinite(n) || n === 0) return '';
+  if (!isFinite(n)) return '';
+  if (n === 0) return '-';
   return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -758,26 +778,28 @@ function _dreAtualizarDerivadasBD(gridBD) {
     r[17] = pc ? (SE_MAP[pc.grupo] || 'S') : (conta ? '#N/A' : '');
 
     // DT_CAIXA = indice 0
+    // ISO date strings ("2024-01-15") são UTC midnight — usar getUTC* para evitar
+    // que o fuso local (Brasil UTC-3) vire o dia anterior em mês/ano.
     var dt = String(r[0] || '');
     var d  = dt ? new Date(dt) : null;
     var ok = d && !isNaN(d);
 
-    r[23] = ok ? d.getFullYear()                  : '';  // ANO
-    r[21] = ok ? (MESES[d.getMonth()] || '')      : '';  // MÊS
-    r[20] = ok ? d.getDate()                       : '';  // DIA
-    r[22] = ok ? (DIAS_SEM[d.getDay()] || '')     : '';  // DIA_SEM
-    r[28] = ok ? d.getFullYear()                  : '';  // safra
+    r[23] = ok ? d.getUTCFullYear()                  : '';  // ANO
+    r[21] = ok ? (MESES[d.getUTCMonth()] || '')      : '';  // MÊS
+    r[20] = ok ? d.getUTCDate()                       : '';  // DIA
+    r[22] = ok ? (DIAS_SEM[d.getUTCDay()] || '')     : '';  // DIA_SEM
+    r[28] = ok ? d.getUTCFullYear()                  : '';  // safra
 
     // SEMANA_ANO
     if (ok) {
-      var jan1 = new Date(d.getFullYear(), 0, 1);
-      r[25] = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+      var jan1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      r[25] = Math.ceil(((d - jan1) / 86400000 + jan1.getUTCDay() + 1) / 7);
     } else {
       r[25] = '';
     }
 
     // ULTIMO_DIA_DO_MES
-    r[26] = ok ? new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() : '';
+    r[26] = ok ? new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate() : '';
 
     // DT_VENC = indice 1
     var dtv = String(r[1] || '');
@@ -962,6 +984,101 @@ function dreVoltarAoAdmin() {
   dreDestruir();
   MODULO_ATIVO = null;
   if (typeof abrirSeletorEmpresasCliente === 'function') abrirSeletorEmpresasCliente();
+}
+
+// ── EXPORTAR ─────────────────────────────────────────────────────────────────
+
+/** Liga o botão Exportar — gera CSV do BD_DRE (matriz conta × mês). */
+function _dreLigarExportar() {
+  var btn = document.getElementById('fin-dre-btn-exportar');
+  if (!btn) return;
+
+  btn.onclick = function() {
+    var bdDre = DRE.estado.bdDre || [];
+    if (!bdDre.length) {
+      alert('Sem dados para exportar. Verifique se o Plano de Contas e os Lançamentos estão preenchidos.');
+      return;
+    }
+
+    var MESES = DRE.MESES;
+    var header = ['COD', 'CONTA', 'GRUPO', 'S_E', 'F_V', 'D_I']
+      .concat(MESES)
+      .concat(['TOTAL', 'MED', '%']);
+
+    var rows = bdDre.map(function(l) {
+      return [l.codigo || '', l.conta || '', l.grupo || '', l.s_e || '', l.fv || '', l.di || '']
+        .concat((l.meses || []).map(function(v) { return v || 0; }))
+        .concat([
+          Math.round(l.total || 0),
+          Math.round(l.med   || 0),
+          ((l.pct || 0) * 100).toFixed(2) + '%'
+        ]);
+    });
+
+    var csv = [header].concat(rows).map(function(r) {
+      return r.map(function(v) {
+        var s = String(v == null ? '' : v);
+        return (s.indexOf(';') >= 0 || s.indexOf('"') >= 0)
+          ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }).join(';');
+    }).join('\r\n');
+
+    var nome = (DRE.estado.empresa || 'DRE').replace(/[^A-Za-z0-9_\-]/g, '_');
+    var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'BD_DRE_' + nome + '_' + (DRE.estado.ano || '') + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+}
+
+// ── FILTROS DE DATA ───────────────────────────────────────────────────────────
+
+/**
+ * Liga os inputs de data Início/Fim ao motor.
+ * Quando o usuário preenche as datas, atualiza mesInicio/mesFim (e ano, se
+ * necessário) e dispara recalcular(). O dropdown "Mês" é resetado para
+ * "Ano inteiro" para não conflitar com o intervalo por data.
+ */
+function _dreLigarDateInputs() {
+  var elInicio = document.getElementById('fin-filtro-inicio');
+  var elFim    = document.getElementById('fin-filtro-fim');
+  if (!elInicio && !elFim) return;
+
+  function aplicar() {
+    var vi = elInicio ? elInicio.value : '';
+    var vf = elFim    ? elFim.value    : '';
+    if (!vi && !vf) return;
+
+    var di = vi ? new Date(vi) : null;
+    var df = vf ? new Date(vf) : null;
+    var changed = false;
+
+    if (di && !isNaN(di)) {
+      DRE.estado.ano      = di.getUTCFullYear();
+      DRE.estado.mesInicio = di.getUTCMonth();
+      var selAno = document.getElementById('fin-filtro-ano');
+      if (selAno) selAno.value = DRE.estado.ano;
+      changed = true;
+    }
+    if (df && !isNaN(df)) {
+      DRE.estado.mesFim = df.getUTCMonth();
+      changed = true;
+    }
+
+    if (changed) {
+      var selMes = document.getElementById('fin-filtro-mes');
+      if (selMes) selMes.value = '';
+      DRE.recalcular();
+    }
+  }
+
+  if (elInicio) elInicio.addEventListener('change', aplicar);
+  if (elFim)    elFim.addEventListener('change', aplicar);
 }
 
 // ── FECHAMENTO ───────────────────────────────────────────────────────────────

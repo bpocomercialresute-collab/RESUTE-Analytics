@@ -22,7 +22,6 @@
         <p class="fin-subtitulo">Demonstrativo de Resultado do Exercício</p>
       </div>
     </div>
-    <div id="fin-modulos" class="fin-modulos"></div>
   </header>
 
   <!-- ===================== FILTROS ===================== -->
@@ -69,30 +68,14 @@
 
   <!-- ===================== ABAS ===================== -->
   <nav class="fin-tabs">
-    <button class="fin-tab active" data-fin-pane="fin-dre-pane-dre">DRE</button>
-    <button class="fin-tab" data-fin-pane="fin-dre-pane-bddre">BD_DRE</button>
-    <button class="fin-tab" data-fin-pane="fin-dre-pane-bd">BD</button>
+    <button class="fin-tab active" data-fin-pane="fin-dre-pane-bd">BD</button>
     <button class="fin-tab" data-fin-pane="fin-dre-pane-plano">Plano de Contas</button>
-    <button class="fin-tab" data-fin-pane="fin-dre-pane-lancamentos">Lançamentos</button>
-    <button class="fin-tab" data-fin-pane="fin-dre-pane-fv">Fixo/Variável · Direto/Indireto</button>
-    <button class="fin-tab" data-fin-pane="fin-dre-pane-graficos">Gráficos</button>
+    <button class="fin-tab" data-fin-pane="fin-dre-pane-bddre">BD_DRE</button>
+    <button class="fin-tab" data-fin-pane="fin-dre-pane-dre">Resultados</button>
   </nav>
 
-  <!-- ---------- ABA 1: DRE ---------- -->
-  <section class="fin-pane active" id="fin-dre-pane-dre">
-    <div id="fin-dre-corpo" class="fin-dre-corpo"></div>
-  </section>
-
-  <!-- ---------- ABA 2: BD_DRE ---------- -->
-  <section class="fin-pane" id="fin-dre-pane-bddre">
-    <div class="fin-nota">
-      Matriz conta × mês. Cada célula é o SUMIFS do BD por conta, ano, mês e empresa.
-    </div>
-    <div id="fin-dre-tab-bddre" class="fin-tabela-scroll"></div>
-  </section>
-
-  <!-- ---------- ABA 3: BD (livro-razão, entrada de dados) ---------- -->
-  <section class="fin-pane" id="fin-dre-pane-bd">
+  <!-- ---------- ABA 1: BD (livro-razão, entrada de dados) ---------- -->
+  <section class="fin-pane active" id="fin-dre-pane-bd">
     <div class="fin-nota">
       Livro-razão. Colunas em fundo claro são editáveis (cole do Excel com Ctrl+V).
       Colunas em fundo escuro (S_E, GRUPO, STATUS, DIA, MÊS, DIA_SEM, ANO, VENC, SEMANA_ANO, ULTIMO_DIA_DO_MES, CNPJ_2, safra, CICLO) são calculadas automaticamente — conta ausente
@@ -105,7 +88,7 @@
     <div id="fin-dre-tab-bd" class="fin-tabela-scroll"></div>
   </section>
 
-  <!-- ---------- ABA 4: PLANO DE CONTAS ---------- -->
+  <!-- ---------- ABA 2: PLANO DE CONTAS ---------- -->
   <section class="fin-pane" id="fin-dre-pane-plano">
     <div class="fin-barra-filtro">
       <input type="text" id="fin-dre-busca-plano" placeholder="Buscar por código ou conta…">
@@ -134,60 +117,33 @@
     <div id="fin-dre-tab-plano" class="fin-tabela-scroll"></div>
   </section>
 
-  <!-- ---------- ABA 5: LANÇAMENTOS (visualização, somente leitura) ---------- -->
-  <section class="fin-pane" id="fin-dre-pane-lancamentos">
+  <!-- ---------- ABA 3: BD_DRE ---------- -->
+  <section class="fin-pane" id="fin-dre-pane-bddre">
     <div class="fin-nota">
-      Somente leitura — filtrada pelo ano do topo. Para editar/colar, use a aba <strong>BD</strong>.
+      Matriz conta × mês. Cada célula é o SUMIFS do BD por conta, ano, mês e empresa.
+      Somente leitura — os valores vêm do cruzamento entre a aba <strong>BD</strong> e o <strong>Plano de Contas</strong>.
     </div>
     <div class="fin-barra-filtro">
-      <select id="fin-lanc-filtro-grupo">
+      <select id="fin-dre-bddre-filtro-ano">
+        <option value="">Ano: todos</option>
+      </select>
+      <select id="fin-dre-bddre-filtro-grupo">
         <option value="">Grupo: todos</option>
       </select>
-      <select id="fin-lanc-filtro-se">
+      <select id="fin-dre-bddre-filtro-se">
         <option value="">S_E: todos</option>
         <option value="E">E — Entrada</option>
         <option value="S">S — Saída</option>
         <option value="0">0 — Extracontábil</option>
       </select>
-      <select id="fin-lanc-filtro-mes">
-        <option value="">Mês: todos</option>
-        <option value="Jan">Jan</option><option value="Fev">Fev</option>
-        <option value="Mar">Mar</option><option value="Abr">Abr</option>
-        <option value="Mai">Mai</option><option value="Jun">Jun</option>
-        <option value="Jul">Jul</option><option value="Ago">Ago</option>
-        <option value="Set">Set</option><option value="Out">Out</option>
-        <option value="Nov">Nov</option><option value="Dez">Dez</option>
-      </select>
-      <span id="fin-lanc-contagem" class="fin-status"></span>
+      <input type="text" id="fin-dre-bddre-busca" placeholder="Buscar por código ou conta…">
     </div>
-    <div id="fin-dre-tab-lancamentos" class="fin-tabela-scroll"></div>
+    <div id="fin-dre-tab-bddre" class="fin-tabela-scroll"></div>
   </section>
 
-  <!-- ---------- ABA 6: FIXO/VARIÁVEL E DIRETO/INDIRETO ---------- -->
-  <section class="fin-pane" id="fin-dre-pane-fv">
-    <div id="fin-dre-tab-fv"></div>
-  </section>
-
-  <!-- ---------- ABA 7: GRÁFICOS ---------- -->
-  <section class="fin-pane" id="fin-dre-pane-graficos">
-    <div class="fin-grid-graficos">
-      <div class="fin-card-grafico">
-        <h3>Receita × Resultado por mês</h3>
-        <canvas id="fin-dre-chart-resultado"></canvas>
-      </div>
-      <div class="fin-card-grafico">
-        <h3>Peso dos grupos sobre a receita</h3>
-        <canvas id="fin-dre-chart-grupos"></canvas>
-      </div>
-      <div class="fin-card-grafico">
-        <h3>Custo Fixo × Variável</h3>
-        <canvas id="fin-dre-chart-fv"></canvas>
-      </div>
-      <div class="fin-card-grafico">
-        <h3>Evolução das margens</h3>
-        <canvas id="fin-dre-chart-margem"></canvas>
-      </div>
-    </div>
+  <!-- ---------- ABA 4: RESULTADOS ---------- -->
+  <section class="fin-pane" id="fin-dre-pane-dre">
+    <div id="fin-dre-corpo" class="fin-dre-corpo"></div>
   </section>
 
 </div>

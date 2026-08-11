@@ -125,6 +125,8 @@
 .fin-status.carregando { color: var(--fin-navy); font-weight: 600; }
 .fin-status.erro { color: var(--fin-red); font-weight: 600; }
 .fin-status.ok { color: var(--fin-green); font-weight: 600; }
+.fin-status.fin-status-aviso { color: #b45309; font-weight: 600; }
+.fin-btn-primario.fin-btn-dirty { background: #b45309; border-color: #b45309; }
 
 .fin-grid-acoes {
   display: flex; align-items: center; gap: 10px; margin: 10px 0;

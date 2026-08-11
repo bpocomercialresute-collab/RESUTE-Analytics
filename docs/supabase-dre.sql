@@ -82,6 +82,12 @@ create table if not exists public.fin_dre_lancamentos (
   documento text null,
   banco text null,
   forma text null,
+  tipo text null,
+  parcela text null,
+  tot_parcelas text null,
+  obs text null,
+  dt_custoria date null,
+  historico text null,
 
   origem text not null default 'manual' check (origem in ('manual', 'api')),
 
@@ -121,6 +127,18 @@ create policy "fin_dre_lancamentos_select"
 
 comment on table public.fin_dre_lancamentos is
   'Livro-razao do DRE por empresa. status nao e armazenado: o motor deriva PG/N de dt_pag.';
+
+-- =============================================================================
+-- MIGRATION — adicionar colunas extras ao livro-razão (idempotente)
+-- Rodar se a tabela já existia antes dessas colunas serem adicionadas.
+-- =============================================================================
+alter table public.fin_dre_lancamentos
+  add column if not exists tipo         text null,
+  add column if not exists parcela      text null,
+  add column if not exists tot_parcelas text null,
+  add column if not exists obs          text null,
+  add column if not exists dt_custoria  date null,
+  add column if not exists historico    text null;
 
 -- =============================================================================
 -- CONFERENCIA (opcional)

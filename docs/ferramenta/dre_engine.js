@@ -66,7 +66,8 @@ const DRE = (() => {
     cnpj: 1,
     mesInicio: 0,       // índice 0-11
     mesFim: 11,
-    charts: {}
+    charts: {},
+    empresa: ''
   };
 
   /* ---------- 3. UTILITÁRIOS ---------- */
@@ -115,15 +116,17 @@ const DRE = (() => {
       const c = idx.get(norm(l.conta));
       const d = new Date(l.dt_caixa);
       const valido = !isNaN(d);
+      // ISO date strings ("2024-01-15") são UTC midnight. getFullYear/getMonth usam
+      // fuso local — no Brasil (UTC-3) viram o dia anterior. getUTC* evita isso.
       return {
         ...l,
         grupo: c ? c.grupo : '#N/A',          // PROCV
         s_e:   c ? seDoGrupo(c.grupo) : '#N/A',
         fv:    c ? (c.fv || '') : '',
         di:    c ? (c.di || '') : '',
-        ano:   valido ? d.getFullYear() : null,
-        mesIdx: valido ? d.getMonth() : null,
-        mes:   valido ? MESES[d.getMonth()] : null,
+        ano:   valido ? d.getUTCFullYear() : null,
+        mesIdx: valido ? d.getUTCMonth() : null,
+        mes:   valido ? MESES[d.getUTCMonth()] : null,
         status: l.dt_pag ? 'PG' : 'N'
       };
     });
@@ -299,12 +302,7 @@ const DRE = (() => {
     const cls = v => num(v) === 0 ? 'fin-dre-val-zero'
                    : (saida ? 'fin-dre-val-saida' : 'fin-dre-val-entrada');
 
-    if (!g.linhas.length) {
-      return `<div class="fin-dre-bloco"><div class="fin-tabela-vazia">
-        Sem contas cadastradas em ${esc(item.nome)}.</div></div>`;
-    }
-
-    const corpo = g.linhas.map(l => {
+    const corpo = g.linhas.length ? g.linhas.map(l => {
       const tds = [`<td class="fin-dre-col-conta">${esc(l.conta)}</td>`];
       for (let i = estado.mesInicio; i <= estado.mesFim; i++)
         tds.push(`<td class="${cls(l.meses[i])}">${fmt(l.meses[i])}</td>`);
@@ -312,7 +310,8 @@ const DRE = (() => {
       tds.push(`<td class="${cls(l.med)}">${fmt(l.med)}</td>`);
       tds.push(`<td class="fin-dre-col-pct">${fmtPct(l.pct)}</td>`);
       return `<tr>${tds.join('')}</tr>`;
-    }).join('');
+    }).join('') : `<tr><td colspan="${(estado.mesFim - estado.mesInicio + 1) + 4}" class="fin-tabela-vazia">
+      Sem contas cadastradas em ${esc(item.nome)}.</td></tr>`;
 
     const prefixo = saida ? '(-)' : (item.paralelo ? '(=)' : '(+)');
     const rodape = [`<td class="fin-dre-col-conta">${prefixo} TOTAL ${esc(item.nome)}</td>`];
@@ -360,10 +359,6 @@ const DRE = (() => {
   function renderBDDRE() {
     const alvo = document.getElementById('fin-dre-tab-bddre');
     if (!alvo) return;
-    if (!estado.bdDre.length) {
-      alvo.innerHTML = '<div class="fin-tabela-vazia">Sem dados.</div>';
-      return;
-    }
     // Ordem de colunas conforme BD_DRE da planilha original
     const th = ['ID','CNPJ','ANO','CODIGO','CONTA']
       .map(h => `<th>${h}</th>`)
@@ -371,6 +366,16 @@ const DRE = (() => {
       .concat(['<th>CAD</th>','<th>GRUPO</th>','<th class="num">TOTAL</th>',
                '<th class="num">MED</th>','<th class="num">%</th>','<th>s_e</th>'])
       .join('');
+    const totalCols = 5 + MESES.length + 6;
+
+    if (!estado.bdDre.length) {
+      const motivo = !estado.plano.length
+        ? 'Matriz BD_DRE é derivada do Plano de Contas — cadastre contas na aba <strong>Plano de Contas</strong> para popular esta grade.'
+        : 'Nenhuma linha para o recorte atual.';
+      alvo.innerHTML = `<table class="dc-tabela"><thead><tr>${th}</tr></thead>`
+        + `<tbody><tr><td colspan="${totalCols}" class="fin-tabela-vazia">${motivo}</td></tr></tbody></table>`;
+      return;
+    }
 
     const tb = estado.bdDre.map(l => `<tr>
       <td>${esc(l.id)}</td>
@@ -436,6 +441,12 @@ const DRE = (() => {
         documento: l.documento || null,
         banco: l.banco || null,
         forma: l.forma || null,
+        tipo: l.tipo || null,
+        parcela: l.parcela || null,
+        tot_parcelas: l.tot_parcelas || null,
+        obs: l.obs || null,
+        dt_custoria: l.dt_custoria || null,
+        historico: l.historico || null,
         origem: 'manual'
       }));
   }
@@ -636,7 +647,7 @@ const DRE = (() => {
 
     const lbl = document.getElementById('fin-periodo-label');
     if (lbl) lbl.textContent =
-      `${MESES[estado.mesInicio]} a ${MESES[estado.mesFim]} de ${estado.ano} · Empresa ${estado.cnpj}`;
+      `${MESES[estado.mesInicio]} a ${MESES[estado.mesFim]} de ${estado.ano}${estado.empresa ? ' · ' + estado.empresa : ''}`;
   }
 
   /* ---------- 15. GRÁFICOS (Chart.js já integrado no sistema) ---------- */
@@ -735,8 +746,8 @@ const DRE = (() => {
 
   function montarFiltros() {
     const anos = [...new Set(estado.lancamentos
-      .map(l => new Date(l.dt_caixa).getFullYear())
-      .filter(Number.isFinite))].sort();
+      .map(l => { const d = new Date(l.dt_caixa); return isNaN(d) ? null : d.getUTCFullYear(); })
+      .filter(v => v !== null))].sort();
     if (!anos.length) anos.push(new Date().getFullYear());
     estado.ano = estado.ano ?? anos[anos.length - 1];
 
@@ -764,6 +775,13 @@ const DRE = (() => {
         Object.keys(SE_POR_GRUPO).map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
     }
 
+    const selGrupoLanc = document.getElementById('fin-lanc-filtro-grupo');
+    if (selGrupoLanc) {
+      selGrupoLanc.innerHTML = '<option value="">Grupo: todos</option>' +
+        Object.keys(SE_POR_GRUPO).map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+      selGrupoLanc.addEventListener('change', renderLancamentos);
+    }
+
     document.getElementById('fin-btn-atualizar')?.addEventListener('click', recalcular);
   }
 
@@ -774,6 +792,8 @@ const DRE = (() => {
     estado.lancamentos = lancamentos;
     estado.cnpj = cnpj;
     estado.ano = ano;
+
+    estado.empresa = empresa || '';
 
     const el = document.getElementById('fin-empresa');
     if (el) el.textContent = empresa || 'RESUTE';
@@ -787,7 +807,7 @@ const DRE = (() => {
 
   return { init, recalcular, estado, MESES, SE_POR_GRUPO, ESTRUTURA,
            montarBDDRE, calcularResultado, analiseFVDI, totalGrupo,
-           registrosPlanoParaSalvar, registrosBDParaSalvar };
+           registrosPlanoParaSalvar, registrosBDParaSalvar, renderLancamentos };
 })();
 
 if (typeof module !== 'undefined') module.exports = DRE;
