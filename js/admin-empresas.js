@@ -110,15 +110,19 @@ async function _adminCarregarSyncLog() {
   if (!EMPRESA_ATIVA) return;
   try {
     var r = await fetch(
-      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&select=ultima_data,ultima_sync,total_registros,status',
+      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id
+        + '&select=ultima_data,ultima_sync,total_registros,status'
+        + '&order=ultima_sync.desc.nullslast&limit=1',
       { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
     );
     var d = await r.json();
     var el = document.getElementById('admin-sync-status');
     if (!el) return;
-    if (d && d[0] && d[0].ultima_data) {
-      var dt  = new Date(d[0].ultima_data).toLocaleDateString('pt-BR');
-      var tot = (d[0].total_registros || 0).toLocaleString('pt-BR');
+    var log = d && d[0];
+    if (log && (log.ultima_sync || log.ultima_data)) {
+      var ref = log.ultima_sync || log.ultima_data;
+      var dt  = new Date(ref).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+      var tot = (log.total_registros || 0).toLocaleString('pt-BR');
       el.textContent = 'Último sync: ' + dt + ' — ' + tot + ' registros';
       el.className = 'admin-sync-status ok';
     } else {
@@ -199,6 +203,18 @@ async function adminSincronizar() {
     if (!r.ok || d.erro) throw new Error(d.erro || 'Erro na sincronização.');
 
     _adminStatus('✓ ' + (d.mensagem || d.novos + ' registros importados'), true);
+
+    // Grava sync_log (a edge function pode não gravar; garantimos aqui)
+    try {
+      var agora = new Date();
+      var hoje  = agora.toISOString().split('T')[0];
+      var total = d.novos || d.total_registros || 0;
+      await fetch(SUPA_URL + '/rest/v1/sync_log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({ empresa_id: EMPRESA_ATIVA.empresa_id, ultima_sync: agora.toISOString(), ultima_data: hoje, total_registros: total, status: 'ok', mensagem: d.mensagem || (total + ' registros importados via edge function.') })
+      });
+    } catch(_) {}
 
     // Recarrega dados e gera relatórios
     if ((d.novos || 0) > 0) {
