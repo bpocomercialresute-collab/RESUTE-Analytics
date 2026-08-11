@@ -31,29 +31,33 @@ const DRE = (() => {
     'INVESTIMENTOS':           'S'
   };
 
-  // Estrutura do DRE. 'grupo' desenha um bloco; 'resultado' desenha uma faixa.
+  // Estrutura do DRE — ordem igual ao Modelo Resultado - Balanço.xlsx
   const ESTRUTURA = [
-    { tipo:'grupo',     nome:'FATURAMENTO',             paralelo:true },
+    // ── Receitas ──────────────────────────────────────────────────
+    { tipo:'resultado', nome:'TOT. RECEITA',           chave:'totReceita',       base:true },
     { tipo:'grupo',     nome:'VALOR PRODUZIDO',         paralelo:true },
+    { tipo:'grupo',     nome:'FATURAMENTO',             paralelo:true },
     { tipo:'grupo',     nome:'RECEITA OPERACIONAL',     sinal:'+' },
-    { tipo:'grupo',     nome:'DESP. TRIBUTÁRIA',        sinal:'-' },
-    { tipo:'resultado', nome:'RECEITA LÍQUIDA',         chave:'receitaLiquida', base:true },
-    { tipo:'grupo',     nome:'CUSTO. MP OU REVENDA',    sinal:'-' },
-    { tipo:'resultado', nome:'LUCRO BRUTO',             chave:'lucroBruto' },
+    { tipo:'grupo',     nome:'RECEITA NÃO OPERACIONAL', sinal:'+' },
+    // ── Despesas Variáveis ────────────────────────────────────────
     { tipo:'grupo',     nome:'DESP. OPERACIONAL',       sinal:'-' },
-    { tipo:'grupo',     nome:'DESP. COMERCIAL',         sinal:'-' },
+    { tipo:'grupo',     nome:'CUSTO. MP OU REVENDA',    sinal:'-' },
+    { tipo:'grupo',     nome:'DESP. TRIBUTÁRIA',        sinal:'-' },
     { tipo:'grupo',     nome:'DESP. LOGÍSTICA',         sinal:'-' },
+    { tipo:'grupo',     nome:'DESP. COMERCIAL',         sinal:'-' },
+    { tipo:'resultado', nome:'TOTAL DESP. VARIÁVEIS',   chave:'despVariaveis' },
+    // ── Despesas Fixas ────────────────────────────────────────────
     { tipo:'grupo',     nome:'DESP. ADM',               sinal:'-' },
     { tipo:'grupo',     nome:'MKT',                     sinal:'-' },
     { tipo:'grupo',     nome:'MANUT. E CONSERVAÇÃO',    sinal:'-' },
-    { tipo:'resultado', nome:'EBITDA',                  chave:'ebitda' },
     { tipo:'grupo',     nome:'DESP. FINANCEIRA',        sinal:'-' },
-    { tipo:'grupo',     nome:'RECEITA NÃO OPERACIONAL', sinal:'+' },
-    { tipo:'resultado', nome:'RESULTADO ANTES DE SÓCIOS', chave:'antesSocios' },
     { tipo:'grupo',     nome:'PROLABORE E RETIRADA',    sinal:'-' },
-    { tipo:'resultado', nome:'LUCRO LÍQUIDO',           chave:'lucroLiquido' },
+    { tipo:'resultado', nome:'TOTAL DESP. FIXA',        chave:'despFixa' },
+    // ── Totais e Resultado ────────────────────────────────────────
+    { tipo:'resultado', nome:'TOTAL DESPESAS',          chave:'totalDespesas' },
     { tipo:'grupo',     nome:'INVESTIMENTOS',           sinal:'-' },
-    { tipo:'resultado', nome:'GERAÇÃO DE CAIXA',        chave:'geracaoCaixa' }
+    { tipo:'resultado', nome:'RESULTADO FINANCEIRO',    chave:'resultFinanceiro' },
+    { tipo:'resultado', nome:'RESULTADO OPERACIONAL',   chave:'resultOperacional' }
   ];
 
   /* ---------- 2. ESTADO ---------- */
@@ -213,33 +217,54 @@ const DRE = (() => {
     const g = {};
     for (const nome of Object.keys(SE_POR_GRUPO)) g[nome] = totalGrupo(nome);
 
-    const porMes = i => ({
-      receitaOp:   g['RECEITA OPERACIONAL'].meses[i],
-      receitaNOp:  g['RECEITA NÃO OPERACIONAL'].meses[i],
-      tributaria:  g['DESP. TRIBUTÁRIA'].meses[i],
-      custoMP:     g['CUSTO. MP OU REVENDA'].meses[i],
-      operacional: g['DESP. OPERACIONAL'].meses[i] + g['DESP. COMERCIAL'].meses[i]
-                 + g['DESP. LOGÍSTICA'].meses[i]   + g['DESP. ADM'].meses[i]
-                 + g['MKT'].meses[i]               + g['MANUT. E CONSERVAÇÃO'].meses[i],
-      financeira:  g['DESP. FINANCEIRA'].meses[i],
-      socios:      g['PROLABORE E RETIRADA'].meses[i],
-      investim:    g['INVESTIMENTOS'].meses[i]
-    });
+    const m_ = (grupo, i) => g[grupo].meses[i];
 
-    const serie = { receitaLiquida:[], lucroBruto:[], ebitda:[],
-                    antesSocios:[], lucroLiquido:[], geracaoCaixa:[] };
+    const serie = {
+      totReceita:[], despVariaveis:[], despFixa:[],
+      totalDespesas:[], resultFinanceiro:[], resultOperacional:[],
+      // mantidos para KPIs/alertas legados (elementos removidos do HTML, retornam cedo)
+      receitaLiquida:[], lucroBruto:[], ebitda:[],
+      antesSocios:[], lucroLiquido:[], geracaoCaixa:[]
+    };
 
     for (let i = 0; i < 12; i++) {
-      const m = porMes(i);
-      const rl  = m.receitaOp - m.tributaria;
-      const lb  = rl - m.custoMP;
-      const eb  = lb - m.operacional;
-      const as  = eb - m.financeira + m.receitaNOp;
-      const ll  = as - m.socios;
-      const gc  = ll - m.investim;
+      const recOp  = m_('RECEITA OPERACIONAL', i);
+      const recNOp = m_('RECEITA NÃO OPERACIONAL', i);
+      const trib   = m_('DESP. TRIBUTÁRIA', i);
+      const custo  = m_('CUSTO. MP OU REVENDA', i);
+      const oper   = m_('DESP. OPERACIONAL', i);
+      const log    = m_('DESP. LOGÍSTICA', i);
+      const com    = m_('DESP. COMERCIAL', i);
+      const adm    = m_('DESP. ADM', i);
+      const mkt    = m_('MKT', i);
+      const manut  = m_('MANUT. E CONSERVAÇÃO', i);
+      const fin    = m_('DESP. FINANCEIRA', i);
+      const soc    = m_('PROLABORE E RETIRADA', i);
+      const inv    = m_('INVESTIMENTOS', i);
+
+      const tr = recOp + recNOp;                               // TOT. RECEITA
+      const dv = oper + custo + trib + log + com;              // DESP. VARIÁVEIS
+      const df = adm + mkt + manut + fin + soc;                // DESP. FIXA
+      const td = dv + df;                                      // TOTAL DESPESAS
+      const rf = tr - td;                                      // RESULTADO FINANCEIRO
+      const ro = rf - inv;                                     // RESULTADO OPERACIONAL
+
+      serie.totReceita.push(tr);
+      serie.despVariaveis.push(dv);
+      serie.despFixa.push(df);
+      serie.totalDespesas.push(td);
+      serie.resultFinanceiro.push(rf);
+      serie.resultOperacional.push(ro);
+
+      // legado
+      const rl = recOp - trib;
+      const lb = rl - custo;
+      const eb = lb - oper - com - log - adm - mkt - manut;
+      const as = eb - fin + recNOp;
+      const ll = as - soc;
       serie.receitaLiquida.push(rl); serie.lucroBruto.push(lb);
       serie.ebitda.push(eb);         serie.antesSocios.push(as);
-      serie.lucroLiquido.push(ll);   serie.geracaoCaixa.push(gc);
+      serie.lucroLiquido.push(ll);   serie.geracaoCaixa.push(ll - inv);
     }
 
     const somaRecorte = arr => {
@@ -251,7 +276,7 @@ const DRE = (() => {
     const tot = {};
     for (const k of Object.keys(serie)) tot[k] = somaRecorte(serie[k]);
 
-    return { grupos: g, serie, total: tot, base: tot.receitaLiquida };
+    return { grupos: g, serie, total: tot, base: tot.totReceita };
   }
 
   /* ---------- 8. ANÁLISE F_V E D_I ---------- */
