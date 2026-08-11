@@ -295,7 +295,7 @@
 td.fin-dre-col-tot { background: #eef8f2 !important; font-weight: 700; }
 
 /* MÉD (corpo): fundo branco, levemente diferenciado */
-td.fin-dre-col-med { background: #f8f9fb; color: var(--fin-ink); }
+td.fin-dre-col-med { background: #e8f0fb !important; color: var(--fin-ink); }
 
 .fin-dre-col-pct { color: var(--fin-mute); font-size: 9.5pt; }
 
