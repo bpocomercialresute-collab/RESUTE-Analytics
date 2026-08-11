@@ -59,7 +59,7 @@ var GRID_DEFS = {
   ]}
 };
 
-var GRIDS = {}, GRID_DATA_STORE = {}, FULL_DATA = {}, JSS_FILTERS = {};
+var GRIDS = {}, GRID_DATA_STORE = {}, FULL_DATA = {}, JSS_FILTERS = {}, JSS_FILTERS_MODE = {};
 
 // =============================================================================
 // LITEGRID
@@ -569,8 +569,17 @@ LiteGrid.prototype._updateStatus = function() {
 
 LiteGrid.prototype.applyFilter = function(filters) {
   JSS_FILTERS[this.key]=filters;
+  var mode=JSS_FILTERS_MODE[this.key]||{};
   var src=FULL_DATA[this.key]||this.allData, fks=Object.keys(filters);
-  this.filtered=fks.length===0?null:src.filter(function(r){ return fks.every(function(ci){ return String(r[parseInt(ci)]||'').trim()===filters[ci]; }); });
+  this.filtered=fks.length===0?null:src.filter(function(r){
+    return fks.every(function(ci){
+      var cell=String(r[parseInt(ci)]||'').trim();
+      var fv=String(filters[ci]||'');
+      return mode[ci]==='contains'
+        ? cell.toLowerCase().indexOf(fv.toLowerCase())>=0
+        : cell===fv;
+    });
+  });
   this.page=0; this._render();
   var self=this;
   this.container.querySelectorAll('.col-filter-btn').forEach(function(b){
@@ -599,32 +608,67 @@ function lgShowFilter(key,colIdx,anchor){
   src.forEach(function(r){var v=String(r[colIdx]||'').trim();if(v&&!seen[v]){seen[v]=1;vals.push(v);}});
   vals.sort(function(a,b){var na=parseFloat(a),nb=parseFloat(b);return(!isNaN(na)&&!isNaN(nb))?na-nb:a.localeCompare(b);});
   vals=vals.slice(0,500);
-  var ativo=(JSS_FILTERS[key]||{})[colIdx], label=(GRID_DEFS[key].cols[colIdx]||{}).t||('Col '+(colIdx+1)), rect=anchor.getBoundingClientRect();
+  var modeAtivo=(JSS_FILTERS_MODE[key]||{})[colIdx];
+  var ativo=(JSS_FILTERS[key]||{})[colIdx];
+  var searchVal=modeAtivo==='contains'?(ativo||''):'';
+  var exactVal=modeAtivo!=='contains'?(ativo||''):'';
+  var label=(GRID_DEFS[key].cols[colIdx]||{}).t||('Col '+(colIdx+1));
+  var rect=anchor.getBoundingClientRect();
   var drop=document.createElement('div'); drop.className='col-filter-dropdown';
-  drop.style.cssText='position:fixed;top:'+(rect.bottom+4)+'px;left:'+Math.min(rect.left,window.innerWidth-260)+'px;z-index:9999';
-  var items=vals.map(function(v){return '<label class="cfd-item'+(ativo===v?' cfd-active':'')+'"><input type="radio" name="lgf'+key+colIdx+'" value="'+v.replace(/"/g,'&quot;')+'"'+(ativo===v?' checked':'')+'><span>'+v+'</span></label>';}).join('');
-  drop.innerHTML='<div class="cfd-header"><span>'+label+'</span><button class="cfd-clear" onclick="lgClearFilter(\''+key+'\','+colIdx+')">✕ Limpar</button></div>'
-    +'<div class="cfd-list"><label class="cfd-item'+(!ativo?' cfd-active':'')+'"><input type="radio" name="lgf'+key+colIdx+'" value=""'+(!ativo?' checked':'')+'><span>(Todos)</span></label>'+items+'</div>'
-    +'<div class="cfd-footer"><button class="cfd-apply" onclick="lgApplyFilter(\''+key+'\','+colIdx+',this)">Aplicar</button></div>';
+  drop.style.cssText='position:fixed;top:'+(rect.bottom+4)+'px;left:'+Math.min(rect.left,window.innerWidth-280)+'px;z-index:9999;min-width:270px';
+  var listId='cfd-list-'+key+'-'+colIdx, srchId='cfd-srch-'+key+'-'+colIdx;
+  var items=vals.map(function(v){return '<label class="cfd-item'+(exactVal===v?' cfd-active':'')+'"><input type="radio" name="lgf'+key+colIdx+'" value="'+v.replace(/"/g,'&quot;')+'"'+(exactVal===v?' checked':'')+'><span>'+v+'</span></label>';}).join('');
+  drop.innerHTML=
+    '<div class="cfd-header"><span>'+label+'</span><button class="cfd-clear" onclick="lgClearFilter(\''+key+'\','+colIdx+')">✕ Limpar</button></div>'
+    +'<div class="cfd-search-row"><input class="cfd-search-input" id="'+srchId+'" placeholder="Pesquisar…" value="'+searchVal.replace(/"/g,'&quot;')+'" autocomplete="off"><button class="cfd-apply cfd-srch-btn" onclick="lgApplySearch(\''+key+'\','+colIdx+',this)">Filtrar</button></div>'
+    +'<div class="cfd-list" id="'+listId+'"><label class="cfd-item'+(!exactVal?' cfd-active':'')+'"><input type="radio" name="lgf'+key+colIdx+'" value=""'+(!exactVal?' checked':'')+'><span>(Todos)</span></label>'+items+'</div>'
+    +'<div class="cfd-footer"><button class="cfd-apply" onclick="lgApplyFilter(\''+key+'\','+colIdx+',this)">Aplicar seleção</button></div>';
   document.body.appendChild(drop);
+  var si=document.getElementById(srchId), li=document.getElementById(listId);
+  if(si&&li){
+    si.addEventListener('input',function(){
+      var q=si.value.toLowerCase();
+      li.querySelectorAll('.cfd-item').forEach(function(it){
+        var sp=it.querySelector('span'); if(!sp) return;
+        it.style.display=(!q||sp.textContent==='(Todos)'||sp.textContent.toLowerCase().indexOf(q)>=0)?'':'none';
+      });
+    });
+    si.addEventListener('keydown',function(e){ if(e.key==='Enter'){e.preventDefault();lgApplySearch(key,colIdx,si);} });
+    if(searchVal) si.dispatchEvent(new Event('input'));
+    si.focus(); si.select();
+  }
   setTimeout(function(){document.addEventListener('click',function cl(e){if(!drop.contains(e.target)){drop.remove();document.removeEventListener('click',cl);}});},0);
 }
 
 function lgApplyFilter(key,colIdx,btn){
   var drop=btn.closest('.col-filter-dropdown'), sel=drop.querySelector('input[name="lgf'+key+colIdx+'"]:checked'), val=sel?sel.value:'';
-  if(!JSS_FILTERS[key]) JSS_FILTERS[key]={}; if(val==='') delete JSS_FILTERS[key][colIdx]; else JSS_FILTERS[key][colIdx]=val;
+  if(!JSS_FILTERS[key]) JSS_FILTERS[key]={}; if(!JSS_FILTERS_MODE[key]) JSS_FILTERS_MODE[key]={};
+  if(val===''){delete JSS_FILTERS[key][colIdx];delete JSS_FILTERS_MODE[key][colIdx];}
+  else{JSS_FILTERS[key][colIdx]=val;JSS_FILTERS_MODE[key][colIdx]='exact';}
   if(GRIDS[key]) GRIDS[key].applyFilter(JSS_FILTERS[key]); drop.remove();
+}
+
+function lgApplySearch(key,colIdx,el){
+  var drop=el.closest('.col-filter-dropdown');
+  var si=drop?drop.querySelector('.cfd-search-input'):null;
+  var val=si?si.value.trim():'';
+  if(!JSS_FILTERS[key]) JSS_FILTERS[key]={}; if(!JSS_FILTERS_MODE[key]) JSS_FILTERS_MODE[key]={};
+  if(val===''){delete JSS_FILTERS[key][colIdx];delete JSS_FILTERS_MODE[key][colIdx];}
+  else{JSS_FILTERS[key][colIdx]=val;JSS_FILTERS_MODE[key][colIdx]='contains';}
+  if(GRIDS[key]) GRIDS[key].applyFilter(JSS_FILTERS[key]);
+  if(drop) drop.remove();
 }
 
 function lgClearFilter(key,colIdx){
   if(JSS_FILTERS[key]) delete JSS_FILTERS[key][colIdx];
+  if(JSS_FILTERS_MODE[key]) delete JSS_FILTERS_MODE[key][colIdx];
   if(GRIDS[key]) GRIDS[key].applyFilter(JSS_FILTERS[key]||{});
   document.querySelectorAll('.col-filter-dropdown').forEach(function(d){d.remove();});
 }
 
 function jssClearGrid(key){
   if(!GRIDS[key]||!confirm('Limpar todos os dados desta aba?')) return;
-  GRIDS[key].allData=[];GRIDS[key].filtered=null;FULL_DATA[key]=[];JSS_FILTERS[key]={};
+  GRIDS[key].allData=[];GRIDS[key].filtered=null;FULL_DATA[key]=[];JSS_FILTERS[key]={};JSS_FILTERS_MODE[key]={};
   GRIDS[key].page=0;GRIDS[key]._render();GRIDS[key]._updateStatus();
 }
 
