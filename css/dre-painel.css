@@ -224,101 +224,138 @@
 }
 
 /* ============================================================
-   BLOCO DRE â€” rÃ©plica da aba DESIGN
+   BLOCO DRE — réplica da aba DESIGN do Modelo DRE Matheus.xlsx
    ============================================================ */
-.fin-dre-corpo { display: flex; flex-direction: column; gap: 18px; }
+.fin-dre-corpo { display: flex; flex-direction: column; gap: 14px; }
 
-.fin-dre-bloco {
-  border: 1px solid var(--fin-line); border-radius: 6px; overflow: hidden;
+.fin-dre-bloco,
+.fin-dre-resultado-bloco {
+  border: 1px solid var(--fin-line); border-radius: 4px; overflow: hidden;
 }
 .fin-dre-bloco-scroll { overflow-x: auto; }
 
 .fin-dre-tabela {
   width: 100%; border-collapse: collapse;
-  font-family: Calibri, "Segoe UI", sans-serif; font-size: 10pt;
+  font-family: Calibri, “Segoe UI”, sans-serif; font-size: 10pt;
   font-variant-numeric: tabular-nums;
   background: #fff;
 }
 
-/* --- cabeÃ§alho azul-marinho #002060 --- */
+/* ── Cabeçalho: Jan-Dez navy #002060, TOT verde #00B050,
+                MÉD/ANO e % brancos (sem preenchimento) ── */
 .fin-dre-tabela thead th {
   padding: 4px 8px; white-space: nowrap;
   background: var(--fin-navy); color: #fff;
-  font-weight: 400; text-align: center;
-  border-right: 1px solid #000;
-  border-bottom: 1px solid #000;
+  font-weight: 600; text-align: center;
+  border-right: 1px solid rgba(0,0,0,.25);
+  border-bottom: 2px solid rgba(0,0,0,.35);
   position: sticky; top: 0; z-index: 2;
 }
 .fin-dre-tabela thead th.fin-dre-col-conta {
-  text-align: left; min-width: 250px;
+  text-align: left; min-width: 240px;
   position: sticky; left: 0; z-index: 3;
-  text-transform: uppercase; letter-spacing: .3px;
+  text-transform: uppercase; letter-spacing: .3px; font-size: 9.5pt;
 }
-/* --- coluna TOT em verde #00B050 --- */
-.fin-dre-tabela thead th.fin-dre-col-tot { background: var(--fin-green); }
+.fin-dre-tabela thead th.fin-dre-col-tot {
+  background: var(--fin-green);
+  border-right: 1px solid rgba(0,0,0,.2);
+}
+/* MÉD/ANO e % = branco no cabeçalho, texto escuro */
+.fin-dre-tabela thead th.fin-dre-col-med,
+.fin-dre-tabela thead th.fin-dre-col-pct-h {
+  background: #fff; color: var(--fin-ink);
+  border-right: 1px solid var(--fin-line);
+  font-weight: 700;
+}
 
-/* --- linhas de conta --- */
+/* ── Linhas de conta (tbody) ── */
 .fin-dre-tabela tbody td {
   padding: 3px 8px; text-align: right; white-space: nowrap;
-  border: 1px solid var(--fin-line);
+  border-right: 1px solid var(--fin-line);
+  border-bottom: 1px solid var(--fin-line-soft);
 }
-.fin-dre-tabela tbody tr:nth-child(even) td { background: #fff; }
-.fin-dre-tabela tbody tr:hover td { background: #fff; }
+.fin-dre-tabela tbody tr:nth-child(even) td { background: #fafbfd; }
+.fin-dre-tabela tbody tr:hover td { background: #f0f5ff; }
 
 .fin-dre-tabela td.fin-dre-col-conta {
   text-align: left; color: var(--fin-ink);
   position: sticky; left: 0; z-index: 1;
-  background: var(--fin-bg);
-  border-right: 1px solid var(--fin-line);
+  background: #fff; border-right: 1px solid var(--fin-line);
+  font-size: 9.5pt;
 }
-.fin-dre-tabela tbody tr:nth-child(even) td.fin-dre-col-conta { background: #fff; }
-.fin-dre-tabela tbody tr:hover td.fin-dre-col-conta { background: #fff; }
+.fin-dre-tabela tbody tr:nth-child(even) td.fin-dre-col-conta { background: #fafbfd; }
+.fin-dre-tabela tbody tr:hover td.fin-dre-col-conta { background: #f0f5ff; }
 
-/* --- valores de saÃ­da em vermelho #FF0000 --- */
+/* Valores: saída = vermelho, entrada = preto, zero = cinza */
 .fin-dre-val-saida   { color: var(--fin-red); }
 .fin-dre-val-entrada { color: var(--fin-ink); }
-.fin-dre-val-zero    { color: #b9c0cc; }
+.fin-dre-val-zero    { color: #c0c8d4; }
 
-.fin-dre-col-tot {
-  font-weight: 700;
-  background: #E2F0D9;
-}
-.fin-dre-col-pct { color: var(--fin-mute); font-size: 11px; }
+/* TOT (corpo): fundo verde bem suave */
+td.fin-dre-col-tot { background: #eaf7ef; font-weight: 700; }
 
-/* --- linha de total: fundo amarelo #FFFF00 --- */
-.fin-dre-tabela tfoot td,
-.fin-dre-linha-total td {
+/* MÉD (corpo): fundo branco, levemente diferenciado */
+td.fin-dre-col-med { background: #f8f9fb; color: var(--fin-ink); }
+
+.fin-dre-col-pct { color: var(--fin-mute); font-size: 9.5pt; }
+
+/* ── Linha de total: amarelo #FFFF00, texto vermelho
+      TOT e MÉD ficam SEM amarelo (só texto vermelho) ── */
+.fin-dre-tabela tfoot td {
   padding: 5px 8px; text-align: right; white-space: nowrap;
-  background: var(--fin-yellow) !important;
-  color: var(--fin-red); font-weight: 700;
-  border: 1px solid #000;
+  background: var(--fin-yellow); color: var(--fin-red);
+  font-weight: 700; font-size: 9.5pt;
+  border: 1px solid rgba(0,0,0,.25);
 }
-.fin-dre-tabela tfoot td.fin-dre-col-conta,
-.fin-dre-linha-total td.fin-dre-col-conta {
-  text-align: left; color: #2b2200; text-transform: uppercase;
+.fin-dre-tabela tfoot td.fin-dre-col-conta {
+  text-align: left; color: #2b2200;
+  text-transform: uppercase; letter-spacing: .2px;
+  position: sticky; left: 0; z-index: 1;
+}
+/* TOT e MÉD no rodapé: sem amarelo, só texto vermelho */
+.fin-dre-tabela tfoot td.fin-dre-col-tot-foot,
+.fin-dre-tabela tfoot td.fin-dre-col-med-foot {
+  background: #fff !important; color: var(--fin-red); font-weight: 700;
 }
 
-/* --- linhas de resultado (Receita LÃ­quida, Lucro Bruto, EBITDAâ€¦) --- */
-.fin-dre-resultado {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; flex-wrap: wrap;
-  padding: 10px 14px; border-radius: 6px;
-  background: var(--fin-navy); color: #fff;
-}
-.fin-dre-resultado .fin-dre-res-nome {
-  font-size: 13px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .6px;
-}
-.fin-dre-resultado .fin-dre-res-valor {
-  font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums;
-}
-.fin-dre-resultado .fin-dre-res-margem {
-  font-size: 11.5px; opacity: .85;
-}
-.fin-dre-resultado.fin-dre-neg { background: #7a0f0f; }
-.fin-dre-resultado.fin-dre-pos { background: #0a6b39; }
+/* ── Linhas de resultado (Receita Líquida, Lucro Bruto, EBITDA…) ──
+      Tabela de linha única com meses, igual ao bloco, fundo colorido ── */
+.fin-dre-resultado-bloco { border-radius: 3px; }
 
-/* --- bloco extracontÃ¡bil (FATURAMENTO / VALOR PRODUZIDO) --- */
+.fin-dre-resultado-tr td {
+  padding: 6px 8px; text-align: right; white-space: nowrap;
+  font-weight: 700; font-size: 10pt;
+  color: #fff;
+  border-right: 1px solid rgba(255,255,255,.25);
+}
+/* Base (Receita Líquida): navy */
+.fin-dre-resultado-tr.fin-dre-res-base td { background: var(--fin-navy); }
+/* Positivo: verde */
+.fin-dre-resultado-tr.fin-dre-res-pos td  { background: var(--fin-green); }
+/* Negativo: vermelho escuro */
+.fin-dre-resultado-tr.fin-dre-res-neg td  { background: #b30000; }
+
+.fin-dre-resultado-tr td.fin-dre-col-conta {
+  text-align: left; text-transform: uppercase;
+  letter-spacing: .4px; font-size: 9.5pt;
+  position: sticky; left: 0; z-index: 1;
+  min-width: 240px;
+}
+.fin-dre-resultado-tr.fin-dre-res-base td.fin-dre-col-conta { background: var(--fin-navy); }
+.fin-dre-resultado-tr.fin-dre-res-pos  td.fin-dre-col-conta { background: var(--fin-green); }
+.fin-dre-resultado-tr.fin-dre-res-neg  td.fin-dre-col-conta { background: #b30000; }
+
+/* TOT e MÉD nas linhas de resultado: levemente mais escuros */
+.fin-dre-resultado-tr td.fin-dre-col-tot,
+.fin-dre-resultado-tr td.fin-dre-col-med {
+  background: rgba(0,0,0,.18);
+  font-weight: 700;
+}
+.fin-dre-resultado-tr td.fin-dre-col-pct {
+  color: rgba(255,255,255,.8); font-size: 9.5pt; font-weight: 600;
+}
+
+/* ── Bloco extracontábil (FATURAMENTO / VALOR PRODUZIDO) ── */
 .fin-dre-bloco.fin-dre-paralelo { border-style: dashed; }
 .fin-dre-bloco.fin-dre-paralelo thead th { background: #3d4a5c; }
 .fin-dre-bloco.fin-dre-paralelo thead th.fin-dre-col-tot { background: #5a6a7e; }

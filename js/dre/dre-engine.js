@@ -291,8 +291,8 @@ const DRE = (() => {
       paralelo ? '<span class="fin-dre-tag-paralelo">NÃO SOMA</span>' : ''}</th>`);
     for (let i = estado.mesInicio; i <= estado.mesFim; i++) th.push(`<th>${MESES[i]}</th>`);
     th.push('<th class="fin-dre-col-tot">TOT</th>');
-    th.push('<th>MÉD/ANO</th>');
-    th.push('<th>%</th>');
+    th.push('<th class="fin-dre-col-med">MÉD/ANO</th>');
+    th.push('<th class="fin-dre-col-pct-h">%</th>');
     return `<thead><tr>${th.join('')}</tr></thead>`;
   }
 
@@ -307,7 +307,7 @@ const DRE = (() => {
       for (let i = estado.mesInicio; i <= estado.mesFim; i++)
         tds.push(`<td class="${cls(l.meses[i])}">${fmt(l.meses[i])}</td>`);
       tds.push(`<td class="fin-dre-col-tot ${cls(l.total)}">${fmt(l.total)}</td>`);
-      tds.push(`<td class="${cls(l.med)}">${fmt(l.med)}</td>`);
+      tds.push(`<td class="fin-dre-col-med ${cls(l.med)}">${fmt(l.med)}</td>`);
       tds.push(`<td class="fin-dre-col-pct">${fmtPct(l.pct)}</td>`);
       return `<tr>${tds.join('')}</tr>`;
     }).join('') : `<tr><td colspan="${(estado.mesFim - estado.mesInicio + 1) + 4}" class="fin-tabela-vazia">
@@ -317,8 +317,8 @@ const DRE = (() => {
     const rodape = [`<td class="fin-dre-col-conta">${prefixo} TOTAL ${esc(item.nome)}</td>`];
     for (let i = estado.mesInicio; i <= estado.mesFim; i++)
       rodape.push(`<td>${fmt(g.meses[i])}</td>`);
-    rodape.push(`<td>${fmt(g.total)}</td>`);
-    rodape.push(`<td>${fmt(g.med)}</td>`);
+    rodape.push(`<td class="fin-dre-col-tot-foot">${fmt(g.total)}</td>`);
+    rodape.push(`<td class="fin-dre-col-med-foot">${fmt(g.med)}</td>`);
     const receita = estado.bdDre.filter(l => l.s_e === 'E').reduce((s,l)=>s+l.total,0);
     rodape.push(`<td>${fmtPct(receita ? g.total / receita : 0)}</td>`);
 
@@ -332,16 +332,29 @@ const DRE = (() => {
       </div></div>`;
   }
 
+  // Linha de resultado: tabela com mês a mês igual ao bloco, fundo verde/vermelho/navy.
   function renderResultado(item, res) {
     const v = res.total[item.chave];
+    const meses = res.serie[item.chave] || [];
     const margem = res.base ? v / res.base : 0;
-    const cls = item.base ? '' : (v >= 0 ? ' fin-dre-pos' : ' fin-dre-neg');
-    return `<div class="fin-dre-resultado${cls}">
-      <span class="fin-dre-res-nome">${esc(item.nome)}</span>
-      <span class="fin-dre-res-valor">${fmt(v)}</span>
-      <span class="fin-dre-res-margem">${
-        item.base ? 'base de margem' : 'margem ' + fmtPct(margem)}</span>
-    </div>`;
+    const med = mesesDoRecorte() > 0 ? v / mesesDoRecorte() : 0;
+
+    const cls = item.base ? 'fin-dre-res-base'
+              : (v >= 0 ? 'fin-dre-res-pos' : 'fin-dre-res-neg');
+
+    const tds = [`<td class="fin-dre-col-conta">${esc(item.nome)}</td>`];
+    for (let i = estado.mesInicio; i <= estado.mesFim; i++)
+      tds.push(`<td>${fmt(meses[i] || 0)}</td>`);
+    tds.push(`<td class="fin-dre-col-tot">${fmt(v)}</td>`);
+    tds.push(`<td class="fin-dre-col-med">${fmt(med)}</td>`);
+    tds.push(`<td class="fin-dre-col-pct">${item.base ? '—' : fmtPct(margem)}</td>`);
+
+    return `<div class="fin-dre-resultado-bloco">
+      <div class="fin-dre-bloco-scroll">
+        <table class="fin-dre-tabela">
+          <tbody><tr class="fin-dre-resultado-tr ${cls}">${tds.join('')}</tr></tbody>
+        </table>
+      </div></div>`;
   }
 
   function renderDRE() {
