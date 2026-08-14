@@ -10573,6 +10573,7 @@ h1, h2, h3, h4,
   border: 1px solid rgba(139,144,164,.22) !important;
   color: var(--brand-ink) !important;
   box-shadow: 0 24px 60px rgba(14,20,36,.08) !important;
+  border-radius: var(--radius, 16px) !important;
 }
 
 .lp-highlight-card-primary,
