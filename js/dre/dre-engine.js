@@ -95,6 +95,25 @@ const DRE = (() => {
 
   const mesesDoRecorte = () => estado.mesFim - estado.mesInicio + 1;
 
+  const parseData = v => {
+    if (!v) return null;
+    const s = String(v).trim();
+    const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (br) return new Date(Date.UTC(Number(br[3]), Number(br[2]) - 1, Number(br[1])));
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return new Date(Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])));
+    const d = new Date(s);
+    return isNaN(d) ? null : d;
+  };
+
+  const dataBR = v => {
+    if (!v) return '';
+    const s = String(v).trim();
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return iso ? `${iso[3]}/${iso[2]}/${iso[1]}` : s;
+  };
+
   /* ---------- 4. ESTÁGIO 1: PLANO_CONTAS ---------- */
 
   // Indexa o plano por nome de conta. É a chave do PROCV.
@@ -116,8 +135,8 @@ const DRE = (() => {
     const idx = indexarPlano();
     return estado.lancamentos.map(l => {
       const c = idx.get(norm(l.conta));
-      const d = new Date(l.dt_caixa);
-      const valido = !isNaN(d);
+      const d = parseData(l.dt_caixa);
+      const valido = d && !isNaN(d);
       // ISO date strings ("2024-01-15") são UTC midnight. getFullYear/getMonth usam
       // fuso local — no Brasil (UTC-3) viram o dia anterior. getUTC* evita isso.
       return {
@@ -567,7 +586,7 @@ const DRE = (() => {
     }
     const rows = bd.map((l, i) => `<tr>
       <td>${esc(i + 1)}</td>
-      <td>${esc(l.dt_caixa)}</td>
+      <td>${esc(dataBR(l.dt_caixa))}</td>
       <td>${esc(l.conta)}</td>
       <td><span class="fin-dre-chip-grupo">${esc(l.grupo)}</span></td>
       <td>${esc(l.s_e)}</td>
@@ -841,7 +860,7 @@ const DRE = (() => {
 
   function montarFiltros() {
     const anos = [...new Set(estado.lancamentos
-      .map(l => { const d = new Date(l.dt_caixa); return isNaN(d) ? null : d.getUTCFullYear(); })
+      .map(l => { const d = parseData(l.dt_caixa); return (d && !isNaN(d)) ? d.getUTCFullYear() : null; })
       .filter(v => v !== null))].sort();
     if (!anos.length) anos.push(new Date().getFullYear());
     estado.ano = estado.ano ?? anos[anos.length - 1];

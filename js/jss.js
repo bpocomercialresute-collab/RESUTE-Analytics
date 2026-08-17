@@ -65,6 +65,7 @@ var GRIDS = {}, GRID_DATA_STORE = {}, FULL_DATA = {}, JSS_FILTERS = {}, JSS_FILT
 // LITEGRID
 // =============================================================================
 function liteGridRenderCell(key, ci, val, td) {
+  if (typeof _dreRenderCell === 'function' && _dreRenderCell(key, ci, val, td)) return;
   if (typeof _dreRenderToggle === 'function' && _dreRenderToggle(key, ci, val, td)) return;
   td.textContent = val;
 }
@@ -523,8 +524,7 @@ LiteGrid.prototype._render = function() {
     var r = rows[ri] || [];
     html += '<tr><td class="lg-rn" style="width:42px;min-width:42px;max-width:42px">'+(from+ri+1)+'</td>';
     for (var ci = 0; ci < def.cols.length; ci++) {
-      var v = (r[ci]!==undefined&&r[ci]!==null) ? r[ci] : '';
-      html += def.cols[ci].auto ? '<td class="lg-auto">'+v+'</td>' : '<td>'+v+'</td>';
+      html += def.cols[ci].auto ? '<td class="lg-auto"></td>' : '<td></td>';
     }
     html += '</tr>';
   }
@@ -540,7 +540,7 @@ LiteGrid.prototype._render = function() {
       for (var cix = 0; cix < def.cols.length; cix++) {
         var td = tds[cix+1];
         var val = (row[cix]!==undefined&&row[cix]!==null) ? row[cix] : '';
-        if (td && typeof _dreRenderToggle === 'function') _dreRenderToggle(this.key, cix, val, td);
+        if (td) liteGridRenderCell(this.key, cix, val, td);
       }
     }
   }

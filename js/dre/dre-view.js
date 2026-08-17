@@ -411,6 +411,35 @@ function _dreNormalizarData(v) {
   return m ? (m[3] + '-' + m[2] + '-' + m[1]) : String(v);
 }
 
+/**
+ * Exibe datas no padrão brasileiro (DD/MM/AAAA).
+ * Mantém vazio quando a célula está vazia e não força texto inválido.
+ */
+function _dreDataParaBR(v) {
+  if (!v) return '';
+  var s = String(v).trim();
+  var br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (br) return s;
+  var iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return iso[3] + '/' + iso[2] + '/' + iso[1];
+  return s;
+}
+
+/**
+ * Parse UTC seguro para datas do DRE em BR ou ISO.
+ * Evita que o fuso do Brasil jogue a data para o dia anterior.
+ */
+function _dreParseDataUTC(v) {
+  if (!v) return null;
+  var s = String(v).trim();
+  var br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (br) return new Date(Date.UTC(Number(br[3]), Number(br[2]) - 1, Number(br[1])));
+  var iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return new Date(Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])));
+  var d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+
 function _dreNormalizarDatasRegistro(r) {
   var out = Object.assign({}, r);
   ['dt_caixa', 'dt_venc', 'dt_pag', 'dt_custoria'].forEach(function(k) {
@@ -646,6 +675,14 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
     if (ci !== 3 && ci !== 4) return false;
     td.innerHTML = window._dreRenderToggleHtml(ci, val);
     return true;
+  };
+
+  window._dreRenderCell = function(key, ci, val, td) {
+    if (key === 'dre_bd' && (ci === 0 || ci === 1 || ci === 2 || ci === 15)) {
+      td.textContent = _dreDataParaBR(val);
+      return true;
+    }
+    return false;
   };
 
   GRID_DEFS['dre_bd'] = { cols: [
@@ -894,8 +931,8 @@ function _dreBDDrePopularFiltros() {
   if (selAno) {
     var anos = {};
     (DRE.estado.lancamentos || []).forEach(function(l) {
-      var d = l.dt_caixa ? new Date(l.dt_caixa) : null;
-      if (d && !isNaN(d)) anos[d.getFullYear()] = true;
+      var d = _dreParseDataUTC(l.dt_caixa);
+      if (d && !isNaN(d)) anos[d.getUTCFullYear()] = true;
     });
     if (DRE.estado.ano) anos[DRE.estado.ano] = true;
     var lista = Object.keys(anos).sort();
@@ -1070,7 +1107,7 @@ function _dreAtualizarDerivadasBD(gridBD) {
     // ISO date strings ("2024-01-15") são UTC midnight — usar getUTC* para evitar
     // que o fuso local (Brasil UTC-3) vire o dia anterior em mês/ano.
     var dt = String(r[0] || '');
-    var d  = dt ? new Date(dt) : null;
+    var d  = _dreParseDataUTC(dt);
     var ok = d && !isNaN(d);
 
     r[23] = ok ? d.getUTCFullYear()                  : '';  // ANO
@@ -1092,10 +1129,9 @@ function _dreAtualizarDerivadasBD(gridBD) {
 
     // DT_VENC = indice 1
     var dtv = String(r[1] || '');
-    var dv  = dtv ? new Date(dtv) : null;
+    var dv  = _dreParseDataUTC(dtv);
     var okv = dv && !isNaN(dv);
     if (okv) {
-      dv.setHours(0,0,0,0);
       r[24] = dv < hoje ? 'VENCIDO' : 'NO PRAZO';  // VENC
     } else {
       r[24] = '';
@@ -1183,9 +1219,9 @@ function _drePlanoDeRows(rows) {
 function _dreRowsBD(lancs) {
   return (lancs || []).map(function(l) {
     return [
-      l.dt_caixa     || '',                                  // 1:  DT_CAIXA
-      l.dt_venc      || '',                                  // 2:  DT_VENC
-      l.dt_pag       || '',                                  // 3:  DT_PAG
+      _dreDataParaBR(l.dt_caixa),                            // 1:  DT_CAIXA
+      _dreDataParaBR(l.dt_venc),                             // 2:  DT_VENC
+      _dreDataParaBR(l.dt_pag),                              // 3:  DT_PAG
       l.conta        || '',                                  // 4:  CONTA
       l.tipo         || '',                                  // 5:  TIPO
       l.valor     != null ? l.valor     : '',                // 6:  VALOR
@@ -1198,7 +1234,7 @@ function _dreRowsBD(lancs) {
       l.tot_parcelas || '',                                  // 13: TOT_PARCELAS
       l.obs          || '',                                  // 14: OBS
       l.cnpj         || '',                                  // 15: CNPJ
-      l.dt_custoria  || '',                                  // 16: DT CUSTORIA
+      _dreDataParaBR(l.dt_custoria),                         // 16: DT CUSTORIA
       l.historico    || '',                                  // 17: Histórico
       '', '', '', '', '', '', '', '', '', '', '', '', ''     // 18-30: auto
     ];
