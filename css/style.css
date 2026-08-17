@@ -11212,6 +11212,36 @@ body.bpo-admin-mode .admin-console-notice {
   margin-bottom: 10px !important;
 }
 
+/* Sync module cards: keep status badges inside compact four-column cards. */
+body.bpo-admin-mode .adm-module-card {
+  overflow: hidden !important;
+}
+
+body.bpo-admin-mode .adm-module-top {
+  min-width: 0 !important;
+  gap: 8px !important;
+}
+
+body.bpo-admin-mode .adm-module-name {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow-wrap: anywhere !important;
+}
+
+body.bpo-admin-mode .adm-module-badge {
+  flex: 0 1 auto !important;
+  max-width: 108px !important;
+  min-width: 0 !important;
+  justify-content: center !important;
+  padding: 5px 8px !important;
+  font-size: 8px !important;
+  line-height: 1.15 !important;
+  letter-spacing: 0.08em !important;
+  text-align: center !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    ADMIN OVERVIEW — coluna única, tudo compacto e próximo
    ═══════════════════════════════════════════════════════════════════ */
