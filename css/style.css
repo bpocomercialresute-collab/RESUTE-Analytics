@@ -11344,48 +11344,47 @@ body.bpo-admin-mode .admin-status-badge {
   font-size: 8px !important;
 }
 
-/* Cliente mobile: reorganiza topo, filtros e cards sem alterar a lógica. */
+/* Cliente mobile: topo compacto, filtros em carrossel e conteudo sem sobreposicao. */
 @media (max-width: 720px) {
   #view-dash-cliente {
-    overflow: hidden !important;
     background: #EEF7F5 !important;
+    overflow: hidden !important;
   }
 
   #view-dash-cliente .dc-header {
-    position: relative !important;
     display: grid !important;
-    grid-template-columns: 1fr !important;
-    align-items: stretch !important;
-    gap: 10px !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px !important;
     height: auto !important;
-    min-height: 0 !important;
-    padding: 10px 14px 12px !important;
-    background: rgba(255,255,255,.96) !important;
-    border-bottom: 1px solid rgba(12,79,76,.14) !important;
-    box-shadow: 0 10px 28px rgba(14,20,36,.08) !important;
-    z-index: 30 !important;
+    min-height: 92px !important;
+    padding: 8px 12px 10px !important;
+    background: rgba(255,255,255,.98) !important;
+    border-bottom: 1px solid rgba(12,79,76,.12) !important;
+    box-shadow: 0 8px 24px rgba(14,20,36,.08) !important;
+    z-index: 20 !important;
   }
 
   #view-dash-cliente .dc-header-left {
-    display: grid !important;
-    grid-template-columns: auto 1fr !important;
+    display: flex !important;
     align-items: center !important;
     gap: 8px !important;
     min-width: 0 !important;
+    width: 100% !important;
   }
 
   #view-dash-cliente .dc-client-logo {
-    width: 92px !important;
-    max-height: 34px !important;
+    width: 86px !important;
+    max-height: 30px !important;
     object-fit: contain !important;
+    flex: 0 0 auto !important;
   }
 
   #view-dash-cliente .dc-modulos {
-    width: 100% !important;
-    margin: 0 !important;
     display: flex !important;
-    justify-content: flex-end !important;
+    align-items: center !important;
     gap: 6px !important;
+    margin-left: auto !important;
+    width: auto !important;
     min-width: 0 !important;
   }
 
@@ -11394,37 +11393,57 @@ body.bpo-admin-mode .admin-status-badge {
   }
 
   #view-dash-cliente .dc-modulos-btn {
-    min-width: 38px !important;
-    min-height: 34px !important;
-    padding: 7px 10px !important;
+    min-width: 34px !important;
+    min-height: 32px !important;
+    width: 34px !important;
+    height: 32px !important;
+    padding: 0 !important;
     border-radius: 999px !important;
+    justify-content: center !important;
   }
 
   #view-dash-cliente .dc-modulos-btn span {
     display: none !important;
   }
 
-  #view-dash-cliente .dc-admin-preview-badge {
-    grid-column: 1 / -1 !important;
-    width: fit-content !important;
-    max-width: 100% !important;
-    font-size: 10px !important;
-    padding: 5px 9px !important;
+  #view-dash-cliente .dc-admin-preview-badge,
+  #view-dash-cliente .dc-header-empresa {
+    display: none !important;
+  }
+
+  #view-dash-cliente .dc-btn-sair {
+    position: static !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    border-radius: 999px !important;
+    margin-left: 4px !important;
+    flex: 0 0 auto !important;
   }
 
   #view-dash-cliente .dc-header-right {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    align-items: stretch !important;
-    gap: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
     width: 100% !important;
     min-width: 0 !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 1px 0 3px !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+
+  #view-dash-cliente .dc-header-right::-webkit-scrollbar {
+    display: none !important;
   }
 
   #view-dash-cliente .dc-filtro {
-    width: 100% !important;
-    min-width: 0 !important;
-    height: 38px !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 118px !important;
+    max-width: 170px !important;
+    height: 36px !important;
     padding: 7px 10px !important;
     border-radius: 11px !important;
     font-size: 11px !important;
@@ -11433,29 +11452,30 @@ body.bpo-admin-mode .admin-status-badge {
   }
 
   #view-dash-cliente #dc-filtro-ano {
-    min-width: 0 !important;
+    min-width: 82px !important;
   }
 
   #view-dash-cliente #dc-filtro-mes {
-    min-width: 0 !important;
+    min-width: 138px !important;
+  }
+
+  #view-dash-cliente #dc-filtro-inicio,
+  #view-dash-cliente #dc-filtro-fim {
+    min-width: 136px !important;
   }
 
   #view-dash-cliente .dc-loja-selector {
-    grid-column: 1 / -1 !important;
     display: flex !important;
-    width: 100% !important;
+    align-items: center !important;
     gap: 6px !important;
-    overflow-x: auto !important;
-    padding: 1px 0 2px !important;
-    -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: none !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: max-content !important;
+    overflow: visible !important;
+    padding: 0 !important;
   }
 
   #view-dash-cliente .dc-loja-selector:empty {
-    display: none !important;
-  }
-
-  #view-dash-cliente .dc-loja-selector::-webkit-scrollbar {
     display: none !important;
   }
 
@@ -11469,105 +11489,103 @@ body.bpo-admin-mode .admin-status-badge {
   }
 
   #view-dash-cliente .dc-sync-badge {
-    max-width: none !important;
-    min-height: 36px !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    max-width: 150px !important;
+    min-height: 34px !important;
     padding: 7px 10px !important;
     justify-content: center !important;
-    font-size: 10px !important;
-    line-height: 1.15 !important;
-    white-space: normal !important;
-    text-align: center !important;
+    font-size: 9px !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
   }
 
   #view-dash-cliente .dc-btn-atualizar {
-    width: 100% !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 116px !important;
     min-height: 36px !important;
-    padding: 8px 12px !important;
+    padding: 8px 14px !important;
     justify-content: center !important;
     border-radius: 11px !important;
     font-size: 11px !important;
   }
 
   #view-dash-cliente .dc-header-status {
-    grid-column: 1 / -1 !important;
+    flex: 0 0 auto !important;
+    max-width: 160px !important;
     min-height: 0 !important;
     font-size: 10px !important;
-    text-align: center !important;
-    overflow-wrap: anywhere !important;
+    white-space: nowrap !important;
   }
 
   #view-dash-cliente .dc-admin-back {
-    grid-column: 1 / -1 !important;
-    width: 100% !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 120px !important;
     min-height: 36px !important;
     justify-content: center !important;
     font-size: 11px !important;
   }
 
-  #view-dash-cliente .dc-btn-sair {
-    position: absolute !important;
-    top: 10px !important;
-    right: 12px !important;
-    width: 34px !important;
-    height: 34px !important;
-    border-radius: 999px !important;
-    background: rgba(255,255,255,.9) !important;
-  }
-
   #view-dash-cliente .dc-main {
-    padding: 14px 14px 46px !important;
+    padding: 12px 12px 44px !important;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch !important;
   }
 
   #view-dash-cliente .dc-hero {
-    margin: 0 0 12px !important;
+    margin: 0 0 10px !important;
   }
 
   #view-dash-cliente .dc-hero-copy {
-    padding: 14px !important;
-    border-radius: 16px !important;
+    padding: 12px !important;
+    border-radius: 14px !important;
+    overflow: visible !important;
   }
 
   #view-dash-cliente .dc-hero-title {
-    font-size: 22px !important;
+    font-size: 21px !important;
     line-height: 1.08 !important;
     margin: 0 0 8px !important;
+    overflow-wrap: anywhere !important;
   }
 
   #view-dash-cliente .dc-periodo-label {
-    margin: 0 0 10px !important;
+    margin: 0 0 9px !important;
     font-size: 10px !important;
   }
 
   #view-dash-cliente .dc-hero-bar {
     display: grid !important;
     grid-template-columns: 1fr !important;
-    gap: 8px !important;
+    gap: 7px !important;
   }
 
   #view-dash-cliente .dc-hero-pills {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
+    gap: 7px !important;
     width: 100% !important;
   }
 
   #view-dash-cliente .dc-pill-btn {
     width: 100% !important;
-    min-height: 38px !important;
+    min-height: 36px !important;
     padding: 8px 10px !important;
     font-size: 10px !important;
-    border-radius: 11px !important;
+    border-radius: 10px !important;
   }
 
   #view-dash-cliente .dc-ordem-select {
     margin-left: 0 !important;
     width: 100% !important;
+    max-width: none !important;
   }
 
   #view-dash-cliente .dc-section {
-    margin-top: 12px !important;
+    margin-top: 11px !important;
   }
 
   #view-dash-cliente .dc-section-title {
@@ -11598,6 +11616,7 @@ body.bpo-admin-mode .admin-status-badge {
   #view-dash-cliente .dc-card {
     padding: 14px !important;
     border-radius: 14px !important;
+    overflow: hidden !important;
   }
 
   #view-dash-cliente .dc-grid-2,
@@ -11609,7 +11628,14 @@ body.bpo-admin-mode .admin-status-badge {
 
   #view-dash-cliente .dc-chart-box,
   #view-dash-cliente .dc-chart-box-tall {
+    width: 100% !important;
+    max-width: 100% !important;
     height: 230px !important;
+    overflow: hidden !important;
+  }
+
+  #view-dash-cliente canvas {
+    max-width: 100% !important;
   }
 
   #view-dash-cliente .dc-panel-tools,
@@ -11639,23 +11665,17 @@ body.bpo-admin-mode .admin-status-badge {
   }
 }
 
-@media (max-width: 420px) {
-  #view-dash-cliente .dc-header {
-    padding-left: 12px !important;
-    padding-right: 12px !important;
+@media (max-width: 380px) {
+  #view-dash-cliente .dc-main {
+    padding-inline: 10px !important;
   }
 
-  #view-dash-cliente .dc-header-right {
-    grid-template-columns: 1fr !important;
+  #view-dash-cliente .dc-header {
+    padding-inline: 10px !important;
   }
 
   #view-dash-cliente .dc-client-logo {
-    width: 82px !important;
-  }
-
-  #view-dash-cliente .dc-modulos-btn {
-    min-width: 34px !important;
-    padding-inline: 8px !important;
+    width: 76px !important;
   }
 
   #view-dash-cliente .dc-hero-pills {

@@ -1035,14 +1035,21 @@ function _abrirDashCliente(empresaIdPreview) {
     var eObj = empresaPreview
       || (ADMIN_PREVIEW_COMPANIES || []).find(function(e){ return e.empresa_id === eidAtual; })
       || (EMPRESAS_ADMIN || []).find(function(e){ return e.empresa_id === eidAtual; });
+    var slugLogo = String((eObj && eObj.slug) || (SESSION && SESSION.empresa_slug) || '').toLowerCase();
     var logoSrc = (eObj && eObj.logo_url)
-      || ((eObj && eObj.slug) ? 'assets/' + eObj.slug + '-logo.png' : null)
-      || ((SESSION && SESSION.empresa_slug) ? 'assets/' + SESSION.empresa_slug + '-logo.png' : null);
+      || ((slugLogo && slugLogo !== 'plastrio' && slugLogo !== 'vm-treino') ? 'assets/' + slugLogo + '-logo.png' : null)
+      || 'assets/varremaster-logo.png';
     if (logoSrc) {
       logo.src = logoSrc;
       logo.alt = eObj ? (eObj.nome || '') : '';
       logo.style.display = '';
-      logo.onerror = function() { this.style.display = 'none'; };
+      logo.onerror = function() {
+        if (this.src.indexOf('varremaster-logo.png') === -1) {
+          this.src = 'assets/varremaster-logo.png';
+        } else {
+          this.style.display = 'none';
+        }
+      };
     } else {
       logo.removeAttribute('src');
       logo.style.display = 'none';
@@ -1678,6 +1685,10 @@ function dcSetUltimaSync(texto, ok) {
 async function dcCarregarUltimaSync(eid) {
   if (!eid) {
     dcSetUltimaSync('Empresa nao selecionada', false);
+    return;
+  }
+  if (SESSION && SESSION.papel === 'cliente') {
+    dcSetUltimaSync('Dados carregados', true);
     return;
   }
   try {
