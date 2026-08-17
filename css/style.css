@@ -11687,3 +11687,178 @@ body.bpo-admin-mode .admin-status-badge {
     height: 210px !important;
   }
 }
+
+/* Cliente mobile compacto: experiencia propria para celular, sem desktop espremido. */
+@media (max-width: 720px) {
+  #view-dash-cliente .dc-header {
+    min-height: 74px !important;
+    gap: 6px !important;
+    padding: 7px 10px 8px !important;
+  }
+
+  #view-dash-cliente .dc-client-logo {
+    width: 68px !important;
+    max-height: 24px !important;
+  }
+
+  #view-dash-cliente .dc-modulos-btn,
+  #view-dash-cliente .dc-btn-sair {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+  }
+
+  #view-dash-cliente .dc-header-right {
+    gap: 6px !important;
+    padding-bottom: 2px !important;
+  }
+
+  #view-dash-cliente .dc-filtro {
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 6px 9px !important;
+    border-radius: 10px !important;
+    font-size: 10px !important;
+  }
+
+  #view-dash-cliente #dc-filtro-ano {
+    min-width: 76px !important;
+  }
+
+  #view-dash-cliente #dc-filtro-mes {
+    min-width: 120px !important;
+  }
+
+  #view-dash-cliente #dc-filtro-inicio,
+  #view-dash-cliente #dc-filtro-fim {
+    min-width: 124px !important;
+  }
+
+  #view-dash-cliente .dc-loja-btn {
+    height: 32px !important;
+    padding: 6px 10px !important;
+    font-size: 10px !important;
+  }
+
+  #view-dash-cliente .dc-sync-badge,
+  #view-dash-cliente .dc-header-status {
+    display: none !important;
+  }
+
+  #view-dash-cliente .dc-btn-atualizar {
+    min-width: 96px !important;
+    min-height: 34px !important;
+    padding: 7px 11px !important;
+    font-size: 10px !important;
+  }
+
+  #view-dash-cliente .dc-main {
+    padding: 10px 10px 34px !important;
+  }
+
+  #view-dash-cliente .dc-hero {
+    margin-bottom: 8px !important;
+  }
+
+  #view-dash-cliente .dc-hero-copy {
+    padding: 10px 11px !important;
+    border-radius: 12px !important;
+  }
+
+  #view-dash-cliente .dc-hero-title {
+    margin-bottom: 6px !important;
+    font-size: 18px !important;
+    line-height: 1.08 !important;
+  }
+
+  #view-dash-cliente .dc-periodo-label {
+    display: none !important;
+  }
+
+  #view-dash-cliente .dc-hero-bar {
+    gap: 6px !important;
+  }
+
+  #view-dash-cliente .dc-hero-pills {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+
+  #view-dash-cliente .dc-pill-btn {
+    min-height: 32px !important;
+    padding: 6px 8px !important;
+    font-size: 9px !important;
+  }
+
+  #view-dash-cliente .dc-ordem-select {
+    display: none !important;
+  }
+
+  #view-dash-cliente .dc-section {
+    margin-top: 8px !important;
+  }
+
+  #view-dash-cliente .dc-section-title {
+    margin: 6px 1px 7px !important;
+    font-size: 11px !important;
+  }
+
+  #view-dash-cliente .dc-kpis-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+  }
+
+  #view-dash-cliente .dc-kpi-card {
+    min-height: 50px !important;
+    padding: 9px 10px !important;
+    border-radius: 10px !important;
+  }
+
+  #view-dash-cliente .dc-kpi-label {
+    font-size: 8px !important;
+    letter-spacing: .05em !important;
+  }
+
+  #view-dash-cliente .dc-kpi-value {
+    font-size: 17px !important;
+    line-height: 1.1 !important;
+  }
+
+  #view-dash-cliente .dc-card {
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  #view-dash-cliente .dc-card-title {
+    margin-bottom: 6px !important;
+    font-size: 10px !important;
+  }
+
+  #view-dash-cliente .dc-chart-box,
+  #view-dash-cliente .dc-chart-box-tall {
+    height: 185px !important;
+    min-height: 185px !important;
+  }
+
+  #view-dash-cliente .dc-tabela-wrap {
+    max-height: 230px !important;
+  }
+
+  #view-dash-cliente .dc-footer {
+    display: none !important;
+  }
+}
+
+@media (max-width: 380px) {
+  #view-dash-cliente .dc-hero-pills,
+  #view-dash-cliente .dc-kpis-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  #view-dash-cliente .dc-chart-box,
+  #view-dash-cliente .dc-chart-box-tall {
+    height: 170px !important;
+    min-height: 170px !important;
+  }
+}
