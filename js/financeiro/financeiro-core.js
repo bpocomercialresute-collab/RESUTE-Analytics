@@ -121,18 +121,24 @@ function _finMontarHeader() {
 
   var logo = document.querySelector('#view-dash-financeiro .fin-client-logo');
   if (logo) {
-    var slug = (empresaPreview && empresaPreview.slug)
-      || ((typeof SESSION !== 'undefined' && SESSION) ? SESSION.empresa_slug : null);
+    var slug = String((empresaPreview && empresaPreview.slug)
+      || ((typeof SESSION !== 'undefined' && SESSION) ? SESSION.empresa_slug : '')
+      || '').toLowerCase();
     var logoSrc = (empresaPreview && empresaPreview.logo_url)
-      || (slug ? 'assets/' + slug + '-logo.png' : null);
-    if (logoSrc) {
-      logo.src = logoSrc;
-      logo.style.display = '';
-      logo.onerror = function() { this.style.display = 'none'; };
-    } else {
-      logo.removeAttribute('src');
-      logo.style.display = 'none';
-    }
+      || ((slug && slug !== 'plastrio' && slug !== 'vm-treino') ? 'assets/' + slug + '-logo.png' : null)
+      || 'assets/varremaster-logo.png';
+    logo.src = logoSrc;
+    logo.alt = (empresaPreview && empresaPreview.nome)
+      || ((typeof SESSION !== 'undefined' && SESSION) ? (SESSION.empresa_nome || '') : '')
+      || 'Varremaster';
+    logo.style.display = '';
+    logo.onerror = function() {
+      if (this.src.indexOf('varremaster-logo.png') === -1) {
+        this.src = 'assets/varremaster-logo.png';
+      } else {
+        this.style.display = 'none';
+      }
+    };
   }
 
   var voltar = document.getElementById('fin-admin-back');
