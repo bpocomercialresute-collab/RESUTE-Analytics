@@ -2510,6 +2510,7 @@ function _dcOptsLabels(horizontal, fmtFn, pad) {
 function _dcOpts(horizontal) {
   return {
     responsive: true, maintainAspectRatio: false,
+    animation: false,
     indexAxis: horizontal ? 'y' : 'x',
     plugins: { legend: { display: false },
       tooltip: { callbacks: { label: function(c){ return ' ' + dcNumeroLimpo(c.raw, 0); } } },
@@ -2576,7 +2577,8 @@ function dcAtualizarLegendaEvolucao(chart) {
       var visivel = chart.isDatasetVisible ? chart.isDatasetVisible(idx) : !chart.getDatasetMeta(idx).hidden;
       if (chart.setDatasetVisibility) chart.setDatasetVisibility(idx, !visivel);
       else chart.getDatasetMeta(idx).hidden = visivel;
-      chart.update();
+      chart.update('none');
+      dcAtualizarLegendaEvolucao(chart);
     };
   });
 }
@@ -2616,6 +2618,7 @@ function dcChartEvolucao(rows) {
     type: 'line',
     data: { labels: MESES, datasets: datasets },
     options: Object.assign(dcChartOpts(''), {
+      animation: false,
       layout: { padding: { top: 52, right: 8, left: 8 } },
       plugins: {
         legend: { display: false },
@@ -2624,11 +2627,6 @@ function dcChartEvolucao(rows) {
       }
     }),
     plugins: [{
-      id: 'evoToggleLegend',
-      afterUpdate: function(chart) {
-        dcAtualizarLegendaEvolucao(chart);
-      }
-    }, {
       id: 'evoLabels',
       afterDraw: function(chart) {
         var c = chart.ctx;
@@ -2653,6 +2651,7 @@ function dcChartEvolucao(rows) {
       }
     }]
   });
+  dcAtualizarLegendaEvolucao(DC_CHARTS['evolucao']);
 }
 
 // ── TRIMESTRES ────────────────────────────────────────────────────────────────
@@ -2700,6 +2699,7 @@ function dcDestroyChart(id) {
 function dcChartOpts(prefix) {
   return {
     responsive: true, maintainAspectRatio: false,
+    animation: false,
     plugins: {
       legend: { display: false },
       tooltip: { callbacks: { label: function(c){ return ' ' + dcNumeroLimpo(c.raw, 0); } } },
