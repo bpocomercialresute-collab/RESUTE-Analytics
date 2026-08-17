@@ -5026,25 +5026,11 @@ adminSincronizar = async function() {
 };
 
 function _adminMostrarKpisSync(regs) {
-  var fat = regs.reduce(function(s,r){ return s + dcValorLinha(r); }, 0);
-  var cli = new Set(regs.map(function(r){ return r.cliente; }).filter(Boolean)).size;
-  var prd = new Set(regs.map(function(r){ return r.produto; }).filter(Boolean)).size;
-  var extra = arguments[1] || {};
-  var kpis = [
-    { val: regs.length.toLocaleString('pt-BR'), lbl: 'Registros' },
-    { val: dcMoedaLimpa(fat),                   lbl: 'Faturamento' },
-    { val: cli.toLocaleString('pt-BR'),         lbl: 'Clientes' },
-    { val: prd.toLocaleString('pt-BR'),         lbl: 'Produtos' }
-  ];
-  if (extra.representantes && extra.representantes.count) {
-    kpis.push({ val: Number(extra.representantes.count).toLocaleString('pt-BR'), lbl: 'Representantes API' });
-  }
   var el = document.getElementById('adm-api-kpis');
-  if (!el) return;
-  el.innerHTML = kpis.map(function(k){
-    return '<div class="adm-kpi"><div class="adm-kpi-val">'+k.val+'</div><div class="adm-kpi-lbl">'+k.lbl+'</div></div>';
-  }).join('');
-  el.style.display = 'grid';
+  if (el) {
+    el.innerHTML = '';
+    el.style.display = 'none';
+  }
 }
 
 function _adminConsoleRecarregarSyncLog() {
