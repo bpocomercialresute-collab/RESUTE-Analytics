@@ -2548,6 +2548,39 @@ function _dcTabelaInativos(rows) {
   if (typeof dcTabelaInativos === 'function') dcTabelaInativos(rows);
 }
 
+function dcAtualizarLegendaEvolucao(chart) {
+  if (!chart || !chart.canvas || !chart.canvas.parentNode) return;
+  var box = chart.canvas.parentNode;
+  var legend = box.querySelector('.dc-chart-toggle-legend');
+  if (!legend) {
+    legend = document.createElement('div');
+    legend.className = 'dc-chart-toggle-legend';
+    box.insertBefore(legend, chart.canvas);
+  }
+
+  legend.innerHTML = chart.data.datasets.map(function(ds, i) {
+    var ativo = chart.isDatasetVisible ? chart.isDatasetVisible(i) : !chart.getDatasetMeta(i).hidden;
+    var cor = String(ds.borderColor || '#1C64C0');
+    return '<button type="button" class="dc-chart-year-toggle' + (ativo ? '' : ' is-off') + '"'
+      + ' data-index="' + i + '" style="--dc-year-color:' + cor + '">'
+      + '<span class="dc-year-check"></span>'
+      + '<span class="dc-year-line"></span>'
+      + '<strong>' + String(ds.label || '') + '</strong>'
+      + '</button>';
+  }).join('');
+
+  legend.querySelectorAll('.dc-chart-year-toggle').forEach(function(btn) {
+    btn.onclick = function() {
+      var idx = parseInt(btn.getAttribute('data-index'), 10);
+      if (isNaN(idx)) return;
+      var visivel = chart.isDatasetVisible ? chart.isDatasetVisible(idx) : !chart.getDatasetMeta(idx).hidden;
+      if (chart.setDatasetVisibility) chart.setDatasetVisibility(idx, !visivel);
+      else chart.getDatasetMeta(idx).hidden = visivel;
+      chart.update();
+    };
+  });
+}
+
 function dcChartEvolucao(rows) {
   var fonte = Array.isArray(DC_RAW) && DC_RAW.length ? DC_RAW : rows;
   var porAnoMes = {};
@@ -2583,14 +2616,19 @@ function dcChartEvolucao(rows) {
     type: 'line',
     data: { labels: MESES, datasets: datasets },
     options: Object.assign(dcChartOpts(''), {
-      layout: { padding: { top: 56, right: 8, left: 8 } },
+      layout: { padding: { top: 52, right: 8, left: 8 } },
       plugins: {
-        legend: { display: true, position: 'top', labels: { color: '#334155', font: { size: 11, weight: 700 }, padding: 16 } },
+        legend: { display: false },
         tooltip: { callbacks: { label: function(c){ return c.dataset.label + ': ' + dcValorCompacto(c.raw); } } },
         dcValueLabels: { display: false }
       }
     }),
     plugins: [{
+      id: 'evoToggleLegend',
+      afterUpdate: function(chart) {
+        dcAtualizarLegendaEvolucao(chart);
+      }
+    }, {
       id: 'evoLabels',
       afterDraw: function(chart) {
         var c = chart.ctx;

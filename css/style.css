@@ -11862,3 +11862,420 @@ body.bpo-admin-mode .admin-status-badge {
     min-height: 170px !important;
   }
 }
+
+/* Financeiro mobile compacto: reduz informacao secundaria e prioriza leitura. */
+@media (max-width: 720px) {
+  #view-dash-financeiro {
+    background: #EEF7F5 !important;
+    overflow: hidden !important;
+  }
+
+  #view-dash-financeiro .dc-header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 6px !important;
+    height: auto !important;
+    min-height: 74px !important;
+    padding: 7px 10px 8px !important;
+    background: rgba(255,255,255,.98) !important;
+    border-bottom: 1px solid #CBE4DF !important;
+    box-shadow: 0 8px 22px rgba(14,20,36,.08) !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 20 !important;
+  }
+
+  #view-dash-financeiro .dc-header-left {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    min-width: 0 !important;
+    gap: 7px !important;
+  }
+
+  #view-dash-financeiro .fin-client-logo {
+    width: 68px !important;
+    max-width: 68px !important;
+    max-height: 24px !important;
+    object-fit: contain !important;
+  }
+
+  #view-dash-financeiro .dc-header-empresa,
+  #view-dash-financeiro .dc-admin-preview-badge {
+    display: none !important;
+  }
+
+  #view-dash-financeiro .dc-modulos {
+    display: flex !important;
+    gap: 5px !important;
+    margin-left: auto !important;
+  }
+
+  #view-dash-financeiro .dc-modulos-btn {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+  }
+
+  #view-dash-financeiro .dc-modulos-btn span {
+    display: none !important;
+  }
+
+  #view-dash-financeiro .dc-btn-sair {
+    position: static !important;
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+  }
+
+  #view-dash-financeiro .dc-header-right {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 0 0 2px !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  #view-dash-financeiro .dc-header-right::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  #view-dash-financeiro .dc-filtro {
+    flex: 0 0 auto !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 6px 9px !important;
+    border-radius: 10px !important;
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+  }
+
+  #view-dash-financeiro #fin-filtro-ano {
+    min-width: 76px !important;
+  }
+
+  #view-dash-financeiro #fin-filtro-mes {
+    min-width: 120px !important;
+  }
+
+  #view-dash-financeiro #fin-filtro-inicio,
+  #view-dash-financeiro #fin-filtro-fim {
+    min-width: 124px !important;
+  }
+
+  #view-dash-financeiro .dc-btn-atualizar {
+    flex: 0 0 auto !important;
+    min-width: 96px !important;
+    min-height: 34px !important;
+    padding: 7px 11px !important;
+    font-size: 10px !important;
+  }
+
+  #view-dash-financeiro .dc-header-status {
+    display: none !important;
+  }
+
+  #view-dash-financeiro .dc-admin-back {
+    flex: 0 0 auto !important;
+    min-height: 34px !important;
+    padding: 7px 10px !important;
+    font-size: 10px !important;
+  }
+
+  #view-dash-financeiro .dc-main {
+    padding: 10px 10px 34px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  #view-dash-financeiro .dc-hero {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    margin: 0 0 8px !important;
+  }
+
+  #view-dash-financeiro .dc-hero-copy,
+  #view-dash-financeiro .dc-hero-actions {
+    padding: 10px 11px !important;
+    border-radius: 12px !important;
+    min-height: 0 !important;
+  }
+
+  #view-dash-financeiro .dc-hero-kicker,
+  #view-dash-financeiro .dc-hero-sub,
+  #view-dash-financeiro .dc-periodo-label,
+  #view-dash-financeiro .dc-executive-summary {
+    display: none !important;
+  }
+
+  #view-dash-financeiro .dc-hero-title {
+    margin: 0 !important;
+    font-size: 18px !important;
+    line-height: 1.08 !important;
+  }
+
+  #view-dash-financeiro .dc-hero-actions {
+    display: block !important;
+  }
+
+  #view-dash-financeiro .dc-action-btn {
+    min-height: 40px !important;
+    padding: 10px 12px !important;
+    border-radius: 12px !important;
+    font-size: 10px !important;
+  }
+
+  #view-dash-financeiro .dc-section {
+    margin-top: 8px !important;
+  }
+
+  #view-dash-financeiro .dc-kpis-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+  }
+
+  #view-dash-financeiro .dc-kpi-card {
+    min-height: 50px !important;
+    padding: 9px 10px !important;
+    border-radius: 10px !important;
+  }
+
+  #view-dash-financeiro .dc-kpi-label {
+    font-size: 8px !important;
+    letter-spacing: .05em !important;
+  }
+
+  #view-dash-financeiro .dc-kpi-value {
+    font-size: 17px !important;
+    line-height: 1.1 !important;
+  }
+
+  #view-dash-financeiro .dc-alert-grid {
+    display: none !important;
+  }
+
+  #view-dash-financeiro .fin-tabs {
+    gap: 5px !important;
+    margin-bottom: 8px !important;
+    overflow-x: auto !important;
+    padding-bottom: 2px !important;
+    scrollbar-width: none !important;
+  }
+
+  #view-dash-financeiro .fin-tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  #view-dash-financeiro .fin-tab {
+    flex: 0 0 auto !important;
+    border: 1px solid #CBE4DF !important;
+    border-radius: 999px !important;
+    padding: 7px 10px !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+  }
+
+  #view-dash-financeiro .fin-tab.active {
+    background: #1C64C0 !important;
+    border-color: #1C64C0 !important;
+    color: #FFFFFF !important;
+  }
+
+  #view-dash-financeiro .fin-pane .dc-card {
+    margin-bottom: 10px !important;
+  }
+
+  #view-dash-financeiro .dc-card {
+    padding: 10px !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+  }
+
+  #view-dash-financeiro .dc-card-title {
+    margin-bottom: 6px !important;
+    font-size: 10px !important;
+  }
+
+  #view-dash-financeiro .dc-card-note {
+    display: none !important;
+  }
+
+  #view-dash-financeiro .dc-grid-2,
+  #view-dash-financeiro .dc-grid-2-1,
+  #view-dash-financeiro .dc-grid-3-2 {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  #view-dash-financeiro .dc-chart-box,
+  #view-dash-financeiro .dc-chart-box-tall {
+    height: 185px !important;
+    min-height: 185px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  #view-dash-financeiro canvas {
+    max-width: 100% !important;
+  }
+
+  #view-dash-financeiro .dc-tabela-wrap {
+    max-height: 230px !important;
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  #view-dash-financeiro .dc-tabela {
+    min-width: 520px !important;
+    font-size: 11px !important;
+  }
+
+  #view-dash-financeiro .dc-footer {
+    display: none !important;
+  }
+}
+
+@media (max-width: 380px) {
+  #view-dash-financeiro .dc-kpis-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  #view-dash-financeiro .dc-chart-box,
+  #view-dash-financeiro .dc-chart-box-tall {
+    height: 170px !important;
+    min-height: 170px !important;
+  }
+}
+
+/* Legenda clicavel dos anos no grafico de evolucao mensal. */
+#view-dash-cliente .dc-chart-box {
+  position: relative;
+}
+
+.dc-chart-toggle-legend {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  left: 50%;
+  pointer-events: auto;
+  position: absolute;
+  top: 10px;
+  transform: translateX(-50%);
+  width: min(92%, 520px);
+  z-index: 3;
+}
+
+.dc-chart-year-toggle {
+  align-items: center;
+  background: #FFFFFF;
+  border: 1px solid color-mix(in srgb, var(--dc-year-color, #1C64C0) 70%, #FFFFFF);
+  border-radius: 999px;
+  box-shadow: 0 8px 18px rgba(14, 20, 36, .10);
+  color: #0E1424;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 7px;
+  min-height: 30px;
+  padding: 5px 10px;
+  transition: transform .16s ease, box-shadow .16s ease, opacity .16s ease, background .16s ease;
+  user-select: none;
+}
+
+.dc-chart-year-toggle:hover {
+  box-shadow: 0 10px 22px rgba(14, 20, 36, .14);
+  transform: translateY(-1px);
+}
+
+.dc-chart-year-toggle strong {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dc-year-check {
+  align-items: center;
+  background: var(--dc-year-color, #1C64C0);
+  border: 2px solid var(--dc-year-color, #1C64C0);
+  border-radius: 5px;
+  display: inline-flex;
+  height: 15px;
+  justify-content: center;
+  width: 15px;
+}
+
+.dc-year-check::after {
+  border: solid #FFFFFF;
+  border-width: 0 2px 2px 0;
+  content: "";
+  height: 7px;
+  margin-top: -2px;
+  transform: rotate(45deg);
+  width: 4px;
+}
+
+.dc-year-line {
+  background: var(--dc-year-color, #1C64C0);
+  border-radius: 999px;
+  display: inline-block;
+  height: 3px;
+  width: 24px;
+}
+
+.dc-chart-year-toggle.is-off {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+  color: #64748B;
+  opacity: .64;
+}
+
+.dc-chart-year-toggle.is-off .dc-year-check {
+  background: #FFFFFF;
+  border-color: #CBD5E1;
+}
+
+.dc-chart-year-toggle.is-off .dc-year-check::after {
+  display: none;
+}
+
+.dc-chart-year-toggle.is-off .dc-year-line {
+  background: #CBD5E1;
+}
+
+@media (max-width: 720px) {
+  .dc-chart-toggle-legend {
+    gap: 6px;
+    top: 7px;
+  }
+
+  .dc-chart-year-toggle {
+    min-height: 26px;
+    padding: 4px 8px;
+  }
+
+  .dc-chart-year-toggle strong {
+    font-size: 10px;
+  }
+
+  .dc-year-check {
+    height: 13px;
+    width: 13px;
+  }
+
+  .dc-year-line {
+    width: 18px;
+  }
+}
