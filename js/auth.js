@@ -1529,32 +1529,32 @@ async function dcCarregarDados(empresa_id_param) {
     dcMostrarEsqueleto();
     dcStatus('⏳ Buscando dados...');
     dcSetUltimaSync('Conferindo ultima sincronizacao...', false);
-    // Busca qual origem o admin configurou para este cliente ver
-    var origemR = await dcComTimeout(
-      fetch(SUPA_URL + '/rest/v1/empresas?id=eq.' + eid + '&select=exibir_origem',
-        { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }, signal: currentSignal }),
+
+    // Busca origem e última sync em paralelo (eram sequenciais, agora economiza ~500ms)
+    var preflight = await dcComTimeout(
+      Promise.all([
+        fetch(SUPA_URL + '/rest/v1/empresas?id=eq.' + eid + '&select=exibir_origem',
+          { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }, signal: currentSignal })
+          .then(function(r) { return r.json(); }),
+        dcCarregarUltimaSync(eid).catch(function() {})
+      ]),
       20000,
       'A consulta da empresa demorou mais que o esperado.'
     );
-    var origemD = await origemR.json();
+    var origemD = preflight[0];
     var exibir  = (origemD && origemD[0] && origemD[0].exibir_origem) || 'manual';
-    await dcComTimeout(
-      dcCarregarUltimaSync(eid),
-      20000,
-      'A consulta da ultima sincronizacao demorou mais que o esperado.'
-    );
 
-    // Paginação: busca TODOS os registros em lotes (sem limite de 1000)
+    // Request único em vez de _fetchAll sequencial (era N×1000 requests, agora é 1)
     dcStatus('⏳ Carregando dados...');
-    var vendas = await dcComTimeout(
-      _fetchAll(
-        SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + encodeURIComponent(eid) + '&origem=eq.' + encodeURIComponent(exibir) + '&select=*&order=dt_saida.asc',
-        { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY },
-        currentSignal
+    var _vendasResp = await dcComTimeout(
+      fetch(
+        SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + encodeURIComponent(eid) + '&origem=eq.' + encodeURIComponent(exibir) + '&select=*&order=dt_saida.asc&limit=100000',
+        { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }, signal: currentSignal }
       ),
       180000,
       'O carregamento dos registros demorou mais de 3 minutos.'
     );
+    var vendas = await _vendasResp.json();
 
     if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
 
