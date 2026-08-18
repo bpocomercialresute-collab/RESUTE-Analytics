@@ -18,34 +18,22 @@ function slimVenda(v) {
 }
 
 async function fetchAllVendas(supaUrl, serviceKey, empresaId) {
-  const all = [];
-  let from = 0;
-  const pageSize = 1000;
-  let pages = 0;
-  while (pages < 250) {
-    const resp = await fetch(
-      `${supaUrl}/rest/v1/vendas?empresa_id=eq.${encodeURIComponent(empresaId)}&select=${SLIM_FIELDS.join(',')}&order=dt_saida.asc`,
-      {
-        headers: {
-          'apikey': serviceKey,
-          'Authorization': `Bearer ${serviceKey}`,
-          'Range': `${from}-${from + pageSize - 1}`,
-          'Range-Unit': 'items'
-        }
+  const resp = await fetch(
+    `${supaUrl}/rest/v1/vendas?empresa_id=eq.${encodeURIComponent(empresaId)}&select=${SLIM_FIELDS.join(',')}&order=dt_saida.asc&limit=100000`,
+    {
+      headers: {
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
+        'Prefer': 'count=none'
       }
-    );
-    if (!resp.ok && resp.status !== 206) {
-      const text = await resp.text().catch(() => '');
-      throw new Error(`HTTP ${resp.status}: ${text.slice(0, 200)}`);
     }
-    const batch = await resp.json();
-    if (!Array.isArray(batch) || !batch.length) break;
-    all.push(...batch);
-    pages++;
-    if (batch.length < pageSize) break;
-    from += pageSize;
+  );
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '');
+    throw new Error(`HTTP ${resp.status}: ${text.slice(0, 200)}`);
   }
-  return all;
+  const data = await resp.json();
+  return Array.isArray(data) ? data : [];
 }
 
 async function getAppUser(sessionToken, supaUrl, anonKey, serviceKey) {
