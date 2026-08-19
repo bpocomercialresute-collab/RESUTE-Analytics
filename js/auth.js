@@ -809,9 +809,30 @@ async function sincronizarAPI() {
     _setStatus('✓ ' + (d.mensagem || d.novos + ' registros importados'), 'ok');
     if ((d.novos || 0) > 0) await carregarDadosDoSupabase(empresa_id);
 
+    // Registra no sync_log para aparecer no painel admin
+    try {
+      var agora = new Date();
+      var total = d.novos || d.total_registros || 0;
+      await fetch(SUPA_URL + '/rest/v1/sync_log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({ empresa_id: empresa_id, ultima_sync: agora.toISOString(), ultima_data: agora.toISOString().split('T')[0], total_registros: total, status: 'ok', mensagem: d.mensagem || (total + ' registros importados via edge function.') })
+      });
+      if (typeof _adminConsoleRecarregarSyncLog === 'function') _adminConsoleRecarregarSyncLog();
+    } catch(_) {}
+
   } catch(e) {
     console.error(e);
     _setStatus('✗ ' + e.message, 'erro');
+    try {
+      var _agora = new Date();
+      await fetch(SUPA_URL + '/rest/v1/sync_log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({ empresa_id: empresa_id, ultima_sync: _agora.toISOString(), ultima_data: _agora.toISOString().split('T')[0], total_registros: 0, status: 'erro', mensagem: e.message })
+      });
+      if (typeof _adminConsoleRecarregarSyncLog === 'function') _adminConsoleRecarregarSyncLog();
+    } catch(_) {}
   } finally {
     if (btn) {
       btn.disabled = false;
