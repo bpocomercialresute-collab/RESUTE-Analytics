@@ -3634,17 +3634,18 @@ async function _adminPreencherPeriodoSync(empresa_id) {
   if (!inicioEl || !fimEl) return;
 
   var hoje = new Date();
-  var dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  var dataInicio = new Date(2025, 0, 1); // fallback: 01/01/2025
 
   try {
-    var logR = await fetch(
-      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + empresa_id + '&select=ultima_data&order=ultima_sync.desc&limit=1',
+    // Usa o dt_saida mais recente na tabela vendas (mais confiável que sync_log)
+    var vendasR = await fetch(
+      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&select=dt_saida&order=dt_saida.desc&limit=1',
       { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
     );
-    var logD = await logR.json();
-    var ultimaData = logD && logD[0] && logD[0].ultima_data ? logD[0].ultima_data : null;
-    if (ultimaData) {
-      dataInicio = new Date(ultimaData);
+    var vendasD = await vendasR.json();
+    var maxDtSaida = vendasD && vendasD[0] && vendasD[0].dt_saida ? vendasD[0].dt_saida : null;
+    if (maxDtSaida) {
+      dataInicio = new Date(maxDtSaida + 'T00:00:00');
       dataInicio.setDate(dataInicio.getDate() + 1);
     }
   } catch (e) {
