@@ -789,7 +789,7 @@ async function sincronizarAPI() {
 
   try {
     var logR = await fetch(
-      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + empresa_id + '&select=ultima_data',
+      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + empresa_id + '&select=ultima_data&order=ultima_sync.desc&limit=1',
       { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
     );
     var logD = await logR.json();
@@ -3638,7 +3638,7 @@ async function _adminPreencherPeriodoSync(empresa_id) {
 
   try {
     var logR = await fetch(
-      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + empresa_id + '&select=ultima_data',
+      SUPA_URL + '/rest/v1/sync_log?empresa_id=eq.' + empresa_id + '&select=ultima_data&order=ultima_sync.desc&limit=1',
       { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
     );
     var logD = await logR.json();
@@ -4788,10 +4788,24 @@ SYNC_ADAPTERS.visual_saef = {
     return token;
   },
   fetchVendas: async function(apiUrl, token, DI, DF) {
-    var r = await _fetchApiProxy(apiUrl, '/relacaovendaitem?DataInicio=' + DI + '&DataTermino=' + DF, token, { Accept: 'application/json' });
-    if (!r.ok) throw new Error('Busca de vendas falhou: HTTP ' + r.status);
-    var raw = await r.json();
-    return Array.isArray(raw) ? raw : (raw.data || raw.itens || raw.items || raw.result || raw.dados || []);
+    // Parse DDMMYYYY
+    var pD = function(s) { return new Date(parseInt(s.slice(4)), parseInt(s.slice(2,4)) - 1, parseInt(s.slice(0,2))); };
+    var fD = function(d) { return String(d.getDate()).padStart(2,'0') + String(d.getMonth()+1).padStart(2,'0') + String(d.getFullYear()); };
+    var inicio = pD(DI), fim = pD(DF), todos = [];
+    // Pagina mês a mês para contornar limite de range da API Visual Saef
+    var cur = new Date(inicio.getFullYear(), inicio.getMonth(), 1);
+    while (cur <= fim) {
+      var mFim = new Date(cur.getFullYear(), cur.getMonth() + 1, 0);
+      if (mFim > fim) mFim = new Date(fim);
+      var r = await _fetchApiProxy(apiUrl, '/relacaovendaitem?DataInicio=' + fD(cur) + '&DataTermino=' + fD(mFim), token, { Accept: 'application/json' });
+      if (!r.ok) throw new Error('Busca de vendas falhou: HTTP ' + r.status + ' (período ' + fD(cur) + '-' + fD(mFim) + ')');
+      var raw = await r.json();
+      var items = Array.isArray(raw) ? raw : (raw.data || raw.itens || raw.items || raw.result || raw.dados || []);
+      todos = todos.concat(items);
+      _syncLog('Mês ' + fD(cur) + ' — ' + items.length + ' itens (total acumulado: ' + todos.length + ')');
+      cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+    }
+    return todos;
   }
 };
 
@@ -4947,18 +4961,19 @@ adminSincronizar = async function() {
       };
     });
 
-    // Apaga TODOS os registros desta empresa (origem=api, manual ou NULL)
-    // para evitar conflito de chave duplicada
-    _syncLog('Limpando dados anteriores do banco...');
+    // Apaga somente os registros do período sincronizado para preservar histórico fora do range
+    var delInicio = dataInicio.toISOString().slice(0,10);
+    var delFim = dataFim.toISOString().slice(0,10);
+    _syncLog('Limpando dados do período ' + delInicio + ' a ' + delFim + '...');
     var delAll = await fetch(
-      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id,
+      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&dt_saida=gte.' + delInicio + '&dt_saida=lte.' + delFim,
       { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal', 'Content-Type': 'application/json' } }
     );
     if (!delAll.ok) {
       var delBody = await delAll.text();
       throw new Error('Falha ao limpar dados antigos: HTTP ' + delAll.status + ': ' + delBody.slice(0,300));
     }
-    _syncLog('Dados anteriores removidos com sucesso');
+    _syncLog('Dados do período removidos com sucesso');
     if (window.ReportCache) {
       await window.ReportCache.clearEmpresa(EMPRESA_ATIVA.empresa_id);
     }
