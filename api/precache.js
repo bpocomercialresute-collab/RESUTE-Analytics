@@ -18,26 +18,36 @@ function slimVenda(v) {
 }
 
 async function fetchAllVendas(supaUrl, serviceKey, empresaId) {
-  // Range header bypassa o max-rows do PostgREST (limit= URL é barrado por max-rows=1000).
-  // Um único Range: 0-199999 traz até 200k rows sem paginação sequencial.
-  const resp = await fetch(
-    `${supaUrl}/rest/v1/vendas?empresa_id=eq.${encodeURIComponent(empresaId)}&origem=eq.api&select=${SLIM_FIELDS.join(',')}&order=dt_saida.asc`,
-    {
+  // PostgREST aplica max-rows=1000 mesmo com Range header — paginar em loop.
+  const PAGE = 1000;
+  const baseUrl = `${supaUrl}/rest/v1/vendas?empresa_id=eq.${encodeURIComponent(empresaId)}&origem=eq.api&select=${SLIM_FIELDS.join(',')}&order=dt_saida.asc`;
+  const all = [];
+  let from = 0;
+
+  while (true) {
+    const resp = await fetch(baseUrl, {
       headers: {
         'apikey': serviceKey,
         'Authorization': `Bearer ${serviceKey}`,
-        'Range': '0-199999',
+        'Range': `${from}-${from + PAGE - 1}`,
         'Range-Unit': 'items',
         'Prefer': 'count=none'
       }
+    });
+
+    if (!resp.ok && resp.status !== 206) {
+      const text = await resp.text().catch(() => '');
+      throw new Error(`HTTP ${resp.status}: ${text.slice(0, 200)}`);
     }
-  );
-  if (!resp.ok && resp.status !== 206) {
-    const text = await resp.text().catch(() => '');
-    throw new Error(`HTTP ${resp.status}: ${text.slice(0, 200)}`);
+
+    const data = await resp.json();
+    if (!Array.isArray(data) || data.length === 0) break;
+    all.push(...data);
+    if (data.length < PAGE) break; // última página
+    from += PAGE;
   }
-  const data = await resp.json();
-  return Array.isArray(data) ? data : [];
+
+  return all;
 }
 
 async function getAppUser(sessionToken, supaUrl, anonKey, serviceKey) {
