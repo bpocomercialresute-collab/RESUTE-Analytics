@@ -207,6 +207,20 @@ async function adminSincronizar() {
 
     _adminStatus('✓ ' + (d.mensagem || d.novos + ' registros importados'), true);
 
+    // Marca empresa para exibir dados da API
+    try {
+      await fetch(SUPA_URL + '/rest/v1/empresas?id=eq.' + EMPRESA_ATIVA.empresa_id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ exibir_origem: 'api' })
+      });
+      if (EMPRESA_ATIVA) EMPRESA_ATIVA.exibir_origem = 'api';
+    } catch(_) {}
+
+    // Limpa cache do dashboard para forçar recarga com dados novos
+    try { if (typeof _dcIdbDelete === 'function') _dcIdbDelete('resute_dc_cache_' + EMPRESA_ATIVA.empresa_id); } catch(_) {}
+    try { if (window.ReportCache) await window.ReportCache.clearEmpresa(EMPRESA_ATIVA.empresa_id); } catch(_) {}
+
     // Grava sync_log (a edge function pode não gravar; garantimos aqui)
     try {
       var agora = new Date();

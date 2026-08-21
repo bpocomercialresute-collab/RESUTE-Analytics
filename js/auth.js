@@ -807,6 +807,21 @@ async function sincronizarAPI() {
     if (!r.ok || d.erro) throw new Error(d.erro || 'Erro na sincronização.');
 
     _setStatus('✓ ' + (d.mensagem || d.novos + ' registros importados'), 'ok');
+
+    // Marca empresa para exibir dados da API
+    try {
+      await fetch(SUPA_URL + '/rest/v1/empresas?id=eq.' + empresa_id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ exibir_origem: 'api' })
+      });
+      if (EMPRESA_ATIVA && EMPRESA_ATIVA.empresa_id === empresa_id) EMPRESA_ATIVA.exibir_origem = 'api';
+    } catch(_) {}
+
+    // Limpa cache do dashboard para forçar recarga com dados novos
+    try { if (typeof _dcIdbDelete === 'function') _dcIdbDelete('resute_dc_cache_' + empresa_id); } catch(_) {}
+    try { if (window.ReportCache) await window.ReportCache.clearEmpresa(empresa_id); } catch(_) {}
+
     if ((d.novos || 0) > 0) await carregarDadosDoSupabase(empresa_id);
 
     // Registra no sync_log para aparecer no painel admin
@@ -4579,6 +4594,8 @@ async function adminToggleOrigem(origem) {
     if (r.ok) {
       _adminSetStatus('✓ Cliente verá dados ' + (origem === 'api' ? 'da API' : 'manuais') + ' da ' + EMPRESA_ATIVA.nome, true);
       EMPRESA_ATIVA.exibir_origem = origem;
+      try { if (typeof _dcIdbDelete === 'function') _dcIdbDelete('resute_dc_cache_' + EMPRESA_ATIVA.empresa_id); } catch(_) {}
+      try { if (window.ReportCache) await window.ReportCache.clearEmpresa(EMPRESA_ATIVA.empresa_id); } catch(_) {}
     }
   } catch(e) { console.error(e); }
 }
