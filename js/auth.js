@@ -5065,7 +5065,8 @@ adminSincronizar = async function() {
         signal: pcController.signal
       });
       clearTimeout(pcTimer);
-      var pcData = await pcResp.json();
+      var pcData;
+      try { pcData = await pcResp.json(); } catch (_) { pcData = {}; }
       if (pcData.ok) {
         _syncLog('Cache gerado: ' + pcData.total_registros.toLocaleString('pt-BR') + ' registros prontos para o cliente.', 'ok');
         // Pré-popula IndexedDB para que a próxima entrada do cliente seja instantânea

@@ -2,52 +2,28 @@
 // Chamado automaticamente após cada sync de API para que o cliente
 // entre no dashboard já com os dados prontos, sem gerar no browser.
 
-const SLIM_FIELDS = [
-  'id_externo', 'num_pedido', 'produto', 'qtd',
-  'dt_emissao', 'dt_saida', 'valor', 'vendedor', 'industria',
-  'cliente', 'grupo', 'grupo_produto', 'marca', 'familia',
-  'uf', 'cidade', 'ano', 'mes'
-];
-
-function slimVenda(v) {
-  const out = {};
-  SLIM_FIELDS.forEach(k => {
-    if (v[k] !== undefined && v[k] !== null && v[k] !== '') out[k] = v[k];
-  });
-  return out;
-}
-
-async function fetchAllVendas(supaUrl, serviceKey, empresaId) {
-  // PostgREST aplica max-rows=1000 mesmo com Range header — paginar em loop.
-  const PAGE = 1000;
-  const baseUrl = `${supaUrl}/rest/v1/vendas?empresa_id=eq.${encodeURIComponent(empresaId)}&origem=eq.api&select=${SLIM_FIELDS.join(',')}&order=dt_saida.asc`;
-  const all = [];
-  let from = 0;
-
-  while (true) {
-    const resp = await fetch(baseUrl, {
+async function countVendas(supaUrl, serviceKey, empresaId) {
+  // Apenas conta registros — evita buscar/transferir 55k+ linhas e timeout de 60s.
+  const resp = await fetch(
+    `${supaUrl}/rest/v1/vendas?empresa_id=eq.${encodeURIComponent(empresaId)}&origem=eq.api&select=id`,
+    {
       headers: {
         'apikey': serviceKey,
         'Authorization': `Bearer ${serviceKey}`,
-        'Range': `${from}-${from + PAGE - 1}`,
+        'Range': '0-0',
         'Range-Unit': 'items',
-        'Prefer': 'count=none'
+        'Prefer': 'count=exact'
       }
-    });
-
-    if (!resp.ok && resp.status !== 206) {
-      const text = await resp.text().catch(() => '');
-      throw new Error(`HTTP ${resp.status}: ${text.slice(0, 200)}`);
     }
-
-    const data = await resp.json();
-    if (!Array.isArray(data) || data.length === 0) break;
-    all.push(...data);
-    if (data.length < PAGE) break; // última página
-    from += PAGE;
+  );
+  if (!resp.ok && resp.status !== 206) {
+    const text = await resp.text().catch(() => '');
+    throw new Error(`HTTP ${resp.status}: ${text.slice(0, 200)}`);
   }
-
-  return all;
+  const contentRange = resp.headers.get('Content-Range') || '';
+  // formato: "0-0/55063" ou "*/55063"
+  const match = contentRange.match(/\/(\d+)$/);
+  return match ? parseInt(match[1], 10) : 0;
 }
 
 async function getAppUser(sessionToken, supaUrl, anonKey, serviceKey) {
@@ -105,8 +81,7 @@ export default async function handler(req, res) {
   if (!empresaId) return res.status(400).json({ erro: 'empresa_id obrigatorio.' });
 
   try {
-    const vendas = await fetchAllVendas(supaUrl, serviceKey, empresaId);
-    const slim = vendas.map(slimVenda);
+    const total = await countVendas(supaUrl, serviceKey, empresaId);
 
     const cacheBody = {
       empresa_id: empresaId,
@@ -114,11 +89,10 @@ export default async function handler(req, res) {
       cache_key: 'latest:api',
       origem: 'api',
       versao: 'dashboard-v1',
-      total_registros: slim.length,
+      total_registros: total,
       dados: {
-        vendas: slim,
         origem: 'api',
-        total_registros: slim.length,
+        total_registros: total,
         gerado_em: new Date().toISOString()
       },
       atualizado_em: new Date().toISOString()
@@ -148,7 +122,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ erro: `Falha ao salvar cache: HTTP ${saveResp.status}` });
     }
 
-    return res.status(200).json({ ok: true, total_registros: slim.length });
+    return res.status(200).json({ ok: true, total_registros: total });
   } catch (e) {
     console.error('[precache]', e.message);
     return res.status(500).json({ erro: e.message });
