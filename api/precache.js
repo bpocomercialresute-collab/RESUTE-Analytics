@@ -18,17 +18,21 @@ function slimVenda(v) {
 }
 
 async function fetchAllVendas(supaUrl, serviceKey, empresaId) {
+  // Range header bypassa o max-rows do PostgREST (limit= URL é barrado por max-rows=1000).
+  // Um único Range: 0-199999 traz até 200k rows sem paginação sequencial.
   const resp = await fetch(
-    `${supaUrl}/rest/v1/vendas?empresa_id=eq.${encodeURIComponent(empresaId)}&select=${SLIM_FIELDS.join(',')}&order=dt_saida.asc&limit=100000`,
+    `${supaUrl}/rest/v1/vendas?empresa_id=eq.${encodeURIComponent(empresaId)}&origem=eq.api&select=${SLIM_FIELDS.join(',')}&order=dt_saida.asc`,
     {
       headers: {
         'apikey': serviceKey,
         'Authorization': `Bearer ${serviceKey}`,
+        'Range': '0-199999',
+        'Range-Unit': 'items',
         'Prefer': 'count=none'
       }
     }
   );
-  if (!resp.ok) {
+  if (!resp.ok && resp.status !== 206) {
     const text = await resp.text().catch(() => '');
     throw new Error(`HTTP ${resp.status}: ${text.slice(0, 200)}`);
   }
