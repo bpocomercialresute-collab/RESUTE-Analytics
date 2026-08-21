@@ -1,30 +1,6 @@
-// api/precache.js — gera o snapshot de relatorios_cache server-side
-// Chamado automaticamente após cada sync de API para que o cliente
-// entre no dashboard já com os dados prontos, sem gerar no browser.
-
-async function countVendas(supaUrl, serviceKey, empresaId) {
-  // Apenas conta registros — evita buscar/transferir 55k+ linhas e timeout de 60s.
-  const resp = await fetch(
-    `${supaUrl}/rest/v1/vendas?empresa_id=eq.${encodeURIComponent(empresaId)}&origem=eq.api&select=id`,
-    {
-      headers: {
-        'apikey': serviceKey,
-        'Authorization': `Bearer ${serviceKey}`,
-        'Range': '0-0',
-        'Range-Unit': 'items',
-        'Prefer': 'count=exact'
-      }
-    }
-  );
-  if (!resp.ok && resp.status !== 206) {
-    const text = await resp.text().catch(() => '');
-    throw new Error(`HTTP ${resp.status}: ${text.slice(0, 200)}`);
-  }
-  const contentRange = resp.headers.get('Content-Range') || '';
-  // formato: "0-0/55063" ou "*/55063"
-  const match = contentRange.match(/\/(\d+)$/);
-  return match ? parseInt(match[1], 10) : 0;
-}
+// api/precache.js — gera o snapshot de relatorios_cache server-side via RPC.
+// A RPC gerar_cache_dashboard agrega os dados dentro do Postgres e faz upsert
+// em relatorios_cache sem transferir nenhuma linha pelo Vercel.
 
 async function getAppUser(sessionToken, supaUrl, anonKey, serviceKey) {
   if (!sessionToken) return null;
@@ -81,48 +57,36 @@ export default async function handler(req, res) {
   if (!empresaId) return res.status(400).json({ erro: 'empresa_id obrigatorio.' });
 
   try {
-    const total = await countVendas(supaUrl, serviceKey, empresaId);
-
-    const cacheBody = {
-      empresa_id: empresaId,
-      tipo: 'dashboard_cliente',
-      cache_key: 'latest:api',
-      origem: 'api',
-      versao: 'dashboard-v1',
-      total_registros: total,
-      dados: {
-        origem: 'api',
-        total_registros: total,
-        gerado_em: new Date().toISOString()
-      },
-      atualizado_em: new Date().toISOString()
-    };
-
-    const saveResp = await fetch(`${supaUrl}/rest/v1/relatorios_cache`, {
+    // Chama RPC que agrega dados dentro do Postgres e faz upsert em relatorios_cache.
+    // Nenhum dado de vendas trafega pelo Vercel — só o resultado { ok, total_registros }.
+    const rpcResp = await fetch(`${supaUrl}/rest/v1/rpc/gerar_cache_dashboard`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'apikey': serviceKey,
-        'Authorization': `Bearer ${serviceKey}`,
-        'Prefer': 'resolution=merge-duplicates,return=minimal'
+        'Authorization': `Bearer ${serviceKey}`
       },
-      body: JSON.stringify(cacheBody)
+      body: JSON.stringify({ p_empresa_id: empresaId })
     });
 
-    if (!saveResp.ok) {
-      const errText = await saveResp.text().catch(() => '');
-      const tabelaInexistente = /relatorios_cache/i.test(errText) && /does not exist|PGRST/i.test(errText);
-      if (tabelaInexistente) {
+    const rpcText = await rpcResp.text().catch(() => '');
+
+    if (!rpcResp.ok) {
+      const funcaoInexistente = /gerar_cache_dashboard/i.test(rpcText) && /does not exist|PGRST/i.test(rpcText);
+      if (funcaoInexistente) {
         return res.status(200).json({
           ok: false,
           total_registros: 0,
-          aviso: 'Tabela relatorios_cache nao existe. Execute o SQL em docs/supabase-relatorios-cache.sql no Supabase.'
+          aviso: 'Execute o SQL em docs/supabase-gerar-cache-dashboard.sql no Supabase para habilitar o cache.'
         });
       }
-      return res.status(500).json({ erro: `Falha ao salvar cache: HTTP ${saveResp.status}` });
+      return res.status(500).json({ erro: `Falha na RPC: HTTP ${rpcResp.status} — ${rpcText.slice(0, 200)}` });
     }
 
-    return res.status(200).json({ ok: true, total_registros: total });
+    let rpcData;
+    try { rpcData = JSON.parse(rpcText); } catch (_) { rpcData = {}; }
+
+    return res.status(200).json({ ok: true, total_registros: rpcData.total_registros || 0 });
   } catch (e) {
     console.error('[precache]', e.message);
     return res.status(500).json({ erro: e.message });
