@@ -655,6 +655,39 @@ function _dreImportarArquivo(file) {
 // DRE.estado. Callbacks interceptados na instância (não no protótipo) para
 // disparar recalcular() após cada edição ou colagem.
 
+/**
+ * Sincroniza estado.ano e o select #fin-filtro-ano com os anos reais dos
+ * lançamentos em DRE.estado.lancamentos.
+ *
+ * Chamado depois de cada edição na grade BD para que o SUMIFS use o ano
+ * correto quando o admin cola dados de um ano diferente do ano atual.
+ */
+function _dreAtualizarFiltrosAno() {
+  var anos = [];
+  (DRE.estado.lancamentos || []).forEach(function(l) {
+    var d = _dreParseDataUTC(l.dt_caixa);
+    if (d && !isNaN(d)) anos.push(d.getUTCFullYear());
+  });
+  anos = anos.filter(function(v, i, a) { return a.indexOf(v) === i; }).sort();
+  if (!anos.length) return;
+
+  var anoAtual = DRE.estado.ano;
+  if (anos.indexOf(anoAtual) < 0) {
+    anoAtual = anos[anos.length - 1];
+    DRE.estado.ano = anoAtual;
+    DRE.estado.mesInicio = 0;
+    DRE.estado.mesFim = 11;
+    var selMes = document.getElementById('fin-filtro-mes');
+    if (selMes) selMes.value = '';
+  }
+
+  var selAno = document.getElementById('fin-filtro-ano');
+  if (!selAno) return;
+  selAno.innerHTML = anos.map(function(a) {
+    return '<option value="' + a + '"' + (a === anoAtual ? ' selected' : '') + '>' + a + '</option>';
+  }).join('');
+}
+
 /** Inicializa as duas grades LiteGrid e carrega os dados vindos do Supabase. */
 function _dreIniciarGradesLiteGrid(plano, lancamentos) {
   if (typeof LiteGrid === 'undefined' || typeof GRID_DEFS === 'undefined') return;
@@ -775,6 +808,7 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
       _dreAtualizarDerivadasBD(gridBD);
       FULL_DATA['dre_bd'] = gridBD.allData.slice();
       DRE.estado.lancamentos = _dreLancDeRows(gridBD.getData());
+      _dreAtualizarFiltrosAno();
       DRE.recalcular();
       _dreAtualizarBDDRE();
     });
