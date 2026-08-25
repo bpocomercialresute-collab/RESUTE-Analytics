@@ -44,7 +44,7 @@ var DRE_ADMIN_PREVIEW = false;
 var DRE_ADMIN_PREVIEW_COMPANY = null;
 
 var DRE_HTML_URL = 'views/dre-painel.html?v=7';
-var DRE_CSS_URL  = 'css/dre-painel.css?v=7';
+var DRE_CSS_URL  = 'css/dre-painel.css?v=8';
 
 // ── CSS ESCOPADO ─────────────────────────────────────────────────────────────
 
@@ -1225,15 +1225,51 @@ function _drePatchGrid(grid, cb) {
   var origPaste   = grid._paste.bind(grid);
   var origUndo    = grid._undo ? grid._undo.bind(grid) : null;
 
-  grid._commit = function() { origCommit(); cb(); };
+  grid._commit = function() {
+    var ri = grid.selRow, ci = grid.selCol;
+    origCommit();
+    // Col # (ci=0): impede duplicata — auto-incrementa para próximo disponível
+    if (ci === 0 && ri >= 0 && grid.allData[ri]) {
+      var val = String(grid.allData[ri][0] || '').trim();
+      if (val !== '') {
+        var isDup = grid.allData.some(function(r, i) {
+          return i !== ri && r && String(r[0] || '').trim() === val;
+        });
+        if (isDup) {
+          var used = {};
+          grid.allData.forEach(function(r, i) { if (i !== ri && r) used[String(r[0] || '').trim()] = true; });
+          var n = parseInt(val) || 1;
+          while (used[String(n)]) n++;
+          grid.allData[ri][0] = n;
+          grid._render();
+        }
+      }
+    }
+    cb();
+  };
+  function _dreDeduplicarHash() {
+    var used = {};
+    grid.allData.forEach(function(r, ri) {
+      if (!r) return;
+      var v = String(r[0] || '').trim();
+      if (!v) return;
+      if (!used[v]) { used[v] = true; return; }
+      var n = parseInt(v) || 1;
+      while (used[String(n)]) n++;
+      r[0] = n; used[String(n)] = true;
+    });
+  }
+
   grid._pasteAt = function(txt, r, c) {
     if (grid.key === 'dre_plano') txt = _dreNormalizarPastePlano(txt, c);
     origPasteAt(txt, r, c);
+    _dreDeduplicarHash();
     cb();
   };
   grid._paste   = function(txt) {
     if (grid.key === 'dre_plano') txt = _dreNormalizarPastePlano(txt, 0);
     origPaste(txt);
+    _dreDeduplicarHash();
     cb();
   };
   if (origUndo) grid._undo = function() { origUndo(); cb(); };
