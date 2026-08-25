@@ -44,7 +44,7 @@ var DRE_ADMIN_PREVIEW = false;
 var DRE_ADMIN_PREVIEW_COMPANY = null;
 
 var DRE_HTML_URL = 'views/dre-painel.html?v=7';
-var DRE_CSS_URL  = 'css/dre-painel.css?v=5';
+var DRE_CSS_URL  = 'css/dre-painel.css?v=6';
 
 // ── CSS ESCOPADO ─────────────────────────────────────────────────────────────
 
@@ -694,7 +694,7 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
 
   window._dreRenderToggleHtml = function(ci, val) {
     val = String(val || '').trim().toUpperCase();
-    var isF = ci === 3;
+    var isF = ci === 4;
     var opts = isF ? ['F','V'] : ['D','I'];
     var cls  = isF ? ['dre-tb-f','dre-tb-v'] : ['dre-tb-d','dre-tb-i'];
     return '<span class="dre-tb-wrap">'
@@ -705,13 +705,13 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
 
   window._dreRenderToggle = function(key, ci, val, td) {
     if (key !== 'dre_plano') return false;
-    if (ci !== 3 && ci !== 4) return false;
+    if (ci !== 4 && ci !== 5) return false;
     td.innerHTML = window._dreRenderToggleHtml(ci, val);
     return true;
   };
 
   window._dreRenderCell = function(key, ci, val, td) {
-    if (key === 'dre_bd' && (ci === 0 || ci === 1 || ci === 2 || ci === 15)) {
+    if (key === 'dre_bd' && (ci === 1 || ci === 2 || ci === 3 || ci === 16)) {
       td.textContent = _dreDataParaBR(val);
       return true;
     }
@@ -719,6 +719,7 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
   };
 
   GRID_DEFS['dre_bd'] = { cols: [
+    {t:'#',                  w:45,  auto:true},
     {t:'DT_CAIXA',           w:100, auto:false},
     {t:'DT_VENC',            w:100, auto:false},
     {t:'DT_PAG',             w:100, auto:false},
@@ -752,6 +753,7 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
   ]};
   if (!GRID_DEFS['dre_plano']) {
     GRID_DEFS['dre_plano'] = { cols: [
+      {t:'#',    w:45,  auto:true},
       {t:'COD',   w:80,  auto:false},
       {t:'CONTA', w:220, auto:false},
       {t:'GRUPO', w:200, auto:false},
@@ -821,6 +823,7 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
     GRIDS['dre_plano'] = gridPlano;
 
     var atualizarPlano = function() {
+      gridPlano.allData.forEach(function(r, i) { if (r) r[0] = i + 1; });
       FULL_DATA['dre_plano'] = gridPlano.allData.slice();
       DRE.estado.plano = _drePlanoDeRows(gridPlano.getData());
       if (GRIDS['dre_bd']) _dreAtualizarDerivadasBD(GRIDS['dre_bd']);
@@ -844,7 +847,7 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
       var tr = td.closest('tr');
       if (!tr) return;
       var ci = Array.from(tr.cells).indexOf(td) - 1;
-      if (ci !== 3 && ci !== 4) return;
+      if (ci !== 4 && ci !== 5) return;
       e.preventDefault();
       e.stopPropagation();
       var rn = tr.querySelector('.lg-rn');
@@ -859,16 +862,16 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
       }
       while (gridPlano.allData[ri].length < ncols) gridPlano.allData[ri].push('');
 
-      if (ci === 3) {
-        var atualFV = gridPlano.allData[ri][3] || '';
-        if (atualFV === '') gridPlano.allData[ri][3] = 'F';
-        else if (atualFV === 'F') gridPlano.allData[ri][3] = 'V';
-        else gridPlano.allData[ri][3] = '';
-      } else {
-        var atualDI = gridPlano.allData[ri][4] || '';
-        if (atualDI === '') gridPlano.allData[ri][4] = 'D';
-        else if (atualDI === 'D') gridPlano.allData[ri][4] = 'I';
+      if (ci === 4) {
+        var atualFV = gridPlano.allData[ri][4] || '';
+        if (atualFV === '') gridPlano.allData[ri][4] = 'F';
+        else if (atualFV === 'F') gridPlano.allData[ri][4] = 'V';
         else gridPlano.allData[ri][4] = '';
+      } else {
+        var atualDI = gridPlano.allData[ri][5] || '';
+        if (atualDI === '') gridPlano.allData[ri][5] = 'D';
+        else if (atualDI === 'D') gridPlano.allData[ri][5] = 'I';
+        else gridPlano.allData[ri][5] = '';
       }
 
       if (gridPlano._inp) gridPlano._inp.style.display = 'none';
@@ -1104,7 +1107,7 @@ function _dreAtualizarTodosTogles(gridPlano) {
   for (var ri = 0; ri < rows.length; ri++) {
     var tr = rows[ri];
     var dados = (src && src[from + ri]) || [];
-    [3, 4].forEach(function(ci) {
+    [4, 5].forEach(function(ci) {
       var td = tr.cells[ci + 1];
       if (!td) return;
       var val = dados[ci] || '';
@@ -1129,63 +1132,63 @@ function _dreAtualizarDerivadasBD(gridBD) {
     var r = data[i];
     if (!r) continue;
 
-    // CONTA = indice 3
-    var conta = String(r[3] || '').trim().toLowerCase();
+    r[0] = i + 1;  // # sequencial (auto)
+
+    // CONTA = índice 4
+    var conta = String(r[4] || '').trim().toLowerCase();
     var pc = conta ? idx.get(conta) : null;
 
-    // 17: S_E  |  18: GRUPO
-    r[18] = pc ? (pc.grupo || '') : (conta ? '#N/A' : '');
-    r[17] = pc ? (SE_MAP[pc.grupo] || 'S') : (conta ? '#N/A' : '');
+    // 19: GRUPO  |  18: S_E
+    r[19] = pc ? (pc.grupo || '') : (conta ? '#N/A' : '');
+    r[18] = pc ? (SE_MAP[pc.grupo] || 'S') : (conta ? '#N/A' : '');
 
-    // DT_CAIXA = indice 0
-    // ISO date strings ("2024-01-15") são UTC midnight — usar getUTC* para evitar
-    // que o fuso local (Brasil UTC-3) vire o dia anterior em mês/ano.
-    var dt = String(r[0] || '');
+    // DT_CAIXA = índice 1
+    var dt = String(r[1] || '');
     var d  = _dreParseDataUTC(dt);
     var ok = d && !isNaN(d);
 
-    r[23] = ok ? d.getUTCFullYear()                  : '';  // ANO
-    r[21] = ok ? (MESES[d.getUTCMonth()] || '')      : '';  // MÊS
-    r[20] = ok ? d.getUTCDate()                       : '';  // DIA
-    r[22] = ok ? (DIAS_SEM[d.getUTCDay()] || '')     : '';  // DIA_SEM
-    r[28] = ok ? d.getUTCFullYear()                  : '';  // safra
+    r[24] = ok ? d.getUTCFullYear()                  : '';  // ANO
+    r[22] = ok ? (MESES[d.getUTCMonth()] || '')      : '';  // MÊS
+    r[21] = ok ? d.getUTCDate()                       : '';  // DIA
+    r[23] = ok ? (DIAS_SEM[d.getUTCDay()] || '')     : '';  // DIA_SEM
+    r[29] = ok ? d.getUTCFullYear()                  : '';  // safra
 
     // SEMANA_ANO
     if (ok) {
       var jan1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-      r[25] = Math.ceil(((d - jan1) / 86400000 + jan1.getUTCDay() + 1) / 7);
+      r[26] = Math.ceil(((d - jan1) / 86400000 + jan1.getUTCDay() + 1) / 7);
+    } else {
+      r[26] = '';
+    }
+
+    // ULTIMO_DIA_DO_MES
+    r[27] = ok ? new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate() : '';
+
+    // DT_VENC = índice 2
+    var dtv = String(r[2] || '');
+    var dv  = _dreParseDataUTC(dtv);
+    var okv = dv && !isNaN(dv);
+    if (okv) {
+      r[25] = dv < hoje ? 'VENCIDO' : 'NO PRAZO';  // VENC
     } else {
       r[25] = '';
     }
 
-    // ULTIMO_DIA_DO_MES
-    r[26] = ok ? new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate() : '';
+    // 20: STATUS - DT_PAG = índice 3
+    r[20] = r[4] ? (r[3] ? 'PG' : 'N') : '';
 
-    // DT_VENC = indice 1
-    var dtv = String(r[1] || '');
-    var dv  = _dreParseDataUTC(dtv);
-    var okv = dv && !isNaN(dv);
-    if (okv) {
-      r[24] = dv < hoje ? 'VENCIDO' : 'NO PRAZO';  // VENC
-    } else {
-      r[24] = '';
-    }
+    // 28: CNPJ_2 - copia CNPJ (índice 15)
+    r[28] = r[15] || '';
 
-    // 19: STATUS - DT_PAG = indice 2
-    r[19] = r[3] ? (r[2] ? 'PG' : 'N') : '';
-
-    // 27: CNPJ_2 - copia CNPJ (indice 14)
-    r[27] = r[14] || '';
-
-    // 29: CICLO - dias entre DT_CAIXA e DT_VENC
-    r[29] = (ok && okv) ? Math.round((dv - d) / 86400000) : '';
+    // 30: CICLO - dias entre DT_CAIXA e DT_VENC
+    r[30] = (ok && okv) ? Math.round((dv - d) / 86400000) : '';
   }
   gridBD._render();
 }
 
 /** Intercepta _commit, _pasteAt e _paste para disparar callback após cada mudança. */
 function _dreNormalizarPastePlano(txt, startCol) {
-  if (startCol !== 0) return txt;
+  if (startCol !== 0 && startCol !== 1) return txt;
   var linhas = String(txt || '').replace(/\r/g, '').split('\n');
   if (linhas.length && linhas[linhas.length - 1] === '') linhas.pop();
   if (!linhas.length) return txt;
@@ -1206,12 +1209,13 @@ function _dreNormalizarPastePlano(txt, startCol) {
 
   if (!deveNormalizar) return txt;
 
+  var prefixo = startCol === 0 ? '\t' : '';  // slot vazio para col # quando colando do início
   return linhas.map(function(linha) {
     var cells = linha.split('\t');
     if (cells.length < 6) return linha;
     cells[4] = String(cells[4] || '').trim().toUpperCase();
     cells[5] = String(cells[5] || '').trim().toUpperCase();
-    return [cells[0], cells[1], cells[3], cells[4], cells[5]].join('\t');
+    return prefixo + [cells[0], cells[1], cells[3], cells[4], cells[5]].join('\t');
   }).join('\n');
 }
 
@@ -1237,22 +1241,23 @@ function _drePatchGrid(grid, cb) {
 
 /** Objeto plano -> array de células (mesma ordem de GRID_DEFS dre_plano). */
 function _drePlanoToRows(plano) {
-  return (plano || []).map(function(p) {
-    return [p.cod || '', p.conta || '', p.grupo || '', p.fv || '', p.di || ''];
+  return (plano || []).map(function(p, idx) {
+    return [idx + 1, p.cod || '', p.conta || '', p.grupo || '', p.fv || '', p.di || ''];
   });
 }
 
 /** Array de linhas da grade -> array de objetos plano. */
 function _drePlanoDeRows(rows) {
   return rows.map(function(r) {
-    return { cod: r[0] || '', conta: r[1] || '', grupo: r[2] || '', fv: r[3] || '', di: r[4] || '' };
+    return { cod: r[1] || '', conta: r[2] || '', grupo: r[3] || '', fv: r[4] || '', di: r[5] || '' };
   });
 }
 
-/** Objeto lançamento -> array (18 colunas editáveis + 13 derivadas vazias). */
+/** Objeto lançamento -> array (1 # auto + 17 editáveis + 13 derivadas vazias). */
 function _dreRowsBD(lancs) {
-  return (lancs || []).map(function(l) {
+  return (lancs || []).map(function(l, idx) {
     return [
+      idx + 1,                                               // 0:  # (auto, sequencial)
       _dreDataParaBR(l.dt_caixa),                            // 1:  DT_CAIXA
       _dreDataParaBR(l.dt_venc),                             // 2:  DT_VENC
       _dreDataParaBR(l.dt_pag),                              // 3:  DT_PAG
@@ -1279,26 +1284,26 @@ function _dreRowsBD(lancs) {
 function _dreLancDeRows(rows) {
   var cnpj = DRE.estado.cnpj;
   return rows
-    .filter(function(r) { return r[3] && r[0]; })  // CONTA(3) + DT_CAIXA(0)
+    .filter(function(r) { return r[4] && r[1]; })  // CONTA(4) + DT_CAIXA(1)
     .map(function(r) {
       return {
-        conta:        r[3]  || '',
-        dt_caixa:     _dreNormalizarData(r[0]) || '',   // normaliza DD/MM/AAAA → AAAA-MM-DD
-        dt_venc:      _dreNormalizarData(r[1]) || null,
-        dt_pag:       _dreNormalizarData(r[2]) || null,
-        tipo:         r[4]  || null,
-        valor:        _dreParseNum(r[5]),
-        tot_pago:     _dreParseNum(r[6]),
-        parceiro:     r[7]  || null,
-        documento:    r[8]  || null,
-        banco:        r[9]  || null,
-        forma:        r[10] || null,
-        parcela:      r[11] || null,
-        tot_parcelas: r[12] || null,
-        obs:          r[13] || null,
-        cnpj:         r[14] || cnpj,
-        dt_custoria:  r[15] || null,
-        historico:    r[16] || null
+        conta:        r[4]  || '',
+        dt_caixa:     _dreNormalizarData(r[1]) || '',
+        dt_venc:      _dreNormalizarData(r[2]) || null,
+        dt_pag:       _dreNormalizarData(r[3]) || null,
+        tipo:         r[5]  || null,
+        valor:        _dreParseNum(r[6]),
+        tot_pago:     _dreParseNum(r[7]),
+        parceiro:     r[8]  || null,
+        documento:    r[9]  || null,
+        banco:        r[10] || null,
+        forma:        r[11] || null,
+        parcela:      r[12] || null,
+        tot_parcelas: r[13] || null,
+        obs:          r[14] || null,
+        cnpj:         r[15] || cnpj,
+        dt_custoria:  r[16] || null,
+        historico:    r[17] || null
       };
     });
 }

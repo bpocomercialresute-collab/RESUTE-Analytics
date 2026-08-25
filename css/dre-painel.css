@@ -670,15 +670,15 @@ td.fin-dre-col-med { background: #e8f0fb !important; color: var(--fin-ink); }
 .lg-table td.lg-sel-row  { background: #e8eef8 !important; }
 
 /* F_V e D_I no Plano â€” cursor pointer + centralizado */
-#fin-dre-tab-plano .lg-table tbody td:nth-child(5),
-#fin-dre-tab-plano .lg-table tbody td:nth-child(6) {
+#fin-dre-tab-plano .lg-table tbody td:nth-child(6),
+#fin-dre-tab-plano .lg-table tbody td:nth-child(7) {
   cursor: pointer;
   text-align: center;
   font-weight: 700;
   letter-spacing: .5px;
 }
-#fin-dre-tab-plano .lg-table tbody td:nth-child(5):hover,
-#fin-dre-tab-plano .lg-table tbody td:nth-child(6):hover {
+#fin-dre-tab-plano .lg-table tbody td:nth-child(6):hover,
+#fin-dre-tab-plano .lg-table tbody td:nth-child(7):hover {
   background: #e0eaff !important;
 }
 
@@ -694,6 +694,109 @@ td.fin-dre-col-med { background: #e8f0fb !important; color: var(--fin-ink); }
 .lg-pb  { border: 1px solid var(--fin-line); background: #fff; border-radius: 3px; padding: 2px 7px; cursor: pointer; font-size: 11px; }
 .lg-pb:hover { background: #1C64C0; color: #fff; }
 
-/* Filtro dropdown DRE â€” reutiliza .col-filter-dropdown do jss.js */
-.col-filter-dropdown { font-family: "Outfit", "Segoe UI", system-ui, sans-serif; }
+/* Filtro dropdown DRE — reutiliza .col-filter-dropdown do jss.js */
+.col-filter-dropdown { font-family: “Outfit”, “Segoe UI”, system-ui, sans-serif; }
+
+/* ============================================================
+   MELHORIAS VISUAIS v2 — filtros Excel-like, cabeçalhos, ID col
+   ============================================================ */
+
+/* Oculta lg-rn (coluna ID fixa/sticky) em todas as grades do DRE.
+   O elemento permanece no DOM para o tracking de linha funcionar;
+   apenas não é renderizado. A primeira coluna de dados (#) o substitui. */
+.lg-table thead th.lg-rn,
+.lg-table tbody td.lg-rn {
+  display: none !important;
+}
+
+/* Cabeçalhos de coluna — estilo Excel: uppercase, espaçamento, padding */
+.lg-table thead th {
+  text-transform: uppercase !important;
+  letter-spacing: .35px !important;
+  font-size: 10.5px !important;
+  padding: 8px 10px !important;
+  user-select: none !important;
+}
+
+/* Botão de filtro de coluna ▾ — mais visível no tema DRE */
+.col-filter-btn {
+  float: right !important;
+  margin-left: 5px !important;
+  color: rgba(255,255,255,.75) !important;
+  font-size: 11px !important;
+  background: rgba(255,255,255,.13) !important;
+  border-radius: 2px !important;
+  padding: 0 4px !important;
+}
+.col-filter-btn:hover {
+  background: rgba(255,255,255,.3) !important;
+  color: #fff !important;
+}
+
+/* Filtros principais (.fin-filtros) — toolbar Excel clara */
+.fin-filtros {
+  background: #eef1f8 !important;
+  border: 1px solid #cdd5e3 !important;
+  border-radius: 7px !important;
+  padding: 10px 14px !important;
+  gap: 12px !important;
+}
+.fin-campo label {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: .6px !important;
+  color: #4a5568 !important;
+  display: block;
+  margin-bottom: 4px !important;
+}
+.fin-campo select,
+.fin-campo input[type=”date”],
+.fin-campo input[type=”text”] {
+  min-height: 32px !important;
+  border: 1.5px solid #c8d0e2 !important;
+  border-radius: 5px !important;
+  background: #fff !important;
+  font-size: 12.5px !important;
+  color: #1a2035 !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04) !important;
+}
+.fin-campo select:focus,
+.fin-campo input:focus {
+  border-color: #002060 !important;
+  box-shadow: 0 0 0 2px rgba(0,32,96,.12) !important;
+  outline: none !important;
+}
+
+/* Barra de filtro por aba (.fin-barra-filtro) — toolbar Excel */
+.fin-barra-filtro {
+  display: flex !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  align-items: flex-end !important;
+  padding: 10px 12px !important;
+  background: #f0f4fb !important;
+  border: 1px solid #d3daea !important;
+  border-radius: 7px !important;
+  margin-bottom: 12px !important;
+}
+.fin-barra-filtro select,
+.fin-barra-filtro input {
+  padding: 6px 10px !important;
+  min-height: 32px !important;
+  border: 1.5px solid #c8d0e2 !important;
+  border-radius: 5px !important;
+  background: #fff !important;
+  font-size: 12.5px !important;
+  color: #1a2035 !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04) !important;
+}
+.fin-barra-filtro select:focus,
+.fin-barra-filtro input:focus {
+  border-color: #002060 !important;
+  box-shadow: 0 0 0 2px rgba(0,32,96,.12) !important;
+  outline: none !important;
+}
+.fin-barra-filtro select { min-width: 130px; }
+.fin-barra-filtro input  { min-width: 200px; flex: 1 1 200px; }
 
