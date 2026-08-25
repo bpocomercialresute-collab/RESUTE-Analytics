@@ -425,6 +425,67 @@ const DRE = (() => {
     return orfas;
   }
 
+  /* ---------- 9b. BALANÇO MENSAL — tabela resumo no final ---------- */
+  function renderBalanco(res) {
+    const s = res.serie, t = res.total, mI = estado.mesInicio, mF = estado.mesFim;
+    const nM = mF - mI + 1;
+    const inv = res.grupos['INVESTIMENTOS'];
+    const invMes = inv ? inv.meses : [];
+    const invTot = inv ? inv.total : 0;
+
+    const safeDiv = (a, b) => (b && isFinite(a / b)) ? a / b : 0;
+    const fmtEvol = (i) => {
+      if (i <= mI) return '-';
+      const cur = s.resultFinanceiro[i], prev = s.resultFinanceiro[i - 1];
+      if (!prev) return '-';
+      const pct = ((cur - prev) / Math.abs(prev)) * 100;
+      return (isFinite(pct) ? pct.toFixed(1).replace('.', ',') : '-') + '%';
+    };
+
+    const mkTd = (v, extra) => `<td class="${v < 0 ? 'fin-dre-val-saida' : ''}${extra ? ' ' + extra : ''}">${fmt(v)}</td>`;
+
+    const mkRow = (nome, arr, tot, med, pct, cls) => {
+      let tds = `<td class="fin-dre-col-conta fin-bal-conta ${cls}">${esc(nome)}</td>`;
+      for (let i = mI; i <= mF; i++) tds += mkTd(arr ? (arr[i] || 0) : 0);
+      tds += `<td class="fin-dre-col-tot-foot">${fmt(tot)}</td>`;
+      tds += `<td class="fin-dre-col-med-foot">${fmt(med)}</td>`;
+      tds += `<td>${pct !== null ? fmtPct(pct) : '-'}</td>`;
+      return `<tr class="${cls}">${tds}</tr>`;
+    };
+
+    const evolRow = () => {
+      let tds = `<td class="fin-dre-col-conta fin-bal-conta fin-bal-evol">% Evolução Mensal</td>`;
+      for (let i = mI; i <= mF; i++) tds += `<td>${fmtEvol(i)}</td>`;
+      tds += `<td>-</td><td>-</td><td>-</td>`;
+      return `<tr class="fin-bal-evol">${tds}</tr>`;
+    };
+
+    const th = [`<th class="fin-dre-col-conta">BALANÇO MENSAL</th>`];
+    for (let i = mI; i <= mF; i++) th.push(`<th>${MESES[i]}</th>`);
+    th.push(`<th class="fin-dre-col-tot">TOT</th><th class="fin-dre-col-med">MÉD/ANO</th><th class="fin-dre-col-pct-h">%</th>`);
+
+    const base = t.totReceita;
+    const tbody = [
+      mkRow('TOT. RECEITA', s.totReceita, t.totReceita, t.totReceita / nM, 1, 'fin-bal-receita'),
+      mkRow('(-) TOTAL DESP. VARIÁVEIS', s.despVariaveis, t.despVariaveis, t.despVariaveis / nM, safeDiv(t.despVariaveis, base), 'fin-bal-dv'),
+      mkRow('(-) TOTAL DESP. FIXA', s.despFixa, t.despFixa, t.despFixa / nM, safeDiv(t.despFixa, base), 'fin-bal-df'),
+      mkRow('(-) TOTAL DESPESAS', s.totalDespesas, t.totalDespesas, t.totalDespesas / nM, safeDiv(t.totalDespesas, base), 'fin-bal-td'),
+      mkRow('RESULTADO FINANCEIRO', s.resultFinanceiro, t.resultFinanceiro, t.resultFinanceiro / nM, safeDiv(t.resultFinanceiro, base), t.resultFinanceiro >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
+      mkRow('(-) INVESTIMENTOS', invMes, invTot, invTot / nM, safeDiv(invTot, base), 'fin-bal-inv'),
+      mkRow('RESULTADO OPERACIONAL', s.resultOperacional, t.resultOperacional, t.resultOperacional / nM, safeDiv(t.resultOperacional, base), t.resultOperacional >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
+      evolRow(),
+    ].join('');
+
+    return `<div class="fin-balanco-wrap">
+      <div class="fin-balanco-titulo">BALANÇO MENSAL</div>
+      <div class="fin-balanco-scroll">
+        <table class="fin-dre-tabela fin-balanco-tabela">
+          <thead><tr>${th.join('')}</tr></thead>
+          <tbody>${tbody}</tbody>
+        </table>
+      </div></div>`;
+  }
+
   function renderDRE() {
     const res = calcularResultado();
     const alvo = document.getElementById('fin-dre-corpo');
@@ -444,7 +505,7 @@ const DRE = (() => {
       return renderResultado(item, res);
     }).join('');
 
-    alvo.innerHTML = `<div class="fin-dre-periodo-label">${periodo}</div>${avisoOrfa}${blocos}`;
+    alvo.innerHTML = `<div class="fin-dre-periodo-label">${periodo}</div>${avisoOrfa}${blocos}${renderBalanco(res)}`;
     return res;
   }
 

@@ -738,6 +738,58 @@ td.fin-dre-col-med { background: #e8f0fb !important; color: var(--fin-ink); }
   background: #b8cef5 !important;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   BALANÇO MENSAL — seção de resumo no final da aba Resultados
+   ══════════════════════════════════════════════════════════════ */
+.fin-balanco-wrap {
+  margin-top: 28px;
+  border: 2px solid #002060;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.fin-balanco-titulo {
+  background: #002060;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  padding: 8px 14px;
+  text-transform: uppercase;
+}
+.fin-balanco-scroll { overflow-x: auto; }
+.fin-balanco-tabela tbody td { padding: 6px 8px; text-align: right; white-space: nowrap; font-size: 9.5pt; border: 1px solid var(--fin-line); }
+.fin-bal-conta { text-align: left !important; font-weight: 700; position: sticky; left: 0; z-index: 1; min-width: 240px; }
+
+/* TOT. RECEITA — amarelo */
+.fin-balanco-tabela tr.fin-bal-receita td { background: var(--fin-yellow) !important; color: #2b1800; font-weight: 700; }
+.fin-balanco-tabela tr.fin-bal-receita td.fin-bal-conta { background: var(--fin-yellow) !important; }
+
+/* DESP. VARIÁVEIS e DESP. FIXA — amarelo claro */
+.fin-balanco-tabela tr.fin-bal-dv td,
+.fin-balanco-tabela tr.fin-bal-df td { background: #fffce6; color: var(--fin-ink); }
+.fin-balanco-tabela tr.fin-bal-dv td.fin-bal-conta,
+.fin-balanco-tabela tr.fin-bal-df td.fin-bal-conta { background: #fffce6 !important; }
+
+/* TOTAL DESPESAS — amarelo */
+.fin-balanco-tabela tr.fin-bal-td td { background: var(--fin-yellow) !important; color: #2b1800; font-weight: 700; }
+.fin-balanco-tabela tr.fin-bal-td td.fin-bal-conta { background: var(--fin-yellow) !important; }
+
+/* RESULTADO FINANCEIRO / OPERACIONAL positivo — verde */
+.fin-balanco-tabela tr.fin-bal-pos td { background: var(--fin-green) !important; color: #fff; font-weight: 700; }
+.fin-balanco-tabela tr.fin-bal-pos td.fin-bal-conta { background: var(--fin-green) !important; }
+
+/* RESULTADO FINANCEIRO / OPERACIONAL negativo — vermelho */
+.fin-balanco-tabela tr.fin-bal-neg td { background: #b30000 !important; color: #fff; font-weight: 700; }
+.fin-balanco-tabela tr.fin-bal-neg td.fin-bal-conta { background: #b30000 !important; }
+
+/* INVESTIMENTOS — neutro */
+.fin-balanco-tabela tr.fin-bal-inv td { background: #f8faff; color: var(--fin-ink); }
+.fin-balanco-tabela tr.fin-bal-inv td.fin-bal-conta { background: #f8faff !important; }
+
+/* % Evolução mensal — azul suave */
+.fin-balanco-tabela tr.fin-bal-evol td { background: #eef3ff; color: #1e3a5f; font-style: italic; }
+.fin-balanco-tabela tr.fin-bal-evol td.fin-bal-conta { background: #eef3ff !important; }
+
 /* Botão de filtro de coluna ▾ — mais visível no tema DRE */
 .col-filter-btn {
   float: right !important;
