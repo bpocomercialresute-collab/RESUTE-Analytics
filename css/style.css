@@ -9871,6 +9871,57 @@ body.bpo-admin-mode .adm-sync-log { border-color: #374151; }
 body.bpo-admin-mode .adm-sync-log-header { background: #1f2937; }
 body.bpo-admin-mode .adm-sync-log-body   { background: #111827; }
 
+/* ── PAINEL DE PROGRESSO DE SYNC ─────────────────────────────────────────────── */
+#adm-sync-progress {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin-top: 20px;
+}
+.adm-sp-stage {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 14px;
+  min-height: 18px;
+}
+.adm-sp-bar-wrap {
+  background: #f1f5f9;
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.adm-sp-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #1C64C0, #3b82f6);
+  border-radius: 999px;
+  transition: width 0.5s ease;
+  min-width: 4px;
+}
+.adm-sp-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  min-height: 16px;
+}
+#adm-sp-pct { color: #1C64C0; }
+#adm-sp-eta { color: #64748b; }
+.adm-sp-result {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.adm-sp-result.ok   { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.adm-sp-result.erro { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+body.bpo-admin-mode #adm-sync-progress { background: #1e293b; border-color: #334155; }
+body.bpo-admin-mode .adm-sp-stage { color: #e2e8f0; }
+body.bpo-admin-mode .adm-sp-bar-wrap { background: #0f172a; }
+
 /* =============================================================================
    MODULOS SAAS â€” seletor no painel do cliente + gestao no console admin
    ========================================================================== */

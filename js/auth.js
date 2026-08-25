@@ -4762,10 +4762,57 @@ function _adminMostrarModo(temApi) {
   if (togLbl) togLbl.style.display = temApi ? '' : 'none';
 }
 
+// ── PROGRESSO VISUAL DE SYNC ──────────────────────────────────────────────────
+var _SYNC_PROGRESS = { totalMonths: 1, doneMonths: 0, fetchBasePct: 5, fetchRangePct: 26 };
+
+function _syncProgressReset() {
+  var el = document.getElementById('adm-sync-progress');
+  if (el) el.style.display = '';
+  var r = document.getElementById('adm-sp-result');
+  if (r) { r.style.display = 'none'; r.textContent = ''; r.className = 'adm-sp-result'; }
+  _syncProgress('Iniciando...', 0, null);
+  var log = document.getElementById('adm-sync-log');
+  if (log) log.style.display = 'none';
+  var lb = document.getElementById('adm-sync-log-body');
+  if (lb) lb.innerHTML = '';
+}
+
+function _syncProgress(stage, pct, etaSec) {
+  var s = document.getElementById('adm-sp-stage');
+  if (s) s.textContent = stage || '';
+  var p = Math.min(100, Math.max(0, pct || 0));
+  var b = document.getElementById('adm-sp-bar');
+  if (b) b.style.width = p + '%';
+  var pe = document.getElementById('adm-sp-pct');
+  if (pe) pe.textContent = Math.round(p) + '%';
+  var ee = document.getElementById('adm-sp-eta');
+  if (ee) ee.textContent = (etaSec != null && etaSec > 1) ? 'Faltam ~' + Math.round(etaSec) + 's' : '';
+}
+
+function _syncProgressFinish(msg, isOk) {
+  if (isOk) _syncProgress('Concluído', 100, null);
+  var r = document.getElementById('adm-sp-result');
+  if (r) {
+    r.textContent = msg;
+    r.className = 'adm-sp-result ' + (isOk ? 'ok' : 'erro');
+    r.style.display = '';
+  }
+}
+
 // ── LOG DE OPERAÇÕES DE SYNC ──────────────────────────────────────────────────
 function _syncLog(msg, type) {
   // type: 'info' | 'ok' | 'erro' | 'warn'  (default: 'info')
   var t = type || 'info';
+  var progressEl = document.getElementById('adm-sync-progress');
+  var progressAtivo = progressEl && progressEl.style.display !== 'none';
+  if (progressAtivo) {
+    // No modo progresso: erros aparecem no painel; info/warn apenas no console
+    if (t === 'ok')        _adminSetStatus('✓ ' + msg, true);
+    else if (t === 'erro') { _adminSetStatus('✗ ' + msg); _syncProgressFinish(msg, false); }
+    else                   _adminSetStatus('⏳ ' + msg);
+    if (t !== 'erro') console.log('[SYNC] ' + t.toUpperCase() + ': ' + msg);
+    return;
+  }
   var panel = document.getElementById('adm-sync-log');
   var body  = document.getElementById('adm-sync-log-body');
   if (panel) panel.style.display = '';
@@ -4784,7 +4831,6 @@ function _syncLog(msg, type) {
     body.appendChild(line);
     body.scrollTop = body.scrollHeight;
   }
-  // Mantém status bar também
   if (t === 'ok')   _adminSetStatus('✓ ' + msg, true);
   else if (t === 'erro') _adminSetStatus('✗ ' + msg);
   else              _adminSetStatus('⏳ ' + msg);
@@ -4809,6 +4855,11 @@ SYNC_ADAPTERS.visual_saef = {
     var pD = function(s) { return new Date(parseInt(s.slice(4)), parseInt(s.slice(2,4)) - 1, parseInt(s.slice(0,2))); };
     var fD = function(d) { return String(d.getDate()).padStart(2,'0') + String(d.getMonth()+1).padStart(2,'0') + String(d.getFullYear()); };
     var inicio = pD(DI), fim = pD(DF), todos = [];
+    // Calcula total de meses para rastrear progresso
+    var totalM = 0, tmpC = new Date(inicio.getFullYear(), inicio.getMonth(), 1);
+    while (tmpC <= fim) { totalM++; tmpC = new Date(tmpC.getFullYear(), tmpC.getMonth()+1, 1); }
+    _SYNC_PROGRESS.totalMonths = Math.max(totalM, 1);
+    _SYNC_PROGRESS.doneMonths = 0;
     // Pagina mês a mês para contornar limite de range da API Visual Saef
     var cur = new Date(inicio.getFullYear(), inicio.getMonth(), 1);
     while (cur <= fim) {
@@ -4819,7 +4870,9 @@ SYNC_ADAPTERS.visual_saef = {
       var raw = await r.json();
       var items = Array.isArray(raw) ? raw : (raw.data || raw.itens || raw.items || raw.result || raw.dados || []);
       todos = todos.concat(items);
-      _syncLog('Mês ' + fD(cur) + ' — ' + items.length + ' itens (total acumulado: ' + todos.length + ')');
+      _SYNC_PROGRESS.doneMonths++;
+      var mPct = _SYNC_PROGRESS.fetchBasePct + (_SYNC_PROGRESS.doneMonths / _SYNC_PROGRESS.totalMonths) * _SYNC_PROGRESS.fetchRangePct;
+      _syncProgress('Buscando dados... ' + todos.length.toLocaleString('pt-BR') + ' registros', mPct, null);
       cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
     }
     return todos;
@@ -4878,11 +4931,7 @@ adminSincronizar = async function() {
     representantes: { pending: true, count: 0, message: 'Preparando busca da equipe comercial.' }
   });
 
-  // Limpa log anterior e mostra painel
-  var _logBody = document.getElementById('adm-sync-log-body');
-  if (_logBody) _logBody.innerHTML = '';
-  var _logPanel = document.getElementById('adm-sync-log');
-  if (_logPanel) _logPanel.style.display = '';
+  _syncProgressReset();
 
   try {
     var periodo = _adminObterPeriodoSync();
@@ -4899,17 +4948,16 @@ adminSincronizar = async function() {
     if (!adapter) throw new Error('Sistema "' + sistema + '" não tem adapter configurado. Adicione em SYNC_ADAPTERS.');
     if (!apiUrl) throw new Error('URL da API não configurada para esta empresa. Configure em Integrações.');
 
-    _syncLog('Iniciando sincronização — ' + (adapter.nome || sistema) + ' — período: ' + DI + ' a ' + DF);
-    _syncLog('API: ' + apiUrl);
+    _syncProgress('Conectando à API ' + (adapter.nome || sistema) + '...', 1, null);
 
     var token = await adapter.login(apiUrl);
-    _syncLog('Login na API OK — buscando dados...');
+    _syncProgress('Login OK — buscando dados do período ' + DI + ' a ' + DF + '...', 3, null);
 
     var lista = await adapter.fetchVendas(apiUrl, token, DI, DF);
-    _syncLog(lista.length + ' registros recebidos da API');
+    _syncProgress('Dados recebidos — ' + lista.length.toLocaleString('pt-BR') + ' registros', 31, null);
 
     if (!lista.length) {
-      _syncLog('Nenhum dado novo no período. Sync encerrado.', 'warn');
+      _syncProgressFinish('Nenhum dado no período. Sync encerrado.', true);
       _adminAtualizarUltimSync(dataFim, 0);
       return;
     }
@@ -4981,7 +5029,7 @@ adminSincronizar = async function() {
     // Apaga somente os registros do período sincronizado para preservar histórico fora do range
     var delInicio = dataInicio.toISOString().slice(0,10);
     var delFim = dataFim.toISOString().slice(0,10);
-    _syncLog('Limpando dados do período ' + delInicio + ' a ' + delFim + '...');
+    _syncProgress('Removendo dados antigos do período...', 33, null);
     var delAll = await fetch(
       SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&dt_saida=gte.' + delInicio + '&dt_saida=lte.' + delFim,
       { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal', 'Content-Type': 'application/json' } }
@@ -4990,7 +5038,7 @@ adminSincronizar = async function() {
       var delBody = await delAll.text();
       throw new Error('Falha ao limpar dados antigos: HTTP ' + delAll.status + ': ' + delBody.slice(0,300));
     }
-    _syncLog('Dados do período removidos com sucesso');
+    _syncProgress('Dados removidos. Inserindo registros...', 35, null);
     if (window.ReportCache) {
       await window.ReportCache.clearEmpresa(EMPRESA_ATIVA.empresa_id);
     }
@@ -4998,7 +5046,7 @@ adminSincronizar = async function() {
 
     // Insere
     var inseridos = 0;
-    var totalLotes = Math.ceil(regs.length / 300);
+    var _insertStart = Date.now();
     for (var i = 0; i < regs.length; i += 300) {
       var batch = regs.slice(i, i+300);
       var sR = await fetch(SUPA_URL + '/rest/v1/vendas', {
@@ -5009,8 +5057,12 @@ adminSincronizar = async function() {
       var body = await sR.text();
       if (!sR.ok) throw new Error('HTTP ' + sR.status + ': ' + body.slice(0,300));
       inseridos += batch.length;
-      var loteNum = Math.floor(i/300) + 1;
-      _syncLog('Lote ' + loteNum + '/' + totalLotes + ' inserido — ' + inseridos + ' de ' + regs.length + ' registros');
+      var insertedFrac = inseridos / regs.length;
+      var insertPct = 35 + insertedFrac * 35;
+      var elapsed = (Date.now() - _insertStart) / 1000;
+      var rate = inseridos / Math.max(elapsed, 0.001);
+      var etaSec = (rate > 0 && inseridos < regs.length) ? (regs.length - inseridos) / rate : null;
+      _syncProgress('Salvando no banco... ' + inseridos.toLocaleString('pt-BR') + ' de ' + regs.length.toLocaleString('pt-BR'), insertPct, etaSec);
     }
 
     // Atualiza sync_log com resumo útil
@@ -5024,13 +5076,11 @@ adminSincronizar = async function() {
     EMPRESA_ATIVA.exibir_origem = 'api';
 
     // Enriquecer a base com cadastros auxiliares (somente Visual Saef por enquanto)
+    _syncProgress('Sincronizando cadastros auxiliares...', 70, null);
     var cadastrosResumo = {};
     if (sistema === 'visual_saef') {
-      _syncLog('Sincronizando cadastros auxiliares (clientes, produtos, representantes)...');
       await _adminLimparCadastrosApiSync();
       cadastrosResumo = await _adminSincronizarCadastrosApi(token, dataInicio, dataFim);
-    } else {
-      _syncLog('Cadastros auxiliares disponíveis apenas para Visual Saef por enquanto.', 'warn');
     }
 
     // Mostra KPIs e módulos do sync
@@ -5044,16 +5094,15 @@ adminSincronizar = async function() {
       }
     }, cadastrosResumo || {}));
 
-    _syncLog('Cadastros auxiliares sincronizados');
     // Gera relatórios automaticamente
-    _syncLog('Carregando dados do banco e gerando relatórios...');
+    _syncProgress('Carregando dados e gerando relatórios...', 85, null);
     await _adminCarregar(EMPRESA_ATIVA.empresa_id);
 
     try { bdMapColumns(); } catch(e) { console.error(e); }
     try { bdAutoFill(); }   catch(e) { console.error(e); }
     try { bdUpdateAllTabs(); } catch(e) { console.error(e); }
     // Gera cache server-side (lê dados já enriquecidos do BD, sem trafegar pelo browser)
-    _syncLog('Gerando cache de relatórios no servidor...');
+    _syncProgress('Gerando cache no servidor...', 90, null);
     try {
       var pcController = new AbortController();
       var pcTimer = setTimeout(function() { pcController.abort(); }, 120000);
@@ -5067,7 +5116,7 @@ adminSincronizar = async function() {
       var pcData;
       try { pcData = await pcResp.json(); } catch (_) { pcData = {}; }
       if (pcData.ok) {
-        _syncLog('Cache gerado: ' + pcData.total_registros.toLocaleString('pt-BR') + ' registros prontos para o cliente.', 'ok');
+        _syncProgress('Cache gerado — ' + pcData.total_registros.toLocaleString('pt-BR') + ' registros', 95, null);
         // Pré-popula IndexedDB para que a próxima entrada do cliente seja instantânea
         try {
           var pcSnap = window.ReportCache
@@ -5079,19 +5128,18 @@ adminSincronizar = async function() {
               gerado_em: pcSnap.dados.gerado_em || new Date().toISOString(),
               vendas: pcSnap.dados.vendas
             });
-            _syncLog('Cache local atualizado (' + pcSnap.dados.vendas.length.toLocaleString('pt-BR') + ' registros).', 'ok');
           }
-        } catch (_pcLsErr) { _syncLog('Aviso: cache local nao atualizado.', 'warn'); }
+        } catch (_pcLsErr) { console.warn('[SYNC] cache local nao atualizado.'); }
       } else if (pcData.aviso) {
-        _syncLog(pcData.aviso, 'warn');
+        console.warn('[SYNC] cache:', pcData.aviso);
       } else {
-        _syncLog('Cache não gerado: ' + (pcData.erro || 'erro desconhecido'), 'warn');
+        console.warn('[SYNC] cache nao gerado:', pcData.erro || 'erro desconhecido');
       }
     } catch (pcErr) {
       if (pcErr && pcErr.name === 'AbortError') {
-        _syncLog('Cache não gerado: timeout (empresa muito grande). O cliente carregará os dados na primeira entrada.', 'warn');
+        console.warn('[SYNC] cache timeout — empresa grande, cliente carregara na primeira entrada.');
       } else {
-        _syncLog('Cache não gerado (erro): ' + pcErr.message, 'warn');
+        console.warn('[SYNC] cache erro:', pcErr.message);
       }
     }
     if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
@@ -5103,7 +5151,7 @@ adminSincronizar = async function() {
     if (relAviso) relAviso.style.display = 'block';
 
     await _adminAtualizarContagens();
-    _syncLog(inseridos.toLocaleString('pt-BR') + ' registros salvos no banco — relatórios atualizados!', 'ok');
+    _syncProgressFinish(inseridos.toLocaleString('pt-BR') + ' registros salvos — relatórios atualizados!', true);
     _adminConsoleRecarregarSyncLog();
 
   } catch(e) {

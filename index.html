@@ -473,7 +473,19 @@
                     </button>
                   </div>
 
-                  <!-- Log de operações -->
+                  <!-- Progresso da sincronização -->
+                  <div id="adm-sync-progress" style="display:none">
+                    <div class="adm-sp-stage" id="adm-sp-stage">Iniciando...</div>
+                    <div class="adm-sp-bar-wrap">
+                      <div class="adm-sp-bar" id="adm-sp-bar" style="width:0%"></div>
+                    </div>
+                    <div class="adm-sp-meta">
+                      <span id="adm-sp-pct">0%</span>
+                      <span id="adm-sp-eta"></span>
+                    </div>
+                    <div id="adm-sp-result" class="adm-sp-result" style="display:none"></div>
+                  </div>
+                  <!-- Log de operações (mantido oculto; erros aparecem no painel acima) -->
                   <div id="adm-sync-log" class="adm-sync-log" style="display:none">
                     <div class="adm-sync-log-header">
                       <span>Registro de operações</span>
