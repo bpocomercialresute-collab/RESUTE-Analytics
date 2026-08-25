@@ -299,22 +299,22 @@ td.fin-dre-col-med { background: #e8f0fb !important; color: var(--fin-ink); }
 
 .fin-dre-col-pct { color: var(--fin-mute); font-size: 9.5pt; }
 
-/* ── Linha de total: amarelo #FFFF00, texto vermelho
-      TOT e MÉD ficam SEM amarelo (só texto vermelho) ── */
+/* ── Linha de total: amarelo #FFFF00 em toda a linha ── */
 .fin-dre-tabela tfoot td {
   padding: 5px 8px; text-align: right; white-space: nowrap;
-  background: var(--fin-yellow); color: var(--fin-red);
+  background: var(--fin-yellow) !important; color: #3d2800;
   font-weight: 700; font-size: 9.5pt;
-  border: 1px solid rgba(0,0,0,.25);
+  border: 1px solid rgba(0,0,0,.18);
 }
 .fin-dre-tabela tfoot td.fin-dre-col-conta {
-  text-align: left; color: #2b2200;
+  text-align: left; color: #2b1800;
   text-transform: uppercase; letter-spacing: .2px;
   position: sticky; left: 0; z-index: 1;
+  background: var(--fin-yellow) !important;
 }
 .fin-dre-tabela tfoot td.fin-dre-col-tot-foot,
 .fin-dre-tabela tfoot td.fin-dre-col-med-foot {
-  background: var(--fin-yellow) !important; color: var(--fin-red); font-weight: 700;
+  background: var(--fin-yellow) !important; color: #3d2800; font-weight: 700;
 }
 
 /* ── Linhas de resultado (Receita Líquida, Lucro Bruto, EBITDA…) ──
