@@ -718,6 +718,30 @@ td.fin-dre-col-med { background: #e8f0fb !important; color: var(--fin-ink); }
   user-select: none !important;
 }
 
+/* Coluna # (ID) — filho 2 porque lg-rn (oculto) ocupa filho 1 */
+#fin-dre-tab-bd .lg-table thead th:nth-child(2),
+#fin-dre-tab-plano .lg-table thead th:nth-child(2) {
+  background: #1a3a7a !important;
+  color: #fff !important;
+  border-right: 1px solid #2a4f9f !important;
+}
+#fin-dre-tab-bd .lg-table tbody td:nth-child(2),
+#fin-dre-tab-plano .lg-table tbody td:nth-child(2) {
+  background: #dce8ff !important;
+  color: #002060 !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  border-right: 1px solid #b3c9f0 !important;
+}
+#fin-dre-tab-bd .lg-table tbody tr:nth-child(even) td:nth-child(2),
+#fin-dre-tab-plano .lg-table tbody tr:nth-child(even) td:nth-child(2) {
+  background: #cfdcf8 !important;
+}
+#fin-dre-tab-bd .lg-table tbody tr:hover td:nth-child(2),
+#fin-dre-tab-plano .lg-table tbody tr:hover td:nth-child(2) {
+  background: #b8cef5 !important;
+}
+
 /* Botão de filtro de coluna ▾ — mais visível no tema DRE */
 .col-filter-btn {
   float: right !important;

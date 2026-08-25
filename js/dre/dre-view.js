@@ -44,7 +44,7 @@ var DRE_ADMIN_PREVIEW = false;
 var DRE_ADMIN_PREVIEW_COMPANY = null;
 
 var DRE_HTML_URL = 'views/dre-painel.html?v=7';
-var DRE_CSS_URL  = 'css/dre-painel.css?v=6';
+var DRE_CSS_URL  = 'css/dre-painel.css?v=7';
 
 // ── CSS ESCOPADO ─────────────────────────────────────────────────────────────
 
@@ -719,7 +719,7 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
   };
 
   GRID_DEFS['dre_bd'] = { cols: [
-    {t:'#',                  w:45,  auto:true},
+    {t:'#',                  w:45,  auto:false},
     {t:'DT_CAIXA',           w:100, auto:false},
     {t:'DT_VENC',            w:100, auto:false},
     {t:'DT_PAG',             w:100, auto:false},
@@ -753,7 +753,7 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
   ]};
   if (!GRID_DEFS['dre_plano']) {
     GRID_DEFS['dre_plano'] = { cols: [
-      {t:'#',    w:45,  auto:true},
+      {t:'#',    w:45,  auto:false},
       {t:'COD',   w:80,  auto:false},
       {t:'CONTA', w:220, auto:false},
       {t:'GRUPO', w:200, auto:false},
@@ -823,7 +823,7 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
     GRIDS['dre_plano'] = gridPlano;
 
     var atualizarPlano = function() {
-      gridPlano.allData.forEach(function(r, i) { if (r) r[0] = i + 1; });
+      // r[0] (# ID) mantido fixo — não recalcular por posição
       FULL_DATA['dre_plano'] = gridPlano.allData.slice();
       DRE.estado.plano = _drePlanoDeRows(gridPlano.getData());
       if (GRIDS['dre_bd']) _dreAtualizarDerivadasBD(GRIDS['dre_bd']);
@@ -1132,7 +1132,7 @@ function _dreAtualizarDerivadasBD(gridBD) {
     var r = data[i];
     if (!r) continue;
 
-    r[0] = i + 1;  // # sequencial (auto)
+    // r[0] mantido como digitado pelo usuário (não recalcular)
 
     // CONTA = índice 4
     var conta = String(r[4] || '').trim().toLowerCase();
