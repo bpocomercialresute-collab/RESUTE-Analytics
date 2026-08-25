@@ -346,7 +346,7 @@ const DRE = (() => {
 
     // Grupo sem dados → linha compacta
     if (!linhasVisiveis.length) {
-      return `<div class="fin-dre-bloco-vazio${item.paralelo ? ' fin-dre-paralelo' : ''}">
+      return `<div class="fin-dre-bloco-vazio${item.paralelo ? ' fin-dre-paralelo' : ''}" data-grupo="${esc(item.nome)}" data-se="${seDoGrupo(item.nome)}">
         <span class="fin-dre-bloco-vazio-nome">${prefixo} ${esc(item.nome)}</span>
         <span class="fin-dre-bloco-vazio-msg">Sem dados no período</span>
       </div>`;
@@ -370,7 +370,7 @@ const DRE = (() => {
     const receita = estado.bdDre.filter(l => l.s_e === 'E').reduce((s,l)=>s+l.total,0);
     rodape.push(`<td>${fmtPct(receita ? g.total / receita : 0)}</td>`);
 
-    return `<div class="fin-dre-bloco${item.paralelo ? ' fin-dre-paralelo' : ''}">
+    return `<div class="fin-dre-bloco${item.paralelo ? ' fin-dre-paralelo' : ''}" data-grupo="${esc(item.nome)}" data-se="${seDoGrupo(item.nome)}">
       <div class="fin-dre-bloco-scroll">
         <table class="fin-dre-tabela">
           ${cabecalhoBloco(item.nome, item.paralelo)}

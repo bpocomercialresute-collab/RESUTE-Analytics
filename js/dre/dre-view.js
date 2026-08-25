@@ -43,7 +43,7 @@ var DRE_MONTADO = false;
 var DRE_ADMIN_PREVIEW = false;
 var DRE_ADMIN_PREVIEW_COMPANY = null;
 
-var DRE_HTML_URL = 'views/dre-painel.html?v=7';
+var DRE_HTML_URL = 'views/dre-painel.html?v=8';
 var DRE_CSS_URL  = 'css/dre-painel.css?v=14';
 
 // ── CSS ESCOPADO ─────────────────────────────────────────────────────────────
@@ -888,6 +888,108 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
 
   // ── Grade BD_DRE (matriz SUMIFS, 100% somente leitura) ──────────────────────
   _dreIniciarGradeBDDRE();
+
+  // ── Filtros rápidos BD e Resultados ─────────────────────────────────────────
+  _dreConfigurarFiltroBD();
+  _dreConfigurarFiltroResultados();
+}
+
+// ── FILTROS RÁPIDOS BD ───────────────────────────────────────────────────────
+
+function _dreConfigurarFiltroBD() {
+  var busca = document.getElementById('fin-dre-bd-busca');
+  var filtroSE = document.getElementById('fin-dre-bd-filtro-se');
+  var btnLimpar = document.getElementById('fin-dre-bd-limpar-filtro');
+  var grid = GRIDS['dre_bd'];
+  if (!grid || !busca) return;
+
+  function aplicar() {
+    var termo = (busca.value || '').trim().toLowerCase();
+    var se = (filtroSE ? filtroSE.value : '').trim();
+    var src = FULL_DATA['dre_bd'] || grid.allData;
+
+    if (!termo && !se) {
+      grid.filtered = null;
+      grid.page = 0;
+      grid._render();
+      return;
+    }
+
+    grid.filtered = src.filter(function(row) {
+      if (!row) return false;
+      if (se && String(row[18] || '').trim() !== se) return false;
+      if (termo) {
+        var m = String(row[4]  || '').toLowerCase().indexOf(termo) >= 0
+             || String(row[17] || '').toLowerCase().indexOf(termo) >= 0
+             || String(row[8]  || '').toLowerCase().indexOf(termo) >= 0;
+        if (!m) return false;
+      }
+      return true;
+    });
+    grid.page = 0;
+    grid._render();
+  }
+
+  busca.addEventListener('input', aplicar);
+  if (filtroSE) filtroSE.addEventListener('change', aplicar);
+  if (btnLimpar) btnLimpar.addEventListener('click', function() {
+    busca.value = '';
+    if (filtroSE) filtroSE.value = '';
+    grid.filtered = null;
+    grid.page = 0;
+    grid._render();
+  });
+}
+
+// ── FILTROS RÁPIDOS RESULTADOS ────────────────────────────────────────────────
+
+var _dreResultadoFiltroWrapped = false;
+
+function _dreConfigurarFiltroResultados() {
+  var selGrupo  = document.getElementById('fin-dre-resultado-grupo');
+  var selTipo   = document.getElementById('fin-dre-resultado-tipo');
+  var btnLimpar = document.getElementById('fin-dre-resultado-limpar');
+  if (!selGrupo) return;
+
+  (DRE.ESTRUTURA || []).filter(function(e) { return e.tipo === 'grupo'; }).forEach(function(e) {
+    var op = document.createElement('option');
+    op.value = e.nome;
+    op.textContent = e.nome;
+    selGrupo.appendChild(op);
+  });
+
+  function aplicar() {
+    var grupoFiltro = selGrupo.value;
+    var tipoFiltro  = selTipo ? selTipo.value : '';
+    var corpo = document.getElementById('fin-dre-corpo');
+    if (!corpo) return;
+
+    corpo.querySelectorAll('[data-grupo]').forEach(function(b) {
+      var okGrupo = !grupoFiltro || b.dataset.grupo === grupoFiltro;
+      var okTipo  = !tipoFiltro  || b.dataset.se    === tipoFiltro;
+      b.style.display = (okGrupo && okTipo) ? '' : 'none';
+    });
+
+    var balanco = corpo.querySelector('.fin-balanco-wrap');
+    if (balanco) balanco.style.display = (!grupoFiltro && !tipoFiltro) ? '' : 'none';
+  }
+
+  selGrupo.addEventListener('change', aplicar);
+  if (selTipo) selTipo.addEventListener('change', aplicar);
+  if (btnLimpar) btnLimpar.addEventListener('click', function() {
+    selGrupo.value = '';
+    if (selTipo) selTipo.value = '';
+    aplicar();
+  });
+
+  if (!_dreResultadoFiltroWrapped && DRE && typeof DRE.recalcular === 'function') {
+    var origRecalc = DRE.recalcular;
+    DRE.recalcular = function() {
+      origRecalc.apply(this, arguments);
+      setTimeout(aplicar, 0);
+    };
+    _dreResultadoFiltroWrapped = true;
+  }
 }
 
 // ── GRADE BD_DRE ────────────────────────────────────────────────────────────
