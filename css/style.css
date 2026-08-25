@@ -11863,6 +11863,143 @@ body.bpo-admin-mode .admin-status-badge {
   }
 }
 
+/* ── MOBILE UX v2 — visual aprimorado do painel de relatórios de cliente ──────
+   Filtros em carrossel horizontal (economiza ~60% de espaço vertical),
+   KPIs com acento de cor, seções com borda esquerda e hero com gradiente sutil.
+   Vem após os blocos base de 720px/380px — cascade garante sobrescrita. */
+@media (max-width: 720px) {
+
+  /* Ferramentas de filtro: carrossel horizontal em vez de pilha vertical */
+  #view-dash-cliente .dc-panel-tools,
+  #view-dash-cliente .dc-panel-tools-compact,
+  #view-dash-cliente .dc-panel-tools-inline {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    padding: 0 0 4px !important;
+    margin-bottom: 10px !important;
+  }
+  #view-dash-cliente .dc-panel-tools::-webkit-scrollbar,
+  #view-dash-cliente .dc-panel-tools-compact::-webkit-scrollbar,
+  #view-dash-cliente .dc-panel-tools-inline::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  /* Cada filho ocupa apenas seu espaço natural */
+  #view-dash-cliente .dc-panel-tools > *,
+  #view-dash-cliente .dc-panel-tools label,
+  #view-dash-cliente .dc-panel-tools-compact > *,
+  #view-dash-cliente .dc-panel-tools-compact label,
+  #view-dash-cliente .dc-panel-tools-inline > *,
+  #view-dash-cliente .dc-panel-tools-inline label {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  /* Selects e inputs dentro de panel-tools */
+  #view-dash-cliente .dc-panel-tools select.dc-filtro,
+  #view-dash-cliente .dc-panel-tools input.dc-filtro,
+  #view-dash-cliente .dc-panel-tools-compact select.dc-filtro,
+  #view-dash-cliente .dc-panel-tools-compact input.dc-filtro,
+  #view-dash-cliente .dc-panel-tools-inline select.dc-filtro,
+  #view-dash-cliente .dc-panel-tools-inline input.dc-filtro {
+    min-width: 100px !important;
+    max-width: 155px !important;
+    width: auto !important;
+    flex: 0 0 auto !important;
+    height: 32px !important;
+  }
+
+  /* Inputs text/number/date dentro de panel-tools */
+  #view-dash-cliente .dc-panel-tools input[type="text"],
+  #view-dash-cliente .dc-panel-tools input[type="number"],
+  #view-dash-cliente .dc-panel-tools input[type="date"],
+  #view-dash-cliente .dc-panel-tools-compact input[type="text"],
+  #view-dash-cliente .dc-panel-tools-compact input[type="number"],
+  #view-dash-cliente .dc-panel-tools-compact input[type="date"],
+  #view-dash-cliente .dc-panel-tools-inline input[type="text"],
+  #view-dash-cliente .dc-panel-tools-inline input[type="date"] {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 84px !important;
+    max-width: 140px !important;
+    height: 32px !important;
+  }
+
+  /* Botões com classe dc-filtro dentro de panel-tools */
+  #view-dash-cliente .dc-panel-tools button.dc-filtro,
+  #view-dash-cliente .dc-panel-tools-compact button.dc-filtro,
+  #view-dash-cliente .dc-panel-tools-inline button.dc-filtro {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+    height: 32px !important;
+  }
+
+  /* KPI cards: acento visual na borda inferior */
+  #view-dash-cliente .dc-kpi-card {
+    border-bottom: 2px solid rgba(28, 100, 192, 0.22) !important;
+  }
+
+  /* Título de seção: borda esquerda colorida para hierarquia mais clara */
+  #view-dash-cliente .dc-section-title {
+    border-bottom: none !important;
+    border-left: 3px solid #1C64C0 !important;
+    padding-left: 9px !important;
+  }
+
+  /* Título do card: mais legível */
+  #view-dash-cliente .dc-card-title {
+    font-size: 11px !important;
+    letter-spacing: .06em !important;
+    margin-bottom: 10px !important;
+  }
+
+  /* Tabela menos larga para minimizar scroll lateral */
+  #view-dash-cliente .dc-tabela {
+    min-width: 420px !important;
+  }
+
+  /* Hero copy: gradiente sutil que diferencia do fundo verde-claro */
+  #view-dash-cliente .dc-hero-copy {
+    background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%) !important;
+    border: 1px solid rgba(28, 100, 192, 0.10) !important;
+  }
+
+  /* Pills de navegação: uppercase + peso maior para mobile */
+  #view-dash-cliente .dc-pill-btn {
+    text-transform: uppercase !important;
+    font-weight: 700 !important;
+    letter-spacing: .04em !important;
+  }
+}
+
+/* Em telas muito pequenas os panel-tools continuam em linha */
+@media (max-width: 380px) {
+  #view-dash-cliente .dc-panel-tools,
+  #view-dash-cliente .dc-panel-tools-compact,
+  #view-dash-cliente .dc-panel-tools-inline {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+  }
+  #view-dash-cliente .dc-panel-tools select.dc-filtro,
+  #view-dash-cliente .dc-panel-tools input.dc-filtro,
+  #view-dash-cliente .dc-panel-tools-compact select.dc-filtro,
+  #view-dash-cliente .dc-panel-tools-compact input.dc-filtro {
+    min-width: 86px !important;
+    max-width: 130px !important;
+  }
+}
+
 /* Financeiro mobile compacto: reduz informacao secundaria e prioriza leitura. */
 @media (max-width: 720px) {
   #view-dash-financeiro {
