@@ -747,15 +747,6 @@ td.fin-dre-col-med { background: #e8f0fb !important; color: var(--fin-ink); }
   border-radius: 8px;
   overflow: hidden;
 }
-.fin-balanco-titulo {
-  background: #002060;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .5px;
-  padding: 8px 14px;
-  text-transform: uppercase;
-}
 .fin-balanco-scroll { overflow-x: auto; }
 .fin-balanco-tabela tbody td { padding: 6px 8px; text-align: right; white-space: nowrap; font-size: 9.5pt; border: 1px solid var(--fin-line); }
 .fin-bal-conta { text-align: left !important; font-weight: 700; position: sticky; left: 0; z-index: 1; min-width: 240px; }

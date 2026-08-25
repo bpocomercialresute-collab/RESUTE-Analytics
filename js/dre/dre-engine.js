@@ -477,7 +477,6 @@ const DRE = (() => {
     ].join('');
 
     return `<div class="fin-balanco-wrap">
-      <div class="fin-balanco-titulo">BALANÇO MENSAL</div>
       <div class="fin-balanco-scroll">
         <table class="fin-dre-tabela fin-balanco-tabela">
           <thead><tr>${th.join('')}</tr></thead>
