@@ -161,15 +161,14 @@ LiteGrid.prototype._build = function() {
 
   // Teclado no input
   inp.addEventListener('keydown', function(e) {
-    var key = String(e.key || '').toLowerCase();
-    if ((e.ctrlKey || e.metaKey) && key === 'z') { e.preventDefault(); self._undo(); return; }
-    if (e.key === 'Enter')     { e.preventDefault(); self._commit(); self._move(1, 0); }
-    else if (e.key === 'Tab')  { e.preventDefault(); self._commit(); self._move(0, e.shiftKey?-1:1); }
-    else if (e.key === 'Escape') { self._hideInp(); }
-    else if (e.key === 'ArrowDown')  { e.preventDefault(); self._commit(); self._move(1,  0); }
-    else if (e.key === 'ArrowUp')    { e.preventDefault(); self._commit(); self._move(-1, 0); }
-    else if (e.key === 'ArrowRight') { e.preventDefault(); self._commit(); self._move(0, 1); }
-    else if (e.key === 'ArrowLeft')  { e.preventDefault(); self._commit(); self._move(0,-1); }
+    var k = String(e.key || '').toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); self._undo(); return; }
+    if (e.key === 'Enter')      { e.preventDefault(); self._commit(); self._move(e.shiftKey ? -1 : 1, 0); }
+    else if (e.key === 'Tab')   { e.preventDefault(); self._commit(); self._move(0, e.shiftKey ? -1 : 1); }
+    else if (e.key === 'Escape'){ e.preventDefault(); self._commit(); if (self._inp) self._inp.style.display = 'none'; }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); self._commit(); self._move(1,  0); }
+    else if (e.key === 'ArrowUp')   { e.preventDefault(); self._commit(); self._move(-1, 0); }
+    // ArrowLeft / ArrowRight → move cursor dentro do texto (comportamento padrão)
   });
 
   inp.addEventListener('input', function() {
@@ -204,16 +203,85 @@ LiteGrid.prototype._build = function() {
     self._copySelected(e);
   });
 
-  // Setas + Enter + Tab no container (modo navegação, sem editar)
+  // Setas + Enter + Tab + atalhos Excel no container (modo navegação)
   this.container.addEventListener('keydown', function(e) {
     if (e.target === inp) return;
-    var key = String(e.key || '').toLowerCase();
-    if ((e.ctrlKey || e.metaKey) && key === 'z') { e.preventDefault(); self._undo(); return; }
+    var k = String(e.key || '').toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); self._undo(); return; }
+
+    // F2 → abre edição na célula selecionada
+    if (e.key === 'F2' && self.selRow >= 0 && self.selCol >= 0) {
+      e.preventDefault();
+      var defF2 = self.def; if (defF2.cols[self.selCol] && defF2.cols[self.selCol].auto) return;
+      var fromF2 = self.page * self.pageSize, idxF2 = self.selRow - fromF2;
+      var rowsF2 = self._tbody ? self._tbody.querySelectorAll('tr') : [];
+      var tdF2 = rowsF2[idxF2] ? rowsF2[idxF2].querySelectorAll('td')[self.selCol + 1] : null;
+      if (tdF2) self._select(self.selRow, self.selCol, tdF2);
+      if (self._inp && self._inp.style.display !== 'none') { var v = self._inp.value; self._inp.setSelectionRange(v.length, v.length); }
+      return;
+    }
+
+    // Delete / Backspace → limpa célula selecionada
+    if ((e.key === 'Delete' || e.key === 'Backspace') && self.selRow >= 0 && self.selCol >= 0) {
+      e.preventDefault();
+      var defDel = self.def; if (defDel.cols[self.selCol] && defDel.cols[self.selCol].auto) return;
+      var riDel = self.selRow, ncolsDel = defDel.cols.length;
+      while (self.allData.length <= riDel) { var erDel=[]; for(var jd=0;jd<ncolsDel;jd++) erDel.push(''); self.allData.push(erDel); }
+      while (self.allData[riDel].length < ncolsDel) self.allData[riDel].push('');
+      var oldDel = self.allData[riDel][self.selCol];
+      if (oldDel !== '') {
+        self._pushUndo({ type:'cells', oldLength:self.allData.length, changes:[{ri:riDel, ci:self.selCol, oldVal:oldDel}] });
+        self.allData[riDel][self.selCol] = '';
+        FULL_DATA[self.key] = self.allData.filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null; }); });
+        self._renderRow(riDel); self._updateStatus();
+      }
+      return;
+    }
+
+    // Ctrl+Home → vai para A1
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Home') {
+      e.preventDefault();
+      self.page = 0; self._render();
+      var td0 = self._firstTd(); if (td0) self._select(0, 0, td0);
+      return;
+    }
+
+    // Ctrl+End → vai para última linha com dados
+    if ((e.ctrlKey || e.metaKey) && e.key === 'End') {
+      e.preventDefault();
+      var lastRi = ((FULL_DATA[self.key] || self.allData).length || 1) - 1;
+      if (lastRi < 0) return;
+      var lastCi = self.def.cols.length - 1;
+      var lastPg = Math.floor(lastRi / self.pageSize);
+      if (self.page !== lastPg) { self.page = lastPg; self._render(); }
+      var fromE = self.page * self.pageSize, idxE = lastRi - fromE;
+      var rowsE = self._tbody ? self._tbody.querySelectorAll('tr') : [];
+      var tdE = rowsE[idxE] ? rowsE[idxE].querySelectorAll('td')[lastCi + 1] : null;
+      if (tdE) { self._scrollToTd(tdE); self._select(lastRi, lastCi, tdE); }
+      return;
+    }
+
+    // Tecla imprimível → inicia edição em modo replace (como Excel)
     var map = {ArrowDown:[1,0], ArrowUp:[-1,0], ArrowRight:[0,1], ArrowLeft:[0,-1]};
     var d = map[e.key];
-    if (!d && e.key !== 'Enter' && e.key !== 'Tab') return;
+    if (!d && e.key !== 'Enter' && e.key !== 'Tab') {
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1 && self.selRow >= 0 && self.selCol >= 0) {
+        var defPr = self.def; if (defPr.cols[self.selCol] && defPr.cols[self.selCol].auto) return;
+        var fromPr = self.page * self.pageSize, idxPr = self.selRow - fromPr;
+        var rowsPr = self._tbody ? self._tbody.querySelectorAll('tr') : [];
+        var tdPr = rowsPr[idxPr] ? rowsPr[idxPr].querySelectorAll('td')[self.selCol + 1] : null;
+        self._select(self.selRow, self.selCol, tdPr);
+        if (self._inp && self._inp.style.display !== 'none') {
+          self._inp.value = e.key;
+          var rvPr = document.getElementById('lg-rv-'+self.key); if (rvPr) rvPr.value = e.key;
+          self._inp.setSelectionRange(1, 1);
+        }
+        e.preventDefault();
+      }
+      return;
+    }
     e.preventDefault();
-    if (e.key === 'Enter') d = [1, 0];
+    if (e.key === 'Enter') d = [e.shiftKey ? -1 : 1, 0];
     else if (e.key === 'Tab') d = [0, e.shiftKey ? -1 : 1];
     if (self.selRow < 0 || self.selCol < 0) { self._select(0, 0, self._firstTd()); return; }
     self._move(d[0], d[1]);
