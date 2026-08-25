@@ -343,7 +343,7 @@ html, body {
 .cfd-item { display:flex; align-items:center; gap:8px; padding:8px 14px; cursor:pointer; transition:background 80ms; }
 .cfd-item:hover { background:#1e2d45; }
 .cfd-item.cfd-active { background:#0f1e35; }
-.cfd-item input[type="radio"] { accent-color:var(--blue-600); }
+.cfd-item input[type="radio"],.cfd-item input[type="checkbox"] { accent-color:var(--blue-600); flex-shrink:0; }
 .cfd-item span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .cfd-search-row { display:flex; gap:6px; align-items:center; padding:8px 10px; border-bottom:1px solid #1e2d45; }
 .cfd-search-input { flex:1; background:#0d1117; border:1px solid #1e3a5f; border-radius:6px; color:#e2e8f0; font-size:12px; font-family:inherit; padding:5px 9px; outline:none; }
@@ -353,6 +353,32 @@ html, body {
 .cfd-footer { padding:8px 14px; border-top:1px solid #1e2d45; display:flex; justify-content:flex-end; }
 .cfd-apply { background:var(--blue-600); border:none; color:#fff; font-size:12px; font-weight:700; padding:7px 16px; border-radius:6px; cursor:pointer; font-family:inherit; }
 .cfd-apply:hover { background:var(--blue-700); }
+.cfd-sort-row { display:flex; gap:6px; padding:8px 10px; border-bottom:1px solid #1e2d45; }
+.cfd-sort-btn { flex:1; background:#0d1117; border:1px solid #1e3a5f; border-radius:6px; color:#94a3b8; font-size:11px; font-weight:700; padding:5px 8px; cursor:pointer; font-family:inherit; transition:all 120ms; text-align:center; }
+.cfd-sort-btn:hover { background:#1e2d45; color:#e2e8f0; border-color:#3b82f6; }
+.cfd-item-all { border-bottom:1px solid #1e2d45; margin-bottom:2px; font-weight:600; }
+
+/* Tema claro (Excel) para dropdowns em grids DRE */
+.col-filter-dropdown.cfd-light { background:#fff; border:1px solid #c8d0dc; color:#1e293b; box-shadow:0 4px 20px rgba(0,0,0,.15); }
+.col-filter-dropdown.cfd-light .cfd-header { background:#002060; color:#fff; border-bottom-color:#001540; }
+.col-filter-dropdown.cfd-light .cfd-clear { color:#ffd24a; }
+.col-filter-dropdown.cfd-light .cfd-sort-row { background:#f0f4fb; border-bottom-color:#d0d7e4; }
+.col-filter-dropdown.cfd-light .cfd-sort-btn { background:#fff; border-color:#c8d0dc; color:#002060; }
+.col-filter-dropdown.cfd-light .cfd-sort-btn:hover { background:#002060; color:#fff; border-color:#002060; }
+.col-filter-dropdown.cfd-light .cfd-search-row { border-bottom-color:#d0d7e4; background:#f8faff; }
+.col-filter-dropdown.cfd-light .cfd-search-input { background:#fff; border-color:#c8d0dc; color:#1e293b; }
+.col-filter-dropdown.cfd-light .cfd-search-input:focus { border-color:#002060; box-shadow:0 0 0 2px rgba(0,32,96,.12); }
+.col-filter-dropdown.cfd-light .cfd-list { background:#fff; }
+.col-filter-dropdown.cfd-light .cfd-item { color:#1e293b; }
+.col-filter-dropdown.cfd-light .cfd-item:hover { background:#e8f0fe; }
+.col-filter-dropdown.cfd-light .cfd-item.cfd-active { background:#dbeafe; }
+.col-filter-dropdown.cfd-light .cfd-item.cfd-item-all { background:#f0f4fb; border-bottom-color:#d0d7e4; color:#002060; }
+.col-filter-dropdown.cfd-light .cfd-item input[type="checkbox"] { accent-color:#002060; }
+.col-filter-dropdown.cfd-light .cfd-footer { border-top-color:#d0d7e4; background:#f8faff; }
+.col-filter-dropdown.cfd-light .cfd-apply { background:#002060; }
+.col-filter-dropdown.cfd-light .cfd-apply:hover { background:#003080; }
+.col-filter-dropdown.cfd-light .cfd-srch-btn { background:#002060; }
+.col-filter-dropdown.cfd-light .cfd-srch-btn:hover { background:#003080; }
 
 /* RelatÃ³rios */
 .av-rel-area, .av-rep-area { width:100%; }
