@@ -23,7 +23,6 @@ const DRE = (() => {
     'DESP. COMERCIAL':         'S',
     'DESP. LOGÍSTICA':         'S',
     'DESP. ADM':               'S',
-    'MKT':                     'S',
     'MANUT. E CONSERVAÇÃO':    'S',
     'DESP. TRIBUTÁRIA':        'S',
     'DESP. FINANCEIRA':        'S',
@@ -38,24 +37,18 @@ const DRE = (() => {
     { tipo:'grupo',      nome:'FATURAMENTO',             paralelo:true },
     { tipo:'grupo',      nome:'RECEITA OPERACIONAL',     sinal:'+' },
     { tipo:'grupo',      nome:'RECEITA NÃO OPERACIONAL', sinal:'+' },
-    // ── Despesas Variáveis ────────────────────────────────────────
-    { tipo:'separador',  nome:'DESPESAS VARIÁVEIS',      chave:'despVariaveis' },
+    // ── Despesas ──────────────────────────────────────────────────
     { tipo:'grupo',      nome:'DESP. OPERACIONAL',       sinal:'-' },
     { tipo:'grupo',      nome:'CUSTO. MP OU REVENDA',    sinal:'-' },
     { tipo:'grupo',      nome:'DESP. TRIBUTÁRIA',        sinal:'-' },
     { tipo:'grupo',      nome:'DESP. LOGÍSTICA',         sinal:'-' },
     { tipo:'grupo',      nome:'DESP. COMERCIAL',         sinal:'-' },
-    // ── Despesas Fixas ────────────────────────────────────────────
-    { tipo:'separador',  nome:'DESPESAS FIXAS',          chave:'despFixa' },
     { tipo:'grupo',      nome:'DESP. ADM',               sinal:'-' },
-    { tipo:'grupo',      nome:'MKT',                     sinal:'-' },
     { tipo:'grupo',      nome:'MANUT. E CONSERVAÇÃO',    sinal:'-' },
     { tipo:'grupo',      nome:'DESP. FINANCEIRA',        sinal:'-' },
     { tipo:'grupo',      nome:'PROLABORE E RETIRADA',    sinal:'-' },
     // ── Investimentos ─────────────────────────────────────────────
-    { tipo:'separador',  nome:'TOTAL DESPESAS',          chave:'totalDespesas' },
-    { tipo:'grupo',      nome:'INVESTIMENTOS',           sinal:'-' },
-    { tipo:'separador',  nome:'RESULTADO OPERACIONAL',   chave:'resultOperacional' }
+    { tipo:'grupo',      nome:'INVESTIMENTOS',           sinal:'-' }
   ];
 
   /* ---------- 2. ESTADO ---------- */
@@ -253,7 +246,6 @@ const DRE = (() => {
       const log    = m_('DESP. LOGÍSTICA', i);
       const com    = m_('DESP. COMERCIAL', i);
       const adm    = m_('DESP. ADM', i);
-      const mkt    = m_('MKT', i);
       const manut  = m_('MANUT. E CONSERVAÇÃO', i);
       const fin    = m_('DESP. FINANCEIRA', i);
       const soc    = m_('PROLABORE E RETIRADA', i);
@@ -261,7 +253,7 @@ const DRE = (() => {
 
       const tr = recOp + recNOp;                               // TOT. RECEITA
       const dv = oper + custo + trib + log + com;              // DESP. VARIÁVEIS
-      const df = adm + mkt + manut + fin + soc;                // DESP. FIXA
+      const df = adm + manut + fin + soc;                      // DESP. FIXA
       const td = dv + df;                                      // TOTAL DESPESAS
       const rf = tr - td;                                      // RESULTADO FINANCEIRO
       const ro = rf - inv;                                     // RESULTADO OPERACIONAL
@@ -276,7 +268,7 @@ const DRE = (() => {
       // legado
       const rl = recOp - trib;
       const lb = rl - custo;
-      const eb = lb - oper - com - log - adm - mkt - manut;
+      const eb = lb - oper - com - log - adm - manut;
       const as = eb - fin + recNOp;
       const ll = as - soc;
       serie.receitaLiquida.push(rl); serie.lucroBruto.push(lb);
