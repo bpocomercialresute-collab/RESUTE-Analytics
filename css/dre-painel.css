@@ -241,8 +241,7 @@
   background: #fff;
 }
 
-/* ── Cabeçalho: Jan-Dez navy #002060, TOT verde #00B050,
-                MÉD/ANO e % brancos (sem preenchimento) ── */
+/* ── Cabeçalho: Jan-Dez navy #002060, TOT branco igual MÉD/ANO ── */
 .fin-dre-tabela thead th {
   padding: 4px 8px; white-space: nowrap;
   background: var(--fin-navy); color: #fff;
@@ -256,11 +255,8 @@
   position: sticky; left: 0; z-index: 3;
   text-transform: uppercase; letter-spacing: .3px; font-size: 9.5pt;
 }
-.fin-dre-tabela thead th.fin-dre-col-tot {
-  background: var(--fin-green);
-  border-right: 1px solid rgba(0,0,0,.2);
-}
-/* MÉD/ANO e % = branco no cabeçalho, texto escuro */
+/* TOT, MÉD/ANO e % = branco no cabeçalho, texto escuro */
+.fin-dre-tabela thead th.fin-dre-col-tot,
 .fin-dre-tabela thead th.fin-dre-col-med,
 .fin-dre-tabela thead th.fin-dre-col-pct-h {
   background: #fff; color: var(--fin-ink);
@@ -291,8 +287,8 @@
 .fin-dre-val-entrada { color: var(--fin-ink); }
 .fin-dre-val-zero    { color: #c0c8d4; }
 
-/* TOT (corpo): branco, igual demais colunas */
-td.fin-dre-col-tot { background: #fff !important; color: var(--fin-ink) !important; font-weight: 700; }
+/* TOT (corpo): azul claro — combina com header navy */
+td.fin-dre-col-tot { background: #dbeafe !important; color: #1e3a5f !important; font-weight: 700; }
 
 /* MÉD (corpo): fundo branco, levemente diferenciado */
 td.fin-dre-col-med { background: #e8f0fb !important; color: var(--fin-ink); }
