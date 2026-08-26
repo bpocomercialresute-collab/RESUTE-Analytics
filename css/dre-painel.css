@@ -810,6 +810,14 @@ td.fin-dre-col-med { background: #e8f0fb !important; color: var(--fin-ink); }
 .fin-balanco-tabela tr.fin-bal-evol td { background: #eef3ff; color: #1e3a5f; font-style: italic; }
 .fin-balanco-tabela tr.fin-bal-evol td.fin-bal-conta { background: #eef3ff !important; }
 
+/* ── Cabeçalhos de mês clicáveis (ordenação) ── */
+.fin-dre-th-mes {
+  cursor: pointer;
+  user-select: none;
+}
+.fin-dre-th-mes:hover { filter: brightness(1.25); }
+.fin-dre-sort-icon { font-size: 9px; margin-left: 2px; opacity: .85; }
+
 /* Botão de filtro de coluna ▾ — mais visível no tema DRE */
 .col-filter-btn {
   float: right !important;

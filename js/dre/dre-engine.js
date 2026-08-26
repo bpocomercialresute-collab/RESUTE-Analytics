@@ -323,7 +323,8 @@ const DRE = (() => {
     const th = [];
     th.push(`<th class="fin-dre-col-conta">${esc(nome)}${
       paralelo ? '<span class="fin-dre-tag-paralelo">NÃO SOMA</span>' : ''}</th>`);
-    for (let i = estado.mesInicio; i <= estado.mesFim; i++) th.push(`<th>${MESES[i]}</th>`);
+    for (let i = estado.mesInicio; i <= estado.mesFim; i++)
+      th.push(`<th class="fin-dre-th-mes" onclick="dreResultSortCol(this)">${MESES[i]}<span class="fin-dre-sort-icon"></span></th>`);
     th.push('<th class="fin-dre-col-tot">TOT</th>');
     th.push('<th class="fin-dre-col-med">MÉD/ANO</th>');
     th.push('<th class="fin-dre-col-pct-h">%</th>');
@@ -977,3 +978,47 @@ const DRE = (() => {
 })();
 
 if (typeof module !== 'undefined') module.exports = DRE;
+
+// ── Ordenação de colunas de mês na aba Resultados ────────────────────────────
+// Chamada pelo onclick de cada <th class="fin-dre-th-mes"> gerado em cabecalhoBloco.
+// Ordena só o <tbody> (o <tfoot> de totais permanece fixo).
+function dreResultSortCol(th) {
+  var table = th.closest('table');
+  if (!table) return;
+  var tbody = table.querySelector('tbody');
+  if (!tbody) return;
+
+  var tr = th.closest('tr');
+  var thIndex = Array.from(tr.cells).indexOf(th);
+  var asc = th.dataset.asc !== 'true';
+
+  // Limpa indicadores em todos os ths da mesma linha
+  Array.from(tr.cells).forEach(function(c) {
+    delete c.dataset.asc;
+    var icon = c.querySelector('.fin-dre-sort-icon');
+    if (icon) icon.textContent = '';
+  });
+
+  th.dataset.asc = String(asc);
+  var icon = th.querySelector('.fin-dre-sort-icon');
+  if (icon) icon.textContent = asc ? ' ▲' : ' ▼';
+
+  // Parse número BR: "1.234" → 1234, "(-)1.234" → -1234, "-" → 0
+  function parseNumBR(s) {
+    s = String(s || '').trim();
+    if (s === '-' || s === '') return 0;
+    var neg = s.charAt(0) === '-' ? -1 : 1;
+    var clean = s.replace(/^-/, '').replace(/\./g, '').replace(',', '.');
+    var n = parseFloat(clean);
+    return isNaN(n) ? 0 : neg * n;
+  }
+
+  var rows = Array.from(tbody.querySelectorAll('tr'));
+  rows.sort(function(a, b) {
+    var va = a.cells[thIndex] ? a.cells[thIndex].textContent : '';
+    var vb = b.cells[thIndex] ? b.cells[thIndex].textContent : '';
+    var na = parseNumBR(va), nb = parseNumBR(vb);
+    return asc ? na - nb : nb - na;
+  });
+  rows.forEach(function(r) { tbody.appendChild(r); });
+}
