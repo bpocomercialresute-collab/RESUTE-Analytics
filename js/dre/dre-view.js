@@ -44,7 +44,7 @@ var DRE_ADMIN_PREVIEW = false;
 var DRE_ADMIN_PREVIEW_COMPANY = null;
 
 var DRE_HTML_URL = 'views/dre-painel.html?v=8';
-var DRE_CSS_URL  = 'css/dre-painel.css?v=14';
+var DRE_CSS_URL  = 'css/dre-painel.css?v=15';
 
 // ── CSS ESCOPADO ─────────────────────────────────────────────────────────────
 

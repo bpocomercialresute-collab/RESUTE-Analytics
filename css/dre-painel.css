@@ -239,6 +239,7 @@
   font-family: Calibri, “Segoe UI”, sans-serif; font-size: 10pt;
   font-variant-numeric: tabular-nums;
   background: #fff;
+  table-layout: fixed;
 }
 
 /* ── Cabeçalho: Jan-Dez navy #002060, TOT branco igual MÉD/ANO ── */
@@ -251,10 +252,23 @@
   position: sticky; top: 0; z-index: 2;
 }
 .fin-dre-tabela thead th.fin-dre-col-conta {
-  text-align: left; min-width: 240px;
+  text-align: left; width: 240px; min-width: 240px; max-width: 240px;
+  overflow: hidden; text-overflow: ellipsis;
   position: sticky; left: 0; z-index: 3;
   text-transform: uppercase; letter-spacing: .3px; font-size: 9.5pt;
 }
+
+/* Meses: largura fixa para todas as colunas de mês no cabeçalho */
+.fin-dre-tabela thead th:not(.fin-dre-col-conta):not(.fin-dre-col-tot):not(.fin-dre-col-med):not(.fin-dre-col-pct-h) {
+  width: 72px; min-width: 72px;
+}
+
+/* TOT e MÉD/ANO: largura fixa no cabeçalho */
+.fin-dre-tabela thead th.fin-dre-col-tot,
+.fin-dre-tabela thead th.fin-dre-col-med {
+  width: 88px; min-width: 88px;
+}
+.fin-dre-tabela thead th.fin-dre-col-pct-h { width: 66px; min-width: 66px; }
 /* TOT, MÉD/ANO e % = branco no cabeçalho, texto escuro */
 .fin-dre-tabela thead th.fin-dre-col-tot,
 .fin-dre-tabela thead th.fin-dre-col-med,
@@ -275,6 +289,8 @@
 
 .fin-dre-tabela td.fin-dre-col-conta {
   text-align: left; color: var(--fin-ink);
+  width: 240px; min-width: 240px; max-width: 240px;
+  overflow: hidden; text-overflow: ellipsis;
   position: sticky; left: 0; z-index: 1;
   background: #fff; border-right: 1px solid var(--fin-line);
   font-size: 9.5pt;
@@ -286,6 +302,18 @@
 .fin-dre-val-saida   { color: var(--fin-red); }
 .fin-dre-val-entrada { color: var(--fin-ink); }
 .fin-dre-val-zero    { color: #c0c8d4; }
+
+/* Meses no corpo/rodapé: mesma largura fixa do cabeçalho */
+.fin-dre-tabela tbody td:not(.fin-dre-col-conta):not(.fin-dre-col-tot):not(.fin-dre-col-med):not(.fin-dre-col-pct),
+.fin-dre-tabela tfoot td:not(.fin-dre-col-conta):not(.fin-dre-col-tot-foot):not(.fin-dre-col-med-foot):not(:last-child) {
+  width: 72px; min-width: 72px;
+}
+.fin-dre-tabela td.fin-dre-col-tot,
+.fin-dre-tabela tfoot td.fin-dre-col-tot-foot { width: 88px; min-width: 88px; }
+.fin-dre-tabela td.fin-dre-col-med,
+.fin-dre-tabela tfoot td.fin-dre-col-med-foot { width: 88px; min-width: 88px; }
+.fin-dre-tabela td.fin-dre-col-pct,
+.fin-dre-tabela tfoot td:last-child { width: 66px; min-width: 66px; }
 
 /* TOT (corpo): azul claro — combina com header navy */
 td.fin-dre-col-tot { background: #dbeafe !important; color: #1e3a5f !important; font-weight: 700; }
@@ -334,7 +362,8 @@ td.fin-dre-col-med { background: #e8f0fb !important; color: var(--fin-ink); }
   text-align: left; text-transform: uppercase;
   letter-spacing: .4px; font-size: 9.5pt;
   position: sticky; left: 0; z-index: 1;
-  min-width: 240px;
+  width: 240px; min-width: 240px; max-width: 240px;
+  overflow: hidden; text-overflow: ellipsis;
 }
 .fin-dre-resultado-tr.fin-dre-res-base td.fin-dre-col-conta { background: var(--fin-navy); }
 .fin-dre-resultado-tr.fin-dre-res-pos  td.fin-dre-col-conta { background: var(--fin-green); }
@@ -749,7 +778,7 @@ td.fin-dre-col-med { background: #e8f0fb !important; color: var(--fin-ink); }
 }
 .fin-balanco-scroll { overflow-x: auto; }
 .fin-balanco-tabela tbody td { padding: 6px 8px; text-align: right; white-space: nowrap; font-size: 9.5pt; border: 1px solid var(--fin-line); }
-.fin-bal-conta { text-align: left !important; font-weight: 700; position: sticky; left: 0; z-index: 1; min-width: 240px; }
+.fin-bal-conta { text-align: left !important; font-weight: 700; position: sticky; left: 0; z-index: 1; width: 240px; min-width: 240px; max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
 
 /* TOT. RECEITA — amarelo */
 .fin-balanco-tabela tr.fin-bal-receita td { background: var(--fin-yellow) !important; color: #2b1800; font-weight: 700; }
