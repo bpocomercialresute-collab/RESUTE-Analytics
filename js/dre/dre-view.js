@@ -675,6 +675,8 @@ function _dreAtualizarFiltrosAno() {
   if (anos.indexOf(anoAtual) < 0) {
     anoAtual = anos[anos.length - 1];
     DRE.estado.ano = anoAtual;
+    DRE.estado.anoInicio = anoAtual;
+    DRE.estado.anoFim    = anoAtual;
     DRE.estado.mesInicio = 0;
     DRE.estado.mesFim = 11;
     var selMes = document.getElementById('fin-filtro-mes');
@@ -1561,13 +1563,15 @@ function _dreLigarDateInputs() {
     var changed = false;
 
     if (di && !isNaN(di)) {
-      DRE.estado.ano      = di.getUTCFullYear();
+      DRE.estado.anoInicio = di.getUTCFullYear();
       DRE.estado.mesInicio = di.getUTCMonth();
+      DRE.estado.ano = DRE.estado.anoInicio;
       var selAno = document.getElementById('fin-filtro-ano');
       if (selAno) selAno.value = DRE.estado.ano;
       changed = true;
     }
     if (df && !isNaN(df)) {
+      DRE.estado.anoFim = df.getUTCFullYear();
       DRE.estado.mesFim = df.getUTCMonth();
       changed = true;
     }

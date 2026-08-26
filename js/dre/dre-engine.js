@@ -58,9 +58,12 @@ const DRE = (() => {
     lancamentos: [],    // BD
     bdDre: [],          // BD_DRE
     ano: null,
+    anoInicio: null,    // ano do início do recorte
+    anoFim: null,       // ano do fim do recorte
     cnpj: 1,
     mesInicio: 0,       // índice 0-11
     mesFim: 11,
+    slots: [],          // [{ano, mes}] — lista plana de meses no recorte
     charts: {},
     empresa: ''
   };
@@ -86,7 +89,31 @@ const DRE = (() => {
   const esc = s => String(s ?? '').replace(/[&<>"']/g,
     c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-  const mesesDoRecorte = () => estado.mesFim - estado.mesInicio + 1;
+  const mesesDoRecorte = () => estado.slots.length || (estado.mesFim - estado.mesInicio + 1);
+
+  // Reconstrói estado.slots — lista plana de {ano,mes} que cobre o recorte.
+  // Suporta intervalos multi-ano (ex: Ago/2025 → Ago/2026 = 13 slots).
+  function _construirSlots() {
+    const anoI = estado.anoInicio ?? estado.ano;
+    const anoF = estado.anoFim   ?? estado.ano;
+    const slots = [];
+    if (anoI != null && anoF != null) {
+      let a = anoI, m = estado.mesInicio;
+      const fimA = anoF, fimM = estado.mesFim;
+      while ((a < fimA || (a === fimA && m <= fimM)) && slots.length < 60) {
+        slots.push({ ano: a, mes: m });
+        m++;
+        if (m > 11) { m = 0; a++; }
+      }
+    }
+    if (!slots.length) {
+      const a = estado.ano ?? new Date().getFullYear();
+      for (let i = estado.mesInicio; i <= estado.mesFim; i++)
+        slots.push({ ano: a, mes: i });
+    }
+    estado.slots = slots;
+    return slots;
+  }
 
   const parseData = v => {
     if (!v) return null;
@@ -159,8 +186,10 @@ const DRE = (() => {
       indexa o BD uma vez por chave conta|ano|mês|cnpj — mesmo resultado,
       uma passada só.                                                      */
   function montarBDDRE() {
+    const slots = _construirSlots();
     const bd = enriquecerBD();
 
+    // Indexa todos os lançamentos por conta|ano|mesIdx|cnpj (multi-ano)
     const soma = new Map();
     for (const l of bd) {
       if (l.ano == null) continue;
@@ -168,18 +197,17 @@ const DRE = (() => {
       soma.set(chave, num(soma.get(chave)) + num(l.valor));
     }
 
-    // Produto cartesiano conta x ano x cnpj — igual à planilha:
-    // o layout não muda de tamanho, mesmo com meses zerados.
+    // meses[i] = valor do slot i (não mais índice de calendário fixo)
     const linhas = [];
     let id = 1;
     for (const c of estado.plano) {
-      const meses = MESES.map((_, i) =>
-        num(soma.get(`${norm(c.conta)}|${estado.ano}|${i}|${estado.cnpj}`))
+      const meses = slots.map(sl =>
+        num(soma.get(`${norm(c.conta)}|${sl.ano}|${sl.mes}|${estado.cnpj}`))
       );
       linhas.push({
         id: id++,
         cnpj: estado.cnpj,
-        ano: estado.ano,
+        ano: estado.anoInicio ?? estado.ano,
         codigo: c.cod,
         conta: c.conta,
         grupo: c.grupo,
@@ -192,12 +220,10 @@ const DRE = (() => {
       });
     }
 
-    // TOTAL = SOMA(Jan:Dez) restrito ao recorte de meses
     for (const l of linhas) {
-      let t = 0;
-      for (let i = estado.mesInicio; i <= estado.mesFim; i++) t += l.meses[i];
+      const t = l.meses.reduce((s, v) => s + v, 0);
       l.total = t;
-      l.med = t / mesesDoRecorte();          // MÉD = TOTAL / meses do recorte
+      l.med = slots.length > 0 ? t / slots.length : 0;
     }
 
     // % = TOTAL da linha / RECEITA total do período.
@@ -215,11 +241,12 @@ const DRE = (() => {
 
   function totalGrupo(nome) {
     const linhas = estado.bdDre.filter(l => l.grupo === nome);
-    const meses = MESES.map((_, i) =>
-      linhas.reduce((s, l) => s + l.meses[i], 0)
+    const n = estado.slots.length || mesesDoRecorte();
+    const meses = Array.from({ length: n }, (_, i) =>
+      linhas.reduce((s, l) => s + (l.meses[i] || 0), 0)
     );
     const total = linhas.reduce((s, l) => s + l.total, 0);
-    return { linhas, meses, total, med: total / mesesDoRecorte() };
+    return { linhas, meses, total, med: n > 0 ? total / n : 0 };
   }
 
   // Todas as linhas de resultado, mês a mês e no total.
@@ -228,6 +255,7 @@ const DRE = (() => {
     for (const nome of Object.keys(SE_POR_GRUPO)) g[nome] = totalGrupo(nome);
 
     const m_ = (grupo, i) => g[grupo].meses[i];
+    const slots = estado.slots;
 
     const serie = {
       totReceita:[], despVariaveis:[], despFixa:[],
@@ -237,7 +265,8 @@ const DRE = (() => {
       antesSocios:[], lucroLiquido:[], geracaoCaixa:[]
     };
 
-    for (let i = 0; i < 12; i++) {
+    // Itera sobre slots (não mais 12 meses fixos)
+    for (let i = 0; i < slots.length; i++) {
       const recOp  = m_('RECEITA OPERACIONAL', i);
       const recNOp = m_('RECEITA NÃO OPERACIONAL', i);
       const trib   = m_('DESP. TRIBUTÁRIA', i);
@@ -276,11 +305,7 @@ const DRE = (() => {
       serie.lucroLiquido.push(ll);   serie.geracaoCaixa.push(ll - inv);
     }
 
-    const somaRecorte = arr => {
-      let t = 0;
-      for (let i = estado.mesInicio; i <= estado.mesFim; i++) t += arr[i];
-      return t;
-    };
+    const somaRecorte = arr => arr.reduce((s, v) => s + v, 0);
 
     const tot = {};
     for (const k of Object.keys(serie)) tot[k] = somaRecorte(serie[k]);
@@ -323,8 +348,13 @@ const DRE = (() => {
     const th = [];
     th.push(`<th class="fin-dre-col-conta">${esc(nome)}${
       paralelo ? '<span class="fin-dre-tag-paralelo">NÃO SOMA</span>' : ''}</th>`);
-    for (let i = estado.mesInicio; i <= estado.mesFim; i++)
-      th.push(`<th class="fin-dre-th-mes" onclick="dreResultSortCol(this)">${MESES[i]}<span class="fin-dre-sort-icon"></span></th>`);
+    const multiAno = estado.anoInicio !== null && estado.anoInicio !== estado.anoFim;
+    for (const sl of estado.slots) {
+      const lbl = multiAno
+        ? MESES[sl.mes] + '/' + String(sl.ano).slice(2)
+        : MESES[sl.mes];
+      th.push(`<th class="fin-dre-th-mes" onclick="dreResultSortCol(this)">${lbl}<span class="fin-dre-sort-icon"></span></th>`);
+    }
     th.push('<th class="fin-dre-col-tot">TOT</th>');
     th.push('<th class="fin-dre-col-med">MÉD/ANO</th>');
     th.push('<th class="fin-dre-col-pct-h">%</th>');
@@ -339,8 +369,9 @@ const DRE = (() => {
     const prefixo = saida ? '(-)' : (item.paralelo ? '(=)' : '(+)');
 
     // Apenas linhas com pelo menos um valor não-zero no recorte
+    const nSlots = estado.slots.length;
     const linhasVisiveis = g.linhas.filter(l => {
-      for (let i = estado.mesInicio; i <= estado.mesFim; i++)
+      for (let i = 0; i < nSlots; i++)
         if (l.meses[i] !== 0) return true;
       return false;
     });
@@ -355,7 +386,7 @@ const DRE = (() => {
 
     const corpo = linhasVisiveis.map(l => {
       const tds = [`<td class="fin-dre-col-conta">${esc(l.conta)}</td>`];
-      for (let i = estado.mesInicio; i <= estado.mesFim; i++)
+      for (let i = 0; i < nSlots; i++)
         tds.push(`<td class="${cls(l.meses[i])}">${fmt(l.meses[i])}</td>`);
       tds.push(`<td class="fin-dre-col-tot ${cls(l.total)}">${fmt(l.total)}</td>`);
       tds.push(`<td class="fin-dre-col-med ${cls(l.med)}">${fmt(l.med)}</td>`);
@@ -364,7 +395,7 @@ const DRE = (() => {
     }).join('');
 
     const rodape = [`<td class="fin-dre-col-conta">${prefixo} TOTAL ${esc(item.nome)}</td>`];
-    for (let i = estado.mesInicio; i <= estado.mesFim; i++)
+    for (let i = 0; i < nSlots; i++)
       rodape.push(`<td>${fmt(g.meses[i])}</td>`);
     rodape.push(`<td class="fin-dre-col-tot-foot">${fmt(g.total)}</td>`);
     rodape.push(`<td class="fin-dre-col-med-foot">${fmt(g.med)}</td>`);
@@ -391,8 +422,9 @@ const DRE = (() => {
     const cls = item.base ? 'fin-dre-res-base'
               : (v >= 0 ? 'fin-dre-res-pos' : 'fin-dre-res-neg');
 
+    const nSlots = estado.slots.length;
     const tds = [`<td class="fin-dre-col-conta">${esc(item.nome)}</td>`];
-    for (let i = estado.mesInicio; i <= estado.mesFim; i++)
+    for (let i = 0; i < nSlots; i++)
       tds.push(`<td>${fmt(meses[i] || 0)}</td>`);
     tds.push(`<td class="fin-dre-col-tot">${fmt(v)}</td>`);
     tds.push(`<td class="fin-dre-col-med">${fmt(med)}</td>`);
@@ -408,7 +440,7 @@ const DRE = (() => {
 
   function renderSeparador(item, res) {
     const v = res.total[item.chave] ?? null;
-    const ncols = (estado.mesFim - estado.mesInicio + 1) + 3;
+    const ncols = estado.slots.length + 3;
     const valHtml = v !== null
       ? `<span class="fin-dre-sep-valor ${v < 0 ? 'fin-dre-sep-neg' : ''}">${fmt(v)}</span>`
       : '';
@@ -428,15 +460,17 @@ const DRE = (() => {
 
   /* ---------- 9b. BALANÇO MENSAL — tabela resumo no final ---------- */
   function renderBalanco(res) {
-    const s = res.serie, t = res.total, mI = estado.mesInicio, mF = estado.mesFim;
-    const nM = mF - mI + 1;
+    const s = res.serie, t = res.total;
+    const slots = estado.slots;
+    const nM = slots.length;
+    const multiAno = estado.anoInicio !== null && estado.anoInicio !== estado.anoFim;
     const inv = res.grupos['INVESTIMENTOS'];
     const invMes = inv ? inv.meses : [];
     const invTot = inv ? inv.total : 0;
 
     const safeDiv = (a, b) => (b && isFinite(a / b)) ? a / b : 0;
     const fmtEvol = (i) => {
-      if (i <= mI) return '-';
+      if (i <= 0) return '-';
       const cur = s.resultFinanceiro[i], prev = s.resultFinanceiro[i - 1];
       if (!prev) return '-';
       const pct = ((cur - prev) / Math.abs(prev)) * 100;
@@ -447,7 +481,7 @@ const DRE = (() => {
 
     const mkRow = (nome, arr, tot, med, pct, cls) => {
       let tds = `<td class="fin-dre-col-conta fin-bal-conta ${cls}">${esc(nome)}</td>`;
-      for (let i = mI; i <= mF; i++) tds += mkTd(arr ? (arr[i] || 0) : 0);
+      for (let i = 0; i < nM; i++) tds += mkTd(arr ? (arr[i] || 0) : 0);
       tds += `<td class="fin-dre-col-tot-foot">${fmt(tot)}</td>`;
       tds += `<td class="fin-dre-col-med-foot">${fmt(med)}</td>`;
       tds += `<td>${pct !== null ? fmtPct(pct) : '-'}</td>`;
@@ -456,13 +490,16 @@ const DRE = (() => {
 
     const evolRow = () => {
       let tds = `<td class="fin-dre-col-conta fin-bal-conta fin-bal-evol">% Evolução Mensal</td>`;
-      for (let i = mI; i <= mF; i++) tds += `<td>${fmtEvol(i)}</td>`;
+      for (let i = 0; i < nM; i++) tds += `<td>${fmtEvol(i)}</td>`;
       tds += `<td>-</td><td>-</td><td>-</td>`;
       return `<tr class="fin-bal-evol">${tds}</tr>`;
     };
 
     const th = [`<th class="fin-dre-col-conta">BALANÇO MENSAL</th>`];
-    for (let i = mI; i <= mF; i++) th.push(`<th>${MESES[i]}</th>`);
+    for (const sl of slots) {
+      const lbl = multiAno ? MESES[sl.mes] + '/' + String(sl.ano).slice(2) : MESES[sl.mes];
+      th.push(`<th>${lbl}</th>`);
+    }
     th.push(`<th class="fin-dre-col-tot">TOT</th><th class="fin-dre-col-med">MÉD/ANO</th><th class="fin-dre-col-pct-h">%</th>`);
 
     const base = t.totReceita;
@@ -492,8 +529,14 @@ const DRE = (() => {
     if (!alvo) return res;
 
     // Cabeçalho de período + aviso de orphans
-    const meI = MESES[estado.mesInicio], meF = MESES[estado.mesFim];
-    const periodo = meI === meF ? meI + ' ' + estado.ano : meI + ' a ' + meF + ' ' + estado.ano;
+    const slots = estado.slots;
+    const s0 = slots[0] || { ano: estado.ano, mes: estado.mesInicio };
+    const sN = slots[slots.length - 1] || s0;
+    const multiAno = s0.ano !== sN.ano;
+    const fmtSlotLbl = sl => MESES[sl.mes] + (multiAno ? '/' + String(sl.ano).slice(2) : '');
+    const periodo = (s0.ano === sN.ano && s0.mes === sN.mes)
+      ? fmtSlotLbl(s0) + ' ' + s0.ano
+      : fmtSlotLbl(s0) + ' a ' + fmtSlotLbl(sN) + (multiAno ? '' : ' ' + s0.ano);
     const orfas = _dreOrfas();
     const avisoOrfa = orfas > 0
       ? `<div class="fin-dre-aviso-orfa">⚠ ${orfas} lançamento(s) com conta fora do Plano (#N/A) — não entram no DRE.</div>`
@@ -514,14 +557,18 @@ const DRE = (() => {
   function renderBDDRE() {
     const alvo = document.getElementById('fin-dre-tab-bddre');
     if (!alvo) return;
-    // Ordem de colunas conforme BD_DRE da planilha original
+    const slots = estado.slots;
+    const multiAno = estado.anoInicio !== null && estado.anoInicio !== estado.anoFim;
+    const mesesHdr = slots.map(sl =>
+      multiAno ? MESES[sl.mes] + '/' + String(sl.ano).slice(2) : MESES[sl.mes]
+    );
     const th = ['ID','CNPJ','ANO','CODIGO','CONTA']
       .map(h => `<th>${h}</th>`)
-      .concat(MESES.map(m => `<th class="num">${m}</th>`))
+      .concat(mesesHdr.map(m => `<th class="num">${m}</th>`))
       .concat(['<th>CAD</th>','<th>GRUPO</th>','<th class="num">TOTAL</th>',
                '<th class="num">MED</th>','<th class="num">%</th>','<th>s_e</th>'])
       .join('');
-    const totalCols = 5 + MESES.length + 6;
+    const totalCols = 5 + slots.length + 6;
 
     if (!estado.bdDre.length) {
       const motivo = !estado.plano.length
@@ -792,8 +839,17 @@ const DRE = (() => {
     const el = document.getElementById('fin-executive-summary');
     if (!el) return;
     const t = res.total, base = res.base || 1;
-    el.innerHTML = `No recorte de <strong>${mesesDoRecorte()} meses</strong> de
-      <strong>${estado.ano}</strong>, a receita líquida somou <strong>${fmt(t.receitaLiquida)}</strong>.
+    const slots_ = estado.slots;
+    const r0 = slots_[0] || { ano: estado.ano, mes: estado.mesInicio };
+    const rN = slots_[slots_.length - 1] || r0;
+    const mAno_ = r0.ano !== rN.ano;
+    const fmtL_ = sl => MESES[sl.mes] + (mAno_ ? '/' + String(sl.ano).slice(2) : '');
+    const periodoStr = mesesDoRecorte() === 1
+      ? fmtL_(r0) + ' ' + r0.ano
+      : fmtL_(r0) + ' a ' + fmtL_(rN) + (mAno_ ? '' : ' de ' + r0.ano);
+
+    el.innerHTML = `No recorte de <strong>${mesesDoRecorte()} meses</strong>
+      (${periodoStr}), a receita líquida somou <strong>${fmt(t.receitaLiquida)}</strong>.
       O lucro bruto ficou em <strong>${fmt(t.lucroBruto)}</strong>
       (${fmtPct(t.lucroBruto/base)}), o EBITDA em <strong>${fmt(t.ebitda)}</strong>
       (${fmtPct(t.ebitda/base)}) e o lucro líquido em <strong>${fmt(t.lucroLiquido)}</strong>
@@ -802,7 +858,7 @@ const DRE = (() => {
 
     const lbl = document.getElementById('fin-periodo-label');
     if (lbl) lbl.textContent =
-      `${MESES[estado.mesInicio]} a ${MESES[estado.mesFim]} de ${estado.ano}${estado.empresa ? ' · ' + estado.empresa : ''}`;
+      `${fmtL_(r0)} a ${fmtL_(rN)}${mAno_ ? '' : ' de ' + r0.ano}${estado.empresa ? ' · ' + estado.empresa : ''}`;
   }
 
   /* ---------- 15. GRÁFICOS (Chart.js já integrado no sistema) ---------- */
@@ -815,8 +871,10 @@ const DRE = (() => {
   }
 
   function renderGraficos(res) {
-    const lbl = MESES.slice(estado.mesInicio, estado.mesFim + 1);
-    const cut = arr => arr.slice(estado.mesInicio, estado.mesFim + 1);
+    const slots = estado.slots;
+    const multiAno = estado.anoInicio !== null && estado.anoInicio !== estado.anoFim;
+    const lbl = slots.map(sl => multiAno ? MESES[sl.mes] + '/' + String(sl.ano).slice(2) : MESES[sl.mes]);
+    const cut = arr => arr.slice(0, slots.length);
 
     grafico('fin-dre-chart-resultado', {
       type: 'bar',
@@ -917,12 +975,19 @@ const DRE = (() => {
       .filter(v => v !== null))].sort();
     if (!anos.length) anos.push(new Date().getFullYear());
     estado.ano = estado.ano ?? anos[anos.length - 1];
+    if (estado.anoInicio == null) estado.anoInicio = estado.ano;
+    if (estado.anoFim   == null) estado.anoFim   = estado.ano;
 
     const selAno = document.getElementById('fin-filtro-ano');
     if (selAno) {
       selAno.innerHTML = anos.map(a =>
         `<option value="${a}"${a === estado.ano ? ' selected' : ''}>${a}</option>`).join('');
-      selAno.addEventListener('change', () => { estado.ano = +selAno.value; recalcular(); });
+      selAno.addEventListener('change', () => {
+        estado.ano = +selAno.value;
+        estado.anoInicio = estado.ano;
+        estado.anoFim    = estado.ano;
+        recalcular();
+      });
     }
 
     const selMes = document.getElementById('fin-filtro-mes');
@@ -932,6 +997,8 @@ const DRE = (() => {
       selMes.addEventListener('change', () => {
         if (selMes.value === '') { estado.mesInicio = 0; estado.mesFim = 11; }
         else { estado.mesInicio = estado.mesFim = +selMes.value; }
+        estado.anoInicio = estado.ano;
+        estado.anoFim    = estado.ano;
         recalcular();
       });
     }
@@ -959,6 +1026,8 @@ const DRE = (() => {
     estado.lancamentos = lancamentos;
     estado.cnpj = cnpj;
     estado.ano = ano;
+    estado.anoInicio = ano;
+    estado.anoFim    = ano;
 
     estado.empresa = empresa || '';
 
