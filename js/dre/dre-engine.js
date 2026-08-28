@@ -29,6 +29,7 @@ const DRE = (() => {
     'DESP. TRIBUTÁRIA':        'S',
     'DESP. FINANCEIRA':        'S',
     'PROLABORE E RETIRADA':    'S',
+    'DESP. FIXA':              'S',
     'INVESTIMENTOS':           'S'
   };
 
@@ -284,11 +285,12 @@ const DRE = (() => {
       const manut  = m_('MANUT. E CONSERVAÇÃO', i);
       const fin    = m_('DESP. FINANCEIRA', i);
       const soc    = m_('PROLABORE E RETIRADA', i);
+      const fixaGrp= m_('DESP. FIXA', i);
       const inv    = m_('INVESTIMENTOS', i);
 
       const tr = recOp + recNOp;                               // TOT. RECEITA
       const dv = oper + custo + trib + log + com;              // DESP. VARIÁVEIS
-      const df = adm + manut + fin + soc;                      // DESP. FIXA
+      const df = adm + manut + fin + soc + fixaGrp;           // DESP. FIXA
       const td = dv + df;                                      // TOTAL DESPESAS
       const rf = tr - td;                                      // RESULTADO FINANCEIRO
       const ro = rf - inv;                                     // RESULTADO OPERACIONAL
@@ -464,38 +466,65 @@ const DRE = (() => {
     return orfas;
   }
 
-  /* ---------- 9b. BALANÇO MENSAL — tabela resumo no final ---------- */
+  /* ---------- 9b. BALANÇO MENSAL — tabela completa ---------- */
   function renderBalanco(res) {
     const s = res.serie, t = res.total;
+    const g = res.grupos;
     const slots = estado.slots;
     const nM = slots.length;
     const multiAno = estado.anoInicio !== null && estado.anoInicio !== estado.anoFim;
-    const inv = res.grupos['INVESTIMENTOS'];
-    const invMes = inv ? inv.meses : [];
-    const invTot = inv ? inv.total : 0;
+    const fvdi = analiseFVDI();
 
     const safeDiv = (a, b) => (b && isFinite(a / b)) ? a / b : 0;
+
+    const gmeses = nome => (g[nome] ? g[nome].meses : Array(nM).fill(0));
+    const gtot   = nome => (g[nome] ? g[nome].total : 0);
+    const gmed   = nome => (g[nome] ? g[nome].med   : 0);
+
+    const base = t.totReceita;
+
     const fmtEvol = (i) => {
       if (i <= 0) return '-';
-      const cur = s.resultFinanceiro[i], prev = s.resultFinanceiro[i - 1];
-      if (!prev) return '-';
+      const cur = s.resultFinanceiro[i] || 0;
+      const prev = s.resultFinanceiro[i - 1] || 0;
+      if (!prev) return 'zerou';
       const pct = ((cur - prev) / Math.abs(prev)) * 100;
-      return (isFinite(pct) ? pct.toFixed(1).replace('.', ',') : '-') + '%';
+      if (!isFinite(pct)) return 'zerou';
+      const arrow = pct >= 0 ? '↑' : '↓';
+      const cls = pct >= 0 ? 'fin-bal-evol-up' : 'fin-bal-evol-down';
+      return `<span class="${cls}">${arrow} ${pct.toFixed(1).replace('.', ',')}%</span>`;
     };
 
-    const mkTd = (v, extra) => `<td class="${v < 0 ? 'fin-dre-val-saida' : ''}${extra ? ' ' + extra : ''}">${fmt(v)}</td>`;
+    const mkTd = v => {
+      const n = num(v);
+      return `<td class="${n < 0 ? 'fin-dre-val-saida' : ''}">${fmt(n)}</td>`;
+    };
 
-    const mkRow = (nome, arr, tot, med, pct, cls) => {
-      let tds = `<td class="fin-dre-col-conta fin-bal-conta ${cls}">${esc(nome)}</td>`;
+    const mkRow = (nome, arr, tot, med, pctVal, cls) => {
+      let tds = `<td class="fin-dre-col-conta fin-bal-conta ${cls || ''}">${esc(nome)}</td>`;
       for (let i = 0; i < nM; i++) tds += mkTd(arr ? (arr[i] || 0) : 0);
       tds += `<td class="fin-dre-col-tot-foot">${fmt(tot)}</td>`;
       tds += `<td class="fin-dre-col-med-foot">${fmt(med)}</td>`;
-      tds += `<td>${pct !== null ? fmtPct(pct) : '-'}</td>`;
-      return `<tr class="${cls}">${tds}</tr>`;
+      tds += `<td>${pctVal !== null && pctVal !== undefined ? fmtPct(pctVal) : '-'}</td>`;
+      return `<tr class="${cls || ''}">${tds}</tr>`;
+    };
+
+    const mkPctRow = (nome, numArr, denArr, totNum, totDen) => {
+      let tds = `<td class="fin-dre-col-conta fin-bal-conta fin-bal-pctrow">${esc(nome)}</td>`;
+      for (let i = 0; i < nM; i++) {
+        const n = num(numArr ? numArr[i] : 0);
+        const d = num(denArr ? denArr[i] : 0);
+        const pct = d ? (n / d) * 100 : 0;
+        tds += `<td class="fin-bal-pct-cell">${isFinite(pct) ? pct.toFixed(1).replace('.', ',') + '%' : '0,0%'}</td>`;
+      }
+      const tp = totDen ? (totNum / totDen) * 100 : 0;
+      tds += `<td class="fin-dre-col-tot-foot fin-bal-pct-cell">${isFinite(tp) ? tp.toFixed(2).replace('.', ',') + '%' : '0,00%'}</td>`;
+      tds += `<td>-</td><td>-</td>`;
+      return `<tr class="fin-bal-pctrow">${tds}</tr>`;
     };
 
     const evolRow = () => {
-      let tds = `<td class="fin-dre-col-conta fin-bal-conta fin-bal-evol">% Evolução Mensal</td>`;
+      let tds = `<td class="fin-dre-col-conta fin-bal-conta fin-bal-evol">% de evolução mensal</td>`;
       for (let i = 0; i < nM; i++) tds += `<td>${fmtEvol(i)}</td>`;
       tds += `<td>-</td><td>-</td><td>-</td>`;
       return `<tr class="fin-bal-evol">${tds}</tr>`;
@@ -508,16 +537,47 @@ const DRE = (() => {
     }
     th.push(`<th class="fin-dre-col-tot">TOT</th><th class="fin-dre-col-med">MÉD/ANO</th><th class="fin-dre-col-pct-h">%</th>`);
 
-    const base = t.totReceita;
+    const faturouMais = base - fvdi.pontoEquilibrio;
+    const fatMeses    = gmeses('FATURAMENTO');
+    const fatTot      = gtot('FATURAMENTO') || 1;
+
     const tbody = [
-      mkRow('TOT. RECEITA', s.totReceita, t.totReceita, t.totReceita / nM, 1, 'fin-bal-receita'),
-      mkRow('(-) TOTAL DESP. VARIÁVEIS', s.despVariaveis, t.despVariaveis, t.despVariaveis / nM, safeDiv(t.despVariaveis, base), 'fin-bal-dv'),
-      mkRow('(-) TOTAL DESP. FIXA', s.despFixa, t.despFixa, t.despFixa / nM, safeDiv(t.despFixa, base), 'fin-bal-df'),
-      mkRow('(-) TOTAL DESPESAS', s.totalDespesas, t.totalDespesas, t.totalDespesas / nM, safeDiv(t.totalDespesas, base), 'fin-bal-td'),
-      mkRow('RESULTADO FINANCEIRO', s.resultFinanceiro, t.resultFinanceiro, t.resultFinanceiro / nM, safeDiv(t.resultFinanceiro, base), t.resultFinanceiro >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
-      mkRow('(-) INVESTIMENTOS', invMes, invTot, invTot / nM, safeDiv(invTot, base), 'fin-bal-inv'),
-      mkRow('RESULTADO OPERACIONAL', s.resultOperacional, t.resultOperacional, t.resultOperacional / nM, safeDiv(t.resultOperacional, base), t.resultOperacional >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
+      // ── RECEITAS ────────────────────────────────────────────────────────
+      mkRow('TOT. RECEITA',                     s.totReceita,                  t.totReceita,          t.totReceita/nM,          1,                                          'fin-bal-receita'),
+      mkRow('TOT. VALOR PRODUZIDO',             gmeses('VALOR PRODUZIDO'),     gtot('VALOR PRODUZIDO'),  gmed('VALOR PRODUZIDO'),  null,                                   'fin-bal-sub'),
+      mkRow('(+) TOT. FATURAMENTO',             fatMeses,                      gtot('FATURAMENTO'),   gmed('FATURAMENTO'),      null,                                       'fin-bal-sub'),
+      mkRow('(-) TOTAL FATURAMENTO FISCAL',     gmeses('FATURAMENTO FISCAL'),  gtot('FATURAMENTO FISCAL'), gmed('FATURAMENTO FISCAL'), safeDiv(gtot('FATURAMENTO FISCAL'),base), 'fin-bal-sub'),
+      mkRow('(+) TOT. RECEITA OPERACIONAL',     gmeses('RECEITA OPERACIONAL'), gtot('RECEITA OPERACIONAL'), gmed('RECEITA OPERACIONAL'), safeDiv(gtot('RECEITA OPERACIONAL'),base), 'fin-bal-sub'),
+      mkRow('(+) TOT. RECEITA NÃO OPERACIONAL', gmeses('RECEITA NÃO OPERACIONAL'), gtot('RECEITA NÃO OPERACIONAL'), gmed('RECEITA NÃO OPERACIONAL'), safeDiv(gtot('RECEITA NÃO OPERACIONAL'),base), 'fin-bal-sub'),
+      mkRow('(-) TOTAL DESCONTOS CONCEDIDOS',   gmeses('DESCONTOS CONCEDIDOS'), gtot('DESCONTOS CONCEDIDOS'), gmed('DESCONTOS CONCEDIDOS'), safeDiv(gtot('DESCONTOS CONCEDIDOS'),base), 'fin-bal-desc'),
+      // ── DESP. VARIÁVEIS ─────────────────────────────────────────────────
+      mkRow('(-) TOTAL DESP. OPERACIONAL',      gmeses('DESP. OPERACIONAL'),   gtot('DESP. OPERACIONAL'),  gmed('DESP. OPERACIONAL'),  safeDiv(gtot('DESP. OPERACIONAL'),base),  'fin-bal-dv-sub'),
+      mkRow('(-) TOTAL CUSTO. MP OU REVENDA',   gmeses('CUSTO. MP OU REVENDA'),gtot('CUSTO. MP OU REVENDA'),gmed('CUSTO. MP OU REVENDA'),safeDiv(gtot('CUSTO. MP OU REVENDA'),base),'fin-bal-dv-sub'),
+      mkRow('(-) TOTAL DESP. TRIBUTÁRIA',       gmeses('DESP. TRIBUTÁRIA'),    gtot('DESP. TRIBUTÁRIA'),   gmed('DESP. TRIBUTÁRIA'),   safeDiv(gtot('DESP. TRIBUTÁRIA'),base),   'fin-bal-dv-sub'),
+      mkRow('DEA',                              Array(nM).fill(0),             0, 0, 0,                                                                                         'fin-bal-dv-sub'),
+      mkRow('(-) TOTAL DESP. LOGÍSTICA',        gmeses('DESP. LOGÍSTICA'),     gtot('DESP. LOGÍSTICA'),    gmed('DESP. LOGÍSTICA'),    safeDiv(gtot('DESP. LOGÍSTICA'),base),    'fin-bal-dv-sub'),
+      mkRow('(-) TOTAL DESP. COMERCIAL',        gmeses('DESP. COMERCIAL'),     gtot('DESP. COMERCIAL'),    gmed('DESP. COMERCIAL'),    safeDiv(gtot('DESP. COMERCIAL'),base),    'fin-bal-dv-sub'),
+      mkRow('(-) TOTAL DESP VARIÁVEIS',         s.despVariaveis,               t.despVariaveis,  t.despVariaveis/nM,  safeDiv(t.despVariaveis,base),  'fin-bal-dv'),
+      // ── DESP. FIXA ──────────────────────────────────────────────────────
+      mkRow('(-) TOTAL DESP. ADM',              gmeses('DESP. ADM'),           gtot('DESP. ADM'),          gmed('DESP. ADM'),          safeDiv(gtot('DESP. ADM'),base),          'fin-bal-df-sub'),
+      mkRow('(-) TOTAL MANUT. E CONSERVAÇÃO',   gmeses('MANUT. E CONSERVAÇÃO'),gtot('MANUT. E CONSERVAÇÃO'),gmed('MANUT. E CONSERVAÇÃO'),safeDiv(gtot('MANUT. E CONSERVAÇÃO'),base),'fin-bal-df-sub'),
+      mkRow('(-) TOTAL DESP. FINANCEIRA',       gmeses('DESP. FINANCEIRA'),    gtot('DESP. FINANCEIRA'),   gmed('DESP. FINANCEIRA'),   safeDiv(gtot('DESP. FINANCEIRA'),base),   'fin-bal-df-sub'),
+      mkRow('(-) TOTAL DESP. FIXA',             gmeses('DESP. FIXA'),          gtot('DESP. FIXA'),         gmed('DESP. FIXA'),         safeDiv(gtot('DESP. FIXA'),base),         'fin-bal-df-sub'),
+      mkRow('(-) TOT. PROLABORE E RETIRADA',    gmeses('PROLABORE E RETIRADA'),gtot('PROLABORE E RETIRADA'),gmed('PROLABORE E RETIRADA'),safeDiv(gtot('PROLABORE E RETIRADA'),base),'fin-bal-df-sub'),
+      mkRow('(-) TOTAL DESP FIXA',              s.despFixa,                    t.despFixa,       t.despFixa/nM,       safeDiv(t.despFixa,base),       'fin-bal-df'),
+      mkRow('(-) TOTAL DESPESAS',               s.totalDespesas,               t.totalDespesas,  t.totalDespesas/nM,  safeDiv(t.totalDespesas,base),  'fin-bal-td'),
+      // ── PATRIMÔNIO & RESULTADOS ─────────────────────────────────────────
+      mkRow('TOTAL DE PATRIMÔNIO',              Array(nM).fill(0), 0, 0, null, 'fin-bal-pat'),
+      mkRow('(-) TOTAL INVESTIMENTOS',          gmeses('INVESTIMENTOS'),       gtot('INVESTIMENTOS'),      gmed('INVESTIMENTOS'),      safeDiv(gtot('INVESTIMENTOS'),base),      'fin-bal-inv'),
+      mkRow('FATUROU A MAIS DO PONTO DE EQUILÍBRIO', Array(nM).fill(0),       faturouMais, 0, null,                                                                            'fin-bal-sub'),
+      mkRow('RESULTADO FINANCEIRO NO MÊS',      s.resultFinanceiro,  t.resultFinanceiro, t.resultFinanceiro/nM, safeDiv(t.resultFinanceiro,base), t.resultFinanceiro >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
+      mkRow('RESULTADO OPERACIONAL NO MÊS',     s.resultOperacional, t.resultOperacional, t.resultOperacional/nM, safeDiv(t.resultOperacional,base), t.resultOperacional >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
+      // ── % ───────────────────────────────────────────────────────────────
       evolRow(),
+      mkPctRow('% Result. Financ. sobre recebimento', s.resultFinanceiro, s.totReceita,           t.resultFinanceiro, base),
+      mkPctRow('% Lucro Líquido sobre faturamento',   s.lucroLiquido,     fatMeses,               t.lucroLiquido,     fatTot),
+      mkPctRow('% Result. Financ. sobre Patrimônio',  Array(nM).fill(0),  Array(nM).fill(0),      0, 0),
+      mkPctRow('% Result. Operac. sobre Patrimônio',  Array(nM).fill(0),  Array(nM).fill(0),      0, 0),
     ].join('');
 
     return `<div class="fin-balanco-wrap">

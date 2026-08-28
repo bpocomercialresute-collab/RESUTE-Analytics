@@ -809,6 +809,33 @@ td.fin-dre-col-med { background: #e8f0fb !important; color: var(--fin-ink); }
 /* % Evolução mensal — azul suave */
 .fin-balanco-tabela tr.fin-bal-evol td { background: #eef3ff; color: #1e3a5f; font-style: italic; }
 .fin-balanco-tabela tr.fin-bal-evol td.fin-bal-conta { background: #eef3ff !important; }
+.fin-bal-evol-up   { color: #00703c; font-weight: 700; }
+.fin-bal-evol-down { color: #b30000; font-weight: 700; }
+
+/* Linhas de sub-detalhamento (receita e neutros) */
+.fin-balanco-tabela tr.fin-bal-sub td { background: #f7f9fc; color: var(--fin-ink); font-size: 9pt; }
+.fin-balanco-tabela tr.fin-bal-sub td.fin-bal-conta { background: #f7f9fc !important; }
+
+/* Descontos concedidos — destaque ciano */
+.fin-balanco-tabela tr.fin-bal-desc td { background: #e6f9f7; color: #00756b; }
+.fin-balanco-tabela tr.fin-bal-desc td.fin-bal-conta { background: #e6f9f7 !important; }
+
+/* Sub-linhas de DESP. VARIÁVEIS */
+.fin-balanco-tabela tr.fin-bal-dv-sub td { background: #fff5f5; color: var(--fin-ink); font-size: 9pt; }
+.fin-balanco-tabela tr.fin-bal-dv-sub td.fin-bal-conta { background: #fff5f5 !important; }
+
+/* Sub-linhas de DESP. FIXA */
+.fin-balanco-tabela tr.fin-bal-df-sub td { background: #f5f0ff; color: var(--fin-ink); font-size: 9pt; }
+.fin-balanco-tabela tr.fin-bal-df-sub td.fin-bal-conta { background: #f5f0ff !important; }
+
+/* PATRIMÔNIO — neutro cinza */
+.fin-balanco-tabela tr.fin-bal-pat td { background: #e8ecf2; color: #4a5568; font-style: italic; }
+.fin-balanco-tabela tr.fin-bal-pat td.fin-bal-conta { background: #e8ecf2 !important; }
+
+/* Linhas de % (por mês e totais) */
+.fin-balanco-tabela tr.fin-bal-pctrow td { background: #fafbff; color: #2d3748; font-size: 8.5pt; border-top: 1px solid #c8d2e3; }
+.fin-balanco-tabela tr.fin-bal-pctrow td.fin-bal-conta { background: #fafbff !important; font-style: italic; }
+.fin-bal-pct-cell { text-align: right; font-size: 8.5pt; }
 
 /* ── Cabeçalhos de mês clicáveis (ordenação) ── */
 .fin-dre-th-mes {
