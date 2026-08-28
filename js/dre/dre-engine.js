@@ -18,6 +18,8 @@ const DRE = (() => {
     'RECEITA NÃO OPERACIONAL': 'E',
     'FATURAMENTO':             '0',
     'VALOR PRODUZIDO':         '0',
+    'DESCONTOS CONCEDIDOS':    '0',
+    'FATURAMENTO FISCAL':      '0',
     'CUSTO. MP OU REVENDA':    'S',
     'DESP. OPERACIONAL':       'S',
     'DESP. COMERCIAL':         'S',
@@ -30,23 +32,27 @@ const DRE = (() => {
     'INVESTIMENTOS':           'S'
   };
 
-  // Estrutura do DRE — ordem igual ao Modelo Resultado - Balanço.xlsx
+  // Estrutura do DRE — ordem exata do painel Resultado
   const ESTRUTURA = [
     // ── Receitas ──────────────────────────────────────────────────
+    { tipo:'separador',  nome:'RECEITA' },
     { tipo:'grupo',      nome:'VALOR PRODUZIDO',         paralelo:true },
     { tipo:'grupo',      nome:'FATURAMENTO',             paralelo:true },
     { tipo:'grupo',      nome:'RECEITA OPERACIONAL',     sinal:'+' },
     { tipo:'grupo',      nome:'RECEITA NÃO OPERACIONAL', sinal:'+' },
+    { tipo:'grupo',      nome:'DESCONTOS CONCEDIDOS',    paralelo:true },
+    { tipo:'grupo',      nome:'FATURAMENTO FISCAL',      paralelo:true },
     // ── Despesas ──────────────────────────────────────────────────
+    { tipo:'grupo',      nome:'PROLABORE E RETIRADA',    sinal:'-' },
+    { tipo:'grupo',      nome:'DESP. ADM',               sinal:'-' },
+    { tipo:'grupo',      nome:'MANUT. E CONSERVAÇÃO',    sinal:'-' },
     { tipo:'grupo',      nome:'DESP. OPERACIONAL',       sinal:'-' },
     { tipo:'grupo',      nome:'CUSTO. MP OU REVENDA',    sinal:'-' },
     { tipo:'grupo',      nome:'DESP. TRIBUTÁRIA',        sinal:'-' },
+    { tipo:'grupo',      nome:'DESP. FINANCEIRA',        sinal:'-' },
+    { tipo:'resultado',  nome:'DESP. FIXA',              chave:'despFixa' },
     { tipo:'grupo',      nome:'DESP. LOGÍSTICA',         sinal:'-' },
     { tipo:'grupo',      nome:'DESP. COMERCIAL',         sinal:'-' },
-    { tipo:'grupo',      nome:'DESP. ADM',               sinal:'-' },
-    { tipo:'grupo',      nome:'MANUT. E CONSERVAÇÃO',    sinal:'-' },
-    { tipo:'grupo',      nome:'DESP. FINANCEIRA',        sinal:'-' },
-    { tipo:'grupo',      nome:'PROLABORE E RETIRADA',    sinal:'-' },
     // ── Investimentos ─────────────────────────────────────────────
     { tipo:'grupo',      nome:'INVESTIMENTOS',           sinal:'-' }
   ];
