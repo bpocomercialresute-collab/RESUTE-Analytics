@@ -651,7 +651,7 @@ function repPremiacaoCampanhasHtml(rows) {
             <h3 class="premio-campanha-title">${repEsc(campanha.titulo)}</h3>
             <p class="premio-campanha-sub">${repEsc(campanha.subtitulo)}</p>
           </div>
-          <button type="button" class="premio-campanha-btn" onclick="repPremiacaoSetCampanha('${campanha.id}')">
+          <button type="button" class="premio-campanha-btn ${campanha.id === ativos.id ? 'is-active' : ''}" onclick="repPremiacaoSetCampanha('${campanha.id}')">
             ${campanha.id === ativos.id ? 'Selecionada' : 'Selecionar'}
           </button>
         </div>
