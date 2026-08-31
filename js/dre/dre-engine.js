@@ -544,8 +544,8 @@ const DRE = (() => {
     const tbody = [
       // ── RECEITAS ────────────────────────────────────────────────────────
       mkRow('TOT. RECEITA',                     s.totReceita,                  t.totReceita,          t.totReceita/nM,          1,                                          'fin-bal-receita'),
-      mkRow('TOT. VALOR PRODUZIDO',             gmeses('VALOR PRODUZIDO'),     gtot('VALOR PRODUZIDO'),  gmed('VALOR PRODUZIDO'),  null,                                   'fin-bal-sub'),
-      mkRow('(+) TOT. FATURAMENTO',             fatMeses,                      gtot('FATURAMENTO'),   gmed('FATURAMENTO'),      null,                                       'fin-bal-sub'),
+      mkRow('TOT. VALOR PRODUZIDO',             gmeses('VALOR PRODUZIDO'),     gtot('VALOR PRODUZIDO'),  gmed('VALOR PRODUZIDO'),  safeDiv(gtot('VALOR PRODUZIDO'),base),     'fin-bal-sub'),
+      mkRow('(+) TOT. FATURAMENTO',             fatMeses,                      gtot('FATURAMENTO'),   gmed('FATURAMENTO'),      safeDiv(gtot('FATURAMENTO'),base),           'fin-bal-sub'),
       mkRow('(-) TOTAL FATURAMENTO FISCAL',     gmeses('FATURAMENTO FISCAL'),  gtot('FATURAMENTO FISCAL'), gmed('FATURAMENTO FISCAL'), safeDiv(gtot('FATURAMENTO FISCAL'),base), 'fin-bal-sub'),
       mkRow('(+) TOT. RECEITA OPERACIONAL',     gmeses('RECEITA OPERACIONAL'), gtot('RECEITA OPERACIONAL'), gmed('RECEITA OPERACIONAL'), safeDiv(gtot('RECEITA OPERACIONAL'),base), 'fin-bal-sub'),
       mkRow('(+) TOT. RECEITA NÃO OPERACIONAL', gmeses('RECEITA NÃO OPERACIONAL'), gtot('RECEITA NÃO OPERACIONAL'), gmed('RECEITA NÃO OPERACIONAL'), safeDiv(gtot('RECEITA NÃO OPERACIONAL'),base), 'fin-bal-sub'),
@@ -569,7 +569,7 @@ const DRE = (() => {
       // ── PATRIMÔNIO & RESULTADOS ─────────────────────────────────────────
       mkRow('TOTAL DE PATRIMÔNIO',              Array(nM).fill(0), 0, 0, null, 'fin-bal-pat'),
       mkRow('(-) TOTAL INVESTIMENTOS',          gmeses('INVESTIMENTOS'),       gtot('INVESTIMENTOS'),      gmed('INVESTIMENTOS'),      safeDiv(gtot('INVESTIMENTOS'),base),      'fin-bal-inv'),
-      mkRow('FATUROU A MAIS DO PONTO DE EQUILÍBRIO', Array(nM).fill(0),       faturouMais, 0, null,                                                                            'fin-bal-sub'),
+      mkRow('FATUROU A MAIS DO PONTO DE EQUILÍBRIO', Array(nM).fill(0),       faturouMais, 0, safeDiv(faturouMais,base),                                                       'fin-bal-sub'),
       mkRow('RESULTADO FINANCEIRO NO MÊS',      s.resultFinanceiro,  t.resultFinanceiro, t.resultFinanceiro/nM, safeDiv(t.resultFinanceiro,base), t.resultFinanceiro >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
       mkRow('RESULTADO OPERACIONAL NO MÊS',     s.resultOperacional, t.resultOperacional, t.resultOperacional/nM, safeDiv(t.resultOperacional,base), t.resultOperacional >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
       // ── % ───────────────────────────────────────────────────────────────
