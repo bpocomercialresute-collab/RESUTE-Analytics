@@ -1347,14 +1347,14 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 }
 .premio-campanha-hero h3 {
   margin: 8px 0 8px;
-  color: #f8fafc;
+  color: #0E1424;
   font-size: 26px;
   line-height: 1.05;
   letter-spacing: -.04em;
 }
 .premio-campanha-hero p {
   margin: 0;
-  color: #91a4c1;
+  color: #64748b;
   line-height: 1.65;
 }
 .premio-campanha-resumo {
@@ -1371,7 +1371,7 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 }
 .premio-campanha-resumo span {
   display: block;
-  color: #93c5fd;
+  color: #2563eb;
   font-size: 10px;
   font-weight: 900;
   letter-spacing: .1em;
@@ -1394,7 +1394,7 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   line-height: 1.6;
 }
 .premio-campanha-alert strong {
-  color: #f8fafc;
+  color: #0E1424;
 }
 .premio-campanha-alert.muted {
   color: #8ea3c0;
