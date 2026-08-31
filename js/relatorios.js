@@ -391,24 +391,11 @@ function normalizarBotoesExportacao() {
     btn.insertAdjacentElement('afterend', excel);
     btn.dataset.excelReady = '1';
   });
+  // Botoes de exportacao (Baixar PDF/Excel) sao exclusivos do Relatorio de
+  // Produtos - nao devem aparecer em BD e Cadastros nem em Representantes.
   var repArea = document.getElementById('av-rep-area');
-  if (repArea && !repArea.querySelector('.rel-export-pdf')) {
-    var voltar = repArea.querySelector('.voltar-btn');
-    var wrap = document.createElement('div');
-    var criarBotao = function(formato, texto, classe) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'rel-print-btn ' + classe;
-      btn.addEventListener('click', function() {
-        exportarRelatorioAtual('representantes', formato);
-      });
-      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8"/></svg>' + texto;
-      return btn;
-    };
-    wrap.className = 'rel-export-actions rel-export-actions-rep';
-    wrap.appendChild(criarBotao('pdf', 'Baixar PDF', 'rel-export-pdf'));
-    wrap.appendChild(criarBotao('excel', 'Baixar Excel', 'rel-export-excel'));
-    if (voltar) voltar.insertAdjacentElement('afterend', wrap);
+  if (repArea) {
+    repArea.querySelectorAll('.rel-export-actions-rep, .rel-export-pdf, .rel-export-excel').forEach(function(el) { el.remove(); });
   }
 }
 
