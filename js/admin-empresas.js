@@ -174,6 +174,10 @@ async function adminCarregarDadosEmpresa(empresa_id) {
     BD_DATA.count = rows.length;
     if (typeof FULL_DATA !== 'undefined') FULL_DATA.bd = rows;
 
+    // Cache para merge de empresas na Premiação
+    if (!window.REP_EMPRESAS_CACHE) window.REP_EMPRESAS_CACHE = {};
+    window.REP_EMPRESAS_CACHE[empresa_id] = { nome: EMPRESA_ATIVA.nome, rows: rows };
+
     if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
       GRIDS.bd.allData  = rows;
       GRIDS.bd.filtered = null;

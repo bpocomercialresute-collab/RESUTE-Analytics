@@ -22,6 +22,107 @@ window.REP_PREMIACAO_FILTRO = window.REP_PREMIACAO_FILTRO || {
 window.REP_PREMIACAO_CRESCIMENTO = window.REP_PREMIACAO_CRESCIMENTO || false;
 window.REP_MENSAL_FILTER = window.REP_MENSAL_FILTER || { ano: '', vendedores: [], ocultarVazios: true };
 
+window.REP_MERGE_EMPRESAS = window.REP_MERGE_EMPRESAS || (function() {
+  try { return JSON.parse(localStorage.getItem('resute_rep_merge_empresas') || '[]'); } catch(e) { return []; }
+})();
+window.REP_EMPRESAS_CACHE = window.REP_EMPRESAS_CACHE || {};
+
+// ── MERGE DE EMPRESAS NA PREMIAÇÃO ────────────────────────────────────────────
+
+function repMergeEmpresasSalvar() {
+  try { localStorage.setItem('resute_rep_merge_empresas', JSON.stringify(window.REP_MERGE_EMPRESAS || [])); } catch(e) {}
+}
+
+function repMergeEmpresasToggle(empresa_id) {
+  const arr = window.REP_MERGE_EMPRESAS || [];
+  const idx = arr.indexOf(empresa_id);
+  if (idx >= 0) arr.splice(idx, 1);
+  else arr.push(empresa_id);
+  window.REP_MERGE_EMPRESAS = arr;
+  repMergeEmpresasSalvar();
+  repPremiacao();
+}
+
+async function repMergeEmpresasCarregarDados(empresa_id, nome) {
+  if (!window.REP_EMPRESAS_CACHE) window.REP_EMPRESAS_CACHE = {};
+  const btnId = 'rep-merge-load-' + empresa_id.replace(/[^a-z0-9]/gi, '_');
+  const btn = document.getElementById(btnId);
+  if (btn) { btn.disabled = true; btn.textContent = 'Carregando...'; }
+  try {
+    const r = await fetch(
+      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&select=*&order=dt_saida.asc&limit=100000',
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
+    );
+    const vendas = await r.json();
+    if (Array.isArray(vendas)) {
+      const rows = vendas.map(function(v) { return [
+        v.id_externo||'', v.num_pedido||'', v.produto||'', String(v.qtd||''),
+        v.dt_emissao||'', v.dt_saida||'', String(v.valor||''),
+        v.vendedor||'', v.industria||'', v.cliente||'',
+        v.ano ? String(v.ano) : '', v.mes||'', v.grupo||'', v.semana||'',
+        v.tipo_mercado||'', v.setor||'', v.cidade||'', v.uf||'',
+        v.tipo_vendedor||'', '', '', '', '',
+        v.empresa_nome || nome || '', v.cnpj||'', v.grupo_produto||'', v.grupo_pai||'',
+        v.subgrupo||'', v.marca||'', v.familia||'', v.classes||''
+      ]; });
+      window.REP_EMPRESAS_CACHE[empresa_id] = { nome: nome, rows: rows };
+    }
+  } catch(e) {
+    console.error('Erro ao carregar empresa para merge:', e);
+  }
+  repPremiacao();
+}
+
+function repPremiacaoBaseRowsMerged() {
+  const cache = window.REP_EMPRESAS_CACHE || {};
+  const mergeIds = window.REP_MERGE_EMPRESAS || [];
+  let allRows = repDataRows().slice();
+  mergeIds.forEach(function(id) {
+    if (cache[id]) allRows = allRows.concat(cache[id].rows);
+  });
+  return allRows;
+}
+
+function repPremiacaoEmpresasMergeHtml() {
+  const lista = window.EMPRESAS_LISTA;
+  if (!Array.isArray(lista) || !lista.length) return '';
+  const cache = window.REP_EMPRESAS_CACHE || {};
+  const mergeIds = window.REP_MERGE_EMPRESAS || [];
+  const ativa = window.EMPRESA_ATIVA;
+  const outras = lista.filter(function(e) { return !ativa || e.empresa_id !== ativa.empresa_id; });
+  if (!outras.length) return '';
+
+  const items = outras.map(function(e) {
+    const sel = mergeIds.includes(e.empresa_id);
+    const carregada = !!cache[e.empresa_id];
+    const nRows = carregada ? cache[e.empresa_id].rows.length : 0;
+    const safeId = e.empresa_id.replace(/[^a-z0-9]/gi, '_');
+    const infoHtml = carregada
+      ? `<span class="rep-merge-info">${nRows.toLocaleString('pt-BR')} registros</span>`
+      : `<button id="rep-merge-load-${repEsc(safeId)}" class="rep-merge-load-btn" onclick="repMergeEmpresasCarregarDados('${repEsc(e.empresa_id)}','${repEsc(e.nome)}')">Carregar dados</button>`;
+    return `<div class="rep-merge-item">
+      <label class="rep-merge-check">
+        <input type="checkbox" ${sel ? 'checked' : ''} ${!carregada ? 'disabled title="Carregue os dados primeiro"' : ''} onchange="repMergeEmpresasToggle('${repEsc(e.empresa_id)}')">
+        <span>${repEsc(e.nome)}</span>
+      </label>
+      ${infoHtml}
+    </div>`;
+  }).join('');
+
+  const ativaLabel = ativa ? ativa.nome : 'Empresa atual';
+  const mergeCount = mergeIds.filter(function(id) { return !!cache[id]; }).length;
+
+  return `<div class="rep-merge-panel">
+    <div class="rep-merge-title">Juntar empresas na premiação</div>
+    <div class="rep-merge-base">
+      <span class="rep-merge-badge">Base ativa</span>
+      <span class="rep-merge-base-nome">${repEsc(ativaLabel)}</span>
+      ${mergeCount ? `<span class="rep-merge-active-count">+ ${mergeCount} empresa${mergeCount > 1 ? 's' : ''} incluída${mergeCount > 1 ? 's' : ''}</span>` : ''}
+    </div>
+    <div class="rep-merge-lista">${items}</div>
+  </div>`;
+}
+
 function repToggleModo(m) {
   REP_MODO = m;
   repUpdateAll();
@@ -2051,10 +2152,20 @@ function repCrescMes() {
 function repPremiacao() {
   const el = document.getElementById('rep-tab-premiacao');
   if (!el) return;
-  const baseRows = repPremiacaoRowsBase();
+
+  // Combina dados de empresas selecionadas para merge
+  const mergeIds = window.REP_MERGE_EMPRESAS || [];
+  const cache = window.REP_EMPRESAS_CACHE || {};
+  const temMerge = mergeIds.some(function(id) { return !!cache[id]; });
+  const baseRows = temMerge
+    ? repFiltrarRowsPremiacao(repPremiacaoBaseRowsMerged())
+    : repPremiacaoRowsBase();
+
   const rows = repPremiacaoAplicarFiltroPeriodo(baseRows);
+  const mergeHtml = repPremiacaoEmpresasMergeHtml();
+
   if (!rows.length) {
-    el.innerHTML = `<div class="av-rel-placeholder"><p>Sem dados para premiação</p><span>Sincronize as vendas ou ajuste o período/campanha selecionado.</span></div>`;
+    el.innerHTML = `${mergeHtml}<div class="av-rel-placeholder"><p>Sem dados para premiação</p><span>Sincronize as vendas ou ajuste o período/campanha selecionado.</span></div>`;
     return;
   }
 
@@ -2062,6 +2173,7 @@ function repPremiacao() {
     ${repToggleHtml()}
     <div class="rel-title">PREMIAÇÃO DOS REPRESENTANTES</div>
   </div>
+  ${mergeHtml}
   <div class="rel-inline-tabs premio-inline-tabs">
     <button class="rel-inline-tab ${window.REP_PREMIACAO_MODO === 'geral' ? 'active' : ''}" onclick="repPremiacaoModo('geral')">Premiação geral</button>
     <button class="rel-inline-tab ${window.REP_PREMIACAO_MODO === 'atual' ? 'active' : ''}" onclick="repPremiacaoModo('atual')">Premiação atual</button>
@@ -2074,6 +2186,7 @@ function repPremiacao() {
   <div class="premio-campanha-foot">
     <div class="premio-campanha-alert">
       <strong>Modo ativo:</strong> ${repEsc(repPremiacaoCampanhaAtual().titulo)} · <strong>Período:</strong> ${repEsc(repPremiacaoPeriodoSelecionado(baseRows))}
+      ${temMerge ? ` · <strong>Empresas:</strong> ${1 + mergeIds.filter(function(id){return !!cache[id];}).length} combinadas` : ''}
     </div>
     ${window.REP_PREMIACAO_MODO === 'atual'
       ? `<div class="premio-campanha-alert muted">A disputa atual usa somente Anderson de Lessa Costa, Pedro Henrique Santos Sales e Wedna Rosa de Souza.</div>`
