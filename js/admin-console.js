@@ -346,6 +346,15 @@ function adminConsoleAbrir(section, navItem) {
   ADMIN_CONSOLE.activeSection = target;
   if (typeof switchView === 'function') switchView('view-admin-console');
 
+  // Blindagem: garante que os paineis de Analise de Vendas (Comercial)
+  // fiquem escondidos ao abrir qualquer secao do console admin, mesmo que
+  // tenham ficado visiveis de uma navegacao anterior (ex: Comercial ->
+  // Representantes -> Premiacao -> volta pra Sincronizacoes).
+  ['av-home', 'av-bd-area', 'av-rel-area', 'av-rep-area'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
   document.querySelectorAll('.admin-console-section').forEach(function(node) {
     node.classList.toggle('active', node.id === 'admin-section-' + target);
   });
