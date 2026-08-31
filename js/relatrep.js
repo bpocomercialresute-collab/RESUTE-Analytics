@@ -1022,6 +1022,9 @@ function repRoletaEstadoPadrao() {
     angulo: 0,
     ganhador: '',
     ultimoPremio: '',
+    // Registro persistente do que a roda sorteou por ultimo - nao e limpo
+    // quando o rascunho (ultimoPremio) e resetado apos registrar no historico.
+    ultimoSorteio: '',
     historico: []
   };
 }
@@ -1044,6 +1047,7 @@ function repRoletaLerEstado() {
   estado.angulo = Number.isFinite(Number(estado.angulo)) ? Number(estado.angulo) : 0;
   estado.ganhador = String(estado.ganhador || '').trim();
   estado.ultimoPremio = String(estado.ultimoPremio || '').trim();
+  estado.ultimoSorteio = String(estado.ultimoSorteio || '').trim();
   estado.historico = Array.isArray(estado.historico)
     ? estado.historico.map(function(item) {
         return {
@@ -1067,6 +1071,7 @@ function repRoletaSalvarEstado(estado) {
       angulo: Number(estado.angulo || 0),
       ganhador: String(estado.ganhador || '').trim(),
       ultimoPremio: String(estado.ultimoPremio || '').trim(),
+      ultimoSorteio: String(estado.ultimoSorteio || '').trim(),
       historico: Array.isArray(estado.historico) ? estado.historico : []
     }));
   } catch (e) {}
@@ -1153,11 +1158,6 @@ function repRoletaConicGradient(itens) {
   }).join(', ');
 }
 
-function repRoletaNomeAtual() {
-  const input = document.getElementById('rep-roleta-ganhador-input');
-  return String((input && input.value) || '').trim();
-}
-
 function repRoletaRecarregarArea() {
   repPremiacao();
 }
@@ -1225,8 +1225,9 @@ function repRoletaPreencherAtual() {
   const estado = repRoletaLerEstado();
   const premioInput = document.getElementById('rep-roleta-premio-input');
   const dataInput = document.getElementById('rep-roleta-data-input');
-  if (premioInput) premioInput.value = estado.ultimoPremio || '';
+  if (premioInput) premioInput.value = estado.ultimoSorteio || '';
   if (dataInput) dataInput.value = dataInput.value || repRoletaDataHoje();
+  repRoletaAutoSalvar();
 }
 
 // Registra uma entrada no historico e limpa o rascunho (nome/premio) para
@@ -1270,7 +1271,7 @@ function repRoletaHtml() {
   const estado = repRoletaGarantirSeed();
   const itens = estado.itens;
   const ang = itens.length ? 360 / itens.length : 0;
-  const ativo = estado.ultimoPremio || itens[0] || '';
+  const ativo = estado.ultimoSorteio || itens[0] || '';
   const reps = repRoletaRepresentantesSugestoes();
   const repsOptions = reps.map(function(nome) {
     return `<option value="${repEsc(nome)}"></option>`;
@@ -1306,6 +1307,10 @@ function repRoletaHtml() {
       </div>
       <div class="premio-roleta-actions">
         <button type="button" class="premio-roleta-btn premio-roleta-btn-primary" onclick="repRoletaSortear()">Girar roleta</button>
+        <button type="button" class="premio-roleta-btn premio-roleta-btn-apresentar" onclick="repRoletaAbrirApresentacao()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+          Modo apresentacao
+        </button>
         <button type="button" class="premio-roleta-btn" onclick="repRoletaImportarProdutos()">Importar produtos do recorte</button>
         <button type="button" class="premio-roleta-btn" onclick="repRoletaLimparItens()">Limpar produtos</button>
       </div>
@@ -1371,11 +1376,7 @@ function repRoletaAtualizarResumo() {
   const ganhador = document.getElementById('rep-roleta-ganhador-text');
   if (ganhador) ganhador.textContent = estado.ganhador || 'nao definido';
   const ultimo = document.getElementById('rep-roleta-ultimo');
-  if (ultimo && estado.ultimoPremio) ultimo.textContent = estado.ultimoPremio;
-  const premioInput = document.getElementById('rep-roleta-premio-input');
-  if (premioInput && !String(premioInput.value || '').trim() && estado.ultimoPremio) {
-    premioInput.value = estado.ultimoPremio;
-  }
+  if (ultimo && estado.ultimoSorteio) ultimo.textContent = estado.ultimoSorteio;
 }
 
 function repRoletaCelebracaoHtml(premio, ganhador) {
@@ -1429,17 +1430,135 @@ function repRoletaFecharCelebracao() {
   }, 260);
 }
 
-function repRoletaSortear() {
+// ── MODO APRESENTAÇÃO ─────────────────────────────────────────────────────
+// Tela cheia so com a roleta, pra gravar o sorteio limpo (sem menu/sidebar).
+// Reaproveita o mesmo motor de giro (repRoletaExecutarGiro) com seus proprios
+// ids de elemento, e o mesmo popup de comemoracao (ja e um singleton global).
+
+function repRoletaApresentacaoBox() {
+  let box = document.getElementById('rep-roleta-presentation');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'rep-roleta-presentation';
+    box.className = 'premio-roleta-presentation';
+    box.hidden = true;
+    document.body.appendChild(box);
+  }
+  return box;
+}
+
+function repRoletaApresentacaoConteudoHtml() {
+  const estado = repRoletaLerEstado();
+  const itens = estado.itens;
+  const ang = itens.length ? 360 / itens.length : 0;
+  const anguloAtual = Number(estado.angulo || 0);
+  // 165px cabe com folga tanto no raio do desktop (~280px) quanto no piso
+  // minimo do wheel em telas pequenas (clamp de 340px => raio ~170px).
+  const labels = itens.map((item, i) => {
+    const rot = (i * ang) + (ang / 2);
+    return `<span class="roleta-label" style="transform: rotate(${rot}deg) translateY(-165px) rotate(${-rot - anguloAtual}deg);">${repEsc(item)}</span>`;
+  }).join('');
+  const ativo = estado.ultimoSorteio || itens[0] || '';
+
+  return `
+    <button type="button" class="premio-roleta-presentation-close" onclick="repRoletaFecharApresentacao()" aria-label="Fechar modo apresentacao">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      <span>Sair (ESC)</span>
+    </button>
+    <div class="premio-roleta-presentation-inner">
+      <div class="premio-roleta-presentation-kicker">SORTEIO RESUTE</div>
+      <div class="premio-roleta-presentation-stage">
+        <div class="premio-roleta-pointer premio-roleta-pointer-lg"></div>
+        <div class="premio-roleta-wheel premio-roleta-wheel-lg" id="rep-roleta-wheel-live" style="transform: rotate(${anguloAtual}deg); ${itens.length ? `background: conic-gradient(${repRoletaConicGradient(itens)});` : 'background: radial-gradient(circle at center, #14746F, #0A2F2F);'}">
+          ${labels || '<span class="roleta-empty">Adicione produtos na roleta para comecar.</span>'}
+          <div class="premio-roleta-center premio-roleta-center-lg" id="rep-roleta-center-live" style="transform: translate(-50%, -50%) rotate(${-anguloAtual}deg);">
+            <span>RESUTE</span>
+            <strong id="rep-roleta-ultimo-live">${repEsc(ativo || 'Gire para sortear')}</strong>
+          </div>
+        </div>
+      </div>
+      <input id="rep-roleta-nome-live" type="text" class="premio-roleta-presentation-nome" placeholder="Nome do representante (opcional)" value="${repEsc(estado.ganhador || '')}" oninput="repRoletaApresentacaoAutoSalvar()">
+      <button type="button" class="premio-roleta-presentation-girar" onclick="repRoletaGirarApresentacao()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        Girar roleta
+      </button>
+      <div class="premio-roleta-presentation-count">${itens.length} ${itens.length === 1 ? 'item' : 'itens'} na roleta</div>
+    </div>`;
+}
+
+function repRoletaApresentacaoAutoSalvar() {
+  const input = document.getElementById('rep-roleta-nome-live');
+  if (!input) return;
+  const estado = repRoletaLerEstado();
+  estado.ganhador = String(input.value || '').trim();
+  repRoletaSalvarEstado(estado);
+}
+
+function repRoletaGirarApresentacao() {
+  repRoletaExecutarGiro({
+    wheelId: 'rep-roleta-wheel-live',
+    centroId: 'rep-roleta-center-live',
+    resultadoId: 'rep-roleta-ultimo-live',
+    nomeInputId: 'rep-roleta-nome-live',
+    dataInputId: null,
+    aoTerminar: function() { repRoletaApresentacaoAtualizar(); }
+  });
+}
+
+function repRoletaApresentacaoAtualizar() {
+  const box = document.getElementById('rep-roleta-presentation');
+  if (!box || box.hidden) return;
+  box.innerHTML = repRoletaApresentacaoConteudoHtml();
+}
+
+function _repRoletaApresentacaoTeclado(e) {
+  if (e.key === 'Escape') repRoletaFecharApresentacao();
+}
+
+function repRoletaAbrirApresentacao() {
+  const box = repRoletaApresentacaoBox();
+  box.innerHTML = repRoletaApresentacaoConteudoHtml();
+  box.hidden = false;
+  document.body.classList.add('rep-roleta-presentation-open');
+  requestAnimationFrame(function() { box.classList.add('active'); });
+  document.addEventListener('keydown', _repRoletaApresentacaoTeclado);
+}
+
+function repRoletaFecharApresentacao() {
+  const box = document.getElementById('rep-roleta-presentation');
+  if (!box) return;
+  box.classList.remove('active');
+  document.body.classList.remove('rep-roleta-presentation-open');
+  document.removeEventListener('keydown', _repRoletaApresentacaoTeclado);
+  setTimeout(function() {
+    box.hidden = true;
+    box.innerHTML = '';
+  }, 220);
+  // Sincroniza o card normal com giros/registros feitos durante a apresentacao
+  repRoletaRecarregarArea();
+}
+
+// Motor unico do giro - usado pelo card normal e pelo modo apresentacao,
+// cada um passando os ids dos seus proprios elementos (evita duplicar a
+// matematica de rotacao e a logica de registro automatico).
+function repRoletaExecutarGiro(opts) {
+  const wheelId = opts.wheelId;
+  const centroId = opts.centroId;
+  const resultadoId = opts.resultadoId;
+  const nomeInputId = opts.nomeInputId;
+  const dataInputId = opts.dataInputId;
+  const aoTerminar = opts.aoTerminar;
+
   const estado = repRoletaLerEstado();
   const itens = estado.itens;
   if (!itens.length) {
     alert('Adicione ao menos um produto para girar a roleta.');
     return;
   }
-  const wheel = document.getElementById('rep-roleta-wheel');
+  const wheel = document.getElementById(wheelId);
   if (!wheel) return;
   if (wheel.dataset.spinning === '1') return;
-  const resultado = document.getElementById('rep-roleta-ultimo');
+  const resultado = resultadoId ? document.getElementById(resultadoId) : null;
   const count = itens.length;
   const chosen = Math.floor(Math.random() * count);
   const segmento = 360 / count;
@@ -1449,8 +1568,9 @@ function repRoletaSortear() {
   const atualNormalizado = ((atual % 360) + 360) % 360;
   const delta = ((anguloAlvo - atualNormalizado) + 360) % 360;
   const novoAngulo = atual + (giros * 360) + delta;
-  const centro = document.getElementById('rep-roleta-center');
-  const nomeAtual = repRoletaNomeAtual();
+  const centro = centroId ? document.getElementById(centroId) : null;
+  const nomeInput = nomeInputId ? document.getElementById(nomeInputId) : null;
+  const nomeAtual = String((nomeInput && nomeInput.value) || '').trim();
   if (nomeAtual) estado.ganhador = nomeAtual;
   wheel.classList.add('is-spinning');
   wheel.style.transition = 'transform 6.4s cubic-bezier(.11,.82,.15,1)';
@@ -1463,6 +1583,7 @@ function repRoletaSortear() {
   setTimeout(() => {
     estado.angulo = novoAngulo;
     estado.ultimoPremio = itens[chosen];
+    estado.ultimoSorteio = itens[chosen];
     repRoletaSalvarEstado(estado);
     if (resultado) resultado.textContent = itens[chosen];
     wheel.dataset.spinning = '0';
@@ -1473,17 +1594,28 @@ function repRoletaSortear() {
 
     // Se o representante ja estava definido, registra no historico sozinho.
     if (ganhadorAtual) {
-      const dataInput = document.getElementById('rep-roleta-data-input');
+      const dataInput = dataInputId ? document.getElementById(dataInputId) : null;
       const data = (dataInput && dataInput.value) || repRoletaDataHoje();
       repRoletaRegistrarHistorico(ganhadorAtual, itens[chosen], data);
     }
 
-    repRoletaRecarregarArea();
+    if (typeof aoTerminar === 'function') aoTerminar(itens[chosen], ganhadorAtual);
     setTimeout(() => {
       wheel.style.transition = '';
       if (centro) centro.style.transition = '';
     }, 80);
   }, 6500);
+}
+
+function repRoletaSortear() {
+  repRoletaExecutarGiro({
+    wheelId: 'rep-roleta-wheel',
+    centroId: 'rep-roleta-center',
+    resultadoId: 'rep-roleta-ultimo',
+    nomeInputId: 'rep-roleta-ganhador-input',
+    dataInputId: 'rep-roleta-data-input',
+    aoTerminar: function() { repRoletaRecarregarArea(); }
+  });
 }
 
 function repBaseRows() {

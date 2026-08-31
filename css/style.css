@@ -1869,6 +1869,157 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   color: #fff;
 }
 
+/* ── BOTAO "MODO APRESENTACAO" NO CARD ─────────────────────────────────── */
+.premio-roleta-btn-apresentar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── MODO APRESENTACAO (tela cheia p/ gravar o sorteio) ────────────────── */
+body.rep-roleta-presentation-open { overflow: hidden; }
+
+.premio-roleta-presentation {
+  position: fixed;
+  inset: 0;
+  z-index: 9200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+  background:
+    radial-gradient(circle at 22% 20%, rgba(45,212,191,.16), transparent 42%),
+    radial-gradient(circle at 82% 78%, rgba(37,99,235,.14), transparent 46%),
+    linear-gradient(160deg, #06120f 0%, #0a2f2f 55%, #051a1a 100%);
+}
+.premio-roleta-presentation.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.premio-roleta-presentation-close {
+  position: absolute;
+  top: 22px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.06);
+  color: #cfe9e4;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: background .15s, color .15s;
+}
+.premio-roleta-presentation-close:hover {
+  background: rgba(255,255,255,.14);
+  color: #fff;
+}
+.premio-roleta-presentation-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  padding: 40px 24px;
+  max-width: 100%;
+}
+.premio-roleta-presentation-kicker {
+  color: #6fe3d2;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: .32em;
+  text-transform: uppercase;
+}
+.premio-roleta-presentation-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+/* Seletor composto (2 classes) de proposito: garante prioridade sobre os
+   breakpoints moveis de .premio-roleta-wheel/.premio-roleta-center do card
+   normal, que tem a mesma especificidade mas vem depois no arquivo. */
+.premio-roleta-wheel.premio-roleta-wheel-lg {
+  width: clamp(340px, 64vh, 560px);
+  aspect-ratio: 1 / 1;
+  box-shadow: 0 40px 100px rgba(0,0,0,.55), inset 0 0 0 16px rgba(6,18,15,.55);
+}
+.premio-roleta-wheel.premio-roleta-wheel-lg.is-spinning {
+  filter: saturate(1.08) brightness(1.05);
+}
+.premio-roleta-pointer.premio-roleta-pointer-lg {
+  top: -2px;
+  border-left-width: 22px;
+  border-right-width: 22px;
+  border-bottom-width: 38px;
+  filter: drop-shadow(0 8px 18px rgba(251,191,36,.5));
+}
+.premio-roleta-center.premio-roleta-center-lg {
+  width: 172px;
+  height: 172px;
+  border-width: 10px;
+}
+.premio-roleta-center.premio-roleta-center-lg strong {
+  font-size: 19px;
+  max-width: 110px;
+}
+.premio-roleta-presentation-nome {
+  width: min(420px, 90vw);
+  text-align: center;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  background: rgba(255,255,255,.07);
+  color: #f4fffd;
+  padding: 13px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  outline: none;
+  backdrop-filter: blur(6px);
+}
+.premio-roleta-presentation-nome::placeholder { color: rgba(207,233,228,.5); }
+.premio-roleta-presentation-nome:focus {
+  border-color: rgba(111,227,210,.55);
+  box-shadow: 0 0 0 4px rgba(111,227,210,.14);
+}
+.premio-roleta-presentation-girar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #2563eb 0%, #14b8a6 100%);
+  color: #fff;
+  padding: 17px 38px;
+  font-size: 17px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 20px 44px rgba(20,184,166,.32);
+  transition: transform .15s, box-shadow .15s;
+}
+.premio-roleta-presentation-girar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 26px 54px rgba(20,184,166,.42);
+}
+.premio-roleta-presentation-girar:active { transform: translateY(0); }
+.premio-roleta-presentation-count {
+  color: rgba(207,233,228,.55);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+@media (max-width: 640px) {
+  .premio-roleta-presentation-inner { gap: 16px; padding: 28px 16px; }
+  .premio-roleta-wheel.premio-roleta-wheel-lg { width: clamp(340px, 58vh, 420px); }
+  .premio-roleta-center.premio-roleta-center-lg { width: 118px; height: 118px; }
+  .premio-roleta-center.premio-roleta-center-lg strong { font-size: 14px; max-width: 84px; }
+  .premio-roleta-presentation-girar { padding: 14px 28px; font-size: 15px; }
+  .premio-roleta-presentation-close span { display: none; }
+}
+
 .cad-kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
