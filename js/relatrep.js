@@ -1292,7 +1292,7 @@ function repRoletaHtml() {
           <div class="premio-card-title">Roleta animada de premios</div>
           <p class="premio-roleta-sub">Sorteie o premio, destaque o ganhador e mantenha o historico sempre organizado.</p>
         </div>
-        <span class="premio-roleta-badge">Premiacao atual</span>
+        <span class="premio-roleta-badge">${window.REP_PREMIACAO_MODO === 'atual' ? 'Premiacao atual' : 'Premiacao geral'}</span>
       </div>
       <div class="premio-roleta-stage">
         <div class="premio-roleta-pointer"></div>
@@ -2312,7 +2312,7 @@ function repPremiacao() {
   ${repPremiacaoFiltroHtml(baseRows)}
   ${repPremiacaoResumoHtml(rows)}
   ${repPremiacaoRelatorioHtml(rows, baseRows)}
-  ${window.REP_PREMIACAO_MODO === 'atual' ? repRoletaHtml() : ''}
+  ${repRoletaHtml()}
   <div class="premio-campanha-foot">
     <div class="premio-campanha-alert">
       <strong>Modo ativo:</strong> ${repEsc(repPremiacaoCampanhaAtual().titulo)} · <strong>Período:</strong> ${repEsc(repPremiacaoPeriodoSelecionado(baseRows))}
