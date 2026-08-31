@@ -1202,37 +1202,9 @@ function repRoletaLimparItens() {
   repRoletaRecarregarArea();
 }
 
-// Autosave: dispara a cada tecla digitada nos campos de representante/premio.
-// Persiste no localStorage e atualiza os cards de resumo sem re-renderizar
-// a area inteira (re-renderizar perderia o foco/cursor do campo).
-function repRoletaAutoSalvar() {
-  const ganhadorInput = document.getElementById('rep-roleta-ganhador-input');
-  const premioInput = document.getElementById('rep-roleta-premio-input');
-  const estado = repRoletaLerEstado();
-  if (ganhadorInput) estado.ganhador = String(ganhadorInput.value || '').trim();
-  if (premioInput) estado.ultimoPremio = String(premioInput.value || '').trim();
-  repRoletaSalvarEstado(estado);
-  repRoletaAtualizarResumo();
-  const hint = document.getElementById('rep-roleta-autosave-hint');
-  if (hint) {
-    hint.classList.add('active');
-    clearTimeout(window._repRoletaHintTimer);
-    window._repRoletaHintTimer = setTimeout(function() { hint.classList.remove('active'); }, 1400);
-  }
-}
-
-function repRoletaPreencherAtual() {
-  const estado = repRoletaLerEstado();
-  const premioInput = document.getElementById('rep-roleta-premio-input');
-  const dataInput = document.getElementById('rep-roleta-data-input');
-  if (premioInput) premioInput.value = estado.ultimoSorteio || '';
-  if (dataInput) dataInput.value = dataInput.value || repRoletaDataHoje();
-  repRoletaAutoSalvar();
-}
-
 // Registra uma entrada no historico e limpa o rascunho (nome/premio) para
-// deixar pronto para o proximo ganhador. Usado tanto pelo commit automatico
-// dos campos quanto pelo fim do giro da roleta.
+// deixar pronto para o proximo ganhador. Chamado automaticamente ao final
+// do giro (card ou apresentacao) quando ha um representante definido.
 function repRoletaRegistrarHistorico(ganhador, premio, data) {
   const estado = repRoletaLerEstado();
   estado.historico = Array.isArray(estado.historico) ? estado.historico : [];
@@ -1241,22 +1213,6 @@ function repRoletaRegistrarHistorico(ganhador, premio, data) {
   estado.ganhador = '';
   estado.ultimoPremio = '';
   repRoletaSalvarEstado(estado);
-}
-
-// Dispara no "change" (ao sair do campo) dos 3 campos do formulario. Quando
-// nome + premio + data estao todos preenchidos, registra automaticamente no
-// historico - sem precisar clicar em nenhum botao.
-function repRoletaAutoCommitHistorico() {
-  const ganhadorInput = document.getElementById('rep-roleta-ganhador-input');
-  const premioInput = document.getElementById('rep-roleta-premio-input');
-  const dataInput = document.getElementById('rep-roleta-data-input');
-  if (!ganhadorInput || !premioInput || !dataInput) return;
-  const ganhador = String(ganhadorInput.value || '').trim();
-  const premio = String(premioInput.value || '').trim();
-  const data = String(dataInput.value || '').trim();
-  if (!ganhador || !premio || !data) return;
-  repRoletaRegistrarHistorico(ganhador, premio, data);
-  repRoletaRecarregarArea();
 }
 
 function repRoletaRemoverHistorico(idx) {
@@ -1272,10 +1228,6 @@ function repRoletaHtml() {
   const itens = estado.itens;
   const ang = itens.length ? 360 / itens.length : 0;
   const ativo = estado.ultimoSorteio || itens[0] || '';
-  const reps = repRoletaRepresentantesSugestoes();
-  const repsOptions = reps.map(function(nome) {
-    return `<option value="${repEsc(nome)}"></option>`;
-  }).join('');
   const anguloAtual = Number(estado.angulo || 0);
   const labels = itens.map((item, i) => {
     const rot = (i * ang) + (ang / 2);
@@ -1330,30 +1282,8 @@ function repRoletaHtml() {
       </div>
     </div>
     <div class="premio-roleta-side">
-      <div class="premio-card-title">Representante e historico</div>
-      <p class="premio-roleta-side-sub">Defina o ganhador, registre a data do premio e mantenha os ultimos sorteios visiveis.</p>
-      <datalist id="rep-roleta-reps">${repsOptions}</datalist>
-      <label class="premio-roleta-field">
-        <span>Nome do representante</span>
-        <input id="rep-roleta-ganhador-input" type="text" value="${repEsc(estado.ganhador || '')}" placeholder="Digite o nome do ganhador" list="rep-roleta-reps" oninput="repRoletaAutoSalvar()" onchange="repRoletaAutoCommitHistorico()">
-      </label>
-      <label class="premio-roleta-field">
-        <span>Premio registrado</span>
-        <input id="rep-roleta-premio-input" type="text" value="${repEsc(estado.ultimoPremio || '')}" placeholder="Digite ou use o premio sorteado" oninput="repRoletaAutoSalvar()" onchange="repRoletaAutoCommitHistorico()">
-      </label>
-      <label class="premio-roleta-field">
-        <span>Data do premio</span>
-        <input id="rep-roleta-data-input" type="date" value="${repEsc(repRoletaDataHoje())}" onchange="repRoletaAutoCommitHistorico()">
-      </label>
-      <div id="rep-roleta-autosave-hint" class="premio-roleta-autosave-hint">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M20 6L9 17l-5-5"/></svg>
-        Salvo automaticamente
-      </div>
-      <div class="premio-roleta-actions premio-roleta-actions-side">
-        <button type="button" class="premio-roleta-btn premio-roleta-btn-full" onclick="repRoletaPreencherAtual()">Usar ultimo sorteio</button>
-      </div>
-      <p class="premio-roleta-auto-note">Preencha nome, premio e data — o registro no historico acontece sozinho.</p>
-      <div class="premio-card-title premio-roleta-title-gap">Historico de ganhadores</div>
+      <div class="premio-card-title">Historico de ganhadores</div>
+      <p class="premio-roleta-side-sub">O registro acontece sozinho ao girar a roleta. Defina o nome do representante no Modo apresentacao antes de girar.</p>
       <div class="premio-roleta-history" id="rep-roleta-history">
         ${repRoletaHistoricoHtml(estado)}
       </div>
@@ -1367,16 +1297,6 @@ function repRoletaHtml() {
       </div>
     </div>
   </div>`;
-}
-
-function repRoletaAtualizarResumo() {
-  const estado = repRoletaLerEstado();
-  const count = document.getElementById('rep-roleta-count');
-  if (count) count.textContent = String(estado.itens.length);
-  const ganhador = document.getElementById('rep-roleta-ganhador-text');
-  if (ganhador) ganhador.textContent = estado.ganhador || 'nao definido';
-  const ultimo = document.getElementById('rep-roleta-ultimo');
-  if (ultimo && estado.ultimoSorteio) ultimo.textContent = estado.ultimoSorteio;
 }
 
 function repRoletaCelebracaoHtml(premio, ganhador) {
@@ -1459,8 +1379,12 @@ function repRoletaApresentacaoConteudoHtml() {
     return `<span class="roleta-label" style="transform: rotate(${rot}deg) translateY(-165px) rotate(${-rot - anguloAtual}deg);">${repEsc(item)}</span>`;
   }).join('');
   const ativo = estado.ultimoSorteio || itens[0] || '';
+  const repsOptions = repRoletaRepresentantesSugestoes().map(function(nome) {
+    return `<option value="${repEsc(nome)}"></option>`;
+  }).join('');
 
   return `
+    <datalist id="rep-roleta-reps-live">${repsOptions}</datalist>
     <button type="button" class="premio-roleta-presentation-close" onclick="repRoletaFecharApresentacao()" aria-label="Fechar modo apresentacao">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M18 6L6 18M6 6l12 12"/></svg>
       <span>Sair (ESC)</span>
@@ -1477,7 +1401,7 @@ function repRoletaApresentacaoConteudoHtml() {
           </div>
         </div>
       </div>
-      <input id="rep-roleta-nome-live" type="text" class="premio-roleta-presentation-nome" placeholder="Nome do representante (opcional)" value="${repEsc(estado.ganhador || '')}" oninput="repRoletaApresentacaoAutoSalvar()">
+      <input id="rep-roleta-nome-live" type="text" class="premio-roleta-presentation-nome" placeholder="Nome do representante (opcional)" value="${repEsc(estado.ganhador || '')}" list="rep-roleta-reps-live" oninput="repRoletaApresentacaoAutoSalvar()">
       <button type="button" class="premio-roleta-presentation-girar" onclick="repRoletaGirarApresentacao()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
         Girar roleta
@@ -1608,12 +1532,14 @@ function repRoletaExecutarGiro(opts) {
 }
 
 function repRoletaSortear() {
+  // Sem campo de nome no card - usa o ganhador ja definido (via Modo
+  // apresentacao) se houver; sem nome definido, so gira e mostra o premio.
   repRoletaExecutarGiro({
     wheelId: 'rep-roleta-wheel',
     centroId: 'rep-roleta-center',
     resultadoId: 'rep-roleta-ultimo',
-    nomeInputId: 'rep-roleta-ganhador-input',
-    dataInputId: 'rep-roleta-data-input',
+    nomeInputId: null,
+    dataInputId: null,
     aoTerminar: function() { repRoletaRecarregarArea(); }
   });
 }

@@ -1648,38 +1648,6 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   gap: 10px;
   margin-top: 14px;
 }
-.premio-roleta-actions-side {
-  margin-top: 0;
-}
-.premio-roleta-actions-side .premio-roleta-btn-primary {
-  flex: 1;
-}
-.premio-roleta-btn-full {
-  width: 100%;
-}
-.premio-roleta-auto-note {
-  margin: -2px 0 0;
-  font-size: 11px;
-  color: #94a3b8;
-  line-height: 1.5;
-}
-.premio-roleta-autosave-hint {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin: -6px 0 4px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #94a3b8;
-  opacity: 0;
-  transform: translateY(-2px);
-  transition: opacity .2s ease, transform .2s ease, color .2s ease;
-}
-.premio-roleta-autosave-hint.active {
-  opacity: 1;
-  transform: translateY(0);
-  color: #15803d;
-}
 .premio-roleta-btn,
 .premio-roleta-save,
 .premio-roleta-add button {
@@ -1725,16 +1693,6 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   flex-direction: column;
   gap: 12px;
 }
-.premio-roleta-field span {
-  display: block;
-  margin-bottom: 8px;
-  color: #93c5fd;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-}
-.premio-roleta-field input,
 .premio-roleta-add input {
   width: 100%;
   border: 1px solid rgba(96,165,250,.2);
@@ -1745,7 +1703,6 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   font: inherit;
   outline: none;
 }
-.premio-roleta-field input:focus,
 .premio-roleta-add input:focus {
   border-color: rgba(59,130,246,.65);
   box-shadow: 0 0 0 3px rgba(59,130,246,.14);
@@ -4038,7 +3995,6 @@ body.rep-roleta-presentation-open { overflow: hidden; }
 .premio-growth-head-side,
 .premio-roleta-card,
 .premio-roleta-side,
-.premio-roleta-field input,
 .premio-roleta-add input {
   background: rgba(255,255,255,.92);
   border-color: rgba(219,231,243,.95);
@@ -5170,7 +5126,6 @@ body,
 .lp-input,
 .login-input,
 .premio-periodo-select,
-.premio-roleta-field input,
 .premio-roleta-add input,
 .dc-filtro,
 .dc-action-input,
@@ -5191,7 +5146,6 @@ textarea {
 .lp-input:focus,
 .login-input:focus,
 .premio-periodo-select:focus,
-.premio-roleta-field input:focus,
 .premio-roleta-add input:focus,
 .dc-filtro:focus,
 .dc-action-input:focus,
@@ -7426,19 +7380,16 @@ body.bpo-admin-mode .av-exibir-btn:hover {
   line-height: 1.2;
 }
 
-.premio-roleta-wrap-updated .premio-roleta-field span,
 .premio-roleta-wrap-updated .premio-card-title.premio-roleta-title-gap {
   color: #2F3848;
 }
 
-.premio-roleta-wrap-updated .premio-roleta-field input,
 .premio-roleta-wrap-updated .premio-roleta-add input {
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(20, 116, 111, 0.14);
   color: #0E1424;
 }
 
-.premio-roleta-wrap-updated .premio-roleta-field input:focus,
 .premio-roleta-wrap-updated .premio-roleta-add input:focus {
   border-color: rgba(45, 212, 191, 0.7);
   box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.14);
@@ -11175,7 +11126,6 @@ h1, h2, h3, h4,
 .laudo-select,
 .col-filter-input,
 .premio-periodo-select,
-.premio-roleta-field input,
 .premio-roleta-add input,
 input,
 select,
