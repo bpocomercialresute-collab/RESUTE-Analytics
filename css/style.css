@@ -1943,15 +1943,6 @@ body.rep-roleta-presentation-open { overflow: hidden; }
   70%  { transform: scale(1.28); opacity: 0; }
   100% { transform: scale(1.28); opacity: 0; }
 }
-.premio-roleta-presentation-ultimo {
-  color: rgba(207,233,228,.7);
-  font-size: 13px;
-  font-weight: 600;
-}
-.premio-roleta-presentation-ultimo strong {
-  color: #6fe3d2;
-  font-weight: 800;
-}
 .premio-roleta-presentation-nome {
   width: min(420px, 90vw);
   text-align: center;

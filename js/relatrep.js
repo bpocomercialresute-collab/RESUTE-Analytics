@@ -1402,7 +1402,6 @@ function repRoletaApresentacaoConteudoHtml() {
           </div>
         </div>
       </div>
-      ${estado.ultimoSorteio ? `<div class="premio-roleta-presentation-ultimo">Ultimo sorteio: <strong>${repEsc(estado.ultimoSorteio)}</strong></div>` : ''}
       <input id="rep-roleta-nome-live" type="text" class="premio-roleta-presentation-nome" placeholder="Nome do representante (opcional)" value="${repEsc(estado.ganhador || '')}" list="rep-roleta-reps-live" oninput="repRoletaApresentacaoAutoSalvar()">
       <button type="button" class="premio-roleta-presentation-girar" onclick="repRoletaGirarApresentacao()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
