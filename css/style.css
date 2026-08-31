@@ -1651,6 +1651,26 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 .premio-roleta-actions-side {
   margin-top: 0;
 }
+.premio-roleta-actions-side .premio-roleta-btn-primary {
+  flex: 1;
+}
+.premio-roleta-autosave-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: -6px 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity .2s ease, transform .2s ease, color .2s ease;
+}
+.premio-roleta-autosave-hint.active {
+  opacity: 1;
+  transform: translateY(0);
+  color: #15803d;
+}
 .premio-roleta-btn,
 .premio-roleta-save,
 .premio-roleta-add button {
@@ -7212,6 +7232,7 @@ body.bpo-admin-mode .av-exibir-btn:hover {
   text-align: center;
   font-size: 16px;
   line-height: 1.18;
+  color: #0E1424;
 }
 
 .premio-roleta-highlight {

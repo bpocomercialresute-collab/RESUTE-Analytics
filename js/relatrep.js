@@ -1202,13 +1202,23 @@ function repRoletaLimparItens() {
   repRoletaRecarregarArea();
 }
 
-function repRoletaSalvarGanhador() {
-  const input = document.getElementById('rep-roleta-ganhador-input');
-  if (!input) return;
+// Autosave: dispara a cada tecla digitada nos campos de representante/premio.
+// Persiste no localStorage e atualiza os cards de resumo sem re-renderizar
+// a area inteira (re-renderizar perderia o foco/cursor do campo).
+function repRoletaAutoSalvar() {
+  const ganhadorInput = document.getElementById('rep-roleta-ganhador-input');
+  const premioInput = document.getElementById('rep-roleta-premio-input');
   const estado = repRoletaLerEstado();
-  estado.ganhador = String(input.value || '').trim();
+  if (ganhadorInput) estado.ganhador = String(ganhadorInput.value || '').trim();
+  if (premioInput) estado.ultimoPremio = String(premioInput.value || '').trim();
   repRoletaSalvarEstado(estado);
   repRoletaAtualizarResumo();
+  const hint = document.getElementById('rep-roleta-autosave-hint');
+  if (hint) {
+    hint.classList.add('active');
+    clearTimeout(window._repRoletaHintTimer);
+    window._repRoletaHintTimer = setTimeout(function() { hint.classList.remove('active'); }, 1400);
+  }
 }
 
 function repRoletaPreencherAtual() {
@@ -1232,11 +1242,12 @@ function repRoletaAdicionarHistorico() {
     return;
   }
   const estado = repRoletaLerEstado();
-  estado.ganhador = ganhador;
-  estado.ultimoPremio = premio;
   estado.historico = Array.isArray(estado.historico) ? estado.historico : [];
   estado.historico.unshift({ ganhador, premio, data });
   estado.historico = estado.historico.slice(0, 30);
+  // Limpa o rascunho para deixar pronto para o proximo ganhador
+  estado.ganhador = '';
+  estado.ultimoPremio = '';
   repRoletaSalvarEstado(estado);
   repRoletaRecarregarArea();
 }
@@ -1258,9 +1269,10 @@ function repRoletaHtml() {
   const repsOptions = reps.map(function(nome) {
     return `<option value="${repEsc(nome)}"></option>`;
   }).join('');
+  const anguloAtual = Number(estado.angulo || 0);
   const labels = itens.map((item, i) => {
     const rot = (i * ang) + (ang / 2);
-    return `<span class="roleta-label" style="transform: rotate(${rot}deg) translateY(-128px) rotate(${-rot}deg);">${repEsc(item)}</span>`;
+    return `<span class="roleta-label" style="transform: rotate(${rot}deg) translateY(-128px) rotate(${-rot - anguloAtual}deg);">${repEsc(item)}</span>`;
   }).join('');
   const chips = itens.map((item, idx) => `<div class="roleta-chip">
     <span>${repEsc(item)}</span>
@@ -1312,18 +1324,21 @@ function repRoletaHtml() {
       <datalist id="rep-roleta-reps">${repsOptions}</datalist>
       <label class="premio-roleta-field">
         <span>Nome do representante</span>
-        <input id="rep-roleta-ganhador-input" type="text" value="${repEsc(estado.ganhador || '')}" placeholder="Digite o nome do ganhador" list="rep-roleta-reps">
+        <input id="rep-roleta-ganhador-input" type="text" value="${repEsc(estado.ganhador || '')}" placeholder="Digite o nome do ganhador" list="rep-roleta-reps" oninput="repRoletaAutoSalvar()">
       </label>
       <label class="premio-roleta-field">
         <span>Premio registrado</span>
-        <input id="rep-roleta-premio-input" type="text" value="${repEsc(estado.ultimoPremio || '')}" placeholder="Digite ou use o premio sorteado">
+        <input id="rep-roleta-premio-input" type="text" value="${repEsc(estado.ultimoPremio || '')}" placeholder="Digite ou use o premio sorteado" oninput="repRoletaAutoSalvar()">
       </label>
       <label class="premio-roleta-field">
         <span>Data do premio</span>
         <input id="rep-roleta-data-input" type="date" value="${repEsc(repRoletaDataHoje())}">
       </label>
+      <div id="rep-roleta-autosave-hint" class="premio-roleta-autosave-hint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M20 6L9 17l-5-5"/></svg>
+        Salvo automaticamente
+      </div>
       <div class="premio-roleta-actions premio-roleta-actions-side">
-        <button type="button" class="premio-roleta-btn" onclick="repRoletaSalvarGanhador()">Salvar representante</button>
         <button type="button" class="premio-roleta-btn" onclick="repRoletaPreencherAtual()">Usar ultimo sorteio</button>
         <button type="button" class="premio-roleta-btn premio-roleta-btn-primary" onclick="repRoletaAdicionarHistorico()">Adicionar ao historico</button>
       </div>
