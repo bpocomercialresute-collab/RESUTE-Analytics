@@ -166,10 +166,10 @@ function repPremiacaoEmpresasMergeHtml() {
   if (!outras.length && !mergeIds.length) return '';
 
   const mergeCount = mergeIds.filter(function(id) { return !!cache[id]; }).length;
+  const totalAtivas = mergeCount + 1;
   const barLabel = mergeCount
-    ? `Empresas combinadas · <strong>${mergeCount + 1} ativas</strong>`
-    : 'Juntar empresas na premiação';
-  const chevron = aberto ? '▲' : '▼';
+    ? `<span class="rep-merge-icon">⛓</span><span>${totalAtivas} empresas combinadas</span>`
+    : `<span class="rep-merge-icon">⛓</span><span>Juntar empresas na premiação</span>`;
 
   let expansaoHtml = '';
   if (aberto) {
@@ -183,12 +183,13 @@ function repPremiacaoEmpresasMergeHtml() {
         const nRows = carregada ? cache[e.empresa_id].rows.length : 0;
         const safeId = e.empresa_id.replace(/[^a-z0-9]/gi, '_');
         const infoHtml = carregada
-          ? `<span class="rep-merge-info">${nRows.toLocaleString('pt-BR')} reg.</span>`
-          : `<button id="rep-merge-load-${repEsc(safeId)}" class="rep-merge-load-btn" onclick="repMergeEmpresasCarregarDados('${repEsc(e.empresa_id)}','${repEsc(e.nome)}')">Carregar</button>`;
-        return `<div class="rep-merge-item">
+          ? `<span class="rep-merge-info">${nRows.toLocaleString('pt-BR')} registros</span>`
+          : `<button id="rep-merge-load-${repEsc(safeId)}" class="rep-merge-load-btn" onclick="repMergeEmpresasCarregarDados('${repEsc(e.empresa_id)}','${repEsc(e.nome)}')">Carregar dados</button>`;
+        return `<div class="rep-merge-item ${sel ? 'sel' : ''}">
           <label class="rep-merge-check">
             <input type="checkbox" ${sel ? 'checked' : ''} ${!carregada ? 'disabled title="Carregue os dados primeiro"' : ''} onchange="repMergeEmpresasToggle('${repEsc(e.empresa_id)}')">
-            <span>${repEsc(e.nome)}</span>
+            <span class="rep-merge-dot"></span>
+            <span class="rep-merge-nome">${repEsc(e.nome)}</span>
           </label>
           ${infoHtml}
         </div>`;
@@ -198,11 +199,10 @@ function repPremiacaoEmpresasMergeHtml() {
     expansaoHtml = `<div class="rep-merge-corpo">${corpoHtml}</div>`;
   }
 
-  return `<div class="rep-merge-panel ${aberto ? 'aberto' : ''}">
+  return `<div class="rep-merge-panel ${aberto ? 'aberto' : ''} ${mergeCount ? 'tem-merge' : ''}">
     <button class="rep-merge-toggle" onclick="repMergePainelToggle()">
-      <span>${barLabel}</span>
-      ${mergeCount ? `<span class="rep-merge-active-count">${mergeCount} incluída${mergeCount > 1 ? 's' : ''}</span>` : ''}
-      <span class="rep-merge-chevron">${chevron}</span>
+      <span class="rep-merge-label">${barLabel}</span>
+      <span class="rep-merge-chevron">${aberto ? '▲' : '▼'}</span>
     </button>
     ${expansaoHtml}
   </div>`;
