@@ -781,7 +781,7 @@ function repPremiacaoRelatorioHtml(rows, baseRows) {
         <td>${fmtValor(r.fat)}</td>
         <td>${r.produtos >= mediaMix ? 'Acima da média' : 'Abaixo da média'}</td>
       </tr>`).join('');
-    return repPremiacaoTabelaRelatorio('Relatório do prêmio semanal · maior mix acima da média', ['#', 'Representante', 'Mix semanal', 'Faturamento', 'Situação'], linhas);
+    return repPremiacaoTabelaRelatorio('Relatório do prêmio semanal · maior mix acima da média', ['#', 'Representante', 'Variedade vendida', 'Faturamento', 'Situação'], linhas);
   }
 
   if (campanha.id === 'mensal') {
