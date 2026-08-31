@@ -7340,16 +7340,18 @@ body.bpo-admin-mode .av-exibir-btn:hover {
   color: #FFFFFF !important;
 }
 
-.premio-roleta-wrap-updated .premio-roleta-celebration {
+/* Anexado direto no <body> via JS (repRoletaCelebracaoBox) - sem prefixo
+   de ancestral, sempre centra na tela mesmo com a aba sendo recriada. */
+.premio-roleta-celebration {
   position: fixed;
   inset: 0;
-  z-index: 1200;
+  z-index: 9500;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease;
 }
 
-.premio-roleta-wrap-updated .premio-roleta-celebration.active {
+.premio-roleta-celebration.active {
   opacity: 1;
   pointer-events: auto;
 }

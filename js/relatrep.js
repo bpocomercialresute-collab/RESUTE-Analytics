@@ -1305,7 +1305,6 @@ function repRoletaHtml() {
           <strong id="rep-roleta-count">${itens.length}</strong>
         </article>
       </div>
-      <div id="rep-roleta-celebration" class="premio-roleta-celebration" hidden></div>
     </div>
     <div class="premio-roleta-side">
       <div class="premio-card-title">Representante e historico</div>
@@ -1373,9 +1372,25 @@ function repRoletaCelebracaoHtml(premio, ganhador) {
     </div>`;
 }
 
+// Elemento fixo anexado direto no <body>, fora da árvore da aba (que é
+// recriada via innerHTML a cada repPremiacao()) — garante que o popup
+// sempre fique centrado na tela, independente de scroll ou re-render.
+function repRoletaCelebracaoBox() {
+  let box = document.getElementById('rep-roleta-celebration');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'rep-roleta-celebration';
+    box.className = 'premio-roleta-celebration';
+    box.hidden = true;
+    document.body.appendChild(box);
+  } else if (box.parentElement !== document.body) {
+    document.body.appendChild(box);
+  }
+  return box;
+}
+
 function repRoletaCelebrar(premio, ganhador) {
-  const box = document.getElementById('rep-roleta-celebration');
-  if (!box) return;
+  const box = repRoletaCelebracaoBox();
   box.innerHTML = repRoletaCelebracaoHtml(premio, ganhador);
   box.hidden = false;
   requestAnimationFrame(function() {
