@@ -29,6 +29,20 @@ window.REP_EMPRESAS_CACHE = window.REP_EMPRESAS_CACHE || {};
 window.REP_MERGE_PAINEL_ABERTO = window.REP_MERGE_PAINEL_ABERTO || false;
 
 // ── MERGE DE EMPRESAS NA PREMIAÇÃO ────────────────────────────────────────────
+// Toda leitura de outras empresas passa pelo /api/secure-proxy (SUPA_KEY/SVC_KEY
+// em auth.js são placeholders '__SERVER_ONLY__', não funcionam no navegador).
+
+function repProxyFetch(url, method) {
+  return fetch('/api/secure-proxy', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-session-token': (window.SESSION && SESSION.token) || '',
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    body: JSON.stringify({ url: url, method: method || 'GET' })
+  });
+}
 
 function repMergeEmpresasSalvar() {
   try { localStorage.setItem('resute_rep_merge_empresas', JSON.stringify(window.REP_MERGE_EMPRESAS || [])); } catch(e) {}
@@ -50,12 +64,9 @@ async function repMergeEmpresasCarregarDados(empresa_id, nome) {
   const btn = document.getElementById(btnId);
   if (btn) { btn.disabled = true; btn.textContent = 'Carregando...'; }
   try {
-    const r = await fetch(
-      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&select=*&order=dt_saida.asc&limit=100000',
-      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
-    );
+    const r = await repProxyFetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + encodeURIComponent(empresa_id) + '&select=*&order=dt_saida.asc&limit=100000');
     const vendas = await r.json();
-    if (Array.isArray(vendas)) {
+    if (r.ok && Array.isArray(vendas)) {
       const rows = vendas.map(function(v) { return [
         v.id_externo||'', v.num_pedido||'', v.produto||'', String(v.qtd||''),
         v.dt_emissao||'', v.dt_saida||'', String(v.valor||''),
@@ -67,6 +78,9 @@ async function repMergeEmpresasCarregarDados(empresa_id, nome) {
         v.subgrupo||'', v.marca||'', v.familia||'', v.classes||''
       ]; });
       window.REP_EMPRESAS_CACHE[empresa_id] = { nome: nome, rows: rows };
+    } else {
+      console.error('Erro ao carregar empresa para merge:', vendas && vendas.erro);
+      alert('Não foi possível carregar os dados de ' + nome + (vendas && vendas.erro ? ': ' + vendas.erro : '.'));
     }
   } catch(e) {
     console.error('Erro ao carregar empresa para merge:', e);
@@ -89,31 +103,69 @@ function repMergePainelToggle() {
   repPremiacao();
 }
 
+// Descobre quais empresas o usuário pode combinar:
+// - console admin (super_admin): EMPRESAS_LISTA já carregada
+// - login de cliente: SESSION.empresa_ids + filiais (empresa_filiais) do grupo
+async function repPremiacaoCarregarEmpresasVinculadas() {
+  const lista = [];
+  const ativaId = (typeof EMPRESA_ATIVA !== 'undefined' && EMPRESA_ATIVA) ? EMPRESA_ATIVA.empresa_id : (window.SESSION && SESSION.empresa_id) || '';
+
+  if (Array.isArray(window.EMPRESAS_LISTA) && window.EMPRESAS_LISTA.length) {
+    window.EMPRESAS_LISTA.forEach(function(e) {
+      if (e.empresa_id !== ativaId) lista.push({ empresa_id: e.empresa_id, nome: e.nome });
+    });
+    window.REP_EMPRESAS_VINCULADAS = lista;
+    return lista;
+  }
+
+  if (!window.SESSION || !SESSION.token) { window.REP_EMPRESAS_VINCULADAS = lista; return lista; }
+
+  const proprios = Array.isArray(SESSION.empresa_ids) ? SESSION.empresa_ids.slice() : (SESSION.empresa_id ? [SESSION.empresa_id] : []);
+  let filiaisIds = [];
+  if (SESSION.empresa_id) {
+    try {
+      const r = await repProxyFetch(SUPA_URL + '/rest/v1/empresa_filiais?empresa_pai_id=eq.' + encodeURIComponent(SESSION.empresa_id) + '&ativo=eq.true&select=empresa_filial_id');
+      const d = await r.json();
+      if (r.ok && Array.isArray(d)) filiaisIds = d.map(function(f) { return f.empresa_filial_id; }).filter(Boolean);
+    } catch(e) { console.error('Erro ao buscar filiais:', e); }
+  }
+
+  const idsParaNome = Array.from(new Set(proprios.concat(filiaisIds))).filter(function(id) { return id && id !== ativaId; });
+
+  for (const id of idsParaNome) {
+    try {
+      const r = await repProxyFetch(SUPA_URL + '/rest/v1/empresas?id=eq.' + encodeURIComponent(id) + '&select=id,nome');
+      const d = await r.json();
+      if (r.ok && Array.isArray(d) && d[0]) lista.push({ empresa_id: id, nome: d[0].nome || id });
+    } catch(e) { console.error('Erro ao buscar nome da empresa:', e); }
+  }
+
+  window.REP_EMPRESAS_VINCULADAS = lista;
+  return lista;
+}
+
 function repPremiacaoEmpresasMergeHtml() {
-  const lista = Array.isArray(window.EMPRESAS_LISTA) ? window.EMPRESAS_LISTA : [];
+  // Primeira chamada: dispara descoberta assíncrona e não mostra nada até resolver
+  if (!Array.isArray(window.REP_EMPRESAS_VINCULADAS)) {
+    if (!window._repEmpresasVinculadasCarregando) {
+      window._repEmpresasVinculadasCarregando = true;
+      repPremiacaoCarregarEmpresasVinculadas().then(function() {
+        window._repEmpresasVinculadasCarregando = false;
+        repPremiacao();
+      });
+    }
+    return '';
+  }
+
+  const outras = window.REP_EMPRESAS_VINCULADAS.slice();
   const cache = window.REP_EMPRESAS_CACHE || {};
   const mergeIds = window.REP_MERGE_EMPRESAS || [];
-  const ativa = window.EMPRESA_ATIVA;
   const aberto = window.REP_MERGE_PAINEL_ABERTO;
 
-  // Empresas do sistema (exceto a ativa)
-  const outras = lista.filter(function(e) { return !ativa || e.empresa_id !== ativa.empresa_id; });
-
-  // Inclui empresas em cache que não estejam na lista
-  const idsLista = new Set(outras.map(function(e) { return e.empresa_id; }));
-  Object.keys(cache).forEach(function(id) {
-    if ((!ativa || id !== ativa.empresa_id) && !idsLista.has(id)) {
-      outras.push({ empresa_id: id, nome: cache[id].nome || id });
-      idsLista.add(id);
-    }
-  });
-
-  // Sem nada para mostrar e sem merge ativo: oculta completamente
+  // Sem nada para combinar e sem merge ativo: oculta completamente
   if (!outras.length && !mergeIds.length) return '';
 
   const mergeCount = mergeIds.filter(function(id) { return !!cache[id]; }).length;
-
-  // Barra colapsável compacta (sempre visível)
   const barLabel = mergeCount
     ? `Empresas combinadas · <strong>${mergeCount + 1} ativas</strong>`
     : 'Juntar empresas na premiação';
@@ -123,7 +175,7 @@ function repPremiacaoEmpresasMergeHtml() {
   if (aberto) {
     let corpoHtml;
     if (!outras.length) {
-      corpoHtml = `<div class="rep-merge-empty">Selecione outra empresa no painel e aguarde o carregamento. Ela aparece aqui automaticamente.</div>`;
+      corpoHtml = `<div class="rep-merge-empty">Nenhuma outra empresa vinculada a este login.</div>`;
     } else {
       const items = outras.map(function(e) {
         const sel = mergeIds.includes(e.empresa_id);
@@ -143,15 +195,7 @@ function repPremiacaoEmpresasMergeHtml() {
       }).join('');
       corpoHtml = `<div class="rep-merge-lista">${items}</div>`;
     }
-
-    const ativaLabel = ativa ? ativa.nome : 'Dados atuais';
-    expansaoHtml = `<div class="rep-merge-corpo">
-      <div class="rep-merge-base">
-        <span class="rep-merge-badge">Base ativa</span>
-        <span class="rep-merge-base-nome">${repEsc(ativaLabel)}</span>
-      </div>
-      ${corpoHtml}
-    </div>`;
+    expansaoHtml = `<div class="rep-merge-corpo">${corpoHtml}</div>`;
   }
 
   return `<div class="rep-merge-panel ${aberto ? 'aberto' : ''}">
