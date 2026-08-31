@@ -1654,6 +1654,15 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 .premio-roleta-actions-side .premio-roleta-btn-primary {
   flex: 1;
 }
+.premio-roleta-btn-full {
+  width: 100%;
+}
+.premio-roleta-auto-note {
+  margin: -2px 0 0;
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
 .premio-roleta-autosave-hint {
   display: flex;
   align-items: center;

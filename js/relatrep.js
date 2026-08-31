@@ -1229,7 +1229,23 @@ function repRoletaPreencherAtual() {
   if (dataInput) dataInput.value = dataInput.value || repRoletaDataHoje();
 }
 
-function repRoletaAdicionarHistorico() {
+// Registra uma entrada no historico e limpa o rascunho (nome/premio) para
+// deixar pronto para o proximo ganhador. Usado tanto pelo commit automatico
+// dos campos quanto pelo fim do giro da roleta.
+function repRoletaRegistrarHistorico(ganhador, premio, data) {
+  const estado = repRoletaLerEstado();
+  estado.historico = Array.isArray(estado.historico) ? estado.historico : [];
+  estado.historico.unshift({ ganhador, premio, data });
+  estado.historico = estado.historico.slice(0, 30);
+  estado.ganhador = '';
+  estado.ultimoPremio = '';
+  repRoletaSalvarEstado(estado);
+}
+
+// Dispara no "change" (ao sair do campo) dos 3 campos do formulario. Quando
+// nome + premio + data estao todos preenchidos, registra automaticamente no
+// historico - sem precisar clicar em nenhum botao.
+function repRoletaAutoCommitHistorico() {
   const ganhadorInput = document.getElementById('rep-roleta-ganhador-input');
   const premioInput = document.getElementById('rep-roleta-premio-input');
   const dataInput = document.getElementById('rep-roleta-data-input');
@@ -1237,18 +1253,8 @@ function repRoletaAdicionarHistorico() {
   const ganhador = String(ganhadorInput.value || '').trim();
   const premio = String(premioInput.value || '').trim();
   const data = String(dataInput.value || '').trim();
-  if (!ganhador || !premio || !data) {
-    alert('Preencha nome, prêmio e data para adicionar ao histórico.');
-    return;
-  }
-  const estado = repRoletaLerEstado();
-  estado.historico = Array.isArray(estado.historico) ? estado.historico : [];
-  estado.historico.unshift({ ganhador, premio, data });
-  estado.historico = estado.historico.slice(0, 30);
-  // Limpa o rascunho para deixar pronto para o proximo ganhador
-  estado.ganhador = '';
-  estado.ultimoPremio = '';
-  repRoletaSalvarEstado(estado);
+  if (!ganhador || !premio || !data) return;
+  repRoletaRegistrarHistorico(ganhador, premio, data);
   repRoletaRecarregarArea();
 }
 
@@ -1324,24 +1330,24 @@ function repRoletaHtml() {
       <datalist id="rep-roleta-reps">${repsOptions}</datalist>
       <label class="premio-roleta-field">
         <span>Nome do representante</span>
-        <input id="rep-roleta-ganhador-input" type="text" value="${repEsc(estado.ganhador || '')}" placeholder="Digite o nome do ganhador" list="rep-roleta-reps" oninput="repRoletaAutoSalvar()">
+        <input id="rep-roleta-ganhador-input" type="text" value="${repEsc(estado.ganhador || '')}" placeholder="Digite o nome do ganhador" list="rep-roleta-reps" oninput="repRoletaAutoSalvar()" onchange="repRoletaAutoCommitHistorico()">
       </label>
       <label class="premio-roleta-field">
         <span>Premio registrado</span>
-        <input id="rep-roleta-premio-input" type="text" value="${repEsc(estado.ultimoPremio || '')}" placeholder="Digite ou use o premio sorteado" oninput="repRoletaAutoSalvar()">
+        <input id="rep-roleta-premio-input" type="text" value="${repEsc(estado.ultimoPremio || '')}" placeholder="Digite ou use o premio sorteado" oninput="repRoletaAutoSalvar()" onchange="repRoletaAutoCommitHistorico()">
       </label>
       <label class="premio-roleta-field">
         <span>Data do premio</span>
-        <input id="rep-roleta-data-input" type="date" value="${repEsc(repRoletaDataHoje())}">
+        <input id="rep-roleta-data-input" type="date" value="${repEsc(repRoletaDataHoje())}" onchange="repRoletaAutoCommitHistorico()">
       </label>
       <div id="rep-roleta-autosave-hint" class="premio-roleta-autosave-hint">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M20 6L9 17l-5-5"/></svg>
         Salvo automaticamente
       </div>
       <div class="premio-roleta-actions premio-roleta-actions-side">
-        <button type="button" class="premio-roleta-btn" onclick="repRoletaPreencherAtual()">Usar ultimo sorteio</button>
-        <button type="button" class="premio-roleta-btn premio-roleta-btn-primary" onclick="repRoletaAdicionarHistorico()">Adicionar ao historico</button>
+        <button type="button" class="premio-roleta-btn premio-roleta-btn-full" onclick="repRoletaPreencherAtual()">Usar ultimo sorteio</button>
       </div>
+      <p class="premio-roleta-auto-note">Preencha nome, premio e data — o registro no historico acontece sozinho.</p>
       <div class="premio-card-title premio-roleta-title-gap">Historico de ganhadores</div>
       <div class="premio-roleta-history" id="rep-roleta-history">
         ${repRoletaHistoricoHtml(estado)}
@@ -1459,11 +1465,20 @@ function repRoletaSortear() {
     estado.ultimoPremio = itens[chosen];
     repRoletaSalvarEstado(estado);
     if (resultado) resultado.textContent = itens[chosen];
-    repRoletaAtualizarResumo();
-    repRoletaPreencherAtual();
     wheel.dataset.spinning = '0';
     wheel.classList.remove('is-spinning');
-    repRoletaCelebrar(itens[chosen], estado.ganhador || 'Representante a definir');
+
+    const ganhadorAtual = estado.ganhador || '';
+    repRoletaCelebrar(itens[chosen], ganhadorAtual || 'Representante a definir');
+
+    // Se o representante ja estava definido, registra no historico sozinho.
+    if (ganhadorAtual) {
+      const dataInput = document.getElementById('rep-roleta-data-input');
+      const data = (dataInput && dataInput.value) || repRoletaDataHoje();
+      repRoletaRegistrarHistorico(ganhadorAtual, itens[chosen], data);
+    }
+
+    repRoletaRecarregarArea();
     setTimeout(() => {
       wheel.style.transition = '';
       if (centro) centro.style.transition = '';
