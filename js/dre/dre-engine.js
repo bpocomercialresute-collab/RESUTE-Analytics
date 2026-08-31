@@ -539,7 +539,7 @@ const DRE = (() => {
 
     const faturouMais = base - fvdi.pontoEquilibrio;
     const fatMeses    = gmeses('FATURAMENTO');
-    const fatTot      = gtot('FATURAMENTO') || 1;
+    const fatTot      = gtot('FATURAMENTO');
 
     const tbody = [
       // ── RECEITAS ────────────────────────────────────────────────────────
