@@ -1287,7 +1287,7 @@ function repRoletaHtml() {
         </div>
       </div>
       <div class="premio-roleta-actions">
-        <button type="button" class="premio-roleta-btn primary" onclick="repRoletaSortear()">Girar roleta</button>
+        <button type="button" class="premio-roleta-btn premio-roleta-btn-primary" onclick="repRoletaSortear()">Girar roleta</button>
         <button type="button" class="premio-roleta-btn" onclick="repRoletaImportarProdutos()">Importar produtos do recorte</button>
         <button type="button" class="premio-roleta-btn" onclick="repRoletaLimparItens()">Limpar produtos</button>
       </div>
@@ -1324,9 +1324,9 @@ function repRoletaHtml() {
         <input id="rep-roleta-data-input" type="date" value="${repEsc(repRoletaDataHoje())}">
       </label>
       <div class="premio-roleta-actions premio-roleta-actions-side">
-        <button type="button" class="premio-roleta-save" onclick="repRoletaSalvarGanhador()">Salvar representante</button>
+        <button type="button" class="premio-roleta-btn" onclick="repRoletaSalvarGanhador()">Salvar representante</button>
         <button type="button" class="premio-roleta-btn" onclick="repRoletaPreencherAtual()">Usar ultimo sorteio</button>
-        <button type="button" class="premio-roleta-btn primary" onclick="repRoletaAdicionarHistorico()">Adicionar ao historico</button>
+        <button type="button" class="premio-roleta-btn premio-roleta-btn-primary" onclick="repRoletaAdicionarHistorico()">Adicionar ao historico</button>
       </div>
       <div class="premio-card-title premio-roleta-title-gap">Historico de ganhadores</div>
       <div class="premio-roleta-history" id="rep-roleta-history">

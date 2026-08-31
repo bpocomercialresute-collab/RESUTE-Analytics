@@ -7270,6 +7270,11 @@ body.bpo-admin-mode .av-exibir-btn:hover {
   border: 1px solid rgba(20, 116, 111, 0.10);
 }
 
+.premio-roleta-wrap-updated .roleta-history-item:hover,
+.premio-roleta-wrap-updated .roleta-chip:hover {
+  border-color: rgba(20, 116, 111, 0.24);
+}
+
 .premio-roleta-wrap-updated .roleta-history-main strong,
 .premio-roleta-wrap-updated .roleta-chip span {
   color: #0E1424;
@@ -7278,6 +7283,61 @@ body.bpo-admin-mode .av-exibir-btn:hover {
 .premio-roleta-wrap-updated .roleta-history-main span,
 .premio-roleta-wrap-updated .roleta-history-meta time {
   color: #5f7d79;
+}
+
+.premio-roleta-wrap-updated .premio-roleta-empty-list {
+  background: rgba(239, 248, 246, 0.55);
+  border: 1px dashed rgba(20, 116, 111, 0.28);
+  color: #5f7d79;
+  text-align: center;
+}
+
+.premio-roleta-wrap-updated .roleta-chip button {
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(20, 116, 111, 0.14);
+  background: #fff;
+  color: #94a3b8;
+  font-size: 15px;
+}
+
+.premio-roleta-wrap-updated .roleta-chip button:hover {
+  background: #fef2f2;
+  border-color: rgba(220, 38, 38, 0.3);
+  color: #dc2626;
+}
+
+.premio-roleta-wrap-updated .roleta-history-meta button {
+  border: 1px solid rgba(20, 116, 111, 0.14);
+  background: #fff;
+  color: #94a3b8;
+}
+
+.premio-roleta-wrap-updated .roleta-history-meta button:hover {
+  background: #fef2f2;
+  border-color: rgba(220, 38, 38, 0.3);
+  color: #dc2626;
+}
+
+.premio-roleta-wrap-updated .premio-roleta-highlight-card {
+  transition: transform .15s, box-shadow .15s;
+}
+
+.premio-roleta-wrap-updated .premio-roleta-highlight-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(20, 116, 111, 0.14);
+}
+
+/* Especificidade composta pra vencer o reset generico .premio-roleta-btn (ambos !important) */
+.premio-roleta-btn.premio-roleta-btn-primary {
+  background: #1C64C0 !important;
+  border-color: #1C64C0 !important;
+  color: #FFFFFF !important;
+}
+.premio-roleta-btn.premio-roleta-btn-primary:hover {
+  background: #164e93 !important;
+  border-color: #164e93 !important;
+  color: #FFFFFF !important;
 }
 
 .premio-roleta-wrap-updated .premio-roleta-celebration {
