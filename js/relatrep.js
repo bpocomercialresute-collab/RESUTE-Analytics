@@ -1252,6 +1252,7 @@ function repRoletaHtml() {
         <div class="premio-roleta-wheel" id="rep-roleta-wheel" style="transform: rotate(${Number(estado.angulo || 0)}deg); ${itens.length ? `background: conic-gradient(${repRoletaConicGradient(itens)});` : 'background: radial-gradient(circle at center, #14746F, #0A2F2F);'}">
           ${labels || '<span class="roleta-empty">Adicione produtos para liberar a roleta.</span>'}
           <div class="premio-roleta-center" id="rep-roleta-center" style="transform: translate(-50%, -50%) rotate(${-Number(estado.angulo || 0)}deg);">
+            <span class="premio-roleta-center-pulse"></span>
             <span>RESUTE</span>
             <strong>Gire para sortear</strong>
           </div>
@@ -1378,7 +1379,6 @@ function repRoletaApresentacaoConteudoHtml() {
     const rot = (i * ang) + (ang / 2);
     return `<span class="roleta-label" style="transform: rotate(${rot}deg) translateY(-165px) rotate(${-rot - anguloAtual}deg);">${repEsc(item)}</span>`;
   }).join('');
-  const ativo = estado.ultimoSorteio || itens[0] || '';
   const repsOptions = repRoletaRepresentantesSugestoes().map(function(nome) {
     return `<option value="${repEsc(nome)}"></option>`;
   }).join('');
@@ -1396,11 +1396,13 @@ function repRoletaApresentacaoConteudoHtml() {
         <div class="premio-roleta-wheel premio-roleta-wheel-lg" id="rep-roleta-wheel-live" style="transform: rotate(${anguloAtual}deg); ${itens.length ? `background: conic-gradient(${repRoletaConicGradient(itens)});` : 'background: radial-gradient(circle at center, #14746F, #0A2F2F);'}">
           ${labels || '<span class="roleta-empty">Adicione produtos na roleta para comecar.</span>'}
           <div class="premio-roleta-center premio-roleta-center-lg" id="rep-roleta-center-live" style="transform: translate(-50%, -50%) rotate(${-anguloAtual}deg);">
+            <span class="premio-roleta-center-pulse"></span>
             <span>RESUTE</span>
-            <strong id="rep-roleta-ultimo-live">${repEsc(ativo || 'Gire para sortear')}</strong>
+            <strong>Gire para sortear</strong>
           </div>
         </div>
       </div>
+      ${estado.ultimoSorteio ? `<div class="premio-roleta-presentation-ultimo">Ultimo sorteio: <strong>${repEsc(estado.ultimoSorteio)}</strong></div>` : ''}
       <input id="rep-roleta-nome-live" type="text" class="premio-roleta-presentation-nome" placeholder="Nome do representante (opcional)" value="${repEsc(estado.ganhador || '')}" list="rep-roleta-reps-live" oninput="repRoletaApresentacaoAutoSalvar()">
       <button type="button" class="premio-roleta-presentation-girar" onclick="repRoletaGirarApresentacao()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
@@ -1419,10 +1421,13 @@ function repRoletaApresentacaoAutoSalvar() {
 }
 
 function repRoletaGirarApresentacao() {
+  // Sem resultadoId: o centro da roda fica sempre fixo (RESUTE / Gire para
+  // sortear) - o premio sorteado aparece so no popup de comemoracao e na
+  // linha "Ultimo sorteio" abaixo da roda, nunca escrito por cima do hub.
   repRoletaExecutarGiro({
     wheelId: 'rep-roleta-wheel-live',
     centroId: 'rep-roleta-center-live',
-    resultadoId: 'rep-roleta-ultimo-live',
+    resultadoId: null,
     nomeInputId: 'rep-roleta-nome-live',
     dataInputId: null,
     aoTerminar: function() { repRoletaApresentacaoAtualizar(); }

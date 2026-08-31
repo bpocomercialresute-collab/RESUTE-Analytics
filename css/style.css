@@ -1924,6 +1924,34 @@ body.rep-roleta-presentation-open { overflow: hidden; }
   font-size: 19px;
   max-width: 110px;
 }
+/* Anel decorativo pulsante no hub - substitui qualquer texto de premio/
+   historico dentro da roda. Acelera visualmente enquanto a roda gira. */
+.premio-roleta-center-pulse {
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  border: 2px solid rgba(45, 212, 191, .45);
+  pointer-events: none;
+  animation: roletaCentroPulso 2.6s ease-out infinite;
+}
+.premio-roleta-wheel.is-spinning .premio-roleta-center-pulse {
+  animation-duration: .9s;
+  border-color: rgba(251, 191, 36, .6);
+}
+@keyframes roletaCentroPulso {
+  0%   { transform: scale(1);    opacity: .7; }
+  70%  { transform: scale(1.28); opacity: 0; }
+  100% { transform: scale(1.28); opacity: 0; }
+}
+.premio-roleta-presentation-ultimo {
+  color: rgba(207,233,228,.7);
+  font-size: 13px;
+  font-weight: 600;
+}
+.premio-roleta-presentation-ultimo strong {
+  color: #6fe3d2;
+  font-weight: 800;
+}
 .premio-roleta-presentation-nome {
   width: min(420px, 90vw);
   text-align: center;
