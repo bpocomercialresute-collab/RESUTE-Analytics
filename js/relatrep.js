@@ -26,6 +26,7 @@ window.REP_MERGE_EMPRESAS = window.REP_MERGE_EMPRESAS || (function() {
   try { return JSON.parse(localStorage.getItem('resute_rep_merge_empresas') || '[]'); } catch(e) { return []; }
 })();
 window.REP_EMPRESAS_CACHE = window.REP_EMPRESAS_CACHE || {};
+window.REP_MERGE_PAINEL_ABERTO = window.REP_MERGE_PAINEL_ABERTO || false;
 
 // ── MERGE DE EMPRESAS NA PREMIAÇÃO ────────────────────────────────────────────
 
@@ -83,16 +84,22 @@ function repPremiacaoBaseRowsMerged() {
   return allRows;
 }
 
+function repMergePainelToggle() {
+  window.REP_MERGE_PAINEL_ABERTO = !window.REP_MERGE_PAINEL_ABERTO;
+  repPremiacao();
+}
+
 function repPremiacaoEmpresasMergeHtml() {
   const lista = Array.isArray(window.EMPRESAS_LISTA) ? window.EMPRESAS_LISTA : [];
   const cache = window.REP_EMPRESAS_CACHE || {};
   const mergeIds = window.REP_MERGE_EMPRESAS || [];
   const ativa = window.EMPRESA_ATIVA;
+  const aberto = window.REP_MERGE_PAINEL_ABERTO;
 
   // Empresas do sistema (exceto a ativa)
   const outras = lista.filter(function(e) { return !ativa || e.empresa_id !== ativa.empresa_id; });
 
-  // Inclui também empresas em cache que não estejam na lista
+  // Inclui empresas em cache que não estejam na lista
   const idsLista = new Set(outras.map(function(e) { return e.empresa_id; }));
   Object.keys(cache).forEach(function(id) {
     if ((!ativa || id !== ativa.empresa_id) && !idsLista.has(id)) {
@@ -101,42 +108,59 @@ function repPremiacaoEmpresasMergeHtml() {
     }
   });
 
-  const ativaLabel = ativa ? ativa.nome : 'Dados atuais';
+  // Sem nada para mostrar e sem merge ativo: oculta completamente
+  if (!outras.length && !mergeIds.length) return '';
+
   const mergeCount = mergeIds.filter(function(id) { return !!cache[id]; }).length;
 
-  let corpoHtml;
-  if (!outras.length) {
-    corpoHtml = `<div class="rep-merge-empty">
-      Para combinar empresas, selecione outra empresa no painel de empresas e aguarde o carregamento. Ela aparecerá aqui automaticamente.
+  // Barra colapsável compacta (sempre visível)
+  const barLabel = mergeCount
+    ? `Empresas combinadas · <strong>${mergeCount + 1} ativas</strong>`
+    : 'Juntar empresas na premiação';
+  const chevron = aberto ? '▲' : '▼';
+
+  let expansaoHtml = '';
+  if (aberto) {
+    let corpoHtml;
+    if (!outras.length) {
+      corpoHtml = `<div class="rep-merge-empty">Selecione outra empresa no painel e aguarde o carregamento. Ela aparece aqui automaticamente.</div>`;
+    } else {
+      const items = outras.map(function(e) {
+        const sel = mergeIds.includes(e.empresa_id);
+        const carregada = !!cache[e.empresa_id];
+        const nRows = carregada ? cache[e.empresa_id].rows.length : 0;
+        const safeId = e.empresa_id.replace(/[^a-z0-9]/gi, '_');
+        const infoHtml = carregada
+          ? `<span class="rep-merge-info">${nRows.toLocaleString('pt-BR')} reg.</span>`
+          : `<button id="rep-merge-load-${repEsc(safeId)}" class="rep-merge-load-btn" onclick="repMergeEmpresasCarregarDados('${repEsc(e.empresa_id)}','${repEsc(e.nome)}')">Carregar</button>`;
+        return `<div class="rep-merge-item">
+          <label class="rep-merge-check">
+            <input type="checkbox" ${sel ? 'checked' : ''} ${!carregada ? 'disabled title="Carregue os dados primeiro"' : ''} onchange="repMergeEmpresasToggle('${repEsc(e.empresa_id)}')">
+            <span>${repEsc(e.nome)}</span>
+          </label>
+          ${infoHtml}
+        </div>`;
+      }).join('');
+      corpoHtml = `<div class="rep-merge-lista">${items}</div>`;
+    }
+
+    const ativaLabel = ativa ? ativa.nome : 'Dados atuais';
+    expansaoHtml = `<div class="rep-merge-corpo">
+      <div class="rep-merge-base">
+        <span class="rep-merge-badge">Base ativa</span>
+        <span class="rep-merge-base-nome">${repEsc(ativaLabel)}</span>
+      </div>
+      ${corpoHtml}
     </div>`;
-  } else {
-    const items = outras.map(function(e) {
-      const sel = mergeIds.includes(e.empresa_id);
-      const carregada = !!cache[e.empresa_id];
-      const nRows = carregada ? cache[e.empresa_id].rows.length : 0;
-      const safeId = e.empresa_id.replace(/[^a-z0-9]/gi, '_');
-      const infoHtml = carregada
-        ? `<span class="rep-merge-info">${nRows.toLocaleString('pt-BR')} registros</span>`
-        : `<button id="rep-merge-load-${repEsc(safeId)}" class="rep-merge-load-btn" onclick="repMergeEmpresasCarregarDados('${repEsc(e.empresa_id)}','${repEsc(e.nome)}')">Carregar dados</button>`;
-      return `<div class="rep-merge-item">
-        <label class="rep-merge-check">
-          <input type="checkbox" ${sel ? 'checked' : ''} ${!carregada ? 'disabled title="Carregue os dados primeiro"' : ''} onchange="repMergeEmpresasToggle('${repEsc(e.empresa_id)}')">
-          <span>${repEsc(e.nome)}</span>
-        </label>
-        ${infoHtml}
-      </div>`;
-    }).join('');
-    corpoHtml = `<div class="rep-merge-lista">${items}</div>`;
   }
 
-  return `<div class="rep-merge-panel">
-    <div class="rep-merge-title">Juntar empresas na premiação</div>
-    <div class="rep-merge-base">
-      <span class="rep-merge-badge">Base ativa</span>
-      <span class="rep-merge-base-nome">${repEsc(ativaLabel)}</span>
-      ${mergeCount ? `<span class="rep-merge-active-count">+ ${mergeCount} empresa${mergeCount > 1 ? 's' : ''} incluída${mergeCount > 1 ? 's' : ''}</span>` : ''}
-    </div>
-    ${corpoHtml}
+  return `<div class="rep-merge-panel ${aberto ? 'aberto' : ''}">
+    <button class="rep-merge-toggle" onclick="repMergePainelToggle()">
+      <span>${barLabel}</span>
+      ${mergeCount ? `<span class="rep-merge-active-count">${mergeCount} incluída${mergeCount > 1 ? 's' : ''}</span>` : ''}
+      <span class="rep-merge-chevron">${chevron}</span>
+    </button>
+    ${expansaoHtml}
   </div>`;
 }
 
