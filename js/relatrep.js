@@ -28,6 +28,36 @@ window.REP_MERGE_EMPRESAS = window.REP_MERGE_EMPRESAS || (function() {
 window.REP_EMPRESAS_CACHE = window.REP_EMPRESAS_CACHE || {};
 window.REP_MERGE_PAINEL_ABERTO = window.REP_MERGE_PAINEL_ABERTO || false;
 
+// ── CADASTRO DE CLIENTES (depara p/ premiação de reativação) ─────────────────
+// null = ainda não carregado; Set = nomes normalizados presentes no cadastro real
+window.REP_CADASTRO_NOMES = window.REP_CADASTRO_NOMES || null;
+
+async function repPremiacaoCarregarCadastroClientes() {
+  if (window.REP_CADASTRO_NOMES !== null) return;
+  window.REP_CADASTRO_NOMES = new Set();
+  try {
+    const ids = [];
+    if (window.SESSION && SESSION.empresa_id) ids.push(SESSION.empresa_id);
+    (window.REP_MERGE_EMPRESAS || []).forEach(id => { if (id && ids.indexOf(id) < 0) ids.push(id); });
+    if (!ids.length) return;
+    const set = new Set();
+    for (const eid of ids) {
+      const r = await repProxyFetch(SUPA_URL + '/rest/v1/clientes_cad?empresa_id=eq.' + encodeURIComponent(eid) + '&select=nome,razao_social&limit=50000');
+      const dados = await r.json();
+      if (r.ok && Array.isArray(dados)) {
+        dados.forEach(c => {
+          if (c.nome) set.add(repPremiacaoNormNome(c.nome));
+          if (c.razao_social) set.add(repPremiacaoNormNome(c.razao_social));
+        });
+      }
+    }
+    window.REP_CADASTRO_NOMES = set;
+  } catch (e) {
+    window.REP_CADASTRO_NOMES = new Set();
+  }
+  repPremiacao();
+}
+
 // ── MERGE DE EMPRESAS NA PREMIAÇÃO ────────────────────────────────────────────
 // Toda leitura de outras empresas passa pelo /api/secure-proxy (SUPA_KEY/SVC_KEY
 // em auth.js são placeholders '__SERVER_ONLY__', não funcionam no navegador).
@@ -240,6 +270,12 @@ function repShareCell(valor, total) {
 // ── TOGGLE BUTTON HTML ────────────────────────────────────────────────────────
 function repEsc(v) {
   return String(v == null ? '' : v).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+
+function repPremiacaoNormNome(s) {
+  return String(s || '').trim().toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, ' ');
 }
 
 function repPedidoChave(row) {
@@ -786,36 +822,58 @@ function repPremiacaoRelatorioHtml(rows, baseRows) {
 
   if (campanha.id === 'mensal') {
     const bonusPorCliente = 80;
+    const cadastro = window.REP_CADASTRO_NOMES;
+    const cadastroPronto = cadastro instanceof Set && cadastro.size > 0;
+
+    // Depara: indexa TODO o histórico de vendas por nome normalizado (sem acento/
+    // maiúscula/espaço extra), pra não perder "reativação" por variação de digitação
+    // do mesmo cliente entre lançamentos diferentes.
+    const historicoPorNome = {};
+    (Array.isArray(baseRows) ? baseRows : []).forEach(base => {
+      const cliente = String(base[IDX.cliente] || '').trim();
+      if (!cliente) return;
+      const dt = repPremiacaoRowDate(base);
+      if (!dt) return;
+      const key = repPremiacaoNormNome(cliente);
+      if (!historicoPorNome[key]) historicoPorNome[key] = [];
+      historicoPorNome[key].push(dt);
+    });
+
     const porRep = {};
     rows.forEach(r => {
       const cliente = String(r[IDX.cliente] || '').trim();
       const vendedor = String(r[IDX.vendedor] || '').trim() || 'Sem representante';
       if (!cliente) return;
-      const anteriores = (Array.isArray(baseRows) ? baseRows : []).filter(base => {
-        const mesmoCliente = String(base[IDX.cliente] || '').trim() === cliente;
-        const dt = repPremiacaoRowDate(base);
-        return mesmoCliente && dt && dt < limites.inicio;
-      }).map(repPremiacaoRowDate).filter(Boolean).sort((a, b) => b - a);
-      if (!anteriores.length) return;
+      const key = repPremiacaoNormNome(cliente);
+      const anteriores = (historicoPorNome[key] || []).filter(dt => dt < limites.inicio).sort((a, b) => b - a);
+      if (!anteriores.length) return; // nunca comprou antes do período: cliente novo, não é reativação
       const diffDias = Math.floor((limites.inicio - anteriores[0]) / 86400000);
-      if (diffDias < 180) return;
-      if (!porRep[vendedor]) porRep[vendedor] = { nome: vendedor, clientes: new Set() };
-      porRep[vendedor].clientes.add(cliente);
+      if (diffDias < 180) return; // última compra há menos de 6 meses: não estava inativo
+      if (!porRep[vendedor]) porRep[vendedor] = { nome: vendedor, clientes: new Map() };
+      if (!porRep[vendedor].clientes.has(key)) porRep[vendedor].clientes.set(key, cliente);
     });
-    const linhas = Object.values(porRep).map(item => ({
-      nome: item.nome,
-      reativados: item.clientes.size,
-      bonus: item.clientes.size * bonusPorCliente,
-      clientes: Array.from(item.clientes).slice(0, 4).join(', ')
-    })).sort((a, b) => b.reativados - a.reativados || b.bonus - a.bonus).map((r, i) => `
+
+    const linhas = Object.values(porRep).map(item => {
+      const nomes = Array.from(item.clientes.values());
+      const noCadastro = cadastroPronto ? nomes.filter(n => cadastro.has(repPremiacaoNormNome(n))).length : null;
+      return {
+        nome: item.nome,
+        reativados: nomes.length,
+        bonus: nomes.length * bonusPorCliente,
+        noCadastro,
+        clientes: nomes.slice(0, 4).join(', ')
+      };
+    }).sort((a, b) => b.reativados - a.reativados || b.bonus - a.bonus).map((r, i) => `
       <tr>
         <td>${i + 1}</td>
         <td class="rep-lbl">${repEsc((r.nome||'').toUpperCase())}</td>
         <td>${fmtInt(r.reativados)}</td>
+        <td>${r.noCadastro === null ? '—' : (r.noCadastro + '/' + r.reativados)}</td>
         <td>${fmtValor(r.bonus)}</td>
         <td>${repEsc(r.clientes || '-')}</td>
       </tr>`).join('');
-    return repPremiacaoTabelaRelatorio('Relatório do prêmio mensal · reativação de clientes', ['#', 'Representante', 'Clientes reativados', 'Bônus projetado', 'Exemplos'], linhas);
+    const aviso = cadastroPronto ? '' : '<tr><td colspan="6" style="text-align:center;color:#5A7A74;font-size:12px;padding:8px">Carregando cadastro de clientes para validar os nomes…</td></tr>';
+    return repPremiacaoTabelaRelatorio('Relatório do prêmio mensal · reativação de clientes', ['#', 'Representante', 'Clientes reativados', 'No cadastro', 'Bônus projetado', 'Exemplos'], linhas + aviso);
   }
 
   if (campanha.id === 'trimestral') {
@@ -2344,6 +2402,8 @@ function repCrescMes() {
 function repPremiacao() {
   const el = document.getElementById('rep-tab-premiacao');
   if (!el) return;
+
+  if (window.REP_CADASTRO_NOMES === null) repPremiacaoCarregarCadastroClientes();
 
   // Combina dados de empresas selecionadas para merge
   const mergeIds = window.REP_MERGE_EMPRESAS || [];
