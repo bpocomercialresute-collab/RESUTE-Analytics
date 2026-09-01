@@ -29,18 +29,21 @@ window.REP_EMPRESAS_CACHE = window.REP_EMPRESAS_CACHE || {};
 window.REP_MERGE_PAINEL_ABERTO = window.REP_MERGE_PAINEL_ABERTO || false;
 
 // ── CADASTRO DE CLIENTES (depara p/ premiação de reativação) ─────────────────
-// null = ainda não carregado; Set = nomes normalizados presentes no cadastro real
+// null = ainda não carregado (tenta de novo); Set = já buscou (mesmo que vazio)
 window.REP_CADASTRO_NOMES = window.REP_CADASTRO_NOMES || null;
+window.REP_CADASTRO_CARREGANDO = window.REP_CADASTRO_CARREGANDO || false;
 
 async function repPremiacaoCarregarCadastroClientes() {
-  if (window.REP_CADASTRO_NOMES !== null) return;
-  window.REP_CADASTRO_NOMES = new Set();
+  if (window.REP_CADASTRO_NOMES !== null || window.REP_CADASTRO_CARREGANDO) return;
+  const ids = [];
+  if (window.SESSION && SESSION.empresa_id) ids.push(SESSION.empresa_id);
+  (window.REP_MERGE_EMPRESAS || []).forEach(id => { if (id && ids.indexOf(id) < 0) ids.push(id); });
+  // Sessão ainda não carregou empresa_id: não trava em Set vazio, tenta de novo na próxima renderização.
+  if (!ids.length) return;
+
+  window.REP_CADASTRO_CARREGANDO = true;
+  const set = new Set();
   try {
-    const ids = [];
-    if (window.SESSION && SESSION.empresa_id) ids.push(SESSION.empresa_id);
-    (window.REP_MERGE_EMPRESAS || []).forEach(id => { if (id && ids.indexOf(id) < 0) ids.push(id); });
-    if (!ids.length) return;
-    const set = new Set();
     for (const eid of ids) {
       const r = await repProxyFetch(SUPA_URL + '/rest/v1/clientes_cad?empresa_id=eq.' + encodeURIComponent(eid) + '&select=nome,razao_social&limit=50000');
       const dados = await r.json();
@@ -51,10 +54,9 @@ async function repPremiacaoCarregarCadastroClientes() {
         });
       }
     }
-    window.REP_CADASTRO_NOMES = set;
-  } catch (e) {
-    window.REP_CADASTRO_NOMES = new Set();
-  }
+  } catch (e) {}
+  window.REP_CADASTRO_NOMES = set;
+  window.REP_CADASTRO_CARREGANDO = false;
   repPremiacao();
 }
 
@@ -823,7 +825,7 @@ function repPremiacaoRelatorioHtml(rows, baseRows) {
   if (campanha.id === 'mensal') {
     const bonusPorCliente = 80;
     const cadastro = window.REP_CADASTRO_NOMES;
-    const cadastroPronto = cadastro instanceof Set && cadastro.size > 0;
+    const cadastroPronto = cadastro instanceof Set;
 
     // Depara: indexa TODO o histórico de vendas por nome normalizado (sem acento/
     // maiúscula/espaço extra), pra não perder "reativação" por variação de digitação
