@@ -450,7 +450,27 @@ const DRE = (() => {
     th.push('<th class="fin-dre-col-tot">TOT</th>');
     th.push('<th class="fin-dre-col-med">MÉD/ANO</th>');
     th.push('<th class="fin-dre-col-pct-h">%</th>');
+    th.push('<th class="fin-dre-col-spark-h">Mês</th>');
     return `<thead><tr>${th.join('')}</tr></thead>`;
+  }
+
+  // Mini gráfico de linha (sparkline) com a série de valores de uma linha,
+  // pra ver a tendência mensal num relance sem abrir gráfico separado.
+  function sparklineSvg(valores) {
+    const w = 64, h = 24, pad = 3;
+    const vals = (valores || []).map(num);
+    if (vals.length < 2) return '';
+    const min = Math.min(...vals), max = Math.max(...vals);
+    const range = max - min || 1;
+    const stepX = (w - pad * 2) / (vals.length - 1);
+    const pts = vals.map((v, i) => {
+      const x = pad + i * stepX;
+      const y = h - pad - ((v - min) / range) * (h - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    return `<svg class="fin-dre-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">`
+      + `<polyline points="${pts}" fill="none" stroke="#1C64C0" stroke-width="1.6" vector-effect="non-scaling-stroke"/>`
+      + `</svg>`;
   }
 
   function renderBloco(item) {
@@ -483,6 +503,7 @@ const DRE = (() => {
       tds.push(`<td class="fin-dre-col-tot ${cls(l.total)}">${fmt(l.total)}</td>`);
       tds.push(`<td class="fin-dre-col-med ${cls(l.med)}">${fmt(l.med)}</td>`);
       tds.push(`<td class="fin-dre-col-pct">${fmtPct(l.pct)}</td>`);
+      tds.push(`<td class="fin-dre-col-spark">${sparklineSvg(l.meses)}</td>`);
       return `<tr>${tds.join('')}</tr>`;
     }).join('');
 
@@ -492,7 +513,8 @@ const DRE = (() => {
     rodape.push(`<td class="fin-dre-col-tot-foot">${fmt(g.total)}</td>`);
     rodape.push(`<td class="fin-dre-col-med-foot">${fmt(g.med)}</td>`);
     const receita = estado.bdDre.filter(l => l.s_e === 'E').reduce((s,l)=>s+l.total,0);
-    rodape.push(`<td>${fmtPct(receita ? g.total / receita : 0)}</td>`);
+    rodape.push(`<td class="fin-dre-col-pct">${fmtPct(receita ? g.total / receita : 0)}</td>`);
+    rodape.push(`<td class="fin-dre-col-spark">${sparklineSvg(g.meses)}</td>`);
 
     const evolucao = linhasEvolucao(item.nome, nSlots);
 
@@ -514,7 +536,7 @@ const DRE = (() => {
   function linhaEvolucaoValor(label, valores) {
     const tds = [`<td class="fin-dre-col-conta fin-dre-evol-label">${esc(label)}</td>`];
     for (const v of valores) tds.push(`<td class="fin-dre-evol-num">${fmt(v)}</td>`);
-    tds.push('<td></td><td></td><td></td>');
+    tds.push('<td></td><td></td><td></td><td></td>');
     return `<tr class="fin-dre-tr-evolucao">${tds.join('')}</tr>`;
   }
 
@@ -526,7 +548,7 @@ const DRE = (() => {
       const corCls = v > 0 ? 'fin-dre-evol-up' : (v < 0 ? 'fin-dre-evol-down' : 'fin-dre-evol-neutro');
       tds.push(`<td class="fin-dre-evol-pct ${corCls}">${seta} ${fmtPct1(v)}</td>`);
     }
-    tds.push('<td></td><td></td><td></td>');
+    tds.push('<td></td><td></td><td></td><td></td>');
     return `<tr class="fin-dre-tr-evolucao">${tds.join('')}</tr>`;
   }
 
@@ -535,7 +557,7 @@ const DRE = (() => {
     const tds = [`<td class="fin-dre-col-conta fin-dre-evol-label">${esc(label)}</td>`];
     for (const v of valores)
       tds.push(`<td class="fin-dre-evol-pct fin-dre-evol-neutro">${v == null ? '—' : fmtPct1(v)}</td>`);
-    tds.push('<td></td><td></td><td></td>');
+    tds.push('<td></td><td></td><td></td><td></td>');
     return `<tr class="fin-dre-tr-evolucao">${tds.join('')}</tr>`;
   }
 

@@ -259,7 +259,7 @@
 }
 
 /* Meses: largura fixa para todas as colunas de mês no cabeçalho */
-.fin-dre-tabela thead th:not(.fin-dre-col-conta):not(.fin-dre-col-tot):not(.fin-dre-col-med):not(.fin-dre-col-pct-h) {
+.fin-dre-tabela thead th:not(.fin-dre-col-conta):not(.fin-dre-col-tot):not(.fin-dre-col-med):not(.fin-dre-col-pct-h):not(.fin-dre-col-spark-h) {
   width: 72px; min-width: 72px;
 }
 
@@ -269,10 +269,12 @@
   width: 88px; min-width: 88px;
 }
 .fin-dre-tabela thead th.fin-dre-col-pct-h { width: 66px; min-width: 66px; }
-/* TOT, MÉD/ANO e % = branco no cabeçalho, texto escuro */
+.fin-dre-tabela thead th.fin-dre-col-spark-h { width: 74px; min-width: 74px; }
+/* TOT, MÉD/ANO, % e Mês (sparkline) = branco no cabeçalho, texto escuro */
 .fin-dre-tabela thead th.fin-dre-col-tot,
 .fin-dre-tabela thead th.fin-dre-col-med,
-.fin-dre-tabela thead th.fin-dre-col-pct-h {
+.fin-dre-tabela thead th.fin-dre-col-pct-h,
+.fin-dre-tabela thead th.fin-dre-col-spark-h {
   background: #fff; color: var(--fin-ink);
   border-right: 1px solid var(--fin-line);
   font-weight: 700;
@@ -304,22 +306,29 @@
 .fin-dre-val-zero    { color: #c0c8d4; }
 
 /* Meses no corpo/rodapé: mesma largura fixa do cabeçalho */
-.fin-dre-tabela tbody td:not(.fin-dre-col-conta):not(.fin-dre-col-tot):not(.fin-dre-col-med):not(.fin-dre-col-pct),
-.fin-dre-tabela tfoot td:not(.fin-dre-col-conta):not(.fin-dre-col-tot-foot):not(.fin-dre-col-med-foot):not(:last-child) {
+.fin-dre-tabela tbody td:not(.fin-dre-col-conta):not(.fin-dre-col-tot):not(.fin-dre-col-med):not(.fin-dre-col-pct):not(.fin-dre-col-spark),
+.fin-dre-tabela tfoot td:not(.fin-dre-col-conta):not(.fin-dre-col-tot-foot):not(.fin-dre-col-med-foot):not(.fin-dre-col-pct):not(.fin-dre-col-spark) {
   width: 72px; min-width: 72px;
 }
 .fin-dre-tabela td.fin-dre-col-tot,
 .fin-dre-tabela tfoot td.fin-dre-col-tot-foot { width: 88px; min-width: 88px; }
 .fin-dre-tabela td.fin-dre-col-med,
 .fin-dre-tabela tfoot td.fin-dre-col-med-foot { width: 88px; min-width: 88px; }
-.fin-dre-tabela td.fin-dre-col-pct,
-.fin-dre-tabela tfoot td:last-child { width: 66px; min-width: 66px; }
+.fin-dre-tabela td.fin-dre-col-pct { width: 66px; min-width: 66px; }
+.fin-dre-tabela td.fin-dre-col-spark { width: 74px; min-width: 74px; }
 
-/* TOT (corpo): azul claro — combina com header navy */
-td.fin-dre-col-tot { background: #dbeafe !important; color: #1e3a5f !important; font-weight: 700; }
+/* TOT (corpo): verde — cor herdada de fin-dre-val-saida/entrada/zero (não
+   força cor de texto, senão perde o vermelho de despesa). */
+td.fin-dre-col-tot { background: var(--fin-green) !important; font-weight: 700; }
 
-/* MÉD (corpo): fundo branco, levemente diferenciado */
-td.fin-dre-col-med { background: #e8f0fb !important; color: var(--fin-ink); }
+/* MÉD (corpo): azul claro */
+td.fin-dre-col-med { background: #cfeaf5 !important; font-weight: 700; }
+
+/* Mês (sparkline): mini gráfico de linha da tendência mensal da linha */
+.fin-dre-tabela td.fin-dre-col-spark {
+  text-align: center; vertical-align: middle; padding: 2px 4px;
+}
+.fin-dre-spark { display: block; margin: 0 auto; width: 100%; height: 22px; }
 
 .fin-dre-col-pct { color: var(--fin-mute); font-size: 9.5pt; }
 
