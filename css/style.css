@@ -2982,11 +2982,12 @@ body.rep-roleta-presentation-open { overflow: hidden; }
 /* Header fixo */
 .dc-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 max(32px, calc((100% - 1680px) / 2)); height: 60px; flex-shrink: 0;
+  flex-wrap: wrap; row-gap: 8px;
+  padding: 10px max(32px, calc((100% - 1680px) / 2)); min-height: 60px; flex-shrink: 0;
   background: #080e1c; border-bottom: 1px solid rgba(255,255,255,0.06);
   z-index: 10;
 }
-.dc-header-left { display: flex; align-items: center; gap: 14px; }
+.dc-header-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .dc-client-logo {
   width: 138px;
   max-height: 38px;
@@ -2998,7 +2999,7 @@ body.rep-roleta-presentation-open { overflow: hidden; }
 .dc-header-brand { display: flex; flex-direction: column; gap: 1px; }
 .dc-header-name { font-size: 14px; font-weight: 800; color: #e2e8f0; letter-spacing: .03em; }
 .dc-header-empresa { font-size: 10px; font-weight: 700; color: #3b82f6; text-transform: uppercase; letter-spacing: .12em; }
-.dc-header-right { display: flex; align-items: center; gap: 10px; }
+.dc-header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 .dc-header-status { font-size: 11px; color: #475569; }
 .dc-sync-badge {
   display: inline-flex;
@@ -3092,7 +3093,7 @@ body.rep-roleta-presentation-open { overflow: hidden; }
 .dc-btn-sair:hover { border-color: #ef4444; color: #ef4444; }
 
 /* Seletor de lojas */
-.dc-loja-selector { display: flex; gap: 6px; align-items: center; }
+.dc-loja-selector { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .dc-loja-btn {
   padding: 6px 14px; border-radius: 20px;
   border: 1px solid #1e2d45; background: #0c1628;
