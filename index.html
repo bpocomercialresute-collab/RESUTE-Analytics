@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=19" />
+  <link rel="stylesheet" href="css/style.css?v=20" />
   <!-- Grade estilo Excel do DRE (js/dre/dre-grid.js) — overlay do console admin, carrega normal (nao e escopada via CSSOM como o dre-painel.css). -->
   <link rel="stylesheet" href="css/dre-grid.css?v=1" />
   <link rel="icon" href="assets/resute-brand/SIMBOLO.png" type="image/png" />
@@ -1339,6 +1339,12 @@
         <span id="fin-admin-preview-badge" class="dc-admin-preview-badge" style="display:none">Visualização supervisionada</span>
       </div>
       <div class="dc-header-right">
+        <button id="fin-filtro-resumo" class="dc-filtro-resumo" type="button" onclick="finToggleFiltrosMobile()" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          <span id="fin-filtro-resumo-texto">Filtros</span>
+          <svg class="dc-filtro-resumo-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div id="fin-filtros-grupo" class="dc-filtros-grupo">
         <select id="fin-filtro-ano" class="dc-filtro" onchange="finFiltrarPeriodo()"></select>
         <select id="fin-filtro-mes" class="dc-filtro" onchange="finFiltrarPeriodo()">
           <option value="0">Todos os meses</option>
@@ -1356,6 +1362,7 @@
           <span>Atualizar</span>
         </button>
         <span id="fin-status" class="dc-header-status"></span>
+        </div>
         <button id="fin-admin-back" type="button" onclick="finVoltarAoAdmin()" class="dc-admin-back" style="display:none">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           Voltar ao Admin
@@ -1496,9 +1503,9 @@
   <script src="js/auth.js?v=63"></script>
   <script src="js/report-cache.js?v=1"></script>
   <script src="js/admin-console.js?v=27"></script>
-  <script src="js/financeiro/financeiro-core.js?v=4"></script>
-  <script src="js/financeiro/financeiro-ui.js?v=3"></script>
-  <script src="js/financeiro/financeiro-charts.js?v=3"></script>
+  <script src="js/financeiro/financeiro-core.js?v=5"></script>
+  <script src="js/financeiro/financeiro-ui.js?v=4"></script>
+  <script src="js/financeiro/financeiro-charts.js?v=4"></script>
   <script src="js/financeiro/financeiro-admin.js?v=1"></script>
   <!-- DRE: dre-engine.js e o motor de calculo. dre-view.js e a camada de encaixe
        (monta HTML, escopa CSS, carrega dados, inicializa grades LiteGrid nas abas

@@ -12537,6 +12537,40 @@ body.bpo-admin-mode .admin-status-badge {
     display: none !important;
   }
 
+  /* Painel de filtro recolhido: mesmo grid compacto de 2 colunas do painel comercial. */
+  #view-dash-financeiro .dc-filtros-grupo.aberto {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+    width: 100% !important;
+    padding: 8px 0 2px !important;
+  }
+  #view-dash-financeiro .dc-filtros-grupo #fin-filtro-ano,
+  #view-dash-financeiro .dc-filtros-grupo #fin-filtro-mes,
+  #view-dash-financeiro .dc-filtros-grupo #fin-filtro-inicio,
+  #view-dash-financeiro .dc-filtros-grupo #fin-filtro-fim {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 36px !important;
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+    box-sizing: border-box !important;
+  }
+  #view-dash-financeiro .dc-filtros-grupo .dc-btn-atualizar {
+    grid-column: 1 / -1 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    justify-self: center !important;
+    padding: 8px 18px !important;
+  }
+  #view-dash-financeiro .dc-filtros-grupo .dc-header-status {
+    display: block !important;
+    grid-column: 1 / -1 !important;
+    text-align: center !important;
+    font-size: 10px !important;
+  }
+
   #view-dash-financeiro .dc-admin-back {
     flex: 0 0 auto !important;
     min-height: 34px !important;

@@ -444,6 +444,27 @@ function finFiltrarPeriodo() {
   FIN_DATA = FIN_RAW.filter(finDentroDoPeriodo);
 
   if (typeof finRenderizar === 'function') finRenderizar();
+  finAtualizarResumoFiltro();
+}
+
+function finToggleFiltrosMobile() {
+  var grupo = document.getElementById('fin-filtros-grupo');
+  var btn = document.getElementById('fin-filtro-resumo');
+  if (!grupo || !btn) return;
+  var aberto = grupo.classList.toggle('aberto');
+  btn.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+}
+
+function finAtualizarResumoFiltro() {
+  var el = document.getElementById('fin-filtro-resumo-texto');
+  if (!el) return;
+  var ano = FIN_FILTROS.ano || 0;
+  var mes = FIN_FILTROS.mes || 0;
+  var partes = [];
+  if (mes && ano) partes.push(MESES[mes - 1] + '/' + ano);
+  else if (ano) partes.push(String(ano));
+  else partes.push('Todos os períodos');
+  el.textContent = partes.join(' · ');
 }
 
 /**
@@ -510,7 +531,7 @@ function finMontarFiltroAno() {
 
 function finFormatarMoedaCurta(valor) {
   return Number(valor || 0).toLocaleString('pt-BR', {
-    style: 'currency', currency: 'BRL', maximumFractionDigits: 2
+    minimumFractionDigits: 0, maximumFractionDigits: 0
   });
 }
 

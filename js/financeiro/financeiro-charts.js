@@ -48,9 +48,9 @@ function finEixoMoeda() {
     ticks: {
       callback: function(valor) {
         var n = Number(valor);
-        if (Math.abs(n) >= 1000000) return 'R$ ' + (n / 1000000).toFixed(1).replace('.', ',') + 'M';
-        if (Math.abs(n) >= 1000)    return 'R$ ' + (n / 1000).toFixed(0) + 'k';
-        return 'R$ ' + n;
+        if (Math.abs(n) >= 1000000) return (n / 1000000).toFixed(1).replace('.', ',') + 'M';
+        if (Math.abs(n) >= 1000)    return (n / 1000).toFixed(0) + 'k';
+        return String(Math.round(n));
       },
       font: { size: 10 }
     },

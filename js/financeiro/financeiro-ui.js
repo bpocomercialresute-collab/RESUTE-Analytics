@@ -97,11 +97,7 @@ function finRenderizarKpis() {
 function finFormatarValor(valor, tipo) {
   if (valor == null || isNaN(valor)) return '—';
   if (tipo === 'percent') return Number(valor).toFixed(1).replace('.', ',') + '%';
-  if (tipo === 'moeda') {
-    return Number(valor).toLocaleString('pt-BR', {
-      style: 'currency', currency: 'BRL', maximumFractionDigits: 2
-    });
-  }
+  if (tipo === 'moeda') return finFormatarMoedaCurta(valor);
   return String(valor);
 }
 
