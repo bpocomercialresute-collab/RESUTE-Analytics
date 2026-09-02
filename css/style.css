@@ -13056,18 +13056,26 @@ body.bpo-admin-mode .admin-status-badge {
     padding: 8px 12px !important;
   }
 
-  /* Nenhum truque de posicionamento (absolute/fixed) resolveu de forma
-     confiavel — algo nao identificado nas camadas herdadas de
-     .dc-header-left interferia. Solucao definitiva: o seletor de modulo
-     saiu de dc-header-left e mora agora dentro de dc-header-right (ver
-     index.html), junto com o chip de filtro e o botao sair — esse
-     container SEMPRE alinhou certo a direita em qualquer largura, em
-     todo print testado nesta sessao. */
-  #view-dash-cliente .dc-modulos,
-  #view-dash-financeiro .dc-modulos {
-    display: flex !important;
-    order: -1 !important;
-    margin-left: 0 !important;
-    gap: 6px !important;
-  }
+}
+
+/* Nenhum truque de posicionamento (absolute/fixed) resolveu de forma
+   confiavel — algo nao identificado nas camadas herdadas de
+   .dc-header-left interferia. Solucao definitiva: o seletor de modulo
+   saiu de dc-header-left e mora agora dentro de dc-header-right (ver
+   index.html), junto com o chip de filtro e o botao sair.
+   BUG real encontrado desta vez: uma regra global antiga (nao escopada
+   por #view-dash-*), "@media (max-width:900px) { .dc-modulos{width:100%} }"
+   (por volta da linha 10295), forcava o seletor a ocupar a linha inteira
+   sozinho, empurrando o chip pra linha de baixo — SO nessa faixa de
+   720-900px, onde o bloco mobile de 720px (que eu editava toda vez) nem
+   chegava a entrar em vigor. Por isso parecia "aleatorio" entre prints.
+   Essa regra abaixo fica fora de qualquer media query — sempre ganha,
+   em qualquer largura. */
+#view-dash-cliente .dc-modulos,
+#view-dash-financeiro .dc-modulos {
+  display: flex !important;
+  order: -1 !important;
+  width: auto !important;
+  margin-left: 0 !important;
+  gap: 6px !important;
 }
