@@ -13056,27 +13056,18 @@ body.bpo-admin-mode .admin-status-badge {
     padding: 8px 12px !important;
   }
 
-  /* position:fixed trava no viewport — nao depende de largura, stretch ou
-     containing-block de NENHUM ancestral (header/grid/flex). Tentativas
-     anteriores com absolute e com justify-content+margin-auto nao pegaram
-     por causa de algo herdado nao identificado; isso aqui e imune a isso. */
-  #view-dash-cliente .dc-header-left,
-  #view-dash-financeiro .dc-header-left {
-    display: flex !important;
-    width: auto !important;
-    max-width: calc(100% - 84px) !important;
-    gap: 10px !important;
-  }
-
+  /* Nenhum truque de posicionamento (absolute/fixed) resolveu de forma
+     confiavel — algo nao identificado nas camadas herdadas de
+     .dc-header-left interferia. Solucao definitiva: o seletor de modulo
+     saiu de dc-header-left e mora agora dentro de dc-header-right (ver
+     index.html), junto com o chip de filtro e o botao sair — esse
+     container SEMPRE alinhou certo a direita em qualquer largura, em
+     todo print testado nesta sessao. */
   #view-dash-cliente .dc-modulos,
   #view-dash-financeiro .dc-modulos {
     display: flex !important;
-    position: fixed !important;
-    top: 14px !important;
-    right: 12px !important;
-    left: auto !important;
-    bottom: auto !important;
+    order: -1 !important;
     margin-left: 0 !important;
-    z-index: 40 !important;
+    gap: 6px !important;
   }
 }

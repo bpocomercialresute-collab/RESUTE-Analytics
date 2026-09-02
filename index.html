@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=24" />
+  <link rel="stylesheet" href="css/style.css?v=25" />
   <!-- Grade estilo Excel do DRE (js/dre/dre-grid.js) — overlay do console admin, carrega normal (nao e escopada via CSSOM como o dre-painel.css). -->
   <link rel="stylesheet" href="css/dre-grid.css?v=1" />
   <link rel="icon" href="assets/resute-brand/SIMBOLO.png" type="image/png" />
@@ -989,10 +989,13 @@
       <div class="dc-header-left">
         <img class="dc-client-logo" src="assets/varremaster-logo.png" alt="Varremaster">
         <div id="dc-empresa" class="dc-header-empresa"></div>
-        <div id="dc-modulos" class="dc-modulos" style="display:none"></div>
         <span id="dc-admin-preview-badge" class="dc-admin-preview-badge" style="display:none">Visualização supervisionada</span>
       </div>
       <div class="dc-header-right">
+        <!-- Movido de dc-header-left pra ca: header-right sempre alinha certo
+             na direita em qualquer tela, dc-header-left nunca alinhou direito
+             o seletor de modulo em telas estreitas. -->
+        <div id="dc-modulos" class="dc-modulos" style="display:none"></div>
         <!-- Resumo recolhido: so aparece no mobile (CSS), abre/fecha o grupo de filtros -->
         <button id="dc-filtro-resumo" class="dc-filtro-resumo" type="button" onclick="dcToggleFiltrosMobile()" aria-expanded="false">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
@@ -1335,10 +1338,10 @@
       <div class="dc-header-left">
         <img class="dc-client-logo fin-client-logo" src="assets/varremaster-logo.png" alt="">
         <div id="fin-empresa" class="dc-header-empresa"></div>
-        <div id="fin-modulos" class="dc-modulos" style="display:none"></div>
         <span id="fin-admin-preview-badge" class="dc-admin-preview-badge" style="display:none">Visualização supervisionada</span>
       </div>
       <div class="dc-header-right">
+        <div id="fin-modulos" class="dc-modulos" style="display:none"></div>
         <button id="fin-filtro-resumo" class="dc-filtro-resumo" type="button" onclick="finToggleFiltrosMobile()" aria-expanded="false">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
           <span id="fin-filtro-resumo-texto">Filtros</span>
