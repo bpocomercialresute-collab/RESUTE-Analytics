@@ -270,12 +270,21 @@
 }
 .fin-dre-tabela thead th.fin-dre-col-pct-h { width: 66px; min-width: 66px; }
 .fin-dre-tabela thead th.fin-dre-col-spark-h { width: 74px; min-width: 74px; }
-/* TOT, MÉD/ANO, % e Mês (sparkline) = branco no cabeçalho, texto escuro */
-.fin-dre-tabela thead th.fin-dre-col-tot,
-.fin-dre-tabela thead th.fin-dre-col-med,
+/* % e Mês (sparkline) = branco no cabeçalho, texto escuro */
 .fin-dre-tabela thead th.fin-dre-col-pct-h,
 .fin-dre-tabela thead th.fin-dre-col-spark-h {
   background: #fff; color: var(--fin-ink);
+  border-right: 1px solid var(--fin-line);
+  font-weight: 700;
+}
+/* Título TOT: azul mais escuro. Título MÉD/ANO: verde mais escuro. */
+.fin-dre-tabela thead th.fin-dre-col-tot {
+  background: #1a5aa8; color: #fff;
+  border-right: 1px solid var(--fin-line);
+  font-weight: 700;
+}
+.fin-dre-tabela thead th.fin-dre-col-med {
+  background: #178a4d; color: #fff;
   border-right: 1px solid var(--fin-line);
   font-weight: 700;
 }
@@ -352,6 +361,12 @@ td.fin-dre-col-med { background: #d6ecfb !important; font-weight: 700; }
 }
 .fin-dre-tabela tfoot td.fin-dre-col-med-foot {
   background: #d6ecfb !important; color: #1e3a5f; font-weight: 700;
+}
+
+/* % e Mês (sparkline) na linha TOTAL: sem cor, branco. */
+.fin-dre-tabela tfoot td.fin-dre-col-pct,
+.fin-dre-tabela tfoot td.fin-dre-col-spark {
+  background: #fff !important; color: var(--fin-ink); font-weight: 700;
 }
 
 /* ── Linhas de evolução anual: Acumulado 2024/2025 + % de evolução.
