@@ -1230,72 +1230,14 @@ const DRE = (() => {
       + `<thead><tr>${th.join('')}</tr></thead><tbody>${corpo}</tbody></table></div>`;
   }
 
-  function laudoParecer(titulo, itens) {
-    return `<div class="fin-laudo-parecer">`
-      + `<div class="fin-laudo-parecer-titulo">${esc(titulo)}</div>`
-      + `<ol class="fin-laudo-parecer-lista">${itens.map(t => `<li>${t}</li>`).join('')}</ol>`
-      + `</div>`;
-  }
-
-  // Gera os topicos automaticos — o arquivo original tinha 12 titulos
-  // numerados sem frase nenhuma escrita (bloco "Parecer Consultor" vazio no
-  // xlsx fonte); aqui o texto e computado ao vivo a partir do BD real, sem
-  // numero inventado (ex: nao existe "meta" configuravel nos dados).
-  function laudoTextoParecer1(nomeGrupo, d) {
-    const ultimo = d.porAno[d.porAno.length - 1];
-    const anterior = d.porAno.length > 1 ? d.porAno[d.porAno.length - 2] : null;
-    const nomeMeses = MESES;
-    const idxMax = ultimo.meses.reduce((im, v, i, a) => v > a[im] ? i : im, 0);
-    const idxMin = ultimo.meses.reduce((im, v, i, a) => v < a[im] ? i : im, 0);
-    const trimNome = ['1º', '2º', '3º', '4º'];
-    const idxTrimMax = ultimo.trimestres.reduce((im, v, i, a) => v > a[im] ? i : im, 0);
-
-    const itens = [
-      `A <strong>${esc(nomeGrupo)}</strong> da empresa em <strong>${ultimo.ano}</strong> totalizou ${fmt(ultimo.totAno)}, equivalente a <strong>${fmtPct1(ultimo.pctRec)}</strong> da receita do ano.`
-    ];
-    if (anterior) {
-      itens.push(`Frente a <strong>${anterior.ano}</strong> (${fmt(anterior.totAno)}), o total ${ultimo.crescimento >= 0 ? 'cresceu' : 'caiu'} <strong>${fmtPct1(ultimo.crescimento)}</strong>.`);
-      const idxTrimMaxAnt = anterior.trimestres.reduce((im, v, i, a) => v > a[im] ? i : im, 0);
-      itens.push(`O trimestre de maior gasto em ${ultimo.ano} foi o <strong>${trimNome[idxTrimMax]} trimestre</strong> (${fmt(ultimo.trimestres[idxTrimMax])}); em ${anterior.ano} foi o <strong>${trimNome[idxTrimMaxAnt]} trimestre</strong> (${fmt(anterior.trimestres[idxTrimMaxAnt])}).`);
-      const variacao1Trim = evolucaoPct(ultimo.trimestres[0], anterior.trimestres[0]);
-      itens.push(`O 1º trimestre de ${ultimo.ano} ficou ${variacao1Trim == null ? 'sem base de comparacao' : (variacao1Trim >= 0 ? (fmtPct1(variacao1Trim) + ' acima') : (fmtPct1(variacao1Trim) + ' abaixo'))} do 1º trimestre de ${anterior.ano}.`);
-      const trimestresSubiram = ultimo.trimestres.filter((v, i) => v > (anterior.trimestres[i] || 0)).length;
-      itens.push(`Comparando os 4 trimestres entre ${ultimo.ano} e ${anterior.ano}, <strong>${trimestresSubiram} de 4</strong> trimestres tiveram gasto maior no ano atual.`);
-    } else {
-      itens.push(`Sem ano anterior completo no BD ainda pra comparar trimestre a trimestre.`);
-      itens.push(`—`);
-      itens.push(`—`);
-      itens.push(`—`);
-    }
-    itens.push(`A <strong>${esc(nomeGrupo)}</strong> representou em media <strong>${fmtPct1(ultimo.pctRec)}</strong> da receita ao longo de ${ultimo.ano}.`);
-    itens.push(`O mes de maior gasto em ${ultimo.ano} foi <strong>${nomeMeses[idxMax]}</strong> (${fmt(ultimo.meses[idxMax])}).`);
-    itens.push(`O mes de menor gasto em ${ultimo.ano} foi <strong>${nomeMeses[idxMin]}</strong> (${fmt(ultimo.meses[idxMin])}).`);
-    itens.push(`A media mensal de ${ultimo.ano} foi de <strong>${fmt(ultimo.medAno)}</strong> por mes.`);
-    var ultimoMesComDado = -1;
-    for (var i = 11; i >= 0; i--) { if (ultimo.meses[i]) { ultimoMesComDado = i; break; } }
-    if (ultimoMesComDado > 0) {
-      var variacaoUltimoMes = evolucaoPct(ultimo.meses[ultimoMesComDado], ultimo.meses[ultimoMesComDado - 1]);
-      itens.push(`O ultimo mes com lancamento (<strong>${nomeMeses[ultimoMesComDado]}/${ultimo.ano}</strong>) ${variacaoUltimoMes == null ? 'nao tem base de comparacao com o mes anterior' : ('ficou ' + (variacaoUltimoMes >= 0 ? 'acima' : 'abaixo') + ' do mes anterior em ' + fmtPct1(variacaoUltimoMes))}.`);
-    } else {
-      itens.push(`Sem lancamento suficiente pra comparar o ultimo mes com o anterior.`);
-    }
-    itens.push(`<strong>Parecer:</strong> ${ultimo.crescimento == null ? 'primeiro ano com dado suficiente no BD, acompanhar a evolucao no proximo periodo.' : (ultimo.crescimento > 0.10 ? 'crescimento acima de 10% frente ao ano anterior — vale investigar a causa.' : (ultimo.crescimento < -0.10 ? 'queda acima de 10% frente ao ano anterior — reducao relevante de custo.' : 'variacao dentro de uma faixa estavel frente ao ano anterior.'))}`);
-    return itens;
-  }
-
-  function laudoTextoParecer2(nomeGrupo, mom) {
-    var validos = mom.valores.filter(v => v != null);
-    var media = validos.length ? validos.reduce((s, v) => s + v, 0) / validos.length : null;
-    var subiu = mom.valores.filter(v => v != null && v > 0).length;
-    var desceu = mom.valores.filter(v => v != null && v < 0).length;
-    return [
-      `Abaixo, a variacao mes a mes (contra o mes imediatamente anterior) de <strong>${esc(nomeGrupo)}</strong> ao longo de ${mom.anoAtual || '—'}.`,
-      `Em ${subiu} mes(es) o gasto subiu frente ao mes anterior; em ${desceu} mes(es) caiu.`,
-      media == null ? 'Sem base suficiente pra media de variacao mensal.' : `A variacao media mes a mes no periodo foi de <strong>${fmtPct1(media)}</strong>.`,
-      `Abaixo, o percentual de ${esc(nomeGrupo)} sobre a receita total de cada mes, por ano.`,
-      `Quanto mais proximo do topo da barra, maior o peso do grupo sobre a receita naquele mes.`,
-      `<strong>Parecer:</strong> ${desceu > subiu ? 'tendencia recente de queda mes a mes.' : (subiu > desceu ? 'tendencia recente de alta mes a mes.' : 'variacao mensal sem tendencia clara.')}`
-    ];
+  // O bloco "Parecer Consultor" do xlsx original estava vazio (so titulos
+  // numerados, nenhuma frase escrita) — o cliente pediu pra tirar o texto
+  // que eu tinha gerado automaticamente e ficar o mais parecido possivel
+  // com o arquivo fonte. As duas frases abaixo SAO reais do arquivo (linhas
+  // 68 e 71 do xlsx, unicas com texto completo) — o resto do bloco de
+  // parecer nao existe no original, entao nao reconstruo nenhum texto ali.
+  function laudoLegenda(texto) {
+    return `<div class="fin-laudo-legenda">${texto}</div>`;
   }
 
   function renderLaudoGrupo() {
@@ -1358,7 +1300,6 @@ const DRE = (() => {
     alvo.innerHTML = `
       <div class="fin-laudo-secao">
         <div class="fin-laudo-titulo">LAUDO DE RESULTADOS DE ${esc(nomeGrupo)}</div>
-        ${laudoParecer('PARECER CONSULTOR', laudoTextoParecer1(nomeGrupo, d))}
         <div class="fin-laudo-grid-par">
           <div><div class="fin-laudo-subtitulo">Por trimestre</div>${laudoGridAnos('TRIM', d.anos, linhasTrim, maxGrid1)}</div>
           <div><div class="fin-laudo-subtitulo">Por mês</div>${laudoGridAnos('MÊS', d.anos, linhasMes, maxGrid1)}</div>
@@ -1371,9 +1312,9 @@ const DRE = (() => {
 
       <div class="fin-laudo-secao">
         <div class="fin-laudo-titulo">LAUDO DE RESULTADOS % DE ${esc(nomeGrupo)}</div>
-        ${laudoParecer('TENDÊNCIA MÊS A MÊS', laudoTextoParecer2(nomeGrupo, mom))}
+        ${laudoLegenda('Abaixo demonstramos a tendência de variação do mês em relação ao mês anterior')}
         ${momHtml}
-        <div class="fin-laudo-subtitulo">% sobre a receita total do mês</div>
+        ${laudoLegenda('Abaixo demonstramos o % de ' + esc(nomeGrupo) + ' sobre a receita total do mês')}
         ${gridPctHtml}
         <div class="fin-grid-graficos">
           <div class="fin-card-grafico"><h3>% sobre receita total</h3><canvas id="fin-laudo-chart-pctlinha"></canvas></div>
