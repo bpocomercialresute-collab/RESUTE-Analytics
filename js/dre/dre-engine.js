@@ -328,6 +328,7 @@ const DRE = (() => {
       const valAnterior = serieAnterior[m];
       const mesAnteriorMesmaSerie = m === 0 ? serieAnterior[11] : serieAtual[m - 1];
       return {
+        valAnterior,
         acAtual: acAtual[m],
         acAnterior: acAnterior[m],
         evolAnualMes:   evolucaoPct(valAtual, valAnterior),
@@ -530,7 +531,16 @@ const DRE = (() => {
     return `<tr class="fin-dre-tr-evolucao">${tds.join('')}</tr>`;
   }
 
-  // Monta as 6 linhas de acumulado/evolução anual de um grupo, alinhadas
+  // % sob Receita: percentual simples, sem seta (assim no modelo de referência).
+  function linhaPctSimples(label, valores) {
+    const tds = [`<td class="fin-dre-col-conta fin-dre-evol-label">${esc(label)}</td>`];
+    for (const v of valores)
+      tds.push(`<td class="fin-dre-evol-pct fin-dre-evol-neutro">${v == null ? '—' : fmtPct1(v)}</td>`);
+    tds.push('<td></td><td></td><td></td>');
+    return `<tr class="fin-dre-tr-evolucao">${tds.join('')}</tr>`;
+  }
+
+  // Monta as 7 linhas de acumulado/evolução anual de um grupo, alinhadas
   // coluna a coluna com o recorte de período atual (estado.slots).
   function linhasEvolucao(nomeGrupo, nSlots) {
     const ev = evolucaoAnualGrupo(nomeGrupo);
@@ -538,13 +548,18 @@ const DRE = (() => {
     const rows = ev.porSlot;
     if (rows.length !== nSlots) return '';
 
-    const lblAno = ano => ano == null ? 'Acumulado' : `Acumulado de ${ano}`;
-    return linhaEvolucaoValor(lblAno(ev.anoAnterior), rows.map(r => r.acAnterior))
-      + linhaEvolucaoValor(lblAno(ev.anoAtual), rows.map(r => r.acAtual))
+    const lblAcum = ano => ano == null ? 'Acumulado' : `Acumulado de ${ano}`;
+    const lblAnoAnterior = ev.anoAnterior == null ? `${nomeGrupo} (sem ano anterior)` : `${nomeGrupo} DE ${ev.anoAnterior}`;
+    // Ordem igual ao modelo: valor bruto mensal do ano anterior primeiro
+    // (comparação direta com a linha TOTAL logo acima), depois acumulado do
+    // ano atual, depois acumulado do ano anterior, depois as 4 percentuais.
+    return linhaEvolucaoValor(lblAnoAnterior, rows.map(r => r.valAnterior))
+      + linhaEvolucaoValor(lblAcum(ev.anoAtual), rows.map(r => r.acAtual))
+      + linhaEvolucaoValor(lblAcum(ev.anoAnterior), rows.map(r => r.acAnterior))
       + linhaEvolucaoPct('% de evolução anual até o mês', rows.map(r => r.evolAnualAcum))
       + linhaEvolucaoPct('% de evolução anual do mês',     rows.map(r => r.evolAnualMes))
-      + linhaEvolucaoPct('% de evolução mensal do mês',    rows.map(r => r.evolMensal))
-      + linhaEvolucaoPct('% de evolução sobre receita',    rows.map(r => r.pctReceita));
+      + linhaEvolucaoPct('% de evolução mensal',           rows.map(r => r.evolMensal))
+      + linhaPctSimples('% sob Receita',                   rows.map(r => r.pctReceita));
   }
 
   // Linha de resultado: tabela com mês a mês igual ao bloco, fundo verde/vermelho/navy.
