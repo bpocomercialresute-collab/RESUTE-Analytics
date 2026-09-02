@@ -1162,10 +1162,34 @@ const DRE = (() => {
      100% dos primitivos que ja calculam por grupo/ano/mes
      (serieAnualGrupo, serieAnualReceita, anosDisponiveis, evolucaoPct). */
 
+  // Chave exata do grupo (tem que bater com SE_POR_GRUPO/plano de contas —
+  // nao mexer). LAUDO_GRUPO_LABEL e so o texto mostrado pro usuario, cobre
+  // custo de materia-prima E revenda (mesma categoria no plano de contas).
   const LAUDO_GRUPO_NOME = 'CUSTO. MP OU REVENDA';
+  const LAUDO_GRUPO_LABEL = 'CUSTO M.P. E REVENDA';
+
+  // Faixa larga de anos, igual a planilha original (2017-2028, ancorada no
+  // ano corrente: 9 anos pra tras + ano atual + 2 pra frente = 12 colunas).
+  // Antes eu so mostrava os anos com lancamento — com uma empresa que so
+  // tem 2026 lancado, a grade saia com 1 coluna so, nada parecido com o
+  // arquivo fonte. Estica pra tras/frente ainda mais se o BD tiver dado
+  // fora dessa janela.
+  function laudoFaixaAnos() {
+    const hoje = new Date().getFullYear();
+    const comDado = anosDisponiveis();
+    let anoMin = hoje - 9;
+    let anoMax = hoje + 2;
+    if (comDado.length) {
+      anoMin = Math.min(anoMin, Math.min(...comDado));
+      anoMax = Math.max(anoMax, Math.max(...comDado));
+    }
+    const anos = [];
+    for (let a = anoMin; a <= anoMax; a++) anos.push(a);
+    return anos;
+  }
 
   function laudoGrupoDados(nomeGrupo) {
-    const anos = anosDisponiveis().slice().sort((a, b) => a - b);
+    const anos = laudoFaixaAnos();
     if (!anos.length) return null;
 
     const porAno = anos.map(ano => {
@@ -1245,6 +1269,7 @@ const DRE = (() => {
     if (!alvo) return;
 
     const nomeGrupo = LAUDO_GRUPO_NOME;
+    const labelGrupo = LAUDO_GRUPO_LABEL;
     const d = laudoGrupoDados(nomeGrupo);
     if (!d) {
       alvo.innerHTML = '<div class="fin-dre-bloco-vazio"><span class="fin-dre-bloco-vazio-msg">Sem dados suficientes no BD pra montar o laudo.</span></div>';
@@ -1299,7 +1324,7 @@ const DRE = (() => {
 
     alvo.innerHTML = `
       <div class="fin-laudo-secao">
-        <div class="fin-laudo-titulo">LAUDO DE RESULTADOS DE ${esc(nomeGrupo)}</div>
+        <div class="fin-laudo-titulo">LAUDO DE RESULTADOS DE ${esc(labelGrupo)}</div>
         <div class="fin-laudo-grid-par">
           <div><div class="fin-laudo-subtitulo">Por trimestre</div>${laudoGridAnos('TRIM', d.anos, linhasTrim, maxGrid1)}</div>
           <div><div class="fin-laudo-subtitulo">Por mês</div>${laudoGridAnos('MÊS', d.anos, linhasMes, maxGrid1)}</div>
@@ -1311,10 +1336,10 @@ const DRE = (() => {
       </div>
 
       <div class="fin-laudo-secao">
-        <div class="fin-laudo-titulo">LAUDO DE RESULTADOS % DE ${esc(nomeGrupo)}</div>
+        <div class="fin-laudo-titulo">LAUDO DE RESULTADOS % DE ${esc(labelGrupo)}</div>
         ${laudoLegenda('Abaixo demonstramos a tendência de variação do mês em relação ao mês anterior')}
         ${momHtml}
-        ${laudoLegenda('Abaixo demonstramos o % de ' + esc(nomeGrupo) + ' sobre a receita total do mês')}
+        ${laudoLegenda('Abaixo demonstramos o % de ' + esc(labelGrupo) + ' sobre a receita total do mês')}
         ${gridPctHtml}
         <div class="fin-grid-graficos">
           <div class="fin-card-grafico"><h3>% sobre receita total</h3><canvas id="fin-laudo-chart-pctlinha"></canvas></div>
@@ -1322,7 +1347,7 @@ const DRE = (() => {
         </div>
         <div class="fin-grid-graficos">
           <div class="fin-card-grafico"><h3>Total por ano</h3><canvas id="fin-laudo-chart-pizza-total"></canvas></div>
-          <div class="fin-card-grafico"><h3>${esc(nomeGrupo)} — média anual</h3><canvas id="fin-laudo-chart-pizza-media"></canvas></div>
+          <div class="fin-card-grafico"><h3>${esc(labelGrupo)} — média anual</h3><canvas id="fin-laudo-chart-pizza-media"></canvas></div>
         </div>
       </div>`;
 
