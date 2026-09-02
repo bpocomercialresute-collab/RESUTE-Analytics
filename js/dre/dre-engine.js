@@ -1155,6 +1155,271 @@ const DRE = (() => {
     });
   }
 
+  /* ---------- 15b. LAUDO GRUPO — reproducao do LAUDO_GRUPO.xlsx ----------
+     Grupo fixo (o cliente confirmou: "o laudo e de custo"). Mesmo pivot do
+     arquivo original: em vez de 12 meses em coluna pra 1 ano, sao os ANOS
+     que existem no BD em coluna, com trimestre/mes em linha. Reaproveita
+     100% dos primitivos que ja calculam por grupo/ano/mes
+     (serieAnualGrupo, serieAnualReceita, anosDisponiveis, evolucaoPct). */
+
+  const LAUDO_GRUPO_NOME = 'CUSTO. MP OU REVENDA';
+
+  function laudoGrupoDados(nomeGrupo) {
+    const anos = anosDisponiveis().slice().sort((a, b) => a - b);
+    if (!anos.length) return null;
+
+    const porAno = anos.map(ano => {
+      const meses = serieAnualGrupo(nomeGrupo, ano);
+      const trimestres = [0, 1, 2, 3].map(t => meses[t * 3] + meses[t * 3 + 1] + meses[t * 3 + 2]);
+      const totAno = meses.reduce((s, v) => s + v, 0);
+      const receitaMeses = serieAnualReceita(ano);
+      const receitaAno = receitaMeses.reduce((s, v) => s + v, 0);
+      const pctMeses = meses.map((v, i) => receitaMeses[i] ? v / receitaMeses[i] : 0);
+      return {
+        ano, meses, trimestres, totAno, medAno: totAno / 12,
+        receitaAno, pctRec: receitaAno ? totAno / receitaAno : 0,
+        pctMeses, medPct: pctMeses.reduce((s, v) => s + v, 0) / 12
+      };
+    });
+
+    porAno.forEach((p, i) => {
+      p.crescimento = (i > 0 && porAno[i - 1].totAno) ? evolucaoPct(p.totAno, porAno[i - 1].totAno) : null;
+    });
+
+    return { anos, porAno };
+  }
+
+  // Variacao mes a mes (cruzando virada de ano) do ano mais recente com dado.
+  function laudoMoMGrupo(nomeGrupo) {
+    const anos = anosDisponiveis();
+    if (!anos.length) return { anoAtual: null, valores: [] };
+    const anoAtual = anos[0];
+    const anoAnterior = anos.length > 1 ? anos[1] : null;
+    const serieAtual = serieAnualGrupo(nomeGrupo, anoAtual);
+    const serieAnterior = anoAnterior ? serieAnualGrupo(nomeGrupo, anoAnterior) : new Array(12).fill(0);
+    const valores = serieAtual.map((v, i) => {
+      const anterior = i === 0 ? serieAnterior[11] : serieAtual[i - 1];
+      return evolucaoPct(v, anterior);
+    });
+    return { anoAtual, valores };
+  }
+
+  // Barra de dados dentro da celula (igual ao Data Bar do Excel no arquivo
+  // original) — gradiente proporcional ao valor sobre o maior valor da grade.
+  function laudoCelulaBarra(valor, max, formatado) {
+    const v = num(valor);
+    const pct = max > 0 ? Math.min(100, Math.max(0, (Math.abs(v) / max) * 100)) : 0;
+    const cls = v < 0 ? 'fin-laudo-barra-neg' : 'fin-laudo-barra-pos';
+    return `<td class="fin-laudo-td-barra">`
+      + `<div class="fin-laudo-barra ${cls}" style="width:${pct.toFixed(1)}%"></div>`
+      + `<span>${formatado}</span></td>`;
+  }
+
+  function laudoGridAnos(titulo, anos, linhas, maxGrade) {
+    const th = [`<th class="fin-dre-col-conta">${esc(titulo)}</th>`]
+      .concat(anos.map(a => `<th>${a}</th>`));
+    const corpo = linhas.map(l => {
+      const tds = [`<td class="fin-dre-col-conta${l.destaque ? ' fin-laudo-linha-destaque' : ''}">${esc(l.nome)}</td>`];
+      l.valores.forEach(v => {
+        if (l.destaque) { tds.push(`<td class="fin-laudo-td-destaque">${fmt(v)}</td>`); return; }
+        tds.push(laudoCelulaBarra(v, maxGrade, fmt(v)));
+      });
+      return `<tr${l.destaque ? ' class="fin-laudo-tr-destaque"' : ''}>${tds.join('')}</tr>`;
+    }).join('');
+    return `<div class="fin-dre-bloco-scroll"><table class="fin-dre-tabela fin-laudo-tabela">`
+      + `<thead><tr>${th.join('')}</tr></thead><tbody>${corpo}</tbody></table></div>`;
+  }
+
+  function laudoParecer(titulo, itens) {
+    return `<div class="fin-laudo-parecer">`
+      + `<div class="fin-laudo-parecer-titulo">${esc(titulo)}</div>`
+      + `<ol class="fin-laudo-parecer-lista">${itens.map(t => `<li>${t}</li>`).join('')}</ol>`
+      + `</div>`;
+  }
+
+  // Gera os topicos automaticos — o arquivo original tinha 12 titulos
+  // numerados sem frase nenhuma escrita (bloco "Parecer Consultor" vazio no
+  // xlsx fonte); aqui o texto e computado ao vivo a partir do BD real, sem
+  // numero inventado (ex: nao existe "meta" configuravel nos dados).
+  function laudoTextoParecer1(nomeGrupo, d) {
+    const ultimo = d.porAno[d.porAno.length - 1];
+    const anterior = d.porAno.length > 1 ? d.porAno[d.porAno.length - 2] : null;
+    const nomeMeses = MESES;
+    const idxMax = ultimo.meses.reduce((im, v, i, a) => v > a[im] ? i : im, 0);
+    const idxMin = ultimo.meses.reduce((im, v, i, a) => v < a[im] ? i : im, 0);
+    const trimNome = ['1º', '2º', '3º', '4º'];
+    const idxTrimMax = ultimo.trimestres.reduce((im, v, i, a) => v > a[im] ? i : im, 0);
+
+    const itens = [
+      `A <strong>${esc(nomeGrupo)}</strong> da empresa em <strong>${ultimo.ano}</strong> totalizou ${fmt(ultimo.totAno)}, equivalente a <strong>${fmtPct1(ultimo.pctRec)}</strong> da receita do ano.`
+    ];
+    if (anterior) {
+      itens.push(`Frente a <strong>${anterior.ano}</strong> (${fmt(anterior.totAno)}), o total ${ultimo.crescimento >= 0 ? 'cresceu' : 'caiu'} <strong>${fmtPct1(ultimo.crescimento)}</strong>.`);
+      const idxTrimMaxAnt = anterior.trimestres.reduce((im, v, i, a) => v > a[im] ? i : im, 0);
+      itens.push(`O trimestre de maior gasto em ${ultimo.ano} foi o <strong>${trimNome[idxTrimMax]} trimestre</strong> (${fmt(ultimo.trimestres[idxTrimMax])}); em ${anterior.ano} foi o <strong>${trimNome[idxTrimMaxAnt]} trimestre</strong> (${fmt(anterior.trimestres[idxTrimMaxAnt])}).`);
+      const variacao1Trim = evolucaoPct(ultimo.trimestres[0], anterior.trimestres[0]);
+      itens.push(`O 1º trimestre de ${ultimo.ano} ficou ${variacao1Trim == null ? 'sem base de comparacao' : (variacao1Trim >= 0 ? (fmtPct1(variacao1Trim) + ' acima') : (fmtPct1(variacao1Trim) + ' abaixo'))} do 1º trimestre de ${anterior.ano}.`);
+      const trimestresSubiram = ultimo.trimestres.filter((v, i) => v > (anterior.trimestres[i] || 0)).length;
+      itens.push(`Comparando os 4 trimestres entre ${ultimo.ano} e ${anterior.ano}, <strong>${trimestresSubiram} de 4</strong> trimestres tiveram gasto maior no ano atual.`);
+    } else {
+      itens.push(`Sem ano anterior completo no BD ainda pra comparar trimestre a trimestre.`);
+      itens.push(`—`);
+      itens.push(`—`);
+      itens.push(`—`);
+    }
+    itens.push(`A <strong>${esc(nomeGrupo)}</strong> representou em media <strong>${fmtPct1(ultimo.pctRec)}</strong> da receita ao longo de ${ultimo.ano}.`);
+    itens.push(`O mes de maior gasto em ${ultimo.ano} foi <strong>${nomeMeses[idxMax]}</strong> (${fmt(ultimo.meses[idxMax])}).`);
+    itens.push(`O mes de menor gasto em ${ultimo.ano} foi <strong>${nomeMeses[idxMin]}</strong> (${fmt(ultimo.meses[idxMin])}).`);
+    itens.push(`A media mensal de ${ultimo.ano} foi de <strong>${fmt(ultimo.medAno)}</strong> por mes.`);
+    var ultimoMesComDado = -1;
+    for (var i = 11; i >= 0; i--) { if (ultimo.meses[i]) { ultimoMesComDado = i; break; } }
+    if (ultimoMesComDado > 0) {
+      var variacaoUltimoMes = evolucaoPct(ultimo.meses[ultimoMesComDado], ultimo.meses[ultimoMesComDado - 1]);
+      itens.push(`O ultimo mes com lancamento (<strong>${nomeMeses[ultimoMesComDado]}/${ultimo.ano}</strong>) ${variacaoUltimoMes == null ? 'nao tem base de comparacao com o mes anterior' : ('ficou ' + (variacaoUltimoMes >= 0 ? 'acima' : 'abaixo') + ' do mes anterior em ' + fmtPct1(variacaoUltimoMes))}.`);
+    } else {
+      itens.push(`Sem lancamento suficiente pra comparar o ultimo mes com o anterior.`);
+    }
+    itens.push(`<strong>Parecer:</strong> ${ultimo.crescimento == null ? 'primeiro ano com dado suficiente no BD, acompanhar a evolucao no proximo periodo.' : (ultimo.crescimento > 0.10 ? 'crescimento acima de 10% frente ao ano anterior — vale investigar a causa.' : (ultimo.crescimento < -0.10 ? 'queda acima de 10% frente ao ano anterior — reducao relevante de custo.' : 'variacao dentro de uma faixa estavel frente ao ano anterior.'))}`);
+    return itens;
+  }
+
+  function laudoTextoParecer2(nomeGrupo, mom) {
+    var validos = mom.valores.filter(v => v != null);
+    var media = validos.length ? validos.reduce((s, v) => s + v, 0) / validos.length : null;
+    var subiu = mom.valores.filter(v => v != null && v > 0).length;
+    var desceu = mom.valores.filter(v => v != null && v < 0).length;
+    return [
+      `Abaixo, a variacao mes a mes (contra o mes imediatamente anterior) de <strong>${esc(nomeGrupo)}</strong> ao longo de ${mom.anoAtual || '—'}.`,
+      `Em ${subiu} mes(es) o gasto subiu frente ao mes anterior; em ${desceu} mes(es) caiu.`,
+      media == null ? 'Sem base suficiente pra media de variacao mensal.' : `A variacao media mes a mes no periodo foi de <strong>${fmtPct1(media)}</strong>.`,
+      `Abaixo, o percentual de ${esc(nomeGrupo)} sobre a receita total de cada mes, por ano.`,
+      `Quanto mais proximo do topo da barra, maior o peso do grupo sobre a receita naquele mes.`,
+      `<strong>Parecer:</strong> ${desceu > subiu ? 'tendencia recente de queda mes a mes.' : (subiu > desceu ? 'tendencia recente de alta mes a mes.' : 'variacao mensal sem tendencia clara.')}`
+    ];
+  }
+
+  function renderLaudoGrupo() {
+    const alvo = document.getElementById('fin-laudo-corpo');
+    if (!alvo) return;
+
+    const nomeGrupo = LAUDO_GRUPO_NOME;
+    const d = laudoGrupoDados(nomeGrupo);
+    if (!d) {
+      alvo.innerHTML = '<div class="fin-dre-bloco-vazio"><span class="fin-dre-bloco-vazio-msg">Sem dados suficientes no BD pra montar o laudo.</span></div>';
+      return;
+    }
+    const mom = laudoMoMGrupo(nomeGrupo);
+
+    const maxGrid1 = Math.max(1, ...d.porAno.flatMap(p => p.trimestres.concat(p.meses)));
+    const maxGrid3 = Math.max(0.0001, ...d.porAno.flatMap(p => p.pctMeses));
+
+    const linhasTrim = ['1º TRIM', '2º TRIM', '3º TRIM', '4º TRIM'].map((nome, i) => ({
+      nome, valores: d.porAno.map(p => p.trimestres[i])
+    }));
+    linhasTrim.push({ nome: 'TOT', destaque: true, valores: d.porAno.map(p => p.totAno) });
+    linhasTrim.push({ nome: 'MÉD', destaque: true, valores: d.porAno.map(p => p.medAno) });
+
+    const linhasMes = MESES.map((nome, i) => ({ nome, valores: d.porAno.map(p => p.meses[i]) }));
+    linhasMes.push({ nome: 'TOT', destaque: true, valores: d.porAno.map(p => p.totAno) });
+    linhasMes.push({ nome: 'MÉD', destaque: true, valores: d.porAno.map(p => p.medAno) });
+
+    const linhasPct = MESES.map((nome, i) => ({
+      nome, valores: d.porAno.map(p => p.pctMeses[i]), pct: true
+    }));
+
+    // Grade de % usa o mesmo layout de laudoGridAnos mas formatando em %.
+    const gridPctHtml = (() => {
+      const th = [`<th class="fin-dre-col-conta">Mês</th>`].concat(d.anos.map(a => `<th>${a}</th>`));
+      const corpo = linhasPct.map(l => {
+        const tds = [`<td class="fin-dre-col-conta">${esc(l.nome)}</td>`];
+        l.valores.forEach(v => tds.push(laudoCelulaBarra(v, maxGrid3, fmtPct1(v))));
+        return `<tr>${tds.join('')}</tr>`;
+      }).join('');
+      const medRow = `<tr class="fin-laudo-tr-destaque"><td class="fin-dre-col-conta fin-laudo-linha-destaque">MÉD</td>`
+        + d.porAno.map(p => `<td class="fin-laudo-td-destaque">${fmtPct1(p.medPct)}</td>`).join('') + `</tr>`;
+      return `<div class="fin-dre-bloco-scroll"><table class="fin-dre-tabela fin-laudo-tabela">`
+        + `<thead><tr>${th.join('')}</tr></thead><tbody>${corpo}${medRow}</tbody></table></div>`;
+    })();
+
+    const momHtml = (() => {
+      const th = ['<th class="fin-dre-col-conta">% variação mensal</th>'].concat(MESES.map(m => `<th>${m}</th>`));
+      const tds = ['<td class="fin-dre-col-conta">' + esc(String(mom.anoAtual || '—')) + '</td>'].concat(
+        mom.valores.map(v => {
+          if (v == null) return '<td class="fin-dre-evol-pct fin-dre-evol-neutro">—</td>';
+          const seta = v > 0 ? '▲' : (v < 0 ? '▼' : '►');
+          const cls = v > 0 ? 'fin-dre-evol-up' : (v < 0 ? 'fin-dre-evol-down' : 'fin-dre-evol-neutro');
+          return `<td class="fin-dre-evol-pct ${cls}">${seta} ${fmtPct1(v)}</td>`;
+        })
+      );
+      return `<div class="fin-dre-bloco-scroll"><table class="fin-dre-tabela fin-laudo-tabela">`
+        + `<thead><tr>${th.join('')}</tr></thead><tbody><tr>${tds.join('')}</tr></tbody></table></div>`;
+    })();
+
+    alvo.innerHTML = `
+      <div class="fin-laudo-secao">
+        <div class="fin-laudo-titulo">LAUDO DE RESULTADOS DE ${esc(nomeGrupo)}</div>
+        ${laudoParecer('PARECER CONSULTOR', laudoTextoParecer1(nomeGrupo, d))}
+        <div class="fin-laudo-grid-par">
+          <div><div class="fin-laudo-subtitulo">Por trimestre</div>${laudoGridAnos('TRIM', d.anos, linhasTrim, maxGrid1)}</div>
+          <div><div class="fin-laudo-subtitulo">Por mês</div>${laudoGridAnos('MÊS', d.anos, linhasMes, maxGrid1)}</div>
+        </div>
+        <div class="fin-grid-graficos">
+          <div class="fin-card-grafico"><h3>Total por mês, por ano</h3><canvas id="fin-laudo-chart-barra"></canvas></div>
+          <div class="fin-card-grafico"><h3>Fluxo (R$) mensal por ano</h3><canvas id="fin-laudo-chart-linha"></canvas></div>
+        </div>
+      </div>
+
+      <div class="fin-laudo-secao">
+        <div class="fin-laudo-titulo">LAUDO DE RESULTADOS % DE ${esc(nomeGrupo)}</div>
+        ${laudoParecer('TENDÊNCIA MÊS A MÊS', laudoTextoParecer2(nomeGrupo, mom))}
+        ${momHtml}
+        <div class="fin-laudo-subtitulo">% sobre a receita total do mês</div>
+        ${gridPctHtml}
+        <div class="fin-grid-graficos">
+          <div class="fin-card-grafico"><h3>% sobre receita total</h3><canvas id="fin-laudo-chart-pctlinha"></canvas></div>
+          <div class="fin-card-grafico"><h3>% sobre receita — barras</h3><canvas id="fin-laudo-chart-pctbarra"></canvas></div>
+        </div>
+        <div class="fin-grid-graficos">
+          <div class="fin-card-grafico"><h3>Total por ano</h3><canvas id="fin-laudo-chart-pizza-total"></canvas></div>
+          <div class="fin-card-grafico"><h3>${esc(nomeGrupo)} — média anual</h3><canvas id="fin-laudo-chart-pizza-media"></canvas></div>
+        </div>
+      </div>`;
+
+    const anosLbl = d.anos.map(String);
+    const coresAnos = ['#002060', '#00B050', '#FF0000', '#8a4fd1', '#d97706', '#0891b2', '#c026d3', '#4d7c0f', '#1e3a5f', '#9d174d', '#0f766e', '#7c2d12'];
+
+    grafico('fin-laudo-chart-barra', {
+      type: 'bar',
+      data: { labels: MESES, datasets: d.porAno.map((p, i) => ({ label: String(p.ano), data: p.meses, backgroundColor: coresAnos[i % coresAnos.length] })) },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+    grafico('fin-laudo-chart-linha', {
+      type: 'line',
+      data: { labels: MESES, datasets: d.porAno.map((p, i) => ({ label: String(p.ano), data: p.meses, borderColor: coresAnos[i % coresAnos.length], tension: .3, fill: false })) },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+    grafico('fin-laudo-chart-pctlinha', {
+      type: 'line',
+      data: { labels: MESES, datasets: d.porAno.map((p, i) => ({ label: String(p.ano), data: p.pctMeses.map(v => v * 100), borderColor: coresAnos[i % coresAnos.length], tension: .3, fill: false })) },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ': ' + c.formattedValue + '%' } } } }
+    });
+    grafico('fin-laudo-chart-pctbarra', {
+      type: 'bar',
+      data: { labels: MESES, datasets: d.porAno.map((p, i) => ({ label: String(p.ano), data: p.pctMeses.map(v => v * 100), backgroundColor: coresAnos[i % coresAnos.length] })) },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ': ' + c.formattedValue + '%' } } } }
+    });
+    grafico('fin-laudo-chart-pizza-total', {
+      type: 'pie',
+      data: { labels: anosLbl, datasets: [{ data: d.porAno.map(p => p.totAno), backgroundColor: coresAnos }] },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+    grafico('fin-laudo-chart-pizza-media', {
+      type: 'pie',
+      data: { labels: anosLbl, datasets: [{ data: d.porAno.map(p => p.medPct * 100), backgroundColor: coresAnos }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: c => c.label + ': ' + c.formattedValue + '%' } } } }
+    });
+  }
+
   /* ---------- 16. ORQUESTRAÇÃO ---------- */
 
   // A ordem importa: inverter produz número errado sem erro visível.
@@ -1172,6 +1437,7 @@ const DRE = (() => {
     renderLancamentos();
     renderFVDI();
     renderGraficos(res);
+    renderLaudoGrupo();
 
     if (st) {
       st.textContent = `${estado.bdDre.length} linhas · ${estado.lancamentos.length} lançamentos`;
@@ -1276,7 +1542,8 @@ const DRE = (() => {
 
   return { init, recalcular, estado, MESES, SE_POR_GRUPO, ESTRUTURA,
            montarBDDRE, calcularResultado, analiseFVDI, totalGrupo,
-           registrosPlanoParaSalvar, registrosBDParaSalvar, renderLancamentos };
+           registrosPlanoParaSalvar, registrosBDParaSalvar, renderLancamentos,
+           laudoGrupoDados, laudoMoMGrupo, renderLaudoGrupo };
 })();
 
 if (typeof module !== 'undefined') module.exports = DRE;

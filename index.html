@@ -1375,7 +1375,12 @@
          em js/dre/dre-engine.js, encaixe em js/dre/dre-view.js. -->
     <main class="dc-main fin-main">
       <div class="fin-wrap" style="padding:0">
-        <div id="fin-dre-corpo" class="fin-dre-corpo"></div>
+        <nav class="fin-tabs fin-tabs-cliente">
+          <button class="fin-tab active" type="button" onclick="finAbrirAbaCliente('fin-dre-corpo', this)">Resultados</button>
+          <button class="fin-tab" type="button" onclick="finAbrirAbaCliente('fin-laudo-corpo', this)">Laudo Grupo</button>
+        </nav>
+        <div id="fin-dre-corpo" class="fin-dre-corpo fin-pane-cliente"></div>
+        <div id="fin-laudo-corpo" class="fin-dre-corpo fin-pane-cliente" style="display:none"></div>
       </div>
     </main>
   </div>

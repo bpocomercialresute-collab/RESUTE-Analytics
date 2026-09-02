@@ -933,6 +933,15 @@ async function finAtualizar() {
 }
 
 /** Volta ao console admin a partir do preview supervisionado. */
+/** Alterna entre as abas "Resultados" e "Laudo Grupo" do financeiro do cliente. */
+function finAbrirAbaCliente(paneId, btn) {
+  document.querySelectorAll('.fin-tabs-cliente .fin-tab').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.fin-pane-cliente').forEach(function(p) { p.style.display = 'none'; });
+  if (btn) btn.classList.add('active');
+  var pane = document.getElementById(paneId);
+  if (pane) pane.style.display = '';
+}
+
 function finVoltarAoAdmin() {
   if (typeof SESSION === 'undefined' || !SESSION || SESSION.papel !== 'super_admin') return;
   financeiroDestruir();
