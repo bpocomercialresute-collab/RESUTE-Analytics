@@ -668,28 +668,32 @@ const DRE = (() => {
       for (let i = 0; i < nM; i++) tds += mkTd(arr ? (arr[i] || 0) : 0);
       tds += `<td class="fin-dre-col-tot-foot">${fmt(tot)}</td>`;
       tds += `<td class="fin-dre-col-med-foot">${fmt(med)}</td>`;
-      tds += `<td>${pctVal !== null && pctVal !== undefined ? fmtPct(pctVal) : '-'}</td>`;
+      tds += `<td class="fin-dre-col-pct">${pctVal !== null && pctVal !== undefined ? fmtPct(pctVal) : '-'}</td>`;
+      tds += `<td class="fin-dre-col-spark">${sparklineSvg(arr)}</td>`;
       return `<tr class="${cls || ''}">${tds}</tr>`;
     };
 
     const mkPctRow = (nome, numArr, denArr, totNum, totDen) => {
       let tds = `<td class="fin-dre-col-conta fin-bal-conta fin-bal-pctrow">${esc(nome)}</td>`;
+      const pcts = [];
       for (let i = 0; i < nM; i++) {
         const n = num(numArr ? numArr[i] : 0);
         const d = num(denArr ? denArr[i] : 0);
         const pct = d ? (n / d) * 100 : 0;
+        pcts.push(isFinite(pct) ? pct : 0);
         tds += `<td class="fin-bal-pct-cell">${isFinite(pct) ? pct.toFixed(1).replace('.', ',') + '%' : '0,0%'}</td>`;
       }
       const tp = totDen ? (totNum / totDen) * 100 : 0;
       tds += `<td class="fin-dre-col-tot-foot fin-bal-pct-cell">${isFinite(tp) ? tp.toFixed(2).replace('.', ',') + '%' : '0,00%'}</td>`;
-      tds += `<td>-</td><td>-</td>`;
+      tds += `<td class="fin-dre-col-med-foot">-</td><td class="fin-dre-col-pct">-</td>`;
+      tds += `<td class="fin-dre-col-spark">${sparklineSvg(pcts)}</td>`;
       return `<tr class="fin-bal-pctrow">${tds}</tr>`;
     };
 
     const evolRow = () => {
       let tds = `<td class="fin-dre-col-conta fin-bal-conta fin-bal-evol">% de evolução mensal</td>`;
       for (let i = 0; i < nM; i++) tds += `<td>${fmtEvol(i)}</td>`;
-      tds += `<td>-</td><td>-</td><td>-</td>`;
+      tds += `<td class="fin-dre-col-tot-foot">-</td><td class="fin-dre-col-med-foot">-</td><td class="fin-dre-col-pct">-</td><td class="fin-dre-col-spark"></td>`;
       return `<tr class="fin-bal-evol">${tds}</tr>`;
     };
 
@@ -698,7 +702,7 @@ const DRE = (() => {
       const lbl = multiAno ? MESES[sl.mes] + '/' + String(sl.ano).slice(2) : MESES[sl.mes];
       th.push(`<th>${lbl}</th>`);
     }
-    th.push(`<th class="fin-dre-col-tot">TOT</th><th class="fin-dre-col-med">MÉD/ANO</th><th class="fin-dre-col-pct-h">%</th>`);
+    th.push(`<th class="fin-dre-col-tot">TOT</th><th class="fin-dre-col-med">MÉD/ANO</th><th class="fin-dre-col-pct-h">%</th><th class="fin-dre-col-spark-h">Mês</th>`);
 
     const faturouMais = base - fvdi.pontoEquilibrio;
     const fatMeses    = gmeses('FATURAMENTO');

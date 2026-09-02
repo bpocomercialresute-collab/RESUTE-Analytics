@@ -893,6 +893,21 @@ td.fin-dre-col-med { background: #d6ecfb !important; font-weight: 700; }
 .fin-balanco-tabela tr.fin-bal-pctrow td.fin-bal-conta { background: #fafbff !important; font-style: italic; }
 .fin-bal-pct-cell { text-align: right; font-size: 8.5pt; }
 
+/* TOT/MÉD/%/Mês: mesma cor fixa da coluna em toda linha do Balanço,
+   sobrepondo a cor de fundo especifica de cada linha (amarelo/verde/
+   vermelho/etc) — igual ja aplicado nas outras tabelas da aba Resultados. */
+.fin-balanco-tabela tbody tr td.fin-dre-col-tot-foot {
+  background: #cdf3d9 !important; color: #1a5c30 !important; font-weight: 700;
+}
+.fin-balanco-tabela tbody tr td.fin-dre-col-med-foot {
+  background: #d6ecfb !important; color: #1e3a5f !important; font-weight: 700;
+}
+.fin-balanco-tabela tbody tr td.fin-dre-col-pct,
+.fin-balanco-tabela tbody tr td.fin-dre-col-spark {
+  background: #fff !important; color: var(--fin-ink) !important; font-weight: 700;
+}
+.fin-balanco-tabela td.fin-dre-col-spark { text-align: center; vertical-align: middle; padding: 2px 4px; }
+
 /* ── Cabeçalhos de mês clicáveis (ordenação) ── */
 .fin-dre-th-mes {
   cursor: pointer;
