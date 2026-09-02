@@ -1198,11 +1198,23 @@ const DRE = (() => {
       const totAno = meses.reduce((s, v) => s + v, 0);
       const receitaMeses = serieAnualReceita(ano);
       const receitaAno = receitaMeses.reduce((s, v) => s + v, 0);
-      const pctMeses = meses.map((v, i) => receitaMeses[i] ? v / receitaMeses[i] : 0);
+      // Anos sem receita anual real: nao computa % (evita 155x, 1600%, e
+      // outros artefatos de dividir por quase-zero). Meses sem receita
+      // dentro de um ano valido tambem viram null (Chart.js pula o ponto,
+      // grade mostra "-").
+      const anoComReceita = receitaAno > 0;
+      const pctMeses = meses.map((v, i) => {
+        if (!anoComReceita) return null;
+        if (!receitaMeses[i]) return null;
+        return v / receitaMeses[i];
+      });
+      const pctValidos = pctMeses.filter(v => v != null);
+      const medPct = pctValidos.length ? pctValidos.reduce((s, v) => s + v, 0) / pctValidos.length : null;
       return {
         ano, meses, trimestres, totAno, medAno: totAno / 12,
-        receitaAno, pctRec: receitaAno ? totAno / receitaAno : 0,
-        pctMeses, medPct: pctMeses.reduce((s, v) => s + v, 0) / 12
+        receitaAno,
+        pctRec: anoComReceita ? totAno / receitaAno : null,
+        pctMeses, medPct
       };
     });
 
@@ -1278,7 +1290,11 @@ const DRE = (() => {
     const mom = laudoMoMGrupo(nomeGrupo);
 
     const maxGrid1 = Math.max(1, ...d.porAno.flatMap(p => p.trimestres.concat(p.meses)));
-    const maxGrid3 = Math.max(0.0001, ...d.porAno.flatMap(p => p.pctMeses));
+    // maxGrid3 usa so anos com receita real (pctMeses != null), pra
+    // ancorar a barra de dados numa escala com sentido — sem isso, um ano
+    // sem receita geraria "null" que quebra Math.max ou distorce.
+    const pctValidos = d.porAno.flatMap(p => p.pctMeses).filter(v => v != null);
+    const maxGrid3 = pctValidos.length ? Math.max(0.0001, ...pctValidos) : 0.01;
 
     const linhasTrim = ['1º TRIM', '2º TRIM', '3º TRIM', '4º TRIM'].map((nome, i) => ({
       nome, valores: d.porAno.map(p => p.trimestres[i])
@@ -1295,15 +1311,20 @@ const DRE = (() => {
     }));
 
     // Grade de % usa o mesmo layout de laudoGridAnos mas formatando em %.
+    // Valor null = ano/mes sem receita real -> mostra "-" sem barra, igual
+    // uma celula vazia da planilha (evita 1600% que ninguem consegue ler).
+    const laudoPctCell = v => v == null
+      ? `<td class="fin-laudo-td-barra"><span>—</span></td>`
+      : laudoCelulaBarra(v, maxGrid3, fmtPct1(v));
     const gridPctHtml = (() => {
       const th = [`<th class="fin-dre-col-conta">Mês</th>`].concat(d.anos.map(a => `<th>${a}</th>`));
       const corpo = linhasPct.map(l => {
         const tds = [`<td class="fin-dre-col-conta">${esc(l.nome)}</td>`];
-        l.valores.forEach(v => tds.push(laudoCelulaBarra(v, maxGrid3, fmtPct1(v))));
+        l.valores.forEach(v => tds.push(laudoPctCell(v)));
         return `<tr>${tds.join('')}</tr>`;
       }).join('');
       const medRow = `<tr class="fin-laudo-tr-destaque"><td class="fin-dre-col-conta fin-laudo-linha-destaque">MÉD</td>`
-        + d.porAno.map(p => `<td class="fin-laudo-td-destaque">${fmtPct1(p.medPct)}</td>`).join('') + `</tr>`;
+        + d.porAno.map(p => `<td class="fin-laudo-td-destaque">${p.medPct == null ? '—' : fmtPct1(p.medPct)}</td>`).join('') + `</tr>`;
       return `<div class="fin-dre-bloco-scroll"><table class="fin-dre-tabela fin-laudo-tabela">`
         + `<thead><tr>${th.join('')}</tr></thead><tbody>${corpo}${medRow}</tbody></table></div>`;
     })();
@@ -1351,37 +1372,43 @@ const DRE = (() => {
         </div>
       </div>`;
 
-    const anosLbl = d.anos.map(String);
     const coresAnos = ['#002060', '#00B050', '#FF0000', '#8a4fd1', '#d97706', '#0891b2', '#c026d3', '#4d7c0f', '#1e3a5f', '#9d174d', '#0f766e', '#7c2d12'];
+
+    // Anos com lancamento real no grupo — pros graficos de valor absoluto
+    // (nao poluir com 10 linhas zeradas de anos vazios da faixa 2017-2028).
+    const anosComGrupo = d.porAno.filter(p => p.totAno !== 0);
+    // Anos com receita real — pros graficos de % (evita 1600% e outros
+    // artefatos de dividir por quase-zero). null vira sem-ponto no grafico.
+    const anosComReceita = d.porAno.filter(p => p.pctMeses.some(v => v != null));
 
     grafico('fin-laudo-chart-barra', {
       type: 'bar',
-      data: { labels: MESES, datasets: d.porAno.map((p, i) => ({ label: String(p.ano), data: p.meses, backgroundColor: coresAnos[i % coresAnos.length] })) },
+      data: { labels: MESES, datasets: anosComGrupo.map((p, i) => ({ label: String(p.ano), data: p.meses, backgroundColor: coresAnos[i % coresAnos.length] })) },
       options: { responsive: true, maintainAspectRatio: false }
     });
     grafico('fin-laudo-chart-linha', {
       type: 'line',
-      data: { labels: MESES, datasets: d.porAno.map((p, i) => ({ label: String(p.ano), data: p.meses, borderColor: coresAnos[i % coresAnos.length], tension: .3, fill: false })) },
+      data: { labels: MESES, datasets: anosComGrupo.map((p, i) => ({ label: String(p.ano), data: p.meses, borderColor: coresAnos[i % coresAnos.length], tension: .3, fill: false })) },
       options: { responsive: true, maintainAspectRatio: false }
     });
     grafico('fin-laudo-chart-pctlinha', {
       type: 'line',
-      data: { labels: MESES, datasets: d.porAno.map((p, i) => ({ label: String(p.ano), data: p.pctMeses.map(v => v * 100), borderColor: coresAnos[i % coresAnos.length], tension: .3, fill: false })) },
+      data: { labels: MESES, datasets: anosComReceita.map((p, i) => ({ label: String(p.ano), data: p.pctMeses.map(v => v == null ? null : v * 100), borderColor: coresAnos[i % coresAnos.length], tension: .3, fill: false, spanGaps: true })) },
       options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ': ' + c.formattedValue + '%' } } } }
     });
     grafico('fin-laudo-chart-pctbarra', {
       type: 'bar',
-      data: { labels: MESES, datasets: d.porAno.map((p, i) => ({ label: String(p.ano), data: p.pctMeses.map(v => v * 100), backgroundColor: coresAnos[i % coresAnos.length] })) },
+      data: { labels: MESES, datasets: anosComReceita.map((p, i) => ({ label: String(p.ano), data: p.pctMeses.map(v => v == null ? null : v * 100), backgroundColor: coresAnos[i % coresAnos.length] })) },
       options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ': ' + c.formattedValue + '%' } } } }
     });
     grafico('fin-laudo-chart-pizza-total', {
       type: 'pie',
-      data: { labels: anosLbl, datasets: [{ data: d.porAno.map(p => p.totAno), backgroundColor: coresAnos }] },
+      data: { labels: anosComGrupo.map(p => String(p.ano)), datasets: [{ data: anosComGrupo.map(p => p.totAno), backgroundColor: coresAnos }] },
       options: { responsive: true, maintainAspectRatio: false }
     });
     grafico('fin-laudo-chart-pizza-media', {
       type: 'pie',
-      data: { labels: anosLbl, datasets: [{ data: d.porAno.map(p => p.medPct * 100), backgroundColor: coresAnos }] },
+      data: { labels: anosComReceita.map(p => String(p.ano)), datasets: [{ data: anosComReceita.map(p => (p.medPct || 0) * 100), backgroundColor: coresAnos }] },
       options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: c => c.label + ': ' + c.formattedValue + '%' } } } }
     });
   }
