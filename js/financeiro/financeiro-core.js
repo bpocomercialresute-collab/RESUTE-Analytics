@@ -240,8 +240,13 @@ async function finCarregarDadosAntigo(empresaId) {
   }
 }
 
-/** Carrega o financeiro usando o DRE como fonte principal quando existir. */
-async function finCarregarDados(empresaId) {
+/**
+ * Versao anterior (KPIs/graficos/vencimentos), mantida no arquivo mas fora
+ * de uso desde a troca de 2026-09-02 — o cliente passou a ver a aba
+ * Resultados do DRE (finCarregarDadosDRE, mais abaixo) em vez deste
+ * dashboard. Ver docs/arquivado/financeiro-dashboard-cliente-antigo.html.
+ */
+async function finCarregarDadosLegado(empresaId) {
   if (!empresaId) { finStatus('Empresa nao configurada.'); return; }
 
   var sequencia = ++FIN_LOAD_SEQUENCE;
@@ -303,6 +308,114 @@ async function finCarregarDados(empresaId) {
   } finally {
     if (sequencia === FIN_LOAD_SEQUENCE) FIN_IS_LOADING = false;
   }
+}
+
+/**
+ * Carrega o financeiro do cliente mostrando a mesma aba Resultados do DRE
+ * que o admin usa (motor js/dre/dre-engine.js, objeto global DRE).
+ * Mesmas tabelas fin_dre_plano_contas / fin_dre_lancamentos que o painel
+ * DRE do admin le — mesmo mecanismo de leitura ja usado por
+ * finCarregarDadosLegado logo acima (fetch monkey-patched em auth.js
+ * redireciona pra /api/secure-proxy, que exige empresa_id=eq.<id> em
+ * toda tabela fin_*). Escrita continua bloqueada pro cliente no proprio
+ * secure-proxy (so super_admin pode alterar dado financeiro) — o cliente
+ * so ve, nao edita.
+ */
+var FIN_RESUMO_LISTENERS_LIGADOS = false;
+
+async function finCarregarDados(empresaId) {
+  if (!empresaId) { finStatus('Empresa nao configurada.'); return; }
+
+  var sequencia = ++FIN_LOAD_SEQUENCE;
+  FIN_ACTIVE_COMPANY = empresaId;
+  FIN_IS_LOADING = true;
+  finStatus('Carregando...');
+
+  if (FIN_ABORT_CONTROLLER) { try { FIN_ABORT_CONTROLLER.abort(); } catch (e) {} }
+  FIN_ABORT_CONTROLLER = new AbortController();
+
+  try {
+    var qs = '?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=*&limit=100000';
+    var respostas = await Promise.all([
+      fetch(SUPA_URL + '/rest/v1/fin_dre_plano_contas' + qs,
+        { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }, signal: FIN_ABORT_CONTROLLER.signal }),
+      fetch(SUPA_URL + '/rest/v1/fin_dre_lancamentos' + qs + '&order=dt_caixa.desc',
+        { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }, signal: FIN_ABORT_CONTROLLER.signal })
+    ]);
+    if (sequencia !== FIN_LOAD_SEQUENCE) return;
+
+    for (var i = 0; i < respostas.length; i++) {
+      if (!respostas[i].ok) throw new Error(respostas[i].status === 403
+        ? 'Acesso negado aos dados do DRE desta empresa.'
+        : ('Falha ao carregar os dados do DRE (HTTP ' + respostas[i].status + ').'));
+    }
+
+    var dados = await Promise.all(respostas.map(function(r) { return r.json(); }));
+    if (sequencia !== FIN_LOAD_SEQUENCE) return;
+
+    var plano = Array.isArray(dados[0]) ? dados[0] : [];
+    var lancamentos = (Array.isArray(dados[1]) ? dados[1] : []).map(function(l) {
+      return Object.assign({}, l, { cnpj: 1 }); // ver DRE.init(): sempre cnpj fixo, multiempresa ja e por empresa_id
+    });
+
+    if (typeof _dreInjetarCSS === 'function') await _dreInjetarCSS();
+    if (typeof DRE === 'undefined') throw new Error('Motor do DRE (js/dre/dre-engine.js) nao carregou.');
+
+    DRE.init({
+      plano: plano,
+      lancamentos: lancamentos,
+      empresa: (typeof SESSION !== 'undefined' && SESSION) ? SESSION.empresa_nome : '',
+      cnpj: 1,
+      ano: null
+    });
+
+    _finLigarResumoFiltroDRE();
+    finAtualizarResumoFiltroDRE();
+
+    finStatus(lancamentos.length
+      ? String.fromCharCode(10003) + ' ' + lancamentos.length.toLocaleString('pt-BR') + ' lancamentos'
+      : 'Nenhum lancamento cadastrado.');
+
+    var atualizado = document.getElementById('fin-last-update');
+    if (atualizado) atualizado.textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR');
+
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+    if (sequencia !== FIN_LOAD_SEQUENCE) return;
+    console.error('[FIN] Erro ao carregar DRE:', e);
+    finStatus('Erro: ' + e.message);
+  } finally {
+    if (sequencia === FIN_LOAD_SEQUENCE) FIN_IS_LOADING = false;
+  }
+}
+
+/** Liga uma unica vez: mantem o chip recolhido do mobile sincronizado com
+ *  o filtro de ano/mes do proprio DRE (que ja tem seu handler de recalculo
+ *  via DRE.init -> montarFiltros — este listener so atualiza o texto do
+ *  chip, nao recalcula nada, entao coexiste sem conflito). */
+function _finLigarResumoFiltroDRE() {
+  if (FIN_RESUMO_LISTENERS_LIGADOS) return;
+  FIN_RESUMO_LISTENERS_LIGADOS = true;
+  ['fin-filtro-ano', 'fin-filtro-mes'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('change', finAtualizarResumoFiltroDRE);
+  });
+  var btn = document.getElementById('fin-btn-atualizar');
+  if (btn) btn.addEventListener('click', finAtualizarResumoFiltroDRE);
+}
+
+function finAtualizarResumoFiltroDRE() {
+  var el = document.getElementById('fin-filtro-resumo-texto');
+  if (!el) return;
+  var selAno = document.getElementById('fin-filtro-ano');
+  var selMes = document.getElementById('fin-filtro-mes');
+  var ano = selAno ? parseInt(selAno.value, 10) || 0 : 0;
+  var mes = selMes && selMes.value !== '' ? parseInt(selMes.value, 10) : null;
+  var partes = [];
+  if (mes !== null && ano) partes.push(MESES[mes] + '/' + ano);
+  else if (ano) partes.push(String(ano));
+  else partes.push('Todos os períodos');
+  el.textContent = partes.join(' · ');
 }
 
 /** Normaliza tipos vindos do banco (numeric chega como string). */

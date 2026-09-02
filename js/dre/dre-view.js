@@ -76,16 +76,23 @@ async function _dreInjetarCSS() {
   }
 }
 
+// Escopado pros dois containers que podem hospedar a ferramenta: o DRE
+// completo do admin (#view-dash-dre) e a aba Resultados do cliente, que
+// agora mora dentro do modulo financeiro (#view-dash-financeiro).
+var DRE_CSS_ESCOPOS = ['#view-dash-dre', '#view-dash-financeiro'];
+
 function _dreEscoparRegras(regras) {
   for (var i = 0; i < regras.length; i++) {
     var regra = regras[i];
     if (regra.cssRules) { _dreEscoparRegras(regra.cssRules); continue; }
     if (!regra.selectorText) continue;
 
-    regra.selectorText = regra.selectorText
-      .split(',')
-      .map(function(sel) { return '#view-dash-dre ' + sel.trim(); })
-      .join(', ');
+    var partes = regra.selectorText.split(',').map(function(sel) { return sel.trim(); });
+    var escopadas = [];
+    DRE_CSS_ESCOPOS.forEach(function(escopo) {
+      partes.forEach(function(sel) { escopadas.push(escopo + ' ' + sel); });
+    });
+    regra.selectorText = escopadas.join(', ');
   }
 }
 
