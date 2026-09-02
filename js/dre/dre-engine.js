@@ -1445,7 +1445,7 @@ const DRE = (() => {
     }
   }
 
-  const ABAS_SEM_FILTRO = new Set(['fin-dre-pane-plano', 'fin-dre-pane-dre', 'fin-dre-pane-bddre']);
+  const ABAS_SEM_FILTRO = new Set(['fin-dre-pane-plano', 'fin-dre-pane-dre', 'fin-dre-pane-bddre', 'fin-dre-pane-laudo']);
 
   function _dreAtualizarVisibilidadeFiltros(paneId) {
     const filtros = document.querySelector('.fin-filtros');
