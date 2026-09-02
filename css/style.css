@@ -13079,3 +13079,33 @@ body.bpo-admin-mode .admin-status-badge {
   margin-left: 0 !important;
   gap: 6px !important;
 }
+
+/* Botao ativo (azul) saindo oval/maior que o inativo: forca os dois pro
+   mesmo circulo fixo, sem excecao pro estado .active — nao deixa nenhuma
+   regra de cor/estado interferir no tamanho. So no mobile (desktop mostra
+   o nome do modulo por extenso ao lado do icone, isso fica). */
+@media (max-width: 900px) {
+  #view-dash-cliente .dc-modulos-btn,
+  #view-dash-financeiro .dc-modulos-btn,
+  #view-dash-cliente .dc-modulos-btn.active,
+  #view-dash-financeiro .dc-modulos-btn.active {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    max-width: 32px !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  #view-dash-cliente .dc-modulos-btn span,
+  #view-dash-financeiro .dc-modulos-btn span,
+  #view-dash-cliente .dc-modulos-wip,
+  #view-dash-financeiro .dc-modulos-wip {
+    display: none !important;
+  }
+}
