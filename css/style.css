@@ -13023,3 +13023,34 @@ body.bpo-admin-mode .admin-status-badge {
     padding: 8px 11px !important;
   }
 }
+
+/* Ajuste final mobile: logo maior e cabecalho identico entre comercial e
+   financeiro. Fica no fim do arquivo de proposito — precisa ganhar de
+   todas as camadas anteriores (varias delas com valores diferentes entre
+   si pros mesmos seletores, acumuladas ao longo do tempo). */
+@media (max-width: 720px) {
+  #view-dash-cliente .dc-client-logo,
+  #view-dash-financeiro .fin-client-logo {
+    width: 104px !important;
+    max-height: 34px !important;
+    max-width: none !important;
+  }
+
+  #view-dash-cliente .dc-header,
+  #view-dash-financeiro .dc-header {
+    min-height: 76px !important;
+    gap: 6px !important;
+    padding: 8px 12px !important;
+  }
+
+  #view-dash-cliente .dc-header-left,
+  #view-dash-financeiro .dc-header-left {
+    justify-content: flex-start !important;
+    gap: 10px !important;
+  }
+
+  #view-dash-cliente .dc-modulos,
+  #view-dash-financeiro .dc-modulos {
+    margin-left: auto !important;
+  }
+}
