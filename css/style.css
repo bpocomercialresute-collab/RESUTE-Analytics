@@ -13024,16 +13024,29 @@ body.bpo-admin-mode .admin-status-badge {
   }
 }
 
-/* Ajuste final mobile: logo maior e cabecalho identico entre comercial e
-   financeiro. Fica no fim do arquivo de proposito — precisa ganhar de
-   todas as camadas anteriores (varias delas com valores diferentes entre
-   si pros mesmos seletores, acumuladas ao longo do tempo). */
+/* Ajuste final: logo maior e cabecalho identico entre comercial e financeiro.
+   Fica no fim do arquivo de proposito — precisa ganhar de todas as camadas
+   anteriores (varias delas com valores diferentes entre si pros mesmos
+   seletores, acumuladas ao longo do tempo).
+   BUG real encontrado: a logo real (assets/varremaster-logo.png) tem
+   proporcao 600x315 (~1.9:1). Toda tentativa anterior de aumentar so o
+   "width" nao tinha efeito nenhum porque "max-height" (34-38px) sempre era
+   o lado mais restritivo do object-fit:contain e vencia — a logo renderizava
+   uns 65-72px de largura na pratica, nunca os 104-138px escritos no width.
+   Agora width e max-height casam matematicamente (largura ÷ 1.9 = altura),
+   entao o valor de largura passa a valer de verdade. */
+#view-dash-cliente .dc-client-logo,
+#view-dash-financeiro .fin-client-logo {
+  width: 130px !important;
+  max-height: 68px !important;
+  max-width: none !important;
+}
+
 @media (max-width: 720px) {
   #view-dash-cliente .dc-client-logo,
   #view-dash-financeiro .fin-client-logo {
     width: 104px !important;
-    max-height: 34px !important;
-    max-width: none !important;
+    max-height: 55px !important;
   }
 
   #view-dash-cliente .dc-header,
