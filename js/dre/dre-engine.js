@@ -63,6 +63,7 @@ const DRE = (() => {
   const estado = {
     plano: [],          // PLANO_CONTAS
     lancamentos: [],    // BD
+    bd: [],             // BD enriquecido (PROCV + ano/mesIdx), todo o historico, sem filtro de recorte
     bdDre: [],          // BD_DRE
     ano: null,
     anoInicio: null,    // ano do início do recorte
@@ -241,6 +242,7 @@ const DRE = (() => {
     for (const l of linhas) l.pct = receita ? l.total / receita : 0;
 
     estado.bdDre = linhas;
+    estado.bd = bd;
     return linhas;
   }
 
@@ -254,6 +256,88 @@ const DRE = (() => {
     );
     const total = linhas.reduce((s, l) => s + l.total, 0);
     return { linhas, meses, total, med: n > 0 ? total / n : 0 };
+  }
+
+  /* ---------- 7b. EVOLUÇÃO ANUAL (acumulado + variação ano a ano) ----------
+     Bloco fixo por baixo do TOTAL de cada tabela da aba Resultados: sempre
+     compara os 2 anos mais recentes com lançamento no BD_DRE, mês a mês,
+     independente do recorte de período selecionado na tela — só usa o
+     recorte pra saber QUANTAS colunas de mês desenhar e qual mês cada
+     coluna representa (estado.slots[i].mes), ignorando o ano de cada slot. */
+
+  // Anos distintos com lançamento válido (ano != null), mais recente primeiro.
+  function anosDisponiveis() {
+    const anos = new Set();
+    for (const l of estado.bd) if (l.ano != null) anos.add(l.ano);
+    return Array.from(anos).sort((a, b) => b - a);
+  }
+
+  // Série Jan..Dez (12 posições) de um grupo, num ano específico — sempre o
+  // calendário inteiro, não o recorte filtrado.
+  function serieAnualGrupo(nomeGrupo, ano) {
+    const meses = new Array(12).fill(0);
+    if (ano == null) return meses;
+    for (const l of estado.bd) {
+      if (l.ano !== ano || l.grupo !== nomeGrupo || l.cnpj !== estado.cnpj) continue;
+      if (l.mesIdx == null) continue;
+      meses[l.mesIdx] += num(l.valor);
+    }
+    return meses;
+  }
+
+  // Série Jan..Dez da receita (grupos com s_e === 'E'), num ano específico.
+  function serieAnualReceita(ano) {
+    const meses = new Array(12).fill(0);
+    if (ano == null) return meses;
+    for (const l of estado.bd) {
+      if (l.ano !== ano || l.cnpj !== estado.cnpj || l.s_e !== 'E') continue;
+      if (l.mesIdx == null) continue;
+      meses[l.mesIdx] += num(l.valor);
+    }
+    return meses;
+  }
+
+  const acumular = meses => {
+    const out = [];
+    let s = 0;
+    for (const v of meses) { s += v; out.push(s); }
+    return out;
+  };
+
+  // Variação percentual atual vs anterior. null = não calculável (sem base).
+  const evolucaoPct = (atual, anterior) =>
+    anterior ? (atual - anterior) / Math.abs(anterior) : null;
+
+  // Bloco de evolução anual de um grupo, uma linha por coluna do recorte
+  // atual (estado.slots), sempre comparando os 2 anos mais recentes do BD_DRE.
+  function evolucaoAnualGrupo(nomeGrupo) {
+    const anos = anosDisponiveis();
+    if (!anos.length) return null;
+    const anoAtual = anos[0];
+    const anoAnterior = anos.length > 1 ? anos[1] : null;
+
+    const serieAtual    = serieAnualGrupo(nomeGrupo, anoAtual);
+    const serieAnterior = serieAnualGrupo(nomeGrupo, anoAnterior);
+    const acAtual    = acumular(serieAtual);
+    const acAnterior = acumular(serieAnterior);
+    const receitaAtual = serieAnualReceita(anoAtual);
+
+    const porSlot = estado.slots.map(sl => {
+      const m = sl.mes;
+      const valAtual    = serieAtual[m];
+      const valAnterior = serieAnterior[m];
+      const mesAnteriorMesmaSerie = m === 0 ? serieAnterior[11] : serieAtual[m - 1];
+      return {
+        acAtual: acAtual[m],
+        acAnterior: acAnterior[m],
+        evolAnualMes:   evolucaoPct(valAtual, valAnterior),
+        evolAnualAcum:  evolucaoPct(acAtual[m], acAnterior[m]),
+        evolMensal:     evolucaoPct(valAtual, mesAnteriorMesmaSerie),
+        pctReceita:     receitaAtual[m] ? valAtual / receitaAtual[m] : null
+      };
+    });
+
+    return { anoAtual, anoAnterior, porSlot };
   }
 
   // Todas as linhas de resultado, mês a mês e no total.
@@ -410,14 +494,57 @@ const DRE = (() => {
     const receita = estado.bdDre.filter(l => l.s_e === 'E').reduce((s,l)=>s+l.total,0);
     rodape.push(`<td>${fmtPct(receita ? g.total / receita : 0)}</td>`);
 
+    const evolucao = linhasEvolucao(item.nome, nSlots);
+
     return `<div class="fin-dre-bloco${item.paralelo ? ' fin-dre-paralelo' : ''}" data-grupo="${esc(item.nome)}" data-se="${seDoGrupo(item.nome)}">
       <div class="fin-dre-bloco-scroll">
         <table class="fin-dre-tabela">
           ${cabecalhoBloco(item.nome, item.paralelo)}
           <tbody>${corpo}</tbody>
-          <tfoot><tr>${rodape.join('')}</tr></tfoot>
+          <tfoot><tr class="fin-dre-tr-total">${rodape.join('')}</tr>${evolucao}</tfoot>
         </table>
       </div></div>`;
+  }
+
+  const fmtPct1 = v => v == null ? '—' : (Math.abs(v) * 100).toFixed(1).replace('.', ',') + '%';
+
+  // Linha de valor absoluto (Acumulado) ou percentual com seta (Evolução),
+  // uma célula por slot do recorte atual + 3 células vazias (TOT/MÉD/%, que
+  // não fazem sentido pra essas métricas — mantém a tabela alinhada).
+  function linhaEvolucaoValor(label, valores) {
+    const tds = [`<td class="fin-dre-col-conta fin-dre-evol-label">${esc(label)}</td>`];
+    for (const v of valores) tds.push(`<td class="fin-dre-evol-num">${fmt(v)}</td>`);
+    tds.push('<td></td><td></td><td></td>');
+    return `<tr class="fin-dre-tr-evolucao">${tds.join('')}</tr>`;
+  }
+
+  function linhaEvolucaoPct(label, valores) {
+    const tds = [`<td class="fin-dre-col-conta fin-dre-evol-label">${esc(label)}</td>`];
+    for (const v of valores) {
+      if (v == null) { tds.push('<td class="fin-dre-evol-pct fin-dre-evol-neutro">—</td>'); continue; }
+      const seta = v > 0 ? '▲' : (v < 0 ? '▼' : '►');
+      const corCls = v > 0 ? 'fin-dre-evol-up' : (v < 0 ? 'fin-dre-evol-down' : 'fin-dre-evol-neutro');
+      tds.push(`<td class="fin-dre-evol-pct ${corCls}">${seta} ${fmtPct1(v)}</td>`);
+    }
+    tds.push('<td></td><td></td><td></td>');
+    return `<tr class="fin-dre-tr-evolucao">${tds.join('')}</tr>`;
+  }
+
+  // Monta as 6 linhas de acumulado/evolução anual de um grupo, alinhadas
+  // coluna a coluna com o recorte de período atual (estado.slots).
+  function linhasEvolucao(nomeGrupo, nSlots) {
+    const ev = evolucaoAnualGrupo(nomeGrupo);
+    if (!ev) return '';
+    const rows = ev.porSlot;
+    if (rows.length !== nSlots) return '';
+
+    const lblAno = ano => ano == null ? 'Acumulado' : `Acumulado de ${ano}`;
+    return linhaEvolucaoValor(lblAno(ev.anoAnterior), rows.map(r => r.acAnterior))
+      + linhaEvolucaoValor(lblAno(ev.anoAtual), rows.map(r => r.acAtual))
+      + linhaEvolucaoPct('% de evolução anual até o mês', rows.map(r => r.evolAnualAcum))
+      + linhaEvolucaoPct('% de evolução anual do mês',     rows.map(r => r.evolAnualMes))
+      + linhaEvolucaoPct('% de evolução mensal do mês',    rows.map(r => r.evolMensal))
+      + linhaEvolucaoPct('% de evolução sobre receita',    rows.map(r => r.pctReceita));
   }
 
   // Linha de resultado: tabela com mês a mês igual ao bloco, fundo verde/vermelho/navy.

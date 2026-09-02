@@ -341,6 +341,34 @@ td.fin-dre-col-med { background: #e8f0fb !important; color: var(--fin-ink); }
   background: var(--fin-yellow) !important; color: #3d2800; font-weight: 700;
 }
 
+/* ── Linhas de evolução anual: Acumulado 2024/2025 + % de evolução.
+      Ficam no mesmo tfoot da linha de total (amarela) mas voltam pro
+      branco normal — só o TOTAL fica amarelo. ── */
+.fin-dre-tabela tfoot tr.fin-dre-tr-evolucao td {
+  background: #fff !important;
+  color: var(--fin-ink);
+  font-weight: 400;
+  border: 1px solid var(--fin-line-soft);
+}
+.fin-dre-tabela tfoot tr.fin-dre-tr-evolucao:nth-child(even) td {
+  background: #fafbfd !important;
+}
+.fin-dre-tabela tfoot tr.fin-dre-tr-evolucao td.fin-dre-col-conta,
+.fin-dre-tabela tfoot tr.fin-dre-tr-evolucao td.fin-dre-evol-label {
+  text-align: left; text-transform: none; letter-spacing: normal;
+  font-weight: 600; font-size: 9pt; color: var(--fin-mute);
+  background: #fff !important;
+}
+.fin-dre-tabela tfoot tr.fin-dre-tr-evolucao td.fin-dre-evol-num {
+  font-weight: 600; font-size: 9.5pt;
+}
+.fin-dre-tabela tfoot tr.fin-dre-tr-evolucao td.fin-dre-evol-pct {
+  font-weight: 700; font-size: 9pt; letter-spacing: .2px;
+}
+.fin-dre-tabela tfoot tr.fin-dre-tr-evolucao td.fin-dre-evol-up   { color: var(--fin-green); }
+.fin-dre-tabela tfoot tr.fin-dre-tr-evolucao td.fin-dre-evol-down { color: var(--fin-red); }
+.fin-dre-tabela tfoot tr.fin-dre-tr-evolucao td.fin-dre-evol-neutro { color: var(--fin-mute); }
+
 /* ── Linhas de resultado (Receita Líquida, Lucro Bruto, EBITDA…) ──
       Tabela de linha única com meses, igual ao bloco, fundo colorido ── */
 .fin-dre-resultado-bloco { border-radius: 3px; }
