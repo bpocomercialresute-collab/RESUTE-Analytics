@@ -13056,14 +13056,27 @@ body.bpo-admin-mode .admin-status-badge {
     padding: 8px 12px !important;
   }
 
+  /* Posicionamento absoluto: nao depende de grid/flex stretch de nenhuma
+     camada anterior herdada — vai pro canto certo garantido, sem exceçao. */
+  #view-dash-cliente .dc-header,
+  #view-dash-financeiro .dc-header {
+    position: relative !important;
+  }
+
   #view-dash-cliente .dc-header-left,
   #view-dash-financeiro .dc-header-left {
-    justify-content: flex-start !important;
+    display: flex !important;
+    width: auto !important;
+    max-width: calc(100% - 84px) !important;
     gap: 10px !important;
   }
 
   #view-dash-cliente .dc-modulos,
   #view-dash-financeiro .dc-modulos {
-    margin-left: auto !important;
+    display: flex !important;
+    position: absolute !important;
+    top: 10px !important;
+    right: 12px !important;
+    margin-left: 0 !important;
   }
 }
