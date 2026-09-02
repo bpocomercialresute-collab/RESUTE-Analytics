@@ -772,6 +772,18 @@ function adminConsoleFiltrarSync() {
   ADMIN_CONSOLE.filteredSyncLogs = list;
 }
 
+async function adminConsoleCarregarCoberturaVendas(empresaId) {
+  var qs = '/rest/v1/vendas?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=dt_saida';
+  var oldest = await adminConsoleFetch(qs + '&dt_saida=not.is.null&order=dt_saida.asc&limit=1');
+  var newest = await adminConsoleFetch(qs + '&dt_saida=not.is.null&order=dt_saida.desc&limit=1');
+  var minD = oldest.data && oldest.data[0] && oldest.data[0].dt_saida;
+  var maxD = newest.data && newest.data[0] && newest.data[0].dt_saida;
+  if (!minD || !maxD) return null;
+  var dMin = new Date(minD), dMax = new Date(maxD);
+  var dias = Math.round((dMax - dMin) / 86400000);
+  return { min: dMin, max: dMax, dias: dias };
+}
+
 function adminConsoleDetalharSync(index) {
   var item = (ADMIN_CONSOLE.filteredSyncLogs || [])[Number(index)];
   if (!item) return;
@@ -783,10 +795,31 @@ function adminConsoleDetalharSync(index) {
     + '<span>Registros<strong>' + adminConsoleNumber(item.total_registros) + '</strong></span>'
     + '<span>Tipo<strong>Vendas e cadastros</strong></span>'
     + ((item.mensagem || item.erro) ? '<span class="admin-field-full">Mensagem<strong>' + adminConsoleEscape(adminConsoleSafeText(item.mensagem || item.erro, 500)) + '</strong></span>' : '')
+    + '<span class="admin-field-full" id="admin-sync-cobertura">Cobertura de dados<strong>Verificando...</strong></span>'
     + '</div>'
     + '<div class="admin-form-help">O sync_log registra o estado consolidado por empresa. Nenhum token ou segredo e exibido.</div>'
     + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Fechar</button><button class="admin-btn-primary" type="button" onclick="adminConsoleFecharModal(); adminConsoleAbrirSyncEmpresa(\'' + adminConsoleEscape(String(item.empresa_id || '')) + '\')">Abrir painel de sync</button></div>';
   adminConsoleAbrirModal('SINCRONIZACAO', 'Detalhes do registro', html, function() {});
+
+  var empresaId = String(item.empresa_id || '');
+  if (!empresaId) return;
+  adminConsoleCarregarCoberturaVendas(empresaId).then(function(cobertura) {
+    var el = document.getElementById('admin-sync-cobertura');
+    if (!el) return; // modal fechado antes da resposta
+    if (!cobertura) {
+      el.innerHTML = 'Cobertura de dados<strong>Nenhum registro de venda encontrado</strong>';
+      return;
+    }
+    var texto = adminConsoleDate(cobertura.min.toISOString(), false) + ' ate ' + adminConsoleDate(cobertura.max.toISOString(), false)
+      + ' (' + cobertura.dias + ' dias)';
+    var alerta = cobertura.dias < 45
+      ? ' ' + adminConsoleBadge('Possivel lacuna: pouco historico sincronizado', 'warn')
+      : '';
+    el.innerHTML = 'Cobertura de dados<strong>' + adminConsoleEscape(texto) + '</strong>' + alerta;
+  }).catch(function(e) {
+    var el = document.getElementById('admin-sync-cobertura');
+    if (el) el.innerHTML = 'Cobertura de dados<strong>Erro ao verificar: ' + adminConsoleEscape(e.message || String(e)) + '</strong>';
+  });
 }
 
 function adminConsoleAuditItems() {
