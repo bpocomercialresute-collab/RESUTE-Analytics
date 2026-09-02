@@ -1346,10 +1346,10 @@ const DRE = (() => {
     alvo.innerHTML = `
       <div class="fin-laudo-secao">
         <div class="fin-laudo-titulo">LAUDO DE RESULTADOS DE ${esc(labelGrupo)}</div>
-        <div class="fin-laudo-grid-par">
-          <div><div class="fin-laudo-subtitulo">Por trimestre</div>${laudoGridAnos('TRIM', d.anos, linhasTrim, maxGrid1)}</div>
-          <div><div class="fin-laudo-subtitulo">Por mês</div>${laudoGridAnos('MÊS', d.anos, linhasMes, maxGrid1)}</div>
-        </div>
+        <div class="fin-laudo-subtitulo">Por trimestre</div>
+        ${laudoGridAnos('TRIM', d.anos, linhasTrim, maxGrid1)}
+        <div class="fin-laudo-subtitulo">Por mês</div>
+        ${laudoGridAnos('MÊS', d.anos, linhasMes, maxGrid1)}
         <div class="fin-grid-graficos">
           <div class="fin-card-grafico"><h3>Total por mês, por ano</h3><canvas id="fin-laudo-chart-barra"></canvas></div>
           <div class="fin-card-grafico"><h3>Fluxo (R$) mensal por ano</h3><canvas id="fin-laudo-chart-linha"></canvas></div>
