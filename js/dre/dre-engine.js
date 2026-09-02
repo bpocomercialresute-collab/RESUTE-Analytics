@@ -549,7 +549,7 @@ const DRE = (() => {
     if (rows.length !== nSlots) return '';
 
     const lblAcum = ano => ano == null ? 'Acumulado' : `Acumulado de ${ano}`;
-    const lblAnoAnterior = ev.anoAnterior == null ? `${nomeGrupo} (sem ano anterior)` : `${nomeGrupo} DE ${ev.anoAnterior}`;
+    const lblAnoAnterior = ev.anoAnterior == null ? nomeGrupo : `${nomeGrupo} DE ${ev.anoAnterior}`;
     // Ordem igual ao modelo: valor bruto mensal do ano anterior primeiro
     // (comparação direta com a linha TOTAL logo acima), depois acumulado do
     // ano atual, depois acumulado do ano anterior, depois as 4 percentuais.
