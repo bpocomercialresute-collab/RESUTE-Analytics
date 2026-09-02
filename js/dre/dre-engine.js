@@ -456,8 +456,10 @@ const DRE = (() => {
 
   // Mini gráfico de linha (sparkline) com a série de valores de uma linha,
   // pra ver a tendência mensal num relance sem abrir gráfico separado.
-  function sparklineSvg(valores) {
-    const w = 64, h = 24, pad = 3;
+  // Sparkline melhorado — maior, com area sombreada embaixo da linha,
+  // ponto marcado no ultimo valor e cor mais forte pra visibilidade.
+  function sparklineSvg(valores, opts) {
+    const w = 92, h = 30, pad = 4;
     const vals = (valores || []).map(num);
     if (vals.length < 2) return '';
     const min = Math.min(...vals), max = Math.max(...vals);
@@ -466,11 +468,25 @@ const DRE = (() => {
     const pts = vals.map((v, i) => {
       const x = pad + i * stepX;
       const y = h - pad - ((v - min) / range) * (h - pad * 2);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(' ');
-    return `<svg class="fin-dre-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">`
-      + `<polyline points="${pts}" fill="none" stroke="#1C64C0" stroke-width="1.6" vector-effect="non-scaling-stroke"/>`
-      + `</svg>`;
+      return [x, y];
+    });
+    // Cor: dinamica por contexto (opcional), default azul do sistema.
+    const cor = (opts && opts.cor) || '#1C64C0';
+    const corArea = cor.replace(/^#/, '');
+    const uid = 'sp' + Math.random().toString(36).slice(2, 8);
+    const linhaPts = pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+    // Area fechada: linha + volta pela base pra formar poligono preenchido.
+    const areaPts = linhaPts + ' ' + pts[pts.length - 1][0].toFixed(1) + ',' + (h - pad) + ' ' + pts[0][0].toFixed(1) + ',' + (h - pad);
+    const ultimo = pts[pts.length - 1];
+    return '<svg class="fin-dre-spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">'
+      + '<defs><linearGradient id="' + uid + '" x1="0" x2="0" y1="0" y2="1">'
+      +   '<stop offset="0%" stop-color="#' + corArea + '" stop-opacity=".32"/>'
+      +   '<stop offset="100%" stop-color="#' + corArea + '" stop-opacity="0"/>'
+      + '</linearGradient></defs>'
+      + '<polygon points="' + areaPts + '" fill="url(#' + uid + ')" stroke="none"/>'
+      + '<polyline points="' + linhaPts + '" fill="none" stroke="' + cor + '" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'
+      + '<circle cx="' + ultimo[0].toFixed(1) + '" cy="' + ultimo[1].toFixed(1) + '" r="2.2" fill="' + cor + '" stroke="#fff" stroke-width="1"/>'
+      + '</svg>';
   }
 
   function renderBloco(item) {
@@ -496,6 +512,7 @@ const DRE = (() => {
       </div>`;
     }
 
+    const corSpark = saida ? '#c62828' : '#1e6f36';
     const corpo = linhasVisiveis.map(l => {
       const tds = [`<td class="fin-dre-col-conta">${esc(l.conta)}</td>`];
       for (let i = 0; i < nSlots; i++)
@@ -503,7 +520,7 @@ const DRE = (() => {
       tds.push(`<td class="fin-dre-col-tot ${cls(l.total)}">${fmt(l.total)}</td>`);
       tds.push(`<td class="fin-dre-col-med ${cls(l.med)}">${fmt(l.med)}</td>`);
       tds.push(`<td class="fin-dre-col-pct">${fmtPct(l.pct)}</td>`);
-      tds.push(`<td class="fin-dre-col-spark">${sparklineSvg(l.meses)}</td>`);
+      tds.push(`<td class="fin-dre-col-spark">${sparklineSvg(l.meses, { cor: corSpark })}</td>`);
       return `<tr>${tds.join('')}</tr>`;
     }).join('');
 
@@ -514,7 +531,7 @@ const DRE = (() => {
     rodape.push(`<td class="fin-dre-col-med-foot">${fmt(g.med)}</td>`);
     const receita = estado.bdDre.filter(l => l.s_e === 'E').reduce((s,l)=>s+l.total,0);
     rodape.push(`<td class="fin-dre-col-pct">${fmtPct(receita ? g.total / receita : 0)}</td>`);
-    rodape.push(`<td class="fin-dre-col-spark">${sparklineSvg(g.meses)}</td>`);
+    rodape.push(`<td class="fin-dre-col-spark">${sparklineSvg(g.meses, { cor: corSpark })}</td>`);
 
     const evolucao = linhasEvolucao(item.nome, nSlots);
 
