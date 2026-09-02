@@ -1793,6 +1793,31 @@ function dcDefinirPeriodoInicial(rows) {
   dcAtualizarEstadoPeriodo();
 }
 
+function dcToggleFiltrosMobile() {
+  var grupo = document.getElementById('dc-filtros-grupo');
+  var btn = document.getElementById('dc-filtro-resumo');
+  if (!grupo || !btn) return;
+  var aberto = grupo.classList.toggle('aberto');
+  btn.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+}
+
+function dcAtualizarResumoFiltro() {
+  var el = document.getElementById('dc-filtro-resumo-texto');
+  if (!el) return;
+  var selAno = document.getElementById('dc-filtro-ano');
+  var selMes = document.getElementById('dc-filtro-mes');
+  var ano = selAno ? parseInt(selAno.value, 10) || 0 : 0;
+  var mes = selMes ? parseInt(selMes.value, 10) || 0 : 0;
+  var partes = [];
+  if (mes && ano) partes.push(MESES[mes - 1] + '/' + ano);
+  else if (ano) partes.push(String(ano));
+  else partes.push('Todos os períodos');
+  var loja = document.getElementById('dc-empresa');
+  var lojaTexto = loja && loja.textContent ? loja.textContent.trim() : '';
+  if (lojaTexto && lojaTexto !== 'Todas as empresas') partes.push(lojaTexto);
+  el.textContent = partes.join(' · ');
+}
+
 function dcAtualizarEstadoPeriodo() {
   var selMes = document.getElementById('dc-filtro-mes');
   var dtIni = document.getElementById('dc-filtro-inicio');
@@ -1882,6 +1907,7 @@ function dcAplicarFiltro() {
   });
 
   dcRenderizar();
+  dcAtualizarResumoFiltro();
   if ((DC_DATA || []).length) {
     dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
   }
@@ -2664,6 +2690,9 @@ function dcChartEvolucao(rows) {
     plugins: [{
       id: 'evoLabels',
       afterDraw: function(chart) {
+        // Tela estreita: 12 meses x N anos nao cabe rotulo por ponto sem sobrepor —
+        // some com os rotulos fixos, valor continua acessivel pelo tooltip ao tocar.
+        if (chart.width < 420) return;
         var c = chart.ctx;
         c.save();
         c.font = 'bold 9px sans-serif';

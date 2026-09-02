@@ -993,6 +993,13 @@
         <span id="dc-admin-preview-badge" class="dc-admin-preview-badge" style="display:none">Visualização supervisionada</span>
       </div>
       <div class="dc-header-right">
+        <!-- Resumo recolhido: so aparece no mobile (CSS), abre/fecha o grupo de filtros -->
+        <button id="dc-filtro-resumo" class="dc-filtro-resumo" type="button" onclick="dcToggleFiltrosMobile()" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          <span id="dc-filtro-resumo-texto">Filtros</span>
+          <svg class="dc-filtro-resumo-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div id="dc-filtros-grupo" class="dc-filtros-grupo">
         <!-- Filtros -->
         <select id="dc-filtro-ano" class="dc-filtro" onchange="dcFiltroAnoAlterado()"></select>
         <select id="dc-filtro-mes" class="dc-filtro" onchange="dcFiltroMesAlterado()">
@@ -1013,6 +1020,7 @@
           <span id="dc-btn-atualizar-label">Atualizar</span>
         </button>
         <span id="dc-status" class="dc-header-status"></span>
+        </div>
         <button id="dc-admin-back" type="button" onclick="dcVoltarAoAdmin()" class="dc-admin-back" style="display:none">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           Voltar ao Admin
