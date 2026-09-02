@@ -317,12 +317,12 @@
 .fin-dre-tabela td.fin-dre-col-pct { width: 66px; min-width: 66px; }
 .fin-dre-tabela td.fin-dre-col-spark { width: 74px; min-width: 74px; }
 
-/* TOT (corpo): verde — cor herdada de fin-dre-val-saida/entrada/zero (não
-   força cor de texto, senão perde o vermelho de despesa). */
-td.fin-dre-col-tot { background: var(--fin-green) !important; font-weight: 700; }
+/* TOT (corpo): verde clarinho — cor herdada de fin-dre-val-saida/entrada/
+   zero (não força cor de texto, senão perde o vermelho de despesa). */
+td.fin-dre-col-tot { background: #cdf3d9 !important; font-weight: 700; }
 
-/* MÉD (corpo): azul claro */
-td.fin-dre-col-med { background: #cfeaf5 !important; font-weight: 700; }
+/* MÉD (corpo): azul clarinho */
+td.fin-dre-col-med { background: #d6ecfb !important; font-weight: 700; }
 
 /* Mês (sparkline): mini gráfico de linha da tendência mensal da linha */
 .fin-dre-tabela td.fin-dre-col-spark {
@@ -345,9 +345,13 @@ td.fin-dre-col-med { background: #cfeaf5 !important; font-weight: 700; }
   position: sticky; left: 0; z-index: 1;
   background: var(--fin-yellow) !important;
 }
-.fin-dre-tabela tfoot td.fin-dre-col-tot-foot,
+/* TOT e MÉD na linha TOTAL: mesma cor da coluna (verde/azul clarinho),
+   não amarelo — só o resto da linha (conta + meses) fica amarelo. */
+.fin-dre-tabela tfoot td.fin-dre-col-tot-foot {
+  background: #cdf3d9 !important; color: #1a5c30; font-weight: 700;
+}
 .fin-dre-tabela tfoot td.fin-dre-col-med-foot {
-  background: var(--fin-yellow) !important; color: #3d2800; font-weight: 700;
+  background: #d6ecfb !important; color: #1e3a5f; font-weight: 700;
 }
 
 /* ── Linhas de evolução anual: Acumulado 2024/2025 + % de evolução.
