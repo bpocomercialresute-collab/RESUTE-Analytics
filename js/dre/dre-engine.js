@@ -51,7 +51,6 @@ const DRE = (() => {
     { tipo:'grupo',      nome:'CUSTO. MP OU REVENDA',    sinal:'-' },
     { tipo:'grupo',      nome:'DESP. TRIBUTÁRIA',        sinal:'-' },
     { tipo:'grupo',      nome:'DESP. FINANCEIRA',        sinal:'-' },
-    { tipo:'resultado',  nome:'DESP. FIXA',              chave:'despFixa' },
     { tipo:'grupo',      nome:'DESP. LOGÍSTICA',         sinal:'-' },
     { tipo:'grupo',      nome:'DESP. COMERCIAL',         sinal:'-' },
     // ── Investimentos ─────────────────────────────────────────────
