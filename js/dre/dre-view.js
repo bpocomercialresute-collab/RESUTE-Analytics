@@ -369,7 +369,18 @@ async function _dreSalvarTabela(tabela, empresaId, registros) {
       },
       body: JSON.stringify(lote)
     });
-    if (!resposta.ok) throw new Error('Falha ao gravar o lote ' + (i / DRE_SALVAR_LOTE + 1) + ' (HTTP ' + resposta.status + ').');
+    if (!resposta.ok) {
+      var detalhe = '';
+      try {
+        var corpo = await resposta.text();
+        var json = JSON.parse(corpo);
+        detalhe = json.message || json.msg || json.error_description || json.erro || corpo;
+      } catch (e) {}
+      throw new Error(
+        'Falha ao gravar o lote ' + (i / DRE_SALVAR_LOTE + 1) + ' (HTTP ' + resposta.status + ')'
+        + (detalhe ? ':\n' + String(detalhe).slice(0, 300) : '.')
+      );
+    }
     enviados += lote.length;
   }
   return enviados;
@@ -409,13 +420,39 @@ function _dreParseNum(v) {
 }
 
 /**
- * Converte datas BR (DD/MM/AAAA) para ISO (AAAA-MM-DD).
- * Formato ISO já passa sem alteração. Outros formatos passam como estão.
+ * Converte datas BR (D/M/AAAA ou DD/MM/AAAA) para ISO (AAAA-MM-DD), aceita
+ * ISO já pronto e serial de data do Excel (dias desde 1899-12-30).
+ * Qualquer formato não reconhecido vira null — nunca manda string inválida
+ * pro Postgres (era a causa do "Falha ao gravar o lote N (HTTP 400)").
  */
 function _dreNormalizarData(v) {
-  if (!v) return v || null;
-  var m = String(v).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  return m ? (m[3] + '-' + m[2] + '-' + m[1]) : String(v);
+  if (v === '' || v == null) return null;
+  var s = String(v).trim();
+  if (!s) return null;
+
+  var br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (br) {
+    var dd = ('0' + br[1]).slice(-2), mm = ('0' + br[2]).slice(-2);
+    if (mm < '01' || mm > '12' || dd < '01' || dd > '31') return null;
+    return br[3] + '-' + mm + '-' + dd;
+  }
+
+  var iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (iso) {
+    var imm = ('0' + iso[2]).slice(-2), idd = ('0' + iso[3]).slice(-2);
+    return iso[1] + '-' + imm + '-' + idd;
+  }
+
+  // Serial de data do Excel (ex.: 43466 = 01/01/2019), sem parte decimal de hora.
+  if (/^\d{4,6}$/.test(s)) {
+    var serial = Number(s);
+    if (serial > 15000 && serial < 90000) {
+      var d = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
+      return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2);
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -452,6 +489,9 @@ function _dreNormalizarDatasRegistro(r) {
   ['dt_caixa', 'dt_venc', 'dt_pag', 'dt_custoria'].forEach(function(k) {
     if (out[k]) out[k] = _dreNormalizarData(out[k]);
   });
+  // DT_VENC ilegível vira null pela normalização acima — cai de volta pro
+  // DT_CAIXA (já validado) em vez de deixar a coluna vazia/inválida.
+  if (!out.dt_venc) out.dt_venc = out.dt_caixa;
   return out;
 }
 
@@ -516,11 +556,33 @@ function _dreLigarSalvarGrades(empresaId) {
       _dreStatusGrade('fin-dre-status-bd', 'Salvando...', '');
       try {
         // Normaliza datas BR (DD/MM/AAAA → AAAA-MM-DD) antes de enviar ao banco.
+        // Linha cuja DT_CAIXA não vira uma data válida é descartada aqui — mandar
+        // string inválida pro Postgres é o que gerava "Falha ao gravar o lote N".
+        var descartadas = 0;
         var lotes = registros.map(function(r) {
           return _dreNormalizarDatasRegistro(Object.assign({}, r, { empresa_id: empresaId }));
+        }).filter(function(r) {
+          if (r.dt_caixa) return true;
+          descartadas++;
+          return false;
         });
+
+        if (!lotes.length) {
+          alert('Nenhuma linha tem DT_CAIXA em formato de data válido (DD/MM/AAAA ou AAAA-MM-DD).\n\nVerifique a coluna DT_CAIXA e tente novamente.');
+          _dreStatusGrade('fin-dre-status-bd', '', '');
+          return;
+        }
+        if (descartadas > 0 && !window.confirm(
+          descartadas + ' de ' + registros.length + ' linha(s) têm DT_CAIXA em formato inválido e serão IGNORADAS.\n\n' +
+          'Deseja continuar salvando as outras ' + lotes.length + ' linha(s)?'
+        )) {
+          _dreStatusGrade('fin-dre-status-bd', '', '');
+          return;
+        }
+
         var enviados = await _dreSalvarTabela('fin_dre_lancamentos', empresaId, lotes);
-        _dreStatusGrade('fin-dre-status-bd', '✓ ' + enviados.toLocaleString('pt-BR') + ' lançamento(s) salvo(s).', 'ok');
+        _dreStatusGrade('fin-dre-status-bd', '✓ ' + enviados.toLocaleString('pt-BR') + ' lançamento(s) salvo(s).'
+          + (descartadas ? ' (' + descartadas + ' ignorado(s) por data inválida)' : ''), 'ok');
       } catch (e) {
         console.error('[DRE] Falha ao salvar BD:', e);
         alert('Falha ao salvar BD:\n' + e.message);
@@ -734,14 +796,14 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
     {t:'DT_PAG',             w:100, auto:false},
     {t:'CONTA',              w:200, auto:false},
     {t:'TIPO',               w:80,  auto:false},
-    {t:'VALOR',              w:90,  auto:false},
-    {t:'TOT_PAGO',           w:90,  auto:false},
+    {t:'VALOR',              w:90,  auto:false, num:true},
+    {t:'TOT_PAGO',           w:90,  auto:false, num:true},
     {t:'FORNECEDOR CLIENTE', w:170, auto:false},
     {t:'N_DOC',              w:100, auto:false},
     {t:'BANCO',              w:90,  auto:false},
     {t:'FORMA',              w:90,  auto:false},
-    {t:'PARCELA',            w:75,  auto:false},
-    {t:'TOT_PARCELAS',       w:105, auto:false},
+    {t:'PARCELA',            w:75,  auto:false, num:true},
+    {t:'TOT_PARCELAS',       w:105, auto:false, num:true},
     {t:'OBS',                w:150, auto:false},
     {t:'CNPJ',               w:140, auto:false},
     {t:'DT CUSTORIA',        w:110, auto:false},
@@ -780,23 +842,23 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
     {t:'ANO',    w:60,  auto:false},
     {t:'CODIGO', w:80,  auto:false},
     {t:'CONTA',  w:200, auto:false},
-    {t:'Jan',    w:80,  auto:false},
-    {t:'Fev',    w:80,  auto:false},
-    {t:'Mar',    w:80,  auto:false},
-    {t:'Abr',    w:80,  auto:false},
-    {t:'Mai',    w:80,  auto:false},
-    {t:'Jun',    w:80,  auto:false},
-    {t:'Jul',    w:80,  auto:false},
-    {t:'Ago',    w:80,  auto:false},
-    {t:'Set',    w:80,  auto:false},
-    {t:'Out',    w:80,  auto:false},
-    {t:'Nov',    w:80,  auto:false},
-    {t:'Dez',    w:80,  auto:false},
+    {t:'Jan',    w:80,  auto:false, num:true},
+    {t:'Fev',    w:80,  auto:false, num:true},
+    {t:'Mar',    w:80,  auto:false, num:true},
+    {t:'Abr',    w:80,  auto:false, num:true},
+    {t:'Mai',    w:80,  auto:false, num:true},
+    {t:'Jun',    w:80,  auto:false, num:true},
+    {t:'Jul',    w:80,  auto:false, num:true},
+    {t:'Ago',    w:80,  auto:false, num:true},
+    {t:'Set',    w:80,  auto:false, num:true},
+    {t:'Out',    w:80,  auto:false, num:true},
+    {t:'Nov',    w:80,  auto:false, num:true},
+    {t:'Dez',    w:80,  auto:false, num:true},
     {t:'CAD',    w:50,  auto:true},
     {t:'GRUPO',  w:180, auto:true},
-    {t:'TOTAL',  w:100, auto:false},
-    {t:'MED',    w:80,  auto:false},
-    {t:'%',      w:70,  auto:false},
+    {t:'TOTAL',  w:100, auto:false, num:true},
+    {t:'MED',    w:80,  auto:false, num:true},
+    {t:'%',      w:70,  auto:false, num:true},
     {t:'s_e',    w:50,  auto:false}
   ]};
 

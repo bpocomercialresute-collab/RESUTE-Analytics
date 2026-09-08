@@ -100,7 +100,7 @@ LiteGrid.prototype._build = function() {
   // 2. Cabeçalho da tabela
   var thead = '<thead><tr><th class="lg-rn" style="width:42px;min-width:42px;max-width:42px">ID</th>';
   def.cols.forEach(function(c,i){
-    thead += '<th class="'+(c.auto?'lg-auto':'')+'" style="width:'+c.w+'px;min-width:'+c.w+'px"'
+    thead += '<th class="'+(c.auto?'lg-auto':(c.num?'lg-num':''))+'" style="width:'+c.w+'px;min-width:'+c.w+'px"'
            + ' onclick="lgSortCol(\''+self.key+'\','+i+',this)">'
            + c.t
            + '<span class="col-filter-btn" data-col="'+i+'" data-key="'+self.key+'"'
@@ -592,7 +592,9 @@ LiteGrid.prototype._render = function() {
     var r = rows[ri] || [];
     html += '<tr><td class="lg-rn" style="width:42px;min-width:42px;max-width:42px">'+(from+ri+1)+'</td>';
     for (var ci = 0; ci < def.cols.length; ci++) {
-      html += def.cols[ci].auto ? '<td class="lg-auto"></td>' : '<td></td>';
+      var c = def.cols[ci];
+      var cls = c.auto ? 'lg-auto' : (c.num ? 'lg-num' : '');
+      html += cls ? '<td class="'+cls+'"></td>' : '<td></td>';
     }
     html += '</tr>';
   }

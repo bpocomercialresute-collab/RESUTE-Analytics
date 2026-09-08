@@ -316,6 +316,9 @@ html, body {
 }
 .lg-table tbody td.lg-rn { position:sticky; left:0; z-index:2; background:#0a0f1a; color:#475569; font-size:10px; text-align:center; border-right:2px solid var(--blue-100); }
 .lg-table tbody td.lg-auto { background:#1a0505; color:#f87171; }
+.lg-table tbody td.lg-num { text-align:right; font-variant-numeric:tabular-nums; }
+.lg-table thead th.lg-num { text-align:right; }
+.lg-input-row td.lg-num input { text-align:right; }
 .lg-table tbody tr:nth-child(even) td { background:#111827; }
 .lg-table tbody tr:nth-child(even) td.lg-auto { background:#1f0707; }
 .lg-table tbody tr:hover td { background:#1e2d45 !important; }
