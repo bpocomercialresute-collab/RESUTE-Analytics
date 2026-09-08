@@ -818,9 +818,9 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
     {t:'VENC',               w:80,  auto:true},
     {t:'SEMANA_ANO',         w:100, auto:true},
     {t:'ULTIMO_DIA_DO_MES',  w:140, auto:true},
-    {t:'CNPJ_2',             w:140, auto:true},
-    {t:'safra',              w:70,  auto:true},
-    {t:'CICLO',              w:70,  auto:true}
+    {t:'CNPJ_2',             w:140, auto:false},
+    {t:'safra',              w:70,  auto:false},
+    {t:'CICLO',              w:70,  auto:false}
   ]};
   if (!GRID_DEFS['dre_plano']) {
     GRID_DEFS['dre_plano'] = { cols: [
@@ -1289,7 +1289,7 @@ function _dreAtualizarTodosTogles(gridPlano) {
   }
 }
 
-/** Recalcula colunas auto (S_E, GRUPO, STATUS, DIA, MÊS, DIA_SEM, ANO, VENC, SEMANA_ANO, ULTIMO_DIA_DO_MES, CNPJ_2, safra, CICLO) na grade BD. */
+/** Recalcula colunas auto (S_E, GRUPO, STATUS, DIA, MÊS, DIA_SEM, ANO, VENC, SEMANA_ANO, ULTIMO_DIA_DO_MES) na grade BD. CNPJ_2, safra e CICLO são manuais — não mexe. */
 function _dreAtualizarDerivadasBD(gridBD) {
   var SE_MAP   = DRE.SE_POR_GRUPO;
   var MESES    = DRE.MESES;
@@ -1324,7 +1324,6 @@ function _dreAtualizarDerivadasBD(gridBD) {
     r[22] = ok ? (MESES[d.getUTCMonth()] || '')      : '';  // MÊS
     r[21] = ok ? d.getUTCDate()                       : '';  // DIA
     r[23] = ok ? (DIAS_SEM[d.getUTCDay()] || '')     : '';  // DIA_SEM
-    r[29] = ok ? d.getUTCFullYear()                  : '';  // safra
 
     // SEMANA_ANO
     if (ok) {
@@ -1349,12 +1348,6 @@ function _dreAtualizarDerivadasBD(gridBD) {
 
     // 20: STATUS - DT_PAG = índice 3
     r[20] = r[4] ? (r[3] ? 'PG' : 'N') : '';
-
-    // 28: CNPJ_2 - copia CNPJ (índice 15)
-    r[28] = r[15] || '';
-
-    // 30: CICLO - dias entre DT_CAIXA e DT_VENC
-    r[30] = (ok && okv) ? Math.round((dv - d) / 86400000) : '';
   }
   gridBD._render();
 }
