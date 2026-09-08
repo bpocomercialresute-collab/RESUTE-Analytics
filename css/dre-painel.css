@@ -437,7 +437,7 @@ td.fin-dre-col-med { background: #d6ecfb !important; font-weight: 700; }
 
 /* ── Bloco extracontábil (FATURAMENTO / VALOR PRODUZIDO) ── */
 .fin-dre-bloco.fin-dre-paralelo { border-style: dashed; }
-.fin-dre-bloco.fin-dre-paralelo thead th { background: #3d4a5c; }
+.fin-dre-bloco.fin-dre-paralelo thead th { background: #3d4a5c; color: #fff; }
 .fin-dre-bloco.fin-dre-paralelo thead th.fin-dre-col-tot { background: #5a6a7e; }
 .fin-dre-bloco.fin-dre-paralelo .fin-dre-val-saida { color: var(--fin-ink); }
 
