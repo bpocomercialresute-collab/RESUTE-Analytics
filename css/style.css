@@ -310,9 +310,10 @@ html, body {
 .lg-table thead th.lg-auto { background:#991b1b !important; color:#fecaca !important; border-bottom-color:#dc2626 !important; }
 .lg-table thead th.lg-input-row { background:var(--blue-50) !important; }
 .lg-table tbody td {
-  padding:5px 12px; background:#0d1117; color:#cbd5e1;
+  height:28px; padding:5px 12px; background:#0d1117; color:#cbd5e1;
   border-right:1px solid var(--border); border-bottom:1px solid var(--border);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px;
+  line-height:18px; box-sizing:border-box;
 }
 .lg-table tbody td.lg-rn { position:sticky; left:0; z-index:2; background:#0a0f1a; color:#475569; font-size:10px; text-align:center; border-right:2px solid var(--blue-100); }
 .lg-table tbody td.lg-auto { background:#1a0505; color:#f87171; }
