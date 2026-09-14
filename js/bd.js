@@ -189,7 +189,7 @@ function relPainelProdutoHtml() {
   const itens = opcoes.map(v => {
     const marcado = pendente.includes(v);
     return '<label class="rel-multi-item">'
-      + '<input type="checkbox" ' + (marcado ? 'checked' : '') + ' onchange="relToggleProdutoItemPendente(' + JSON.stringify(v) + ', this.checked)">'
+      + '<input type="checkbox" data-produto="' + relEsc(v) + '" ' + (marcado ? 'checked' : '') + ' onchange="relToggleProdutoItemPendente(this.dataset.produto, this.checked)">'
       + '<span>' + relEsc((v || '').toUpperCase()) + '</span>'
       + '</label>';
   }).join('') || '<div class="rel-multi-empty">Nenhum produto encontrado</div>';
