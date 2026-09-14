@@ -3398,6 +3398,105 @@ function _dcXmlEsc(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// ── EXPORTAR CLIENTES POR UF ─────────────────────────────────────────────────
+// Le a grade CLIENTES (aba BD & Cadastros), filtra por UF e baixa um .xls
+// organizado. Le a grade carregada no navegador — nao acessa o banco direto.
+var UF_NOMES = {
+  AC:'Acre', AL:'Alagoas', AP:'Amapá', AM:'Amazonas', BA:'Bahia', CE:'Ceará',
+  DF:'Distrito Federal', ES:'Espírito Santo', GO:'Goiás', MA:'Maranhão',
+  MT:'Mato Grosso', MS:'Mato Grosso do Sul', MG:'Minas Gerais', PA:'Pará',
+  PB:'Paraíba', PR:'Paraná', PE:'Pernambuco', PI:'Piauí', RJ:'Rio de Janeiro',
+  RN:'Rio Grande do Norte', RS:'Rio Grande do Sul', RO:'Rondônia', RR:'Roraima',
+  SC:'Santa Catarina', SP:'São Paulo', SE:'Sergipe', TO:'Tocantins'
+};
+
+function dcExportarClientesPorUF(ufSigla) {
+  var sigla = String(ufSigla || '').trim().toUpperCase();
+  var nomeCompleto = (UF_NOMES[sigla] || '').toUpperCase();
+
+  var data = (window.GRID_DATA_STORE && window.GRID_DATA_STORE.clientes)
+    || ((window.GRIDS && window.GRIDS.clientes)
+      ? window.GRIDS.clientes.getData().filter(function(r) { return r && r.some(function(c) { return c !== ''; }); })
+      : []);
+
+  if (!data.length) {
+    alert('Nenhum dado de clientes carregado.\n\nAbra BD & Cadastros → aba Clientes, cole/carregue os dados e tente de novo.');
+    return;
+  }
+
+  var filtrados = data.filter(function(r) {
+    var uf = String(r[7] || '').trim().toUpperCase();
+    return uf === sigla || (nomeCompleto && uf === nomeCompleto);
+  });
+
+  if (!filtrados.length) {
+    alert('Nenhum cliente encontrado com UF = ' + sigla + ' (' + (UF_NOMES[sigla] || sigla) + ').');
+    return;
+  }
+
+  filtrados.sort(function(a, b) {
+    return String(a[2] || '').localeCompare(String(b[2] || ''), 'pt-BR');
+  });
+
+  var headers = ['#', 'CLIENTE', 'CNPJ/CPF', 'TIPO', 'CIDADE', 'BAIRRO', 'UF', 'TELEFONE', 'E-MAIL', 'FANTASIA', 'VENDEDOR', 'ZONA DE VENDA'];
+  var linhas = filtrados.map(function(r, i) {
+    return [
+      i + 1,
+      String(r[2] || '').trim(),
+      String(r[4] || '').trim(),
+      String(r[3] || '').trim(),
+      String(r[6] || '').trim(),
+      String(r[8] || '').trim(),
+      String(r[7] || '').trim().toUpperCase(),
+      String(r[9] || '').trim(),
+      String(r[10] || '').trim(),
+      String(r[11] || '').trim(),
+      String(r[12] || '').trim(),
+      String(r[13] || '').trim()
+    ];
+  });
+
+  var xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    + '<?mso-application progid="Excel.Sheet"?>\n'
+    + '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n'
+    + ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n'
+    + '<Styles>\n'
+    + '  <Style ss:ID="header"><Font ss:Bold="1" ss:Size="11" ss:Color="#FFFFFF"/><Interior ss:Color="#1C64C0" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center"/></Style>\n'
+    + '  <Style ss:ID="txt"><Alignment ss:Horizontal="Left"/></Style>\n'
+    + '  <Style ss:ID="num"><NumberFormat ss:Format="0"/><Alignment ss:Horizontal="Right"/></Style>\n'
+    + '  <Style ss:ID="fone"><NumberFormat ss:Format="@"/><Alignment ss:Horizontal="Left"/></Style>\n'
+    + '</Styles>\n'
+    + '<Worksheet ss:Name="Clientes ' + sigla + '">\n'
+    + '<Table>\n'
+    + '<Column ss:Width="35"/><Column ss:Width="240"/><Column ss:Width="120"/><Column ss:Width="90"/>'
+    + '<Column ss:Width="140"/><Column ss:Width="140"/><Column ss:Width="40"/><Column ss:Width="120"/>'
+    + '<Column ss:Width="180"/><Column ss:Width="180"/><Column ss:Width="140"/><Column ss:Width="140"/>\n';
+
+  function linhaXml(cells, isHeader) {
+    var out = '<Row>';
+    cells.forEach(function(cell, ci) {
+      if (isHeader) {
+        out += '<Cell ss:StyleID="header"><Data ss:Type="String">' + _dcXmlEsc(cell) + '</Data></Cell>';
+      } else if (ci === 0) {
+        out += '<Cell ss:StyleID="num"><Data ss:Type="Number">' + (parseInt(cell, 10) || 0) + '</Data></Cell>';
+      } else if (ci === 7) {
+        out += '<Cell ss:StyleID="fone"><Data ss:Type="String">' + _dcXmlEsc(cell) + '</Data></Cell>';
+      } else {
+        out += '<Cell ss:StyleID="txt"><Data ss:Type="String">' + _dcXmlEsc(cell) + '</Data></Cell>';
+      }
+    });
+    return out + '</Row>\n';
+  }
+
+  xml += linhaXml(headers, true);
+  linhas.forEach(function(row) { xml += linhaXml(row, false); });
+  xml += '</Table></Worksheet></Workbook>';
+
+  var blob = new Blob(['﻿' + xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  var dataStr = new Date().toISOString().slice(0, 10);
+  _downloadBlob(blob, 'clientes-' + sigla.toLowerCase() + '-' + dataStr + '.xls');
+}
+
 function dcStatus(msg, ok) {
   var el = document.getElementById('dc-status');
   var texto = String(msg || '');
