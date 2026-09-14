@@ -112,36 +112,57 @@ function relFiltroSelect(campo, label) {
 }
 
 // ── FILTRO MULTI-SELEÇÃO DE PRODUTO ─────────────────────────────────────────
-// Dropdown com busca + checkbox por produto. Estado (aberto/busca) fica em
-// globais pra sobreviver ao re-render completo do painel a cada clique.
+// Dropdown com busca + checkbox por produto. Marcar/desmarcar NÃO filtra a
+// tabela na hora (senão cada clique refaz o relatório inteiro — trava e fica
+// "piscando"). A seleção fica pendente até clicar em Aplicar; só aí a tabela
+// é re-renderizada, uma única vez, e o painel fecha.
 
-function relToggleProdutoDropdown(ev) {
+function relAbrirProdutoDropdown(ev) {
   if (ev) ev.stopPropagation();
-  window.REL_PRODUTO_MULTI_OPEN = !window.REL_PRODUTO_MULTI_OPEN;
+  window.REL_PRODUTO_MULTI_PENDENTE = (Array.isArray(window.REL_FILTER.produto) ? window.REL_FILTER.produto : []).slice();
+  window.REL_PRODUTO_MULTI_BUSCA = '';
+  window.REL_PRODUTO_MULTI_OPEN = true;
   relRenderAtual();
-  if (window.REL_PRODUTO_MULTI_OPEN) {
-    setTimeout(function() {
-      var el = document.querySelector('.rel-multi-busca');
-      if (el) el.focus();
-    }, 0);
-  }
+  setTimeout(function() {
+    var el = document.querySelector('.rel-multi-busca');
+    if (el) el.focus();
+  }, 0);
+}
+
+function relFecharProdutoDropdown() {
+  window.REL_PRODUTO_MULTI_OPEN = false;
+  relRenderAtual();
+}
+
+function relAplicarProdutoDropdown() {
+  window.REL_FILTER.produto = (window.REL_PRODUTO_MULTI_PENDENTE || []).slice();
+  window.REL_PRODUTO_MULTI_OPEN = false;
+  relRenderAtual();
+}
+
+// Só regenera o painel (busca/checkbox/contagem) — nunca a tabela inteira.
+function relAtualizarPainelProduto() {
+  var painel = document.getElementById('rel-produto-panel');
+  if (!painel) return;
+  painel.outerHTML = relPainelProdutoHtml();
+  var contagem = document.getElementById('rel-produto-contagem-pendente');
+  if (contagem) contagem.textContent = (window.REL_PRODUTO_MULTI_PENDENTE || []).length + ' marcado(s)';
 }
 
 function relBuscarProdutoItem(valor) {
   window.REL_PRODUTO_MULTI_BUSCA = valor;
-  relRenderAtual();
-  setTimeout(function() {
-    var el = document.querySelector('.rel-multi-busca');
-    if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
-  }, 0);
+  relAtualizarPainelProduto();
+  var el = document.querySelector('.rel-multi-busca');
+  if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
 }
 
-function relToggleProdutoItem(valor) {
-  var arr = Array.isArray(window.REL_FILTER.produto) ? window.REL_FILTER.produto.slice() : [];
+function relToggleProdutoItemPendente(valor, checked) {
+  var arr = window.REL_PRODUTO_MULTI_PENDENTE || [];
   var i = arr.indexOf(valor);
-  if (i === -1) arr.push(valor); else arr.splice(i, 1);
-  window.REL_FILTER.produto = arr;
-  relRenderAtual();
+  if (checked && i === -1) arr.push(valor);
+  else if (!checked && i !== -1) arr.splice(i, 1);
+  var contagem = document.getElementById('rel-produto-contagem-pendente');
+  if (contagem) contagem.textContent = arr.length + ' marcado(s)';
 }
 
 function relProdutoOpcoesVisiveis() {
@@ -151,54 +172,67 @@ function relProdutoOpcoesVisiveis() {
 }
 
 function relSelecionarTodosProduto() {
-  window.REL_FILTER.produto = relProdutoOpcoesVisiveis().slice();
-  relRenderAtual();
+  const visiveis = relProdutoOpcoesVisiveis();
+  const pend = window.REL_PRODUTO_MULTI_PENDENTE || (window.REL_PRODUTO_MULTI_PENDENTE = []);
+  visiveis.forEach(v => { if (!pend.includes(v)) pend.push(v); });
+  relAtualizarPainelProduto();
 }
 
 function relLimparProduto() {
-  window.REL_FILTER.produto = [];
-  relRenderAtual();
+  window.REL_PRODUTO_MULTI_PENDENTE = [];
+  relAtualizarPainelProduto();
 }
 
-function relFiltroProdutoMulti() {
-  const selecionados = Array.isArray(window.REL_FILTER.produto) ? window.REL_FILTER.produto : [];
+function relPainelProdutoHtml() {
+  const pendente = window.REL_PRODUTO_MULTI_PENDENTE || [];
   const opcoes = relProdutoOpcoesVisiveis();
-  const label = !selecionados.length
-    ? 'Todos'
-    : selecionados.length + ' selecionado' + (selecionados.length > 1 ? 's' : '');
-
   const itens = opcoes.map(v => {
-    const marcado = selecionados.includes(v);
+    const marcado = pendente.includes(v);
     return '<label class="rel-multi-item">'
-      + '<input type="checkbox" ' + (marcado ? 'checked' : '') + ' onchange="relToggleProdutoItem(' + JSON.stringify(v) + ')">'
+      + '<input type="checkbox" ' + (marcado ? 'checked' : '') + ' onchange="relToggleProdutoItemPendente(' + JSON.stringify(v) + ', this.checked)">'
       + '<span>' + relEsc((v || '').toUpperCase()) + '</span>'
       + '</label>';
   }).join('') || '<div class="rel-multi-empty">Nenhum produto encontrado</div>';
 
+  return '<div class="rel-multi-panel" id="rel-produto-panel"' + (window.REL_PRODUTO_MULTI_OPEN ? '' : ' hidden') + '>'
+    +   '<input type="text" class="rel-multi-busca" placeholder="Buscar produto..." value="' + relEsc(window.REL_PRODUTO_MULTI_BUSCA || '') + '"'
+    +     ' oninput="relBuscarProdutoItem(this.value)" onclick="event.stopPropagation()">'
+    +   '<div class="rel-multi-actions">'
+    +     '<button type="button" onclick="relSelecionarTodosProduto()">Marcar todos</button>'
+    +     '<button type="button" onclick="relLimparProduto()">Limpar</button>'
+    +   '</div>'
+    +   '<div class="rel-multi-lista">' + itens + '</div>'
+    +   '<div class="rel-multi-footer">'
+    +     '<span id="rel-produto-contagem-pendente">' + pendente.length + ' marcado(s)</span>'
+    +     '<div class="rel-multi-footer-btns">'
+    +       '<button type="button" class="rel-multi-cancelar" onclick="relFecharProdutoDropdown()">Cancelar</button>'
+    +       '<button type="button" class="rel-multi-aplicar" onclick="relAplicarProdutoDropdown()">Aplicar</button>'
+    +     '</div>'
+    +   '</div>'
+    + '</div>';
+}
+
+function relFiltroProdutoMulti() {
+  const selecionados = Array.isArray(window.REL_FILTER.produto) ? window.REL_FILTER.produto : [];
+  const label = !selecionados.length
+    ? 'Todos'
+    : selecionados.length + ' selecionado' + (selecionados.length > 1 ? 's' : '');
+
   return '<div class="rep-filter-field rel-multi-field">'
     + '<span>Produto</span>'
     + '<div class="rel-multi-wrap">'
-    +   '<button type="button" class="rel-multi-btn' + (selecionados.length ? ' ativo' : '') + '" onclick="relToggleProdutoDropdown(event)">'
+    +   '<button type="button" class="rel-multi-btn' + (selecionados.length ? ' ativo' : '') + '" onclick="relAbrirProdutoDropdown(event)">'
     +     '<span class="rel-multi-btn-label">' + relEsc(label) + '</span>'
     +     '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>'
     +   '</button>'
-    +   '<div class="rel-multi-panel" id="rel-produto-panel"' + (window.REL_PRODUTO_MULTI_OPEN ? '' : ' hidden') + '>'
-    +     '<input type="text" class="rel-multi-busca" placeholder="Buscar produto..." value="' + relEsc(window.REL_PRODUTO_MULTI_BUSCA || '') + '"'
-    +       ' oninput="relBuscarProdutoItem(this.value)" onclick="event.stopPropagation()">'
-    +     '<div class="rel-multi-actions">'
-    +       '<button type="button" onclick="relSelecionarTodosProduto()">Marcar todos</button>'
-    +       '<button type="button" onclick="relLimparProduto()">Limpar</button>'
-    +     '</div>'
-    +     '<div class="rel-multi-lista">' + itens + '</div>'
-    +   '</div>'
+    +   (window.REL_PRODUTO_MULTI_OPEN ? relPainelProdutoHtml() : '')
     + '</div>'
     + '</div>';
 }
 
 document.addEventListener('click', function(e) {
   if (window.REL_PRODUTO_MULTI_OPEN && !e.target.closest('.rel-multi-wrap')) {
-    window.REL_PRODUTO_MULTI_OPEN = false;
-    relRenderAtual();
+    relFecharProdutoDropdown();
   }
 });
 

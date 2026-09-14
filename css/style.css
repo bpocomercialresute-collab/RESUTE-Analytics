@@ -777,6 +777,20 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 .rel-multi-item input { flex: 0 0 auto; accent-color: #1C64C0; cursor: pointer; }
 .rel-multi-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rel-multi-empty { padding: 10px 6px; font-size: 10.5px; color: #7d91af; text-align: center; }
+.rel-multi-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding-top: 6px; border-top: 1px solid rgba(96,165,250,.15);
+}
+.rel-multi-footer span { font-size: 10px; color: #7d91af; font-weight: 700; }
+.rel-multi-footer-btns { display: flex; gap: 6px; }
+.rel-multi-footer-btns button {
+  height: 26px; border-radius: 6px; padding: 0 10px; font: inherit; font-size: 10.5px; font-weight: 800;
+  cursor: pointer; border: 1px solid rgba(96,165,250,.2);
+}
+.rel-multi-cancelar { background: #101f36; color: #93c5fd; }
+.rel-multi-cancelar:hover { background: #1a2c47; }
+.rel-multi-aplicar { background: #1C64C0; color: #fff; border-color: #1C64C0; }
+.rel-multi-aplicar:hover { background: #1550a0; }
 
 .rel-kpi-strip {
   display: flex;
@@ -5555,6 +5569,10 @@ textarea:focus {
 .rel-multi-item { color: #0E1424 !important; }
 .rel-multi-item:hover { background: rgba(28,100,192,.08) !important; }
 .rel-multi-empty { color: #5A7A74 !important; }
+.rel-multi-footer { border-top-color: #EAEAEB !important; }
+.rel-multi-footer span { color: #5A7A74 !important; }
+.rel-multi-cancelar { background: #F5F7FA !important; color: #2F3848 !important; border-color: #EAEAEB !important; }
+.rel-multi-aplicar { background: #1C64C0 !important; color: #fff !important; border-color: #1C64C0 !important; }
 
 .rep-filter-field select:focus,
 .laudo-select:focus,
