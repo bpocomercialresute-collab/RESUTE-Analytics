@@ -32,8 +32,13 @@ MES_NOME.forEach((m,i) => { MES_IDX[m]=i; MES_IDX[String(i+1).padStart(2,'0')]=i
 
 // ── ESTADO DO FILTRO DO LAUDO_GRUPO ──────────────────────────────────────────
 window.LG = { tipo:'', grupo:'', subgrupo:'' };
-window.REL_FILTER = window.REL_FILTER || { vendedor:'', produto:'', cliente:'', grupo:'', marca:'' };
+window.REL_FILTER = window.REL_FILTER || { vendedor:'', produto:[], cliente:'', grupo:'', marca:'' };
 window.REL_VENDA_PRODUTO_MODO = window.REL_VENDA_PRODUTO_MODO || 'detalhado';
+
+// Estado do dropdown de multi-seleção de produtos (mantido fora do REL_FILTER
+// porque não é um valor de filtro em si, só a UI do seletor).
+window.REL_PRODUTO_MULTI_OPEN  = window.REL_PRODUTO_MULTI_OPEN  || false;
+window.REL_PRODUTO_MULTI_BUSCA = window.REL_PRODUTO_MULTI_BUSCA || '';
 
 function lgSetFiltro(campo, val) {
   window.LG[campo] = val;
@@ -63,9 +68,10 @@ function relBaseRows() {
 
 function relRows() {
   const f = window.REL_FILTER || {};
+  const produtos = Array.isArray(f.produto) ? f.produto : (f.produto ? [f.produto] : []);
   return relBaseRows().filter(r => {
     if (f.vendedor && g(r,'vendedor') !== f.vendedor) return false;
-    if (f.produto && g(r,'produto') !== f.produto) return false;
+    if (produtos.length && !produtos.includes(g(r,'produto'))) return false;
     if (f.cliente && g(r,'cliente') !== f.cliente) return false;
     if (f.grupo && (g(r,'grupo') || g(r,'grupoProd')) !== f.grupo) return false;
     if (f.marca && g(r,'marca') !== f.marca) return false;
@@ -91,7 +97,9 @@ function relSetFiltro(campo, valor) {
 }
 
 function relLimparFiltros() {
-  window.REL_FILTER = { vendedor:'', produto:'', cliente:'', grupo:'', marca:'' };
+  window.REL_FILTER = { vendedor:'', produto:[], cliente:'', grupo:'', marca:'' };
+  window.REL_PRODUTO_MULTI_OPEN = false;
+  window.REL_PRODUTO_MULTI_BUSCA = '';
   relRenderAtual();
 }
 
@@ -103,13 +111,104 @@ function relFiltroSelect(campo, label) {
   </select></label>`;
 }
 
+// ── FILTRO MULTI-SELEÇÃO DE PRODUTO ─────────────────────────────────────────
+// Dropdown com busca + checkbox por produto. Estado (aberto/busca) fica em
+// globais pra sobreviver ao re-render completo do painel a cada clique.
+
+function relToggleProdutoDropdown(ev) {
+  if (ev) ev.stopPropagation();
+  window.REL_PRODUTO_MULTI_OPEN = !window.REL_PRODUTO_MULTI_OPEN;
+  relRenderAtual();
+  if (window.REL_PRODUTO_MULTI_OPEN) {
+    setTimeout(function() {
+      var el = document.querySelector('.rel-multi-busca');
+      if (el) el.focus();
+    }, 0);
+  }
+}
+
+function relBuscarProdutoItem(valor) {
+  window.REL_PRODUTO_MULTI_BUSCA = valor;
+  relRenderAtual();
+  setTimeout(function() {
+    var el = document.querySelector('.rel-multi-busca');
+    if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  }, 0);
+}
+
+function relToggleProdutoItem(valor) {
+  var arr = Array.isArray(window.REL_FILTER.produto) ? window.REL_FILTER.produto.slice() : [];
+  var i = arr.indexOf(valor);
+  if (i === -1) arr.push(valor); else arr.splice(i, 1);
+  window.REL_FILTER.produto = arr;
+  relRenderAtual();
+}
+
+function relProdutoOpcoesVisiveis() {
+  const busca = (window.REL_PRODUTO_MULTI_BUSCA || '').toLowerCase();
+  const todos = relUnique('produto');
+  return busca ? todos.filter(v => v.toLowerCase().includes(busca)) : todos;
+}
+
+function relSelecionarTodosProduto() {
+  window.REL_FILTER.produto = relProdutoOpcoesVisiveis().slice();
+  relRenderAtual();
+}
+
+function relLimparProduto() {
+  window.REL_FILTER.produto = [];
+  relRenderAtual();
+}
+
+function relFiltroProdutoMulti() {
+  const selecionados = Array.isArray(window.REL_FILTER.produto) ? window.REL_FILTER.produto : [];
+  const opcoes = relProdutoOpcoesVisiveis();
+  const label = !selecionados.length
+    ? 'Todos'
+    : selecionados.length + ' selecionado' + (selecionados.length > 1 ? 's' : '');
+
+  const itens = opcoes.map(v => {
+    const marcado = selecionados.includes(v);
+    return '<label class="rel-multi-item">'
+      + '<input type="checkbox" ' + (marcado ? 'checked' : '') + ' onchange="relToggleProdutoItem(' + JSON.stringify(v) + ')">'
+      + '<span>' + relEsc((v || '').toUpperCase()) + '</span>'
+      + '</label>';
+  }).join('') || '<div class="rel-multi-empty">Nenhum produto encontrado</div>';
+
+  return '<div class="rep-filter-field rel-multi-field">'
+    + '<span>Produto</span>'
+    + '<div class="rel-multi-wrap">'
+    +   '<button type="button" class="rel-multi-btn' + (selecionados.length ? ' ativo' : '') + '" onclick="relToggleProdutoDropdown(event)">'
+    +     '<span class="rel-multi-btn-label">' + relEsc(label) + '</span>'
+    +     '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>'
+    +   '</button>'
+    +   '<div class="rel-multi-panel" id="rel-produto-panel"' + (window.REL_PRODUTO_MULTI_OPEN ? '' : ' hidden') + '>'
+    +     '<input type="text" class="rel-multi-busca" placeholder="Buscar produto..." value="' + relEsc(window.REL_PRODUTO_MULTI_BUSCA || '') + '"'
+    +       ' oninput="relBuscarProdutoItem(this.value)" onclick="event.stopPropagation()">'
+    +     '<div class="rel-multi-actions">'
+    +       '<button type="button" onclick="relSelecionarTodosProduto()">Marcar todos</button>'
+    +       '<button type="button" onclick="relLimparProduto()">Limpar</button>'
+    +     '</div>'
+    +     '<div class="rel-multi-lista">' + itens + '</div>'
+    +   '</div>'
+    + '</div>'
+    + '</div>';
+}
+
+document.addEventListener('click', function(e) {
+  if (window.REL_PRODUTO_MULTI_OPEN && !e.target.closest('.rel-multi-wrap')) {
+    window.REL_PRODUTO_MULTI_OPEN = false;
+    relRenderAtual();
+  }
+});
+
 function relFiltroHtml() {
   const filtrados = relRows().length;
   const total = relBaseRows().length;
   return `<div class="rep-filterbar">
     <div class="rep-filter-grid rel-filter-grid">
       ${relFiltroSelect('vendedor','Vendedor')}
-      ${relFiltroSelect('produto','Produto')}
+      ${relFiltroProdutoMulti()}
       ${relFiltroSelect('cliente','Cliente')}
       ${relFiltroSelect('grupo','Grupo')}
       ${relFiltroSelect('marca','Marca')}
