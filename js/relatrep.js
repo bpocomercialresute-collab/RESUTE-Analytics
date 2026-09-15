@@ -1173,7 +1173,7 @@ function repRoletaFormatarItem(v) {
 }
 
 function repRoletaConicGradient(itens) {
-  const paleta = ['#14746F', '#2DD4BF', '#059669', '#0D4F4F', '#D97706', '#7C3AED', '#DC2626', '#0A2F2F'];
+  const paleta = ['#1C64C0', '#2DD4BF', '#059669', '#475569', '#D97706', '#7C3AED', '#DC2626', '#0E1424'];
   const n = Math.max(1, itens.length);
   const ang = 360 / n;
   return itens.map((_, i) => {
@@ -1275,7 +1275,7 @@ function repRoletaHtml() {
       </div>
       <div class="premio-roleta-stage">
         <div class="premio-roleta-pointer"></div>
-        <div class="premio-roleta-wheel" id="rep-roleta-wheel" style="transform: rotate(${Number(estado.angulo || 0)}deg); ${itens.length ? `background: conic-gradient(${repRoletaConicGradient(itens)});` : 'background: radial-gradient(circle at center, #14746F, #0A2F2F);'}">
+        <div class="premio-roleta-wheel" id="rep-roleta-wheel" style="transform: rotate(${Number(estado.angulo || 0)}deg); ${itens.length ? `background: conic-gradient(${repRoletaConicGradient(itens)});` : 'background: radial-gradient(circle at center, #1C64C0, #0E1424);'}">
           ${labels || '<span class="roleta-empty">Adicione produtos para liberar a roleta.</span>'}
           <div class="premio-roleta-center" id="rep-roleta-center" style="transform: translate(-50%, -50%) rotate(${-Number(estado.angulo || 0)}deg);">
             <span class="premio-roleta-center-pulse"></span>
@@ -1419,7 +1419,7 @@ function repRoletaApresentacaoConteudoHtml() {
       <div class="premio-roleta-presentation-kicker">SORTEIO RESUTE</div>
       <div class="premio-roleta-presentation-stage">
         <div class="premio-roleta-pointer premio-roleta-pointer-lg"></div>
-        <div class="premio-roleta-wheel premio-roleta-wheel-lg" id="rep-roleta-wheel-live" style="transform: rotate(${anguloAtual}deg); ${itens.length ? `background: conic-gradient(${repRoletaConicGradient(itens)});` : 'background: radial-gradient(circle at center, #14746F, #0A2F2F);'}">
+        <div class="premio-roleta-wheel premio-roleta-wheel-lg" id="rep-roleta-wheel-live" style="transform: rotate(${anguloAtual}deg); ${itens.length ? `background: conic-gradient(${repRoletaConicGradient(itens)});` : 'background: radial-gradient(circle at center, #1C64C0, #0E1424);'}">
           ${labels || '<span class="roleta-empty">Adicione produtos na roleta para comecar.</span>'}
           <div class="premio-roleta-center premio-roleta-center-lg" id="rep-roleta-center-live" style="transform: translate(-50%, -50%) rotate(${-anguloAtual}deg);">
             <span class="premio-roleta-center-pulse"></span>
@@ -1740,7 +1740,7 @@ function repMensalSpark(values) {
     const y = Math.round(height - ((v / max) * (height - 4)) - 2);
     return `${x},${y}`;
   }).join(' ');
-  return `<svg class="rep-mensal-spark" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${points}" fill="none" stroke="#14746F" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>`;
+  return `<svg class="rep-mensal-spark" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${points}" fill="none" stroke="#1C64C0" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>`;
 }
 
 function _repMensalDropdownAberto() {
@@ -2647,16 +2647,16 @@ function repRenderPremiacaoCharts(geral, porFat) {
     type: 'bar',
     data: {
       labels: geral.slice(0,8).map(r=>r.nome.length>18?r.nome.slice(0,18)+'...':r.nome),
-      datasets: [{ data: geral.slice(0,8).map(r=>Number(r.score.toFixed(1))), backgroundColor:'#14746F', borderRadius:8 }]
+      datasets: [{ data: geral.slice(0,8).map(r=>Number(r.score.toFixed(1))), backgroundColor:'#1C64C0', borderRadius:8 }]
     },
-    options: { responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#5A7A74'},grid:{color:'#D5EDE8'}},y:{ticks:{color:'#5A7A74'},grid:{display:false}}} }
+    options: { responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#5A7A74'},grid:{color:'#EAEAEB'}},y:{ticks:{color:'#5A7A74'},grid:{display:false}}} }
   });
   const fatCtx = document.getElementById('rep-premio-fat');
   if (fatCtx) new Chart(fatCtx, {
     type: 'doughnut',
     data: {
       labels: porFat.slice(0,6).map(r=>r.nome),
-      datasets: [{ data: porFat.slice(0,6).map(r=>r.fat), backgroundColor:['#14746F','#2DD4BF','#059669','#0D4F4F','#D97706','#7C3AED'], borderWidth:0 }]
+      datasets: [{ data: porFat.slice(0,6).map(r=>r.fat), backgroundColor:['#1C64C0','#2DD4BF','#059669','#475569','#D97706','#7C3AED'], borderWidth:0 }]
     },
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right', labels:{color:'#5A7A74', boxWidth:10, font:{size:10}}}} }
   });
@@ -2900,7 +2900,7 @@ function repPremiacaoRenderCrescimentoCharts(dados) {
   });
 
   const labels = dados.meses.map(m => m.short);
-  const cores = ['#14746F', '#2DD4BF', '#059669'];
+  const cores = ['#1C64C0', '#2DD4BF', '#059669', '#D97706', '#7C3AED'];
 
   const fatCtx = document.getElementById('rep-premio-growth-fat');
   if (fatCtx) new Chart(fatCtx, {
@@ -2923,7 +2923,7 @@ function repPremiacaoRenderCrescimentoCharts(dados) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: '#cbd5e1', boxWidth: 10 } },
+        legend: { labels: { color: '#5A7A74', boxWidth: 10 } },
         tooltip: {
           callbacks: {
             label: function(ctx) { return `${ctx.dataset.label}: ${fmtValor(ctx.parsed.y || 0)}`; }
@@ -2931,13 +2931,13 @@ function repPremiacaoRenderCrescimentoCharts(dados) {
         }
       },
       scales: {
-        x: { ticks: { color: '#8ea3c0' }, grid: { color: 'rgba(255,255,255,.05)' } },
+        x: { ticks: { color: '#5A7A74' }, grid: { color: '#EAEAEB' } },
         y: {
           ticks: {
-            color: '#8ea3c0',
+            color: '#5A7A74',
             callback: function(v) { return fmtValor(v); }
           },
-          grid: { color: 'rgba(255,255,255,.05)' }
+          grid: { color: '#EAEAEB' }
         }
       }
     }
@@ -2959,7 +2959,7 @@ function repPremiacaoRenderCrescimentoCharts(dados) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: '#cbd5e1', boxWidth: 10 } },
+        legend: { labels: { color: '#5A7A74', boxWidth: 10 } },
         tooltip: {
           callbacks: {
             label: function(ctx) { return `${ctx.dataset.label}: ${Number(ctx.parsed.y || 0).toFixed(1)}%`; }
@@ -2967,13 +2967,13 @@ function repPremiacaoRenderCrescimentoCharts(dados) {
         }
       },
       scales: {
-        x: { ticks: { color: '#8ea3c0' }, grid: { display: false } },
+        x: { ticks: { color: '#5A7A74' }, grid: { display: false } },
         y: {
           ticks: {
-            color: '#8ea3c0',
+            color: '#5A7A74',
             callback: function(v) { return `${v}%`; }
           },
-          grid: { color: 'rgba(255,255,255,.05)' }
+          grid: { color: '#EAEAEB' }
         }
       }
     }

@@ -484,7 +484,8 @@ function relRenderTab(tabId) {
     'av-rel-venda-produto': bdUpdateVendaProduto,
     'av-rel-laudo-grupo': bdUpdateLaudoGrupo,
     'av-rel-laudo-ano': bdUpdateLaudoGruposAno,
-    'av-rel-laudo-ano02': bdUpdateLaudoGruposAno02
+    'av-rel-laudo-ano02': bdUpdateLaudoGruposAno02,
+    'av-rel-laudo-marca': bdUpdateLaudoMarca
   };
   if (map[tabId]) {
     try { map[tabId](); } catch (e) { console.warn(tabId, e); }
@@ -858,7 +859,8 @@ function bdUpdateVendaProduto() {
     const v  = metrica(r);
     const gr = g(r,'grupo');
     if (!p || mi < 0) return;
-    var marcaFinal = (produtoOriginal || '').toUpperCase().indexOf('PLASTRIO') >= 0 ? 'PLASTRIO' : 'VARREMASTER';
+    var marcaCadastro = g(r,'marca');
+    var marcaFinal = marcaCadastro || ((produtoOriginal || '').toUpperCase().indexOf('PLASTRIO') >= 0 ? 'PLASTRIO' : '');
     var nomeLimpo = p.replace(/\s*PLASTRIO\s*/gi, ' ').replace(/\s{2,}/g, ' ').trim();
     if (!pivot.has(nomeLimpo)) pivot.set(nomeLimpo, {meses:Array(12).fill(0), total:0, grupo:gr, marca:marcaFinal, label:nomeLimpo});
     pivot.get(nomeLimpo).meses[mi] += v;
@@ -922,7 +924,7 @@ function bdUpdateVendaProduto() {
     const pct    = totalGeral > 0 ? ((d.total/totalGeral)*100).toFixed(1) : '0.0';
     const nomeProduto = (d.label || p || '').toUpperCase();
     html += `<tr>
-      <td><span class="rel-prod-name">${nomeProduto}</span></td><td>${(d.grupo || 'Sem grupo').toUpperCase()}</td><td>${d.marca || 'VARREMASTER'}</td>
+      <td><span class="rel-prod-name">${nomeProduto}</span></td><td>${(d.grupo || 'Sem grupo').toUpperCase()}</td><td>${d.marca || '—'}</td>
       ${d.meses.map(v=>`<td>${fmtMetrica(v)}</td>`).join('')}
       <td>${fmtMetrica(media)}</td>
       <td><strong>${fmtMetricaFull(d.total)}</strong></td>
@@ -967,7 +969,7 @@ function bdUpdateLaudoGrupo() {
   }
 
   const titulo = window.LG.grupo || 'TODOS OS GRUPOS';
-  const CORES  = ['#14746F','#2DD4BF','#059669','#D97706','#7C3AED','#0D4F4F'];
+  const CORES  = ['#1C64C0','#2DD4BF','#059669','#D97706','#7C3AED','#475569'];
   const anosColors = Object.fromEntries(anos.map((a,i)=>[a, CORES[i%CORES.length]]));
 
   // Pivot mês × ano
@@ -1140,8 +1142,8 @@ function lgRenderCharts(anos, pivotMesAno, anosColors) {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { labels: { color:'#0A2F2F', font:{size:11} } } },
         scales: {
-          x: { ticks:{color:'#5A7A74'}, grid:{color:'#D5EDE8'} },
-          y: { ticks:{color:'#5A7A74'}, grid:{color:'#D5EDE8'} }
+          x: { ticks:{color:'#5A7A74'}, grid:{color:'#EAEAEB'} },
+          y: { ticks:{color:'#5A7A74'}, grid:{color:'#EAEAEB'} }
         }
       }
     });
@@ -1166,8 +1168,8 @@ function lgRenderCharts(anos, pivotMesAno, anosColors) {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { labels: { color:'#0A2F2F', font:{size:11} } } },
         scales: {
-          x: { ticks:{color:'#5A7A74'}, grid:{color:'#D5EDE8'} },
-          y: { ticks:{color:'#5A7A74'}, grid:{color:'#D5EDE8'} }
+          x: { ticks:{color:'#5A7A74'}, grid:{color:'#EAEAEB'} },
+          y: { ticks:{color:'#5A7A74'}, grid:{color:'#EAEAEB'} }
         }
       }
     });
@@ -1257,7 +1259,7 @@ function bdUpdateLaudoGruposAno() {
   anos.forEach(a => { totAno[a] = grupos.reduce((s,gr) => s + pivot[gr][a].reduce((s2,v)=>s2+v,0), 0); });
   const totGeral = Object.values(totAno).reduce((s,v)=>s+v,0);
 
-  const CORES = ['#14746F','#2DD4BF','#059669','#D97706','#7C3AED','#0D4F4F'];
+  const CORES = ['#1C64C0','#2DD4BF','#059669','#D97706','#7C3AED','#475569'];
 
   let html = `<div class="rel-header-bar">
     ${toggleBtnHtml()}

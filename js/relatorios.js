@@ -462,16 +462,9 @@ function avShowRel(tipo) {
   _show('av-rel-area');
   _setBreadcrumb('Relat. Produtos');
 
-  // Gera todos os relatórios se tiver dados
-  if (false && typeof BD_DATA !== 'undefined' && BD_DATA.rows && BD_DATA.rows.length > 0) {
-    try { if (typeof bdUpdateCadastroInsights === 'function') bdUpdateCadastroInsights(); } catch(e){ console.error(e); }
-    try { if (typeof bdUpdateVendaProduto    === 'function') bdUpdateVendaProduto(); }    catch(e){ console.error(e); }
-    try { if (typeof bdUpdateLaudoGrupo      === 'function') bdUpdateLaudoGrupo(); }      catch(e){ console.error(e); }
-    try { if (typeof bdUpdateLaudoMarca      === 'function') bdUpdateLaudoMarca(); }      catch(e){ console.error(e); }
-    try { if (typeof bdUpdateLaudoGruposAno  === 'function') bdUpdateLaudoGruposAno(); }  catch(e){ console.error(e); }
-    try { if (typeof bdUpdateLaudoGruposAno02=== 'function') bdUpdateLaudoGruposAno02();} catch(e){ console.error(e); }
-  } else {
-    // Sem dados — mostra aviso em cada painel
+  // Sem dados ainda — mostra aviso em cada painel (relRenderTab preenche de verdade
+  // mais abaixo quando a aba correta é ativada e BD_DATA já tem linhas).
+  if (typeof BD_DATA === 'undefined' || !BD_DATA.rows || !BD_DATA.rows.length) {
     var msg = '<div class="rel-sem-dados">'
       + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="40" height="40"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
       + '<p>Nenhum dado carregado</p>'
