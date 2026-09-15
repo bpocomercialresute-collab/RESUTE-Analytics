@@ -372,50 +372,16 @@ const REP_PREMIACAO_CAMPANHAS = [
     criterio: 'Crescimento mínimo de 30% sobre 2025',
     itens: ['Viagem para Caldas Novas + hotel casal c/ café + vale combustível'],
     filtro: 'ano'
-  },
-  {
-    id: 'ranking-mensal-a',
-    badge: '6º prêmio',
-    titulo: 'Prêmio Ranking Mensal',
-    subtitulo: 'Faixa de valor',
-    criterio: 'R$ de pedidos faturados e entregues',
-    itens: ['5 a 10 mil: R$ 25,00', '11 a 15 mil: R$ 50,00', '20 a 30 mil: R$ 100,00', '31 a 50 mil: R$ 150,00'],
-    filtro: 'mes'
-  },
-  {
-    id: 'ranking-mensal-b',
-    badge: '6º prêmio',
-    titulo: 'Prêmio Ranking Mensal',
-    subtitulo: 'Faixa de valor',
-    criterio: 'R$ de pedidos faturados e entregues',
-    itens: ['51 a 75 mil: R$ 100,00 + kit Churrasco', '76 a 100 mil: R$ 150,00 + Prêmio Secreto', '101 a 125 mil: R$ 200,00 + Restaurante Casal', '126 a 150 mil: R$ 250,00 + Passeio Turístico'],
-    filtro: 'mes'
   }
 ];
 
 function repPremiacaoCampanhasLista() {
-  const rankingA = REP_PREMIACAO_CAMPANHAS.find(c => c.id === 'ranking-mensal-a');
-  const rankingB = REP_PREMIACAO_CAMPANHAS.find(c => c.id === 'ranking-mensal-b');
-  const base = REP_PREMIACAO_CAMPANHAS.filter(c => c.id !== 'ranking-mensal-a' && c.id !== 'ranking-mensal-b');
-  if (rankingA) {
-    base.push({
-      id: 'ranking-mensal',
-      badge: rankingA.badge,
-      titulo: rankingA.titulo,
-      subtitulo: rankingA.subtitulo,
-      criterio: rankingA.criterio,
-      itens: [...(rankingA.itens || []), ...(rankingB?.itens || [])],
-      filtro: rankingA.filtro
-    });
-  }
-  return base;
+  return REP_PREMIACAO_CAMPANHAS;
 }
 
 function repPremiacaoCampanhaAtual() {
   const atual = String(window.REP_PREMIACAO_CAMPANHA || '').trim();
-  const normalizado = (atual === 'ranking-mensal-a' || atual === 'ranking-mensal-b') ? 'ranking-mensal' : atual;
-  if (normalizado !== atual) window.REP_PREMIACAO_CAMPANHA = normalizado;
-  return repPremiacaoCampanhasLista().find(c => c.id === normalizado) || repPremiacaoCampanhasLista()[0];
+  return repPremiacaoCampanhasLista().find(c => c.id === atual) || repPremiacaoCampanhasLista()[0];
 }
 
 function repPremiacaoSetCampanha(id) {
