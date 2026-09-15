@@ -4,7 +4,9 @@
 // =============================================================================
 
 let REP_MODO = 'valor'; // 'valor' ou 'qtd'
-window.REP_FILTER = window.REP_FILTER || { vendedor:'', produto:'', cliente:'', grupo:'' };
+window.REP_FILTER = window.REP_FILTER || { vendedor:'', produto:[], cliente:'', grupo:'', marca:'' };
+window.REP_PRODUTO_MULTI_OPEN  = window.REP_PRODUTO_MULTI_OPEN  || false;
+window.REP_PRODUTO_MULTI_BUSCA = window.REP_PRODUTO_MULTI_BUSCA || '';
 window.REP_PREMIACAO_MODO = window.REP_PREMIACAO_MODO || 'geral';
 window.REP_PREMIACAO_FIXA = window.REP_PREMIACAO_FIXA || [
   'ANDERSON DE LESSA COSTA',
@@ -1580,11 +1582,13 @@ function repBaseRows() {
 
 function repDataRows() {
   const f = window.REP_FILTER || {};
+  const produtos = Array.isArray(f.produto) ? f.produto : (f.produto ? [f.produto] : []);
   return repBaseRows().filter(r => {
     if (f.vendedor && String(r[IDX.vendedor]||'').trim() !== f.vendedor) return false;
-    if (f.produto && String(r[IDX.produto]||'').trim() !== f.produto) return false;
+    if (produtos.length && !produtos.includes(String(r[IDX.produto]||'').trim())) return false;
     if (f.cliente && String(r[IDX.cliente]||'').trim() !== f.cliente) return false;
     if (f.grupo && String(g(r,'grupo') || g(r,'grupoProd')).trim() !== f.grupo) return false;
+    if (f.marca && String(g(r,'marca')||'').trim() !== f.marca) return false;
     return true;
   });
 }
@@ -1595,6 +1599,7 @@ function repUnique(campo) {
     if (campo === 'produto') return String(r[IDX.produto]||'').trim();
     if (campo === 'cliente') return String(r[IDX.cliente]||'').trim();
     if (campo === 'grupo') return String(g(r,'grupo') || g(r,'grupoProd')).trim();
+    if (campo === 'marca') return String(g(r,'marca')||'').trim();
     return '';
   }).filter(Boolean);
   return [...new Set(vals)].sort((a,b)=>a.localeCompare(b));
@@ -1606,7 +1611,9 @@ function repSetFiltro(campo, valor) {
 }
 
 function repLimparFiltros() {
-  window.REP_FILTER = { vendedor:'', produto:'', cliente:'', grupo:'' };
+  window.REP_FILTER = { vendedor:'', produto:[], cliente:'', grupo:'', marca:'' };
+  window.REP_PRODUTO_MULTI_OPEN = false;
+  window.REP_PRODUTO_MULTI_BUSCA = '';
   repUpdateAll();
 }
 
@@ -1618,15 +1625,135 @@ function repSelectFiltro(campo, label) {
   </select></label>`;
 }
 
+// ── FILTRO MULTI-SELEÇÃO DE PRODUTO (mesmo padrão da aba Produtos) ─────────
+function repAbrirProdutoDropdown(ev) {
+  if (ev) ev.stopPropagation();
+  window.REP_PRODUTO_MULTI_PENDENTE = (Array.isArray(window.REP_FILTER.produto) ? window.REP_FILTER.produto : []).slice();
+  window.REP_PRODUTO_MULTI_BUSCA = '';
+  window.REP_PRODUTO_MULTI_OPEN = true;
+  repUpdateAll();
+  setTimeout(function() {
+    var el = document.querySelector('.rep-multi-busca');
+    if (el) el.focus();
+  }, 0);
+}
+
+function repFecharProdutoDropdown() {
+  window.REP_PRODUTO_MULTI_OPEN = false;
+  repUpdateAll();
+}
+
+function repAplicarProdutoDropdown() {
+  window.REP_FILTER.produto = (window.REP_PRODUTO_MULTI_PENDENTE || []).slice();
+  window.REP_PRODUTO_MULTI_OPEN = false;
+  repUpdateAll();
+}
+
+function repAtualizarPainelProduto() {
+  var painel = document.getElementById('rep-produto-panel');
+  if (!painel) return;
+  painel.outerHTML = repPainelProdutoHtml();
+  var contagem = document.getElementById('rep-produto-contagem-pendente');
+  if (contagem) contagem.textContent = (window.REP_PRODUTO_MULTI_PENDENTE || []).length + ' marcado(s)';
+}
+
+function repBuscarProdutoItem(valor) {
+  window.REP_PRODUTO_MULTI_BUSCA = valor;
+  repAtualizarPainelProduto();
+  var el = document.querySelector('.rep-multi-busca');
+  if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+}
+
+function repToggleProdutoItemPendente(valor, checked) {
+  var arr = window.REP_PRODUTO_MULTI_PENDENTE || [];
+  var i = arr.indexOf(valor);
+  if (checked && i === -1) arr.push(valor);
+  else if (!checked && i !== -1) arr.splice(i, 1);
+  var contagem = document.getElementById('rep-produto-contagem-pendente');
+  if (contagem) contagem.textContent = arr.length + ' marcado(s)';
+}
+
+function repProdutoOpcoesVisiveis() {
+  const busca = (window.REP_PRODUTO_MULTI_BUSCA || '').toLowerCase();
+  const todos = repUnique('produto');
+  return busca ? todos.filter(v => v.toLowerCase().includes(busca)) : todos;
+}
+
+function repSelecionarTodosProduto() {
+  const visiveis = repProdutoOpcoesVisiveis();
+  const pend = window.REP_PRODUTO_MULTI_PENDENTE || (window.REP_PRODUTO_MULTI_PENDENTE = []);
+  visiveis.forEach(v => { if (!pend.includes(v)) pend.push(v); });
+  repAtualizarPainelProduto();
+}
+
+function repLimparProduto() {
+  window.REP_PRODUTO_MULTI_PENDENTE = [];
+  repAtualizarPainelProduto();
+}
+
+function repPainelProdutoHtml() {
+  const pendente = window.REP_PRODUTO_MULTI_PENDENTE || [];
+  const opcoes = repProdutoOpcoesVisiveis();
+  const itens = opcoes.map(v => {
+    const marcado = pendente.includes(v);
+    return '<label class="rel-multi-item">'
+      + '<input type="checkbox" data-produto="' + repEsc(v) + '" ' + (marcado ? 'checked' : '') + ' onchange="repToggleProdutoItemPendente(this.dataset.produto, this.checked)">'
+      + '<span>' + repEsc((v || '').toUpperCase()) + '</span>'
+      + '</label>';
+  }).join('') || '<div class="rel-multi-empty">Nenhum produto encontrado</div>';
+
+  return '<div class="rel-multi-panel" id="rep-produto-panel"' + (window.REP_PRODUTO_MULTI_OPEN ? '' : ' hidden') + '>'
+    +   '<input type="text" class="rel-multi-busca rep-multi-busca" placeholder="Buscar produto..." value="' + repEsc(window.REP_PRODUTO_MULTI_BUSCA || '') + '"'
+    +     ' oninput="repBuscarProdutoItem(this.value)" onclick="event.stopPropagation()">'
+    +   '<div class="rel-multi-actions">'
+    +     '<button type="button" onclick="repSelecionarTodosProduto()">Marcar todos</button>'
+    +     '<button type="button" onclick="repLimparProduto()">Limpar</button>'
+    +   '</div>'
+    +   '<div class="rel-multi-lista">' + itens + '</div>'
+    +   '<div class="rel-multi-footer">'
+    +     '<span id="rep-produto-contagem-pendente">' + pendente.length + ' marcado(s)</span>'
+    +     '<div class="rel-multi-footer-btns">'
+    +       '<button type="button" class="rel-multi-cancelar" onclick="repFecharProdutoDropdown()">Cancelar</button>'
+    +       '<button type="button" class="rel-multi-aplicar" onclick="repAplicarProdutoDropdown()">Aplicar</button>'
+    +     '</div>'
+    +   '</div>'
+    + '</div>';
+}
+
+function repFiltroProdutoMulti() {
+  const selecionados = Array.isArray(window.REP_FILTER.produto) ? window.REP_FILTER.produto : [];
+  const label = !selecionados.length
+    ? 'Todos'
+    : selecionados.length + ' selecionado' + (selecionados.length > 1 ? 's' : '');
+
+  return '<div class="rep-filter-field rel-multi-field">'
+    + '<span>Produto</span>'
+    + '<div class="rel-multi-wrap">'
+    +   '<button type="button" class="rel-multi-btn' + (selecionados.length ? ' ativo' : '') + '" onclick="repAbrirProdutoDropdown(event)">'
+    +     '<span class="rel-multi-btn-label">' + repEsc(label) + '</span>'
+    +     '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>'
+    +   '</button>'
+    +   (window.REP_PRODUTO_MULTI_OPEN ? repPainelProdutoHtml() : '')
+    + '</div>'
+    + '</div>';
+}
+
+document.addEventListener('click', function(e) {
+  if (window.REP_PRODUTO_MULTI_OPEN && !e.target.closest('.rel-multi-wrap')) {
+    repFecharProdutoDropdown();
+  }
+});
+
 function repFilterHtml() {
   const filtrados = repDataRows().length;
   const total = repBaseRows().length;
   return `<div class="rep-filterbar">
     <div class="rep-filter-grid">
       ${repSelectFiltro('vendedor','Vendedor')}
-      ${repSelectFiltro('produto','Produto')}
+      ${repFiltroProdutoMulti()}
       ${repSelectFiltro('cliente','Cliente')}
       ${repSelectFiltro('grupo','Grupo')}
+      ${repSelectFiltro('marca','Marca')}
     </div>
     <button class="rep-clear-filter" onclick="repLimparFiltros()">Limpar filtros</button>
     <span class="rep-filter-count">${filtrados.toLocaleString('pt-BR')} de ${total.toLocaleString('pt-BR')} registros</span>
@@ -1863,14 +1990,14 @@ function repUpdateAll() {
     garantirAbaPremiacaoRepresentantes();
   }
   if (!BD_DATA || !BD_DATA.rows.length) {
-    ['mix','positiv','semano','sem','meta','dia','cresc','mensal','premiacao'].forEach(k => {
+    ['mix','positiv','sem','meta','dia','cresc','mensal','premiacao'].forEach(k => {
       const el = document.getElementById('rep-tab-'+k);
       if (el) el.innerHTML = '<div class="av-rel-placeholder"><p>Sem dados</p><span>Cole dados no BD e clique em Processar</span></div>';
     });
     return;
   }
   if (!repDataRows().length) {
-    ['mix','positiv','semano','sem','meta','dia','cresc','premiacao'].forEach(k => {
+    ['mix','positiv','sem','meta','dia','cresc','premiacao'].forEach(k => {
       const el = document.getElementById('rep-tab-'+k);
       if (el) el.innerHTML = `<div class="rel-header-bar">${repToggleHtml()}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
     });
@@ -1879,7 +2006,6 @@ function repUpdateAll() {
   }
   repMix();
   repPositiv();
-  repSemAno();
   repSem();
   repMeta();
   repDia();

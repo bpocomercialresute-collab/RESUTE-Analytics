@@ -236,16 +236,17 @@ document.addEventListener('click', function(e) {
   }
 });
 
-function relFiltroHtml() {
+function relFiltroHtml(ocultarCampos) {
+  const ocultar = new Set(ocultarCampos || []);
   const filtrados = relRows().length;
   const total = relBaseRows().length;
   return `<div class="rep-filterbar">
     <div class="rep-filter-grid rel-filter-grid">
-      ${relFiltroSelect('vendedor','Vendedor')}
-      ${relFiltroProdutoMulti()}
-      ${relFiltroSelect('cliente','Cliente')}
-      ${relFiltroSelect('grupo','Grupo')}
-      ${relFiltroSelect('marca','Marca')}
+      ${ocultar.has('vendedor') ? '' : relFiltroSelect('vendedor','Vendedor')}
+      ${ocultar.has('produto') ? '' : relFiltroProdutoMulti()}
+      ${ocultar.has('cliente') ? '' : relFiltroSelect('cliente','Cliente')}
+      ${ocultar.has('grupo') ? '' : relFiltroSelect('grupo','Grupo')}
+      ${ocultar.has('marca') ? '' : relFiltroSelect('marca','Marca')}
     </div>
     <button class="rep-clear-filter" onclick="relLimparFiltros()">Limpar filtros</button>
     <span class="rep-filter-count">${filtrados.toLocaleString('pt-BR')} de ${total.toLocaleString('pt-BR')} registros</span>
@@ -708,13 +709,13 @@ function bdUpdateProdutoServico() {
 
 // ── RELATÓRIOS ────────────────────────────────────────────────────────────────
 // ── BOTÃO TOGGLE QTD/VALOR (HTML reutilizável) ───────────────────────────────
-function toggleBtnHtml() {
+function toggleBtnHtml(ocultarCampos) {
   return `<div class="rep-report-tools">
     <div class="rel-toggle">
       <button class="rel-toggle-btn ${window.RELATORIO_MODO==='valor'?'active':''}" onclick="toggleModo('valor')">VALOR</button>
       <button class="rel-toggle-btn ${window.RELATORIO_MODO==='qtd'?'active':''}" onclick="toggleModo('qtd')">QTD</button>
     </div>
-    ${relFiltroHtml()}
+    ${relFiltroHtml(ocultarCampos)}
   </div>`;
 }
 
@@ -997,7 +998,7 @@ function bdUpdateLaudoGrupo() {
 
   pane.innerHTML = `
     <div class="rel-header-bar">
-      ${toggleBtnHtml()}
+      ${toggleBtnHtml(['grupo'])}
       <div class="laudo-filtros">
         <div class="laudo-filtro-item">
           <label>TIPO</label>
