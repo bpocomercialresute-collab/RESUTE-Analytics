@@ -369,7 +369,7 @@ const REP_PREMIACAO_CAMPANHAS = [
     badge: '5º prêmio',
     titulo: 'Prêmio Anual',
     subtitulo: 'Maior média mensal de quantidade',
-    criterio: 'Crescimento mínimo de 30% sobre 2025',
+    criterio: 'Crescimento mínimo de 30% sobre o ano anterior',
     itens: ['Viagem para Caldas Novas + hotel casal c/ café + vale combustível'],
     filtro: 'ano'
   }
