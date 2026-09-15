@@ -326,20 +326,29 @@ function _dreNomeEmpresa() {
  * Roda depois do DRE.init, que escreve em #fin-empresa.
  */
 function _dreAplicarHeader() {
-  // O botao aparece para todo super_admin, nao so no preview: quando ele abre o
-  // DRE pelo menu do console, e a unica saida da tela — o painel ocupa o viewport
-  // inteiro e esconde a sidebar.
-  var ehSuperAdmin = !!(typeof SESSION !== 'undefined' && SESSION
-    && SESSION.papel === 'super_admin');
+  // O botao aparece pra super_admin e pra admin da empresa: quando abrem o
+  // DRE, e a unica saida da tela — o painel ocupa o viewport inteiro e
+  // esconde a sidebar.
+  var papel = (typeof SESSION !== 'undefined' && SESSION) ? SESSION.papel : null;
+  var ehSuperAdmin = papel === 'super_admin';
+  var ehAdmin = papel === 'admin';
 
   var voltar = document.getElementById('fin-admin-back');
   if (voltar) {
-    voltar.style.display = ehSuperAdmin ? 'inline-flex' : 'none';
-    voltar.onclick = dreVoltarAoAdmin;
+    voltar.style.display = (ehSuperAdmin || ehAdmin) ? 'inline-flex' : 'none';
+    voltar.onclick = ehSuperAdmin ? dreVoltarAoAdmin : dreVoltarFerramentasAdmin;
   }
 
   var selo = document.getElementById('fin-admin-preview-badge');
   if (selo) selo.classList.toggle('visivel', DRE_ADMIN_PREVIEW);
+}
+
+/** Fecha o DRE e volta pra tela de Ferramentas (entrada do admin da empresa). */
+function dreVoltarFerramentasAdmin() {
+  if (typeof SESSION === 'undefined' || !SESSION || SESSION.papel !== 'admin') return;
+  dreDestruir();
+  if (typeof MODULO_ATIVO !== 'undefined') MODULO_ATIVO = null;
+  if (typeof switchView === 'function') switchView('view-tools');
 }
 
 // ── SALVAR NO BANCO (botões das abas Plano de Contas e BD) ───────────────────

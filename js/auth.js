@@ -216,6 +216,33 @@ function abrirAnaliseVendas() {
   abrirSeletorEmpresasCliente();
 }
 
+/**
+ * Abre o painel DRE (BD, Plano de Contas, Salvar no banco) direto pra
+ * empresa do admin logado — mesma tela do super_admin, sem preview nem
+ * seletor de empresa (_dreResolverEmpresaId cai pra SESSION.empresa_id).
+ * super_admin sem empresa escolhida continua vendo o seletor de sempre.
+ */
+function abrirDREAdmin() {
+  SESSION = _readStoredSession();
+  if (!SESSION || !SESSION.token) {
+    _mostrarLogin();
+    return;
+  }
+  if (typeof MODULO_ATIVO !== 'undefined' && MODULO_ATIVO && MODULO_ATIVO !== 'dre') {
+    if (typeof _fecharModulo === 'function') _fecharModulo(MODULO_ATIVO);
+  }
+  if (typeof MODULO_ATIVO !== 'undefined') MODULO_ATIVO = 'dre';
+  if (typeof dreAbrir === 'function') dreAbrir({});
+}
+
+/** Mostra/esconde o card "Financeiro (DRE)" em Ferramentas conforme o modulo contratado. */
+function _atualizarCardFinanceiroFerramentas() {
+  var card = document.getElementById('tool-card-financeiro');
+  if (!card) return;
+  var liberado = (typeof temModulo === 'function') ? temModulo('financeiro') : false;
+  card.style.display = liberado ? '' : 'none';
+}
+
 /** Abre o painel do cliente no módulo contratado (comercial e/ou financeiro). */
 function _abrirModuloPadrao(empresaIdPreview) {
   if (typeof abrirModulo === 'function' && typeof moduloPadrao === 'function') {
@@ -628,6 +655,7 @@ function fazerLogout() {
 
 function _abrirApp() {
   _touchSession();
+  if (typeof _atualizarCardFinanceiroFerramentas === 'function') _atualizarCardFinanceiroFerramentas();
   if (typeof dreFechar === 'function') dreFechar();
   ['view-dash-cliente', 'view-dash-financeiro', 'view-dash-dre'].forEach(function(id) {
     var el = document.getElementById(id);
