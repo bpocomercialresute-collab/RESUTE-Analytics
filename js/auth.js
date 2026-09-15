@@ -921,8 +921,8 @@ async function carregarDadosDoSupabase(empresa_id) {
 
 // ── SALVAR DADOS MANUAIS NO SUPABASE ─────────────────────────────────────────
 async function salvarDadosManuaisNoSupabase(silent) {
-  if (!SESSION || SESSION.papel !== 'super_admin') {
-    alert('Apenas super_admin pode salvar dados manualmente.');
+  if (!SESSION || (SESSION.papel !== 'super_admin' && SESSION.papel !== 'admin')) {
+    alert('Apenas super_admin ou admin da empresa pode salvar dados manualmente.');
     return;
   }
   var sel = document.getElementById('sync-empresa-select');

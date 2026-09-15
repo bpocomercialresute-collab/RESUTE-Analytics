@@ -365,8 +365,8 @@ function assertAuthorized(appUser, targetUrl, method, body) {
       throw new Error('Acesso negado para esta empresa.');
     }
 
-    if (isWrite && appUser.papel !== 'super_admin') {
-      throw new Error('Apenas super_admin pode alterar vendas.');
+    if (isWrite && appUser.papel !== 'super_admin' && appUser.papel !== 'admin') {
+      throw new Error('Apenas super_admin ou admin da empresa pode alterar vendas.');
     }
     return;
   }
@@ -446,14 +446,17 @@ function assertAuthorized(appUser, targetUrl, method, body) {
     targetUrl.pathname === '/rest/v1/representantes' ||
     targetUrl.pathname === '/rest/v1/grupos'
   ) {
-    // Clientes podem ler cadastros da sua empresa
+    // Clientes podem ler cadastros da sua empresa; admin da empresa pode ler e escrever.
     if (appUser.papel !== 'super_admin') {
-      if (isWrite) {
-        throw new Error('Apenas super_admin pode alterar cadastros.');
-      }
-      var empresaIds2 = extractEmpresaIdsFromUrl(targetUrl);
+      var empresaIds2 = [
+        ...extractEmpresaIdsFromUrl(targetUrl),
+        ...extractEmpresaIdsFromBody(body)
+      ];
       if (!empresaIds2.length || !empresaIds2.every(function(id) { return canAccessEmpresa(appUser, id); })) {
         throw new Error('Filtro de empresa obrigatorio.');
+      }
+      if (isWrite && appUser.papel !== 'admin') {
+        throw new Error('Apenas super_admin ou admin da empresa pode alterar cadastros.');
       }
     }
     return;
@@ -505,15 +508,18 @@ function assertAuthorized(appUser, targetUrl, method, body) {
     if (!empresaIdsFin.every((empresaId) => canAccessEmpresa(appUser, empresaId))) {
       throw new Error('Acesso negado para esta empresa.');
     }
-    if (isWrite && appUser.papel !== 'super_admin') {
-      throw new Error('Apenas super_admin pode alterar dados financeiros.');
+    if (isWrite && appUser.papel !== 'super_admin' && appUser.papel !== 'admin') {
+      throw new Error('Apenas super_admin ou admin da empresa pode alterar dados financeiros.');
     }
     return;
   }
 
   if (targetUrl.pathname === '/functions/v1/sync-visual-saef') {
     if (appUser.papel !== 'super_admin') {
-      throw new Error('Apenas super_admin pode sincronizar.');
+      const empresaIdsSync = extractEmpresaIdsFromBody(body);
+      if (appUser.papel !== 'admin' || !empresaIdsSync.length || !empresaIdsSync.every((id) => canAccessEmpresa(appUser, id))) {
+        throw new Error('Apenas super_admin ou admin da empresa pode sincronizar.');
+      }
     }
     return;
   }
@@ -675,10 +681,10 @@ async function proxyExternalGeneric(req, res, targetUrl, method, incomingHeaders
     || String(incomingHeaders['authorization'] || '').replace(/^Bearer\s+/i, '');
   const appUser = await getAppUser(sessionToken, env.supaUrl, env.anonKey, env.serviceKey);
   if (!appUser) return res.status(401).json({ erro: 'Sessao invalida.' });
-  if (appUser.papel !== 'super_admin') {
-    return res.status(403).json({ erro: 'Apenas super_admin pode acessar APIs externas.' });
-  }
   if (!empresaId) return res.status(400).json({ erro: 'empresa_id obrigatorio para proxying externo.' });
+  if (appUser.papel !== 'super_admin' && (appUser.papel !== 'admin' || !canAccessEmpresa(appUser, empresaId))) {
+    return res.status(403).json({ erro: 'Apenas super_admin ou admin da propria empresa pode acessar APIs externas.' });
+  }
 
   // Busca config autorizada para esta empresa (inclui credenciais para injetar no login)
   const cfgResp = await fetch(
@@ -729,8 +735,8 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, emp
   if (!appUser) {
     return res.status(401).json({ erro: 'Sessao invalida.' });
   }
-  if (appUser.papel !== 'super_admin') {
-    return res.status(403).json({ erro: 'Apenas super_admin pode acessar a API externa.' });
+  if (appUser.papel !== 'super_admin' && (appUser.papel !== 'admin' || !empresaId || !canAccessEmpresa(appUser, empresaId))) {
+    return res.status(403).json({ erro: 'Apenas super_admin ou admin da propria empresa pode acessar a API externa.' });
   }
 
   if (!ALLOWED_VISUAL_PATHS.includes(targetUrl.pathname)) {
