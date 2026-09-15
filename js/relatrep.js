@@ -361,7 +361,7 @@ const REP_PREMIACAO_CAMPANHAS = [
     titulo: 'Prêmio Semestral',
     subtitulo: 'Consistência',
     criterio: 'Consistência de vendas positivas (últimos 6 meses)',
-    itens: ['Rodízio para casal'],
+    itens: ['Rodízio para casal', 'Kit Churrasco'],
     filtro: 'semestre'
   },
   {
