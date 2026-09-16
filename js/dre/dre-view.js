@@ -120,7 +120,7 @@ async function _dreCarregarDados(empresaId) {
   try {
     var resultados = await Promise.all([
       _fetchAll(SUPA_URL + '/rest/v1/fin_dre_plano_contas' + qs, headers),
-      _fetchAll(SUPA_URL + '/rest/v1/fin_dre_lancamentos' + qs + '&order=dt_caixa.desc', headers)
+      _fetchAll(SUPA_URL + '/rest/v1/fin_dre_lancamentos' + qs + '&order=dt_venc.desc', headers)
     ]);
     plano = resultados[0];
     lancamentos = resultados[1];
@@ -750,7 +750,7 @@ function _dreImportarArquivo(file) {
 function _dreAtualizarFiltrosAno() {
   var anos = [];
   (DRE.estado.lancamentos || []).forEach(function(l) {
-    var d = _dreParseDataUTC(l.dt_caixa);
+    var d = _dreParseDataUTC(l.dt_venc || l.dt_caixa);
     if (d && !isNaN(d)) anos.push(d.getUTCFullYear());
   });
   anos = anos.filter(function(v, i, a) { return a.indexOf(v) === i; }).sort();
@@ -1165,7 +1165,7 @@ function _dreBDDrePopularFiltros() {
   if (selAno) {
     var anos = {};
     (DRE.estado.lancamentos || []).forEach(function(l) {
-      var d = _dreParseDataUTC(l.dt_caixa);
+      var d = _dreParseDataUTC(l.dt_venc || l.dt_caixa);
       if (d && !isNaN(d)) anos[d.getUTCFullYear()] = true;
     });
     if (DRE.estado.ano) anos[DRE.estado.ano] = true;

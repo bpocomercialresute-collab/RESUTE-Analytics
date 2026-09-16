@@ -163,7 +163,10 @@ const DRE = (() => {
     const idx = indexarPlano();
     return estado.lancamentos.map(l => {
       const c = idx.get(norm(l.conta));
-      const d = parseData(l.dt_caixa);
+      // A ferramenta organiza tudo (mês/ano/BD_DRE/DRE/Laudo Grupo) pela
+      // DATA DE VENCIMENTO — cai pra DT_CAIXA só quando DT_VENC vier vazia
+      // (linha antiga/incompleta), pra não sumir lançamento do relatório.
+      const d = parseData(l.dt_venc || l.dt_caixa);
       const valido = d && !isNaN(d);
       // ISO date strings ("2024-01-15") são UTC midnight. getFullYear/getMonth usam
       // fuso local — no Brasil (UTC-3) viram o dia anterior. getUTC* evita isso.
@@ -1527,7 +1530,7 @@ const DRE = (() => {
   function montarFiltros() {
     const contagemPorAno = new Map();
     for (const l of estado.lancamentos) {
-      const d = parseData(l.dt_caixa);
+      const d = parseData(l.dt_venc || l.dt_caixa);
       if (!d || isNaN(d)) continue;
       const a = d.getUTCFullYear();
       contagemPorAno.set(a, (contagemPorAno.get(a) || 0) + 1);

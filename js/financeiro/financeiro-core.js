@@ -335,22 +335,24 @@ async function finCarregarDados(empresaId) {
   FIN_ABORT_CONTROLLER = new AbortController();
 
   try {
-    var qs = '?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=*&limit=100000';
-    var respostas = await Promise.all([
-      fetch(SUPA_URL + '/rest/v1/fin_dre_plano_contas' + qs,
-        { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }, signal: FIN_ABORT_CONTROLLER.signal }),
-      fetch(SUPA_URL + '/rest/v1/fin_dre_lancamentos' + qs + '&order=dt_caixa.desc',
-        { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }, signal: FIN_ABORT_CONTROLLER.signal })
-    ]);
-    if (sequencia !== FIN_LOAD_SEQUENCE) return;
-
-    for (var i = 0; i < respostas.length; i++) {
-      if (!respostas[i].ok) throw new Error(respostas[i].status === 403
+    var qs = '?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=*';
+    var headers = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY };
+    // O Supabase capa cada resposta em ~1000 linhas (Max Rows do projeto),
+    // mesmo com &limit=100000 na URL — precisa paginar por Range pra trazer
+    // tudo. _fetchAll (js/auth.js) ja faz isso (429/erro incluso).
+    var dados;
+    try {
+      dados = await Promise.all([
+        _fetchAll(SUPA_URL + '/rest/v1/fin_dre_plano_contas' + qs, headers, FIN_ABORT_CONTROLLER.signal),
+        _fetchAll(SUPA_URL + '/rest/v1/fin_dre_lancamentos' + qs + '&order=dt_venc.desc', headers, FIN_ABORT_CONTROLLER.signal)
+      ]);
+    } catch (fetchErr) {
+      if (fetchErr && fetchErr.name === 'AbortError') throw fetchErr;
+      var fmsg = String(fetchErr && fetchErr.message || '');
+      throw new Error(fmsg.indexOf('HTTP 403') >= 0
         ? 'Acesso negado aos dados do DRE desta empresa.'
-        : ('Falha ao carregar os dados do DRE (HTTP ' + respostas[i].status + ').'));
+        : 'Falha ao carregar os dados do DRE: ' + fmsg);
     }
-
-    var dados = await Promise.all(respostas.map(function(r) { return r.json(); }));
     if (sequencia !== FIN_LOAD_SEQUENCE) return;
 
     var plano = Array.isArray(dados[0]) ? dados[0] : [];
