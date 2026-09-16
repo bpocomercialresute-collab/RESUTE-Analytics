@@ -109,6 +109,13 @@
   content: 'Tudo certo por aqui — nenhum aviso no momento.';
   display: block; padding: 14px 4px; font-size: 12px; color: var(--fin-mute); text-align: center;
 }
+.fin-sino-resumo {
+  padding: 9px 11px; margin-bottom: 9px;
+  background: var(--fin-bg-soft);
+  border-left: 3px solid var(--fin-navy); border-radius: 0 6px 6px 0;
+  font-size: 12px; line-height: 1.5;
+}
+.fin-sino-resumo:empty { display: none; }
 
 .fin-modulos { display: flex; gap: 6px; flex-wrap: wrap; }
 .fin-modulos button {

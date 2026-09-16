@@ -1222,13 +1222,17 @@ const DRE = (() => {
       ? fmtL_(r0) + ' ' + r0.ano
       : fmtL_(r0) + ' a ' + fmtL_(rN) + (mAno_ ? '' : ' de ' + r0.ano);
 
-    el.innerHTML = `No recorte de <strong>${mesesDoRecorte()} meses</strong>
+    const resumoHtml = `No recorte de <strong>${mesesDoRecorte()} meses</strong>
       (${periodoStr}), a receita líquida somou <strong>${fmt(t.receitaLiquida)}</strong>.
       O lucro bruto ficou em <strong>${fmt(t.lucroBruto)}</strong>
       (${fmtPct(t.lucroBruto/base)}), o EBITDA em <strong>${fmt(t.ebitda)}</strong>
       (${fmtPct(t.ebitda/base)}) e o lucro líquido em <strong>${fmt(t.lucroLiquido)}</strong>
       (${fmtPct(t.lucroLiquido/base)}). Depois de investimentos, a geração de caixa foi de
       <strong>${fmt(t.geracaoCaixa)}</strong>.`;
+    el.innerHTML = resumoHtml;
+
+    const elSino = document.getElementById('fin-sino-resumo');
+    if (elSino) elSino.innerHTML = resumoHtml;
 
     const lbl = document.getElementById('fin-periodo-label');
     if (lbl) lbl.textContent =
