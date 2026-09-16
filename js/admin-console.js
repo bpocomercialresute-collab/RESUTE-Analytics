@@ -1531,13 +1531,53 @@ async function adminConsoleArquivarEmpresa(companyId) {
   }
 }
 
+/**
+ * Converte um arquivo de imagem escolhido pelo admin numa data URL PNG
+ * pequena (lado maior <= 220px), pronta pra ir direto no campo logo_url.
+ * Nao usa Supabase Storage de proposito: evita criar bucket/politica novos
+ * so pra uma logo, e o texto (data URL) ja cabe tranquilo numa coluna text.
+ */
+function adminConsoleLogoParaDataUrl(file) {
+  return new Promise(function(resolve, reject) {
+    if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) {
+      reject(new Error('Envie uma imagem PNG, JPG ou WEBP.'));
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      reject(new Error('Imagem muito grande (maximo 3MB).'));
+      return;
+    }
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function() {
+      URL.revokeObjectURL(url);
+      var max = 220;
+      var escala = Math.min(1, max / Math.max(img.width, img.height));
+      var cw = Math.max(1, Math.round(img.width * escala));
+      var ch = Math.max(1, Math.round(img.height * escala));
+      var canvas = document.createElement('canvas');
+      canvas.width = cw; canvas.height = ch;
+      canvas.getContext('2d').drawImage(img, 0, 0, cw, ch);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('Nao foi possivel ler essa imagem.')); };
+    img.src = url;
+  });
+}
+
 function adminConsoleEmpresaModal(company) {
   var editing = !!company;
+  var logoAtual = company && company.logo_url;
   var html = '<div class="admin-form-grid">'
     + '<label class="admin-field"><span>Nome da empresa</span><input name="nome" required maxlength="120" oninput="adminConsoleSincronizarSlug(this)" value="' + adminConsoleEscape(company && company.nome) + '"></label>'
     + '<label class="admin-field"><span>Slug</span><input name="slug" required maxlength="80" pattern="[a-z0-9-]+"' + (editing ? ' data-manual="true"' : '') + ' oninput="adminConsoleMarcarSlugManual(this)" value="' + adminConsoleEscape(company && company.slug) + '"></label>'
     + '<label class="admin-field"><span>Origem dos dados</span><select name="exibir_origem"><option value="manual"' + (company && company.exibir_origem === 'manual' ? ' selected' : '') + '>Manual</option><option value="api"' + (company && company.exibir_origem === 'api' ? ' selected' : '') + '>API</option></select></label>'
     + '<label class="admin-field admin-field-switch"><input name="ativo" type="checkbox"' + (!company || company.ativo !== false ? ' checked' : '') + '><span>Empresa ativa</span></label>'
+    + '<label class="admin-field admin-field-full"><span>Logo da empresa (aparece no canto superior esquerdo do painel do cliente)</span>'
+      + (logoAtual ? '<img src="' + adminConsoleEscape(logoAtual) + '" alt="" style="display:block;max-height:44px;max-width:160px;margin:2px 0 8px;border:1px solid #e5e7eb;border-radius:6px;padding:4px;background:#fff">' : '')
+      + '<input name="logo" type="file" accept="image/png,image/jpeg,image/webp"></label>'
+    + (logoAtual ? '<label class="admin-field admin-field-switch admin-field-full"><input name="remover_logo" type="checkbox"><span>Remover logo atual (volta a mostrar so o nome da empresa)</span></label>' : '')
+    + '<p class="admin-field-full" style="margin:0;font-size:12px;color:#6b7280">Sem logo cadastrada, o painel do cliente mostra automaticamente o nome da empresa no lugar.</p>'
     + (editing ? '<label class="admin-field admin-field-switch admin-field-full"><input name="confirmacao" type="checkbox" required><span>Confirmo a alteracao desta empresa sem excluir seus dados</span></label>' : '')
     + '</div><div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Cancelar</button><button class="admin-btn-primary" type="submit">' + (editing ? 'Salvar alteracoes' : 'Cadastrar empresa') + '</button></div>';
   adminConsoleAbrirModal('EMPRESAS', editing ? 'Editar empresa' : 'Adicionar empresa', html, async function(data, form) {
@@ -1550,6 +1590,12 @@ function adminConsoleEmpresaModal(company) {
       ativo: data.get('ativo') === 'on'
     };
     try {
+      var arquivoLogo = data.get('logo');
+      if (arquivoLogo && arquivoLogo.size) {
+        payload.logo_url = await adminConsoleLogoParaDataUrl(arquivoLogo);
+      } else if (editing && data.get('remover_logo') === 'on') {
+        payload.logo_url = null;
+      }
       if (editing) {
         var id = company.id || company.empresa_id;
         await adminConsoleFetch('/rest/v1/empresas?id=eq.' + encodeURIComponent(id), {

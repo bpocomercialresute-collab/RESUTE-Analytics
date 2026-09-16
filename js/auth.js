@@ -605,6 +605,7 @@ async function fazerLogin() {
       empresa_ids: empresaIds || (d.empresa_id ? [d.empresa_id] : null),
       empresa_nome:d.empresa_nome || 'RESUTE',
       empresa_slug:d.empresa_slug || null,
+      empresa_logo_url:d.empresa_logo_url || null,
       empresa_codigo:d.empresa_codigo || null,
       // Módulos SaaS contratados. Só orientam a UI — o gate real é a RLS +
       // o secure-proxy. Ver o aviso no topo de js/modulos.js.
@@ -1089,6 +1090,7 @@ function _abrirDashCliente(empresaIdPreview) {
   var ids = previewAdmin ? [empresaIdPreview] : SESSION.empresa_ids;
   var sel = document.getElementById('dc-loja-selector');
   var logo = document.querySelector('.dc-client-logo');
+  var logoTexto = document.querySelector('.dc-client-logo-texto');
   var eidAtual = (ids && ids[0]) || SESSION.empresa_id;
   var botaoVoltar = document.getElementById('dc-admin-back');
   var previewBadge = document.getElementById('dc-admin-preview-badge');
@@ -1098,24 +1100,25 @@ function _abrirDashCliente(empresaIdPreview) {
     var eObj = empresaPreview
       || (ADMIN_PREVIEW_COMPANIES || []).find(function(e){ return e.empresa_id === eidAtual; })
       || (EMPRESAS_ADMIN || []).find(function(e){ return e.empresa_id === eidAtual; });
-    var slugLogo = String((eObj && eObj.slug) || (SESSION && SESSION.empresa_slug) || '').toLowerCase();
-    var logoSrc = (eObj && eObj.logo_url)
-      || ((slugLogo && slugLogo !== 'plastrio' && slugLogo !== 'vm-treino') ? 'assets/' + slugLogo + '-logo.png' : null)
-      || 'assets/varremaster-logo.png';
+    var nomeEmpresa = (eObj && eObj.nome) || (SESSION && SESSION.empresa_nome) || 'Empresa';
+    // Cada empresa mostra SO a propria logo (cadastrada no admin) ou, na
+    // falta dela, o nome dela em texto (.dc-client-logo-texto). Nunca mais
+    // cai pra assets/varremaster-logo.png: essa logo e da ferramenta em si,
+    // nao pode aparecer no lugar da marca do cliente.
+    var logoSrc = (eObj && eObj.logo_url) || (SESSION && SESSION.empresa_logo_url) || null;
+    var mostrarTexto = function() {
+      logo.style.display = 'none';
+      logo.removeAttribute('src');
+      if (logoTexto) { logoTexto.hidden = false; logoTexto.textContent = nomeEmpresa; }
+    };
     if (logoSrc) {
       logo.src = logoSrc;
-      logo.alt = eObj ? (eObj.nome || '') : '';
+      logo.alt = nomeEmpresa;
       logo.style.display = '';
-      logo.onerror = function() {
-        if (this.src.indexOf('varremaster-logo.png') === -1) {
-          this.src = 'assets/varremaster-logo.png';
-        } else {
-          this.style.display = 'none';
-        }
-      };
+      if (logoTexto) logoTexto.hidden = true;
+      logo.onerror = mostrarTexto;
     } else {
-      logo.removeAttribute('src');
-      logo.style.display = 'none';
+      mostrarTexto();
     }
   }
 

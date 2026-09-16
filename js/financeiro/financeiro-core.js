@@ -121,24 +121,29 @@ function _finMontarHeader() {
 
   var logo = document.querySelector('#view-dash-financeiro .fin-client-logo');
   if (logo) {
-    var slug = String((empresaPreview && empresaPreview.slug)
-      || ((typeof SESSION !== 'undefined' && SESSION) ? SESSION.empresa_slug : '')
-      || '').toLowerCase();
-    var logoSrc = (empresaPreview && empresaPreview.logo_url)
-      || ((slug && slug !== 'plastrio' && slug !== 'vm-treino') ? 'assets/' + slug + '-logo.png' : null)
-      || 'assets/varremaster-logo.png';
-    logo.src = logoSrc;
-    logo.alt = (empresaPreview && empresaPreview.nome)
+    // Mesma regra do dashboard comercial (js/auth.js): so a logo cadastrada
+    // pela propria empresa, ou o nome dela em texto (.dc-client-logo-texto).
+    var logoTexto = document.querySelector('#view-dash-financeiro .fin-client-logo-texto');
+    var nomeEmpresa = (empresaPreview && empresaPreview.nome)
       || ((typeof SESSION !== 'undefined' && SESSION) ? (SESSION.empresa_nome || '') : '')
-      || 'Varremaster';
-    logo.style.display = '';
-    logo.onerror = function() {
-      if (this.src.indexOf('varremaster-logo.png') === -1) {
-        this.src = 'assets/varremaster-logo.png';
-      } else {
-        this.style.display = 'none';
-      }
+      || 'Empresa';
+    var logoSrc = (empresaPreview && empresaPreview.logo_url)
+      || ((typeof SESSION !== 'undefined' && SESSION) ? SESSION.empresa_logo_url : null)
+      || null;
+    var mostrarTexto = function() {
+      logo.style.display = 'none';
+      logo.removeAttribute('src');
+      if (logoTexto) { logoTexto.hidden = false; logoTexto.textContent = nomeEmpresa; }
     };
+    if (logoSrc) {
+      logo.src = logoSrc;
+      logo.alt = nomeEmpresa;
+      logo.style.display = '';
+      if (logoTexto) logoTexto.hidden = true;
+      logo.onerror = mostrarTexto;
+    } else {
+      mostrarTexto();
+    }
   }
 
   var voltar = document.getElementById('fin-admin-back');

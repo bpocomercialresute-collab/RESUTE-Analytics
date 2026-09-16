@@ -3064,6 +3064,15 @@ body.rep-roleta-presentation-open { overflow: hidden; }
   display: block;
   border-radius: 4px;
 }
+/* Fallback quando a empresa nao tem logo cadastrada: mostra o nome dela no
+   lugar da imagem (nunca mais cai pra logo da Varremaster). Controlado via
+   JS (auth.js / financeiro-core.js), que alterna [hidden] entre a <img> e
+   este <span>. Sem display: aqui de proposito, pra herdar o [hidden] padrao
+   do navegador sem brigar com a regra acima. */
+.dc-client-logo-texto {
+  font-size: 16px; font-weight: 800; color: #0E1424; letter-spacing: .01em;
+  max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .dc-header-left > .dc-header-empresa { display: none; }
 .dc-header-brand { display: flex; flex-direction: column; gap: 1px; }
 .dc-header-name { font-size: 14px; font-weight: 800; color: #e2e8f0; letter-spacing: .03em; }
@@ -13135,6 +13144,11 @@ body.bpo-admin-mode .admin-status-badge {
   #view-dash-financeiro .fin-client-logo {
     width: 104px !important;
     max-height: 55px !important;
+  }
+
+  .dc-client-logo-texto {
+    font-size: 13px !important;
+    max-width: 140px !important;
   }
 
   #view-dash-cliente .dc-header,
