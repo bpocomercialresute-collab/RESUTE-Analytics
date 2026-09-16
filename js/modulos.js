@@ -88,6 +88,31 @@ function temModulo(slug) {
   return sessaoModulos().indexOf(slug) !== -1;
 }
 
+// ── FUNCOES — controle fino DENTRO de um modulo (ex.: um relatorio especifico) ─
+//
+// Diferente de MODULO_META acima (liga/desliga Comercial/Financeiro/DRE
+// inteiro), isto controla um item pontual dentro do modulo Comercial.
+// Guardado em empresas.funcoes (jsonb) — ver docs/supabase-empresas-funcoes.sql.
+// Mesmo aviso de seguranca do topo do arquivo: isto e so UX.
+
+var FUNCOES_DISPONIVEIS = [
+  { chave: 'rel_produtos',        nome: 'Relatório de Produtos' },
+  { chave: 'rel_representantes',  nome: 'Relatório de Representantes' }
+];
+
+/**
+ * eObj: a empresa (linha de /rest/v1/empresas, ou objeto de preview do admin
+ * que ja carrega os mesmos campos) — de onde vem o objeto funcoes. Cai pra
+ * SESSION.empresa_funcoes quando eObj nao foi passado (cliente logado direto,
+ * sem preview do admin).
+ */
+function temFuncao(eObj, chave) {
+  var funcoes = (eObj && eObj.funcoes)
+    || (typeof SESSION !== 'undefined' && SESSION && SESSION.empresa_funcoes)
+    || {};
+  return funcoes[chave] !== false;
+}
+
 /** Modulo que deve abrir logo apos o login. */
 function moduloPadrao() {
   var disponiveis = sessaoModulos();

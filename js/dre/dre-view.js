@@ -1563,6 +1563,7 @@ function dreAbrirDoAdmin(companyId) {
         nome: company.nome || 'Empresa',
         slug: company.slug || null,
         logo_url: company.logo_url || null,
+        funcoes: company.funcoes || {},
         ativo: company.ativo !== false,
         tem_api: false
       };

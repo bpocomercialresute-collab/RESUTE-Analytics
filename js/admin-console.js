@@ -1278,6 +1278,7 @@ async function adminConsoleAbrirFinanceiroEmpresa(companyId) {
         nome: company.nome || 'Empresa',
         slug: company.slug || null,
         logo_url: company.logo_url || null,
+        funcoes: company.funcoes || {},
         ativo: company.ativo !== false,
         tem_api: false
       };
@@ -1578,6 +1579,12 @@ function adminConsoleEmpresaModal(company) {
       + '<input name="logo" type="file" accept="image/png,image/jpeg,image/webp"></label>'
     + (logoAtual ? '<label class="admin-field admin-field-switch admin-field-full"><input name="remover_logo" type="checkbox"><span>Remover logo atual (volta a mostrar so o nome da empresa)</span></label>' : '')
     + '<p class="admin-field-full" style="margin:0;font-size:12px;color:#6b7280">Sem logo cadastrada, o painel do cliente mostra automaticamente o nome da empresa no lugar.</p>'
+    + '<div class="admin-field-full"><span style="display:block;font-size:12px;font-weight:600;color:#374151;margin:10px 0 6px">Funções liberadas para esta empresa</span>'
+      + (typeof FUNCOES_DISPONIVEIS !== 'undefined' ? FUNCOES_DISPONIVEIS.map(function(f) {
+          var ligada = !(company && company.funcoes && company.funcoes[f.chave] === false);
+          return '<label class="admin-field-switch" style="display:flex;align-items:center;gap:6px;margin:4px 0"><input name="funcao_' + f.chave + '" type="checkbox"' + (ligada ? ' checked' : '') + '><span>' + adminConsoleEscape(f.nome) + '</span></label>';
+        }).join('') : '')
+      + '</div>'
     + (editing ? '<label class="admin-field admin-field-switch admin-field-full"><input name="confirmacao" type="checkbox" required><span>Confirmo a alteracao desta empresa sem excluir seus dados</span></label>' : '')
     + '</div><div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Cancelar</button><button class="admin-btn-primary" type="submit">' + (editing ? 'Salvar alteracoes' : 'Cadastrar empresa') + '</button></div>';
   adminConsoleAbrirModal('EMPRESAS', editing ? 'Editar empresa' : 'Adicionar empresa', html, async function(data, form) {
@@ -1589,6 +1596,13 @@ function adminConsoleEmpresaModal(company) {
       exibir_origem: String(data.get('exibir_origem') || 'manual'),
       ativo: data.get('ativo') === 'on'
     };
+    if (typeof FUNCOES_DISPONIVEIS !== 'undefined') {
+      var funcoes = {};
+      FUNCOES_DISPONIVEIS.forEach(function(f) {
+        funcoes[f.chave] = data.get('funcao_' + f.chave) === 'on';
+      });
+      payload.funcoes = funcoes;
+    }
     try {
       var arquivoLogo = data.get('logo');
       if (arquivoLogo && arquivoLogo.size) {
@@ -1814,7 +1828,8 @@ function adminConsoleEntrarComo(userId) {
           slug: c.slug || '',
           ativo: c.ativo !== false,
           tem_api: String(c.exibir_origem || '').toLowerCase() === 'api',
-          logo_url: c.logo_url || null
+          logo_url: c.logo_url || null,
+          funcoes: c.funcoes || {}
         };
       });
     }

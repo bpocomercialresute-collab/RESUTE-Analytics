@@ -199,6 +199,7 @@ export default async function handler(req, res) {
       empresa_nome: empresaRelacion.nome || user.empresa_nome || 'RESUTE',
       empresa_slug: empresaRelacion.slug || null,
       empresa_logo_url: empresaRelacion.logo_url || null,
+      empresa_funcoes: empresaRelacion.funcoes || {},
       empresa_codigo: empresaRelacion.codigo_empresa
         || empresaRelacion.codigo_cliente
         || empresaRelacion.codigo_cliente_id

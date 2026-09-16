@@ -244,6 +244,25 @@ function abrirDREAdmin() {
   if (typeof dreAbrir === 'function') dreAbrir({});
 }
 
+/**
+ * Esconde/mostra, em todo canto que existe, os itens controlados por
+ * empresas.funcoes (ver js/modulos.js: temFuncao/FUNCOES_DISPONIVEIS).
+ * Cada id do mapa e um botao real na tela; funcao desligada = display:none.
+ */
+var _MAPA_BOTOES_FUNCAO = {
+  'dc-pill-produtos':        'rel_produtos',
+  'dc-pill-representantes':  'rel_representantes',
+  'av-btn-rel-produtos':       'rel_produtos',
+  'av-btn-rel-representantes': 'rel_representantes'
+};
+function _aplicarFuncoesEmpresa(eObj) {
+  if (typeof temFuncao !== 'function') return;
+  Object.keys(_MAPA_BOTOES_FUNCAO).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = temFuncao(eObj, _MAPA_BOTOES_FUNCAO[id]) ? '' : 'none';
+  });
+}
+
 /** Mostra/esconde o card "Financeiro (DRE)" em Ferramentas conforme o modulo contratado. */
 function _atualizarCardFinanceiroFerramentas() {
   var card = document.getElementById('tool-card-financeiro');
@@ -615,6 +634,7 @@ async function fazerLogin() {
       empresa_nome:d.empresa_nome || 'RESUTE',
       empresa_slug:d.empresa_slug || null,
       empresa_logo_url:d.empresa_logo_url || null,
+      empresa_funcoes:d.empresa_funcoes || {},
       empresa_codigo:d.empresa_codigo || null,
       // Módulos SaaS contratados. Só orientam a UI — o gate real é a RLS +
       // o secure-proxy. Ver o aviso no topo de js/modulos.js.
@@ -1105,10 +1125,11 @@ function _abrirDashCliente(empresaIdPreview) {
   var previewBadge = document.getElementById('dc-admin-preview-badge');
   if (botaoVoltar) botaoVoltar.style.display = previewAdmin ? 'inline-flex' : 'none';
   if (previewBadge) previewBadge.style.display = previewAdmin ? 'inline-flex' : 'none';
+  var eObj = empresaPreview
+    || (ADMIN_PREVIEW_COMPANIES || []).find(function(e){ return e.empresa_id === eidAtual; })
+    || (EMPRESAS_ADMIN || []).find(function(e){ return e.empresa_id === eidAtual; });
+  if (typeof _aplicarFuncoesEmpresa === 'function') _aplicarFuncoesEmpresa(eObj);
   if (logo) {
-    var eObj = empresaPreview
-      || (ADMIN_PREVIEW_COMPANIES || []).find(function(e){ return e.empresa_id === eidAtual; })
-      || (EMPRESAS_ADMIN || []).find(function(e){ return e.empresa_id === eidAtual; });
     var nomeEmpresa = (eObj && eObj.nome) || (SESSION && SESSION.empresa_nome) || 'Empresa';
     // Cada empresa mostra SO a propria logo (cadastrada no admin) ou, na
     // falta dela, o nome dela em texto (.dc-client-logo-texto). Nunca mais
@@ -3590,6 +3611,7 @@ async function adminSelecionarEmpresa(id) {
   var bar = document.getElementById('admin-action-bar'); if (bar) bar.style.display = 'flex';
   var nEl = document.getElementById('admin-emp-nome');   if (nEl) nEl.textContent = EMPRESA_ATIVA.nome;
   var bs  = document.getElementById('admin-btn-sync');   if (bs)  bs.style.display = EMPRESA_ATIVA.tem_api ? 'inline-flex' : 'none';
+  if (typeof _aplicarFuncoesEmpresa === 'function') _aplicarFuncoesEmpresa(EMPRESA_ATIVA);
   if (typeof FULL_DATA !== 'undefined') FULL_DATA.bd = [];
   if (typeof BD_DATA   !== 'undefined') { BD_DATA.rows = []; BD_DATA.count = 0; }
   if (typeof GRIDS !== 'undefined' && GRIDS.bd) { GRIDS.bd.allData = []; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render(); }
