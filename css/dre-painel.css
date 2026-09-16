@@ -326,12 +326,21 @@
 .fin-dre-tabela td.fin-dre-col-pct { width: 66px; min-width: 66px; }
 .fin-dre-tabela td.fin-dre-col-spark { width: 100px; min-width: 100px; }
 
-/* TOT (corpo): verde clarinho — cor herdada de fin-dre-val-saida/entrada/
-   zero (não força cor de texto, senão perde o vermelho de despesa). */
+/* TOT (corpo): verde clarinho, texto verde-escuro sempre — cor fixa, não
+   herda vermelho/preto de despesa-receita (isso fica só nas colunas de
+   mês). Mesma cor em toda a ferramenta (bloco, Balanço Mensal, rodapé).
+   Exceto dentro de .fin-dre-resultado-tr, que já é fundo colorido com
+   texto branco (Receita Líquida/EBITDA/Lucro) — não pode virar verde-escuro. */
 td.fin-dre-col-tot { background: #cdf3d9 !important; font-weight: 700; }
+.fin-dre-tabela td.fin-dre-col-tot,
+.fin-dre-tabela tfoot td.fin-dre-col-tot-foot { color: #1a5c30 !important; }
+.fin-dre-resultado-tr td.fin-dre-col-tot { color: #fff !important; }
 
-/* MÉD (corpo): azul clarinho */
+/* MÉD (corpo): azul clarinho, texto azul-escuro sempre. */
 td.fin-dre-col-med { background: #d6ecfb !important; font-weight: 700; }
+.fin-dre-tabela td.fin-dre-col-med,
+.fin-dre-tabela tfoot td.fin-dre-col-med-foot { color: #1e3a5f !important; }
+.fin-dre-resultado-tr td.fin-dre-col-med { color: #fff !important; }
 
 /* Mês (sparkline): mini gráfico de linha da tendência mensal da linha */
 .fin-dre-tabela td.fin-dre-col-spark {
