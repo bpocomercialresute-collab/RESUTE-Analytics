@@ -136,6 +136,7 @@ async function _dreCarregarDados(empresaId) {
   // ver DRE.init() logo abaixo, que abre sempre com cnpj: 1.
   lancamentos = lancamentos.map(function(l) { return Object.assign({}, l, { cnpj: 1 }); });
 
+  console.log('[DRE] Carregado: ' + plano.length + ' conta(s) no plano, ' + lancamentos.length + ' lançamento(s).');
   return { plano: plano, lancamentos: lancamentos };
 }
 
@@ -775,7 +776,15 @@ function _dreAtualizarFiltrosAno() {
 
 /** Inicializa as duas grades LiteGrid e carrega os dados vindos do Supabase. */
 function _dreIniciarGradesLiteGrid(plano, lancamentos) {
-  if (typeof LiteGrid === 'undefined' || typeof GRID_DEFS === 'undefined') return;
+  if (typeof LiteGrid === 'undefined' || typeof GRID_DEFS === 'undefined') {
+    console.error('[DRE] LiteGrid/GRID_DEFS indisponivel ao montar as grades — js/jss.js nao carregou a tempo.');
+    ['fin-dre-tab-bd', 'fin-dre-tab-plano'].forEach(function(id) {
+      var alvo = document.getElementById(id);
+      if (alvo) alvo.innerHTML = '<div style="padding:24px;text-align:center;color:#b30000">'
+        + 'Não foi possível montar a grade (componente não carregou). Atualize a página (F5) e tente de novo.</div>';
+    });
+    return;
+  }
 
   window._dreRenderToggleHtml = function(ci, val) {
     val = String(val || '').trim().toUpperCase();
