@@ -213,6 +213,15 @@ function abrirAnaliseVendas() {
     _abrirModuloPadrao();
     return;
   }
+  // admin da empresa: mesma tela de BD/Cadastros que ele ja cai direto ao
+  // logar (_abrirApp -> view-app -> adminInicializar), so a empresa dele.
+  // Antes caia em abrirSeletorEmpresasCliente(), que manda pro RELATORIO
+  // (view-dash-cliente) — inutil pra quem quer colar dado, nao ler relatorio.
+  if (SESSION.papel === 'admin') {
+    if (typeof switchView === 'function') switchView('view-app');
+    if (typeof adminInicializar === 'function') adminInicializar();
+    return;
+  }
   abrirSeletorEmpresasCliente();
 }
 
@@ -3534,6 +3543,23 @@ async function adminInicializar() {
     ? EMPRESAS_ADMIN.filter(function(e) { return allowedIds.indexOf(e.empresa_id) !== -1; })
     : EMPRESAS_ADMIN;
   if (!lista.length) lista = EMPRESAS_ADMIN;
+
+  // admin da empresa so tem 1 empresa pra ver: some com a barra de abas
+  // (que so faz sentido pro super_admin trocando entre varias) e troca o
+  // titulo generico "Analise de Vendas" pelo nome da empresa dele.
+  var somenteUmaEmpresa = SESSION && SESSION.papel === 'admin' && lista.length <= 1;
+  var tabsEl = document.getElementById('admin-empresa-tabs');
+  if (tabsEl) tabsEl.style.display = somenteUmaEmpresa ? 'none' : '';
+  var tituloEl = document.getElementById('av-titulo');
+  var subtituloEl = document.getElementById('av-subtitulo');
+  if (somenteUmaEmpresa && lista[0]) {
+    if (tituloEl) tituloEl.textContent = lista[0].nome || 'Meus dados';
+    if (subtituloEl) subtituloEl.textContent = 'Cole seus dados comerciais e acompanhe os relatorios da sua empresa.';
+  } else {
+    if (tituloEl) tituloEl.textContent = 'Análise de Vendas';
+    if (subtituloEl) subtituloEl.textContent = 'Selecione o módulo que deseja acessar';
+  }
+
   _adminRenderAbas(lista);
   _adminRenderSyncEmpresaSelect();
   var autoId = (SESSION && SESSION.empresa_id && lista.find(function(e) { return e.empresa_id === SESSION.empresa_id; }))
