@@ -424,12 +424,14 @@ function _dreParseNum(v) {
   if (v === '' || v == null) return null;
   var s = String(v).trim().replace(/\s/g, '').replace(/^R\$\s*/, '');
   if (s === '' || s === '-') return null;
+  var negativo = /^\(.*\)$/.test(s);
+  if (negativo) s = s.slice(1, -1);
   var n = Number(s);
-  if (Number.isFinite(n)) return n;
+  if (Number.isFinite(n)) return negativo ? -Math.abs(n) : n;
   // Tenta formato BR: "1.234,56" → "1234.56"
   var br = s.replace(/\./g, '').replace(',', '.');
   n = Number(br);
-  return Number.isFinite(n) ? n : null;
+  return Number.isFinite(n) ? (negativo ? -Math.abs(n) : n) : null;
 }
 
 /**

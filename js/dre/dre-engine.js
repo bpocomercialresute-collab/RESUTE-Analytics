@@ -85,8 +85,15 @@ const DRE = (() => {
   const norm = v => String(v ?? '').trim().toLowerCase();
 
   const num = v => {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
+    if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+    let s = String(v ?? '').trim().replace(/\s/g, '').replace(/^R\$?/i, '');
+    if (!s || s === '-') return 0;
+    let negativo = false;
+    if (/^\(.*\)$/.test(s)) { negativo = true; s = s.slice(1, -1); }
+    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+    const n = Number(s);
+    return Number.isFinite(n) ? (negativo ? -Math.abs(n) : n) : 0;
   };
 
   const fmt = v => {
@@ -391,8 +398,11 @@ const DRE = (() => {
       const dv = oper + custo + trib + log + com;              // DESP. VARIÁVEIS
       const df = adm + manut + fin + soc + fixaGrp;           // DESP. FIXA
       const td = dv + df;                                      // TOTAL DESPESAS
-      const rf = tr - td;                                      // RESULTADO FINANCEIRO
-      const ro = rf - inv;                                     // RESULTADO OPERACIONAL
+      // O BD usa sinal contábil: receitas positivas e saídas negativas.
+      // Portanto, resultados são somas algébricas; nunca descarte nem inverta
+      // um lançamento negativo ao consolidar o mês.
+      const rf = tr + td;                                      // RESULTADO FINANCEIRO
+      const ro = rf + inv;                                     // RESULTADO OPERACIONAL
 
       serie.totReceita.push(tr);
       serie.despVariaveis.push(dv);
@@ -437,13 +447,13 @@ const DRE = (() => {
       .reduce((s, l) => s + l.total, 0);
 
     // Margem de contribuição: receita menos tudo que é variável.
-    const margemContrib = receita - fv.V;
+    const margemContrib = receita + fv.V;
     const indiceMC = receita ? margemContrib / receita : 0;
     // Ponto de equilíbrio: quanto precisa faturar para o fixo se pagar.
-    const pontoEquilibrio = indiceMC ? fv.F / indiceMC : 0;
+    const pontoEquilibrio = indiceMC ? -fv.F / indiceMC : 0;
 
     const produzido = totalGrupo('VALOR PRODUZIDO').total;
-    const custoDiretoUnit = produzido ? di.D / produzido : 0;
+    const custoDiretoUnit = produzido ? -di.D / produzido : 0;
 
     return { fv, di, receita, margemContrib, indiceMC, pontoEquilibrio,
              produzido, custoDiretoUnit };
