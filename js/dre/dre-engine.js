@@ -984,7 +984,13 @@ const DRE = (() => {
 
   /** Linhas prontas para POST em fin_dre_lancamentos (sem empresa_id). */
   function registrosBDParaSalvar() {
+    // conta e dt_caixa sao NOT NULL em fin_dre_lancamentos no Supabase — sem
+    // este filtro, uma linha em branco (sobra de colagem do Excel) quebra o
+    // lote inteiro com HTTP 400 "null value in column conta violates
+    // not-null constraint". As linhas incompletas continuam visiveis na
+    // grade (estado.lancamentos nao e tocado aqui) pro usuario corrigir.
     return estado.lancamentos
+      .filter(l => l.conta && l.dt_caixa)
       .map(l => ({
         conta: l.conta || null,
         valor: num(l.valor),

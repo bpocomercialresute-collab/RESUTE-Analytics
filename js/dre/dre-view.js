@@ -352,7 +352,10 @@ function dreVoltarFerramentasAdmin() {
   if (typeof SESSION === 'undefined' || !SESSION || SESSION.papel !== 'admin') return;
   dreDestruir();
   if (typeof MODULO_ATIVO !== 'undefined') MODULO_ATIVO = null;
-  if (typeof switchView === 'function') switchView('view-tools');
+  if (document.body.classList.contains('company-admin-mode')) {
+    if (typeof switchView === 'function') switchView('view-app');
+    if (typeof adminOwnerAtualizarResumo === 'function') adminOwnerAtualizarResumo();
+  } else if (typeof switchView === 'function') switchView('view-tools');
 }
 
 // ── SALVAR NO BANCO (botões das abas Plano de Contas e BD) ───────────────────
@@ -559,7 +562,15 @@ function _dreLigarSalvarGrades(empresaId) {
         return _dreNormalizarDatasRegistro(Object.assign({}, r, { empresa_id: empresaId }));
       });
 
-      var linhasConfirm = ['Serão salvas ' + lotes.length.toLocaleString('pt-BR') + ' linha(s), substituindo todos os lançamentos atuais desta empresa. Continuar?'];
+      // registrosBDParaSalvar() já descarta linha sem CONTA ou sem DT_CAIXA
+      // (coluna obrigatória no banco) — avisa quantas ficaram de fora pra
+      // não sumir dado sem o usuário perceber.
+      var descartadas = totalNaGrade - lotes.length;
+      var linhasConfirm = ['Serão salvas ' + lotes.length.toLocaleString('pt-BR') + ' linha(s), substituindo todos os lançamentos atuais desta empresa.'];
+      if (descartadas > 0) {
+        linhasConfirm.push(descartadas.toLocaleString('pt-BR') + ' linha(s) da grade sem CONTA ou sem DT_CAIXA foram ignoradas (não têm como salvar).');
+      }
+      linhasConfirm.push('Continuar?');
       if (!window.confirm(linhasConfirm.join('\n'))) return;
 
       _dreStatusGrade('fin-dre-status-bd', 'Salvando...', '');
