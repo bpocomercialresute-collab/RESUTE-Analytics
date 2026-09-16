@@ -775,6 +775,16 @@ const DRE = (() => {
     const faturouMais = base - fvdi.pontoEquilibrio;
     const fatMeses    = gmeses('FATURAMENTO');
     const fatTot      = gtot('FATURAMENTO');
+    // No Balanço Mensal, esta linha é intencionalmente simples: receita
+    // total menos despesa total, sem incluir investimentos ou outros blocos.
+    const resultadoBalancoMeses = s.totReceita.map((receita, i) =>
+      receita - Math.abs(s.totalDespesas[i] || 0)
+    );
+    const resultadoBalancoTotal = resultadoBalancoMeses.reduce((soma, valor) => soma + valor, 0);
+    const resultadoOperacionalBalancoMeses = resultadoBalancoMeses.map((financeiro, i) =>
+      financeiro - Math.abs(gmeses('INVESTIMENTOS')[i] || 0)
+    );
+    const resultadoOperacionalBalancoTotal = resultadoOperacionalBalancoMeses.reduce((soma, valor) => soma + valor, 0);
 
     const tbody = [
       // ── RECEITAS ────────────────────────────────────────────────────────
@@ -808,8 +818,8 @@ const DRE = (() => {
       // The financial and operational labels in the result view are intentionally
       // presented in the business order requested by the DRE: their values are
       // exchanged without changing the underlying calculation formulas.
-      mkRow('RESULTADO FINANCEIRO NO MÊS',      s.resultOperacional, t.resultOperacional, t.resultOperacional/nM, safeDiv(t.resultOperacional,base), t.resultOperacional >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
-      mkRow('RESULTADO OPERACIONAL NO MÊS',     s.resultFinanceiro,  t.resultFinanceiro,  t.resultFinanceiro/nM,  safeDiv(t.resultFinanceiro,base),  t.resultFinanceiro >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
+      mkRow('RESULTADO FINANCEIRO NO MÊS',      resultadoBalancoMeses, resultadoBalancoTotal, resultadoBalancoTotal/nM, safeDiv(resultadoBalancoTotal,base), resultadoBalancoTotal >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
+      mkRow('RESULTADO OPERACIONAL NO MÊS',     resultadoOperacionalBalancoMeses, resultadoOperacionalBalancoTotal, resultadoOperacionalBalancoTotal/nM, safeDiv(resultadoOperacionalBalancoTotal,base), resultadoOperacionalBalancoTotal >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
       // ── % ───────────────────────────────────────────────────────────────
       evolRow(),
       mkPctRow('% Result. Operac. sobre recebimento', s.resultOperacional, s.totReceita,         t.resultOperacional, base),
