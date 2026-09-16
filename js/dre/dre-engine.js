@@ -53,6 +53,7 @@ const DRE = (() => {
     { tipo:'grupo',      nome:'DESP. FINANCEIRA',        sinal:'-' },
     { tipo:'grupo',      nome:'DESP. LOGÍSTICA',         sinal:'-' },
     { tipo:'grupo',      nome:'DESP. COMERCIAL',         sinal:'-' },
+    { tipo:'grupo',      nome:'DESP. FIXA',              sinal:'-' },
     // ── Investimentos ─────────────────────────────────────────────
     { tipo:'grupo',      nome:'INVESTIMENTOS',           sinal:'-' }
   ];
@@ -646,6 +647,32 @@ const DRE = (() => {
     return orfas;
   }
 
+  /* Grupos do Plano de Contas que a conta bate certinho (não é #N/A), mas cujo
+     nome de GRUPO não existe em SE_POR_GRUPO/ESTRUTURA. Isso é bem mais
+     perigoso que conta órfã: o valor entra no BD_DRE normalmente (aparece na
+     aba BD_DRE e no Laudo Grupo), só não aparece em NENHUMA linha do DRE nem
+     entra nos totais de EBITDA/resultado — some do relatório sem aviso.
+     Retorna a lista de nomes de grupo órfãos e o total em R$ que eles somam. */
+  function _dreGruposOrfaos() {
+    const gruposConhecidos = new Set(Object.keys(SE_POR_GRUPO));
+    const porGrupo = new Map();
+    for (const c of estado.plano) {
+      if (gruposConhecidos.has(c.grupo)) continue;
+      if (!porGrupo.has(c.grupo)) porGrupo.set(c.grupo, 0);
+    }
+    if (!porGrupo.size) return { nomes: [], total: 0 };
+
+    for (const l of (estado.bd || [])) {
+      if (porGrupo.has(l.grupo)) {
+        porGrupo.set(l.grupo, porGrupo.get(l.grupo) + num(l.valor));
+      }
+    }
+    return {
+      nomes: Array.from(porGrupo.keys()),
+      total: Array.from(porGrupo.values()).reduce((s, v) => s + v, 0)
+    };
+  }
+
   /* ---------- 9b. BALANÇO MENSAL — tabela completa ---------- */
   function renderBalanco(res) {
     const s = res.serie, t = res.total;
@@ -792,13 +819,20 @@ const DRE = (() => {
       ? `<div class="fin-dre-aviso-orfa">⚠ ${orfas} lançamento(s) com conta fora do Plano (#N/A) — não entram no DRE.</div>`
       : '';
 
+    const gruposOrfaos = _dreGruposOrfaos();
+    const avisoGrupoOrfao = gruposOrfaos.nomes.length > 0
+      ? `<div class="fin-dre-aviso-orfa">⚠ Grupo(s) do Plano de Contas não reconhecido(s) pelo DRE — `
+        + `${esc(gruposOrfaos.nomes.join(', '))} — somando ${fmt(gruposOrfaos.total)} que não entram em nenhuma linha `
+        + `nem no total do DRE. Corrija o GRUPO dessas contas no Plano para um dos grupos válidos.</div>`
+      : '';
+
     const blocos = ESTRUTURA.map(item => {
       if (item.tipo === 'grupo')     return renderBloco(item);
       if (item.tipo === 'separador') return renderSeparador(item, res);
       return renderResultado(item, res);
     }).join('');
 
-    alvo.innerHTML = `<div class="fin-dre-periodo-label">${periodo}</div>${avisoOrfa}${blocos}${renderBalanco(res)}`;
+    alvo.innerHTML = `<div class="fin-dre-periodo-label">${periodo}</div>${avisoOrfa}${avisoGrupoOrfao}${blocos}${renderBalanco(res)}`;
     return res;
   }
 
