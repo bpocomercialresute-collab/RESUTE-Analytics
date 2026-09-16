@@ -326,20 +326,22 @@
 .fin-dre-tabela td.fin-dre-col-pct { width: 66px; min-width: 66px; }
 .fin-dre-tabela td.fin-dre-col-spark { width: 100px; min-width: 100px; }
 
-/* TOT (corpo): verde clarinho, texto verde-escuro sempre — cor fixa, não
-   herda vermelho/preto de despesa-receita (isso fica só nas colunas de
-   mês). Mesma cor em toda a ferramenta (bloco, Balanço Mensal, rodapé).
-   Exceto dentro de .fin-dre-resultado-tr, que já é fundo colorido com
-   texto branco (Receita Líquida/EBITDA/Lucro) — não pode virar verde-escuro. */
-td.fin-dre-col-tot { background: #cdf3d9 !important; font-weight: 700; }
+/* TOT (corpo): azul clarinho, texto azul-escuro — mesma identidade do
+   cabeçalho TOT (azul). Cor fixa, não herda vermelho/preto de despesa-
+   receita (isso fica só nas colunas de mês). Mesma cor em toda a
+   ferramenta (bloco, Balanço Mensal, rodapé). Exceto dentro de
+   .fin-dre-resultado-tr, que já é fundo colorido com texto branco
+   (Receita Líquida/EBITDA/Lucro) — não pode virar azul-escuro. */
+td.fin-dre-col-tot { background: #d6ecfb !important; font-weight: 700; }
 .fin-dre-tabela td.fin-dre-col-tot,
-.fin-dre-tabela tfoot td.fin-dre-col-tot-foot { color: #1a5c30 !important; }
+.fin-dre-tabela tfoot td.fin-dre-col-tot-foot { color: #1e3a5f !important; }
 .fin-dre-resultado-tr td.fin-dre-col-tot { color: #fff !important; }
 
-/* MÉD (corpo): azul clarinho, texto azul-escuro sempre. */
-td.fin-dre-col-med { background: #d6ecfb !important; font-weight: 700; }
+/* MÉD (corpo): verde clarinho, texto verde-escuro — mesma identidade do
+   cabeçalho MÉD/ANO (verde). */
+td.fin-dre-col-med { background: #cdf3d9 !important; font-weight: 700; }
 .fin-dre-tabela td.fin-dre-col-med,
-.fin-dre-tabela tfoot td.fin-dre-col-med-foot { color: #1e3a5f !important; }
+.fin-dre-tabela tfoot td.fin-dre-col-med-foot { color: #1a5c30 !important; }
 .fin-dre-resultado-tr td.fin-dre-col-med { color: #fff !important; }
 
 /* Mês (sparkline): mini gráfico de linha da tendência mensal da linha */
@@ -363,13 +365,13 @@ td.fin-dre-col-med { background: #d6ecfb !important; font-weight: 700; }
   position: sticky; left: 0; z-index: 1;
   background: var(--fin-yellow) !important;
 }
-/* TOT e MÉD na linha TOTAL: mesma cor da coluna (verde/azul clarinho),
+/* TOT e MÉD na linha TOTAL: mesma cor da coluna (azul/verde clarinho),
    não amarelo — só o resto da linha (conta + meses) fica amarelo. */
 .fin-dre-tabela tfoot td.fin-dre-col-tot-foot {
-  background: #cdf3d9 !important; color: #1a5c30; font-weight: 700;
+  background: #d6ecfb !important; color: #1e3a5f; font-weight: 700;
 }
 .fin-dre-tabela tfoot td.fin-dre-col-med-foot {
-  background: #d6ecfb !important; color: #1e3a5f; font-weight: 700;
+  background: #cdf3d9 !important; color: #1a5c30; font-weight: 700;
 }
 
 /* % e Mês (sparkline) na linha TOTAL: sem cor, branco. */
@@ -906,10 +908,10 @@ td.fin-dre-col-med { background: #d6ecfb !important; font-weight: 700; }
    sobrepondo a cor de fundo especifica de cada linha (amarelo/verde/
    vermelho/etc) — igual ja aplicado nas outras tabelas da aba Resultados. */
 .fin-balanco-tabela tbody tr td.fin-dre-col-tot-foot {
-  background: #cdf3d9 !important; color: #1a5c30 !important; font-weight: 700;
+  background: #d6ecfb !important; color: #1e3a5f !important; font-weight: 700;
 }
 .fin-balanco-tabela tbody tr td.fin-dre-col-med-foot {
-  background: #d6ecfb !important; color: #1e3a5f !important; font-weight: 700;
+  background: #cdf3d9 !important; color: #1a5c30 !important; font-weight: 700;
 }
 .fin-balanco-tabela tbody tr td.fin-dre-col-pct,
 .fin-balanco-tabela tbody tr td.fin-dre-col-spark {
