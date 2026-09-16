@@ -261,6 +261,7 @@ async function dreAbrir(opts) {
   try {
     await _dreInjetarCSS();
     await _dreMontarHTML(view);
+    _dreResetarFiltrosAoAbrir();
 
     var eid = _dreResolverEmpresaId(empresaIdPreview);
 
@@ -284,6 +285,7 @@ async function dreAbrir(opts) {
       plano:       dados.plano,
       lancamentos: dados.lancamentos,
       empresa:     _dreNomeEmpresa(),
+      empresaId:   eid,
       cnpj:        1,
       ano:         null
     });
@@ -890,6 +892,12 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
   delete GRIDS['dre_bd'];
   delete GRIDS['dre_plano'];
   delete GRIDS['dre_bddre'];
+  // Filtros de coluna pertencem à empresa/grade atual. Nunca reaproveitar o
+  // filtro da empresa anterior ao abrir outro preview no modo multiempresa.
+  ['dre_bd', 'dre_plano', 'dre_bddre'].forEach(function(key) {
+    if (typeof JSS_FILTERS !== 'undefined') JSS_FILTERS[key] = {};
+    if (typeof JSS_FILTERS_MODE !== 'undefined') JSS_FILTERS_MODE[key] = {};
+  });
 
   // ── Grade BD (livro-razão editável) ──────────────────────────────────────────
   var alvoBD = document.getElementById('fin-dre-tab-bd');
@@ -945,8 +953,12 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
       if (ci !== 4 && ci !== 5) return;
       e.preventDefault();
       e.stopPropagation();
-      var rn = tr.querySelector('.lg-rn');
-      var ri = rn ? parseInt(rn.textContent, 10) - 1 : -1;
+      var visibleRi = Array.from(gridPlano._tbody.rows).indexOf(tr);
+      if (visibleRi < 0) return;
+      var from = (gridPlano.page || 0) * (gridPlano.pageSize || 500);
+      var fonte = gridPlano.filtered !== null ? gridPlano.filtered : gridPlano.allData;
+      var linha = fonte[from + visibleRi];
+      var ri = gridPlano.allData.indexOf(linha);
       if (ri < 0) return;
 
       var ncols = gridPlano.def.cols.length;
@@ -970,8 +982,7 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
       }
 
       if (gridPlano._inp) gridPlano._inp.style.display = 'none';
-      gridPlano._renderRow(ri);
-      _dreAtualizarTodosTogles(gridPlano);
+      gridPlano._render();
       atualizarPlano();
     }, true);
 
@@ -979,6 +990,7 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
       _dreAtualizarTodosTogles(gridPlano);
       atualizarPlano();
     });
+
   }
 
   // ── Grade BD_DRE (matriz SUMIFS, 100% somente leitura) ──────────────────────
@@ -986,7 +998,23 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
 
   // ── Filtros rápidos BD e Resultados ─────────────────────────────────────────
   _dreConfigurarFiltroBD();
+  _dreConfigurarFiltroPlano();
   _dreConfigurarFiltroResultados();
+}
+
+/** Evita que uma busca/empresa anterior contamine o novo contexto do DRE. */
+function _dreResetarFiltrosAoAbrir() {
+  [
+    'fin-filtro-inicio', 'fin-filtro-fim',
+    'fin-dre-bd-busca', 'fin-dre-bd-filtro-se',
+    'fin-dre-busca-plano', 'fin-dre-filtro-grupo', 'fin-dre-filtro-fv', 'fin-dre-filtro-di',
+    'fin-dre-bddre-filtro-ano', 'fin-dre-bddre-filtro-grupo', 'fin-dre-bddre-filtro-se',
+    'fin-dre-bddre-busca', 'fin-dre-resultado-grupo', 'fin-dre-resultado-tipo'
+  ].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  _dreBDDreFiltros = { ano: '', grupo: '', se: '', busca: '' };
 }
 
 // ── FILTROS RÁPIDOS BD ───────────────────────────────────────────────────────
@@ -998,42 +1026,56 @@ function _dreConfigurarFiltroBD() {
   var grid = GRIDS['dre_bd'];
   if (!grid || !busca) return;
 
-  function aplicar() {
+  grid._extraFilter = function(row) {
     var termo = (busca.value || '').trim().toLowerCase();
     var se = (filtroSE ? filtroSE.value : '').trim();
-    var src = FULL_DATA['dre_bd'] || grid.allData;
-
-    if (!termo && !se) {
-      grid.filtered = null;
-      grid.page = 0;
-      grid._render();
-      return;
+    if (se && String(row[18] || '').trim() !== se) return false;
+    if (termo) {
+      var m = String(row[4] || '').toLowerCase().indexOf(termo) >= 0
+           || String(row[17] || '').toLowerCase().indexOf(termo) >= 0
+           || String(row[8] || '').toLowerCase().indexOf(termo) >= 0;
+      if (!m) return false;
     }
+    return true;
+  };
 
-    grid.filtered = src.filter(function(row) {
-      if (!row) return false;
-      if (se && String(row[18] || '').trim() !== se) return false;
-      if (termo) {
-        var m = String(row[4]  || '').toLowerCase().indexOf(termo) >= 0
-             || String(row[17] || '').toLowerCase().indexOf(termo) >= 0
-             || String(row[8]  || '').toLowerCase().indexOf(termo) >= 0;
-        if (!m) return false;
-      }
-      return true;
-    });
-    grid.page = 0;
-    grid._render();
-  }
+  function aplicar() { grid.applyFilter(JSS_FILTERS['dre_bd'] || {}); }
 
-  busca.addEventListener('input', aplicar);
-  if (filtroSE) filtroSE.addEventListener('change', aplicar);
-  if (btnLimpar) btnLimpar.addEventListener('click', function() {
+  busca.oninput = aplicar;
+  if (filtroSE) filtroSE.onchange = aplicar;
+  if (btnLimpar) btnLimpar.onclick = function() {
     busca.value = '';
     if (filtroSE) filtroSE.value = '';
-    grid.filtered = null;
-    grid.page = 0;
-    grid._render();
-  });
+    aplicar();
+  };
+}
+
+// ── FILTROS RÁPIDOS PLANO DE CONTAS ─────────────────────────────────────────
+
+function _dreConfigurarFiltroPlano() {
+  var grid = GRIDS['dre_plano'];
+  if (!grid) return;
+  var busca = document.getElementById('fin-dre-busca-plano');
+  var grupo = document.getElementById('fin-dre-filtro-grupo');
+  var fv = document.getElementById('fin-dre-filtro-fv');
+  var di = document.getElementById('fin-dre-filtro-di');
+  if (!busca && !grupo && !fv && !di) return;
+
+  grid._extraFilter = function(row) {
+    var termo = busca ? String(busca.value || '').trim().toLowerCase() : '';
+    var alvo = String(row[1] || '') + ' ' + String(row[2] || '');
+    if (termo && alvo.toLowerCase().indexOf(termo) < 0) return false;
+    if (grupo && grupo.value && String(row[3] || '').trim() !== grupo.value) return false;
+    if (fv && fv.value && (fv.value === '-' ? String(row[4] || '').trim() !== '' : String(row[4] || '').trim() !== fv.value)) return false;
+    if (di && di.value && (di.value === '-' ? String(row[5] || '').trim() !== '' : String(row[5] || '').trim() !== di.value)) return false;
+    return true;
+  };
+
+  function aplicar() { grid.applyFilter(JSS_FILTERS['dre_plano'] || {}); }
+  if (busca) busca.oninput = aplicar;
+  if (grupo) grupo.onchange = aplicar;
+  if (fv) fv.onchange = aplicar;
+  if (di) di.onchange = aplicar;
 }
 
 // ── FILTROS RÁPIDOS RESULTADOS ────────────────────────────────────────────────
@@ -1046,6 +1088,7 @@ function _dreConfigurarFiltroResultados() {
   var btnLimpar = document.getElementById('fin-dre-resultado-limpar');
   if (!selGrupo) return;
 
+  selGrupo.innerHTML = '<option value="">Grupo: todos</option>';
   (DRE.ESTRUTURA || []).filter(function(e) { return e.tipo === 'grupo'; }).forEach(function(e) {
     var op = document.createElement('option');
     op.value = e.nome;
@@ -1069,13 +1112,13 @@ function _dreConfigurarFiltroResultados() {
     if (balanco) balanco.style.display = (!grupoFiltro && !tipoFiltro) ? '' : 'none';
   }
 
-  selGrupo.addEventListener('change', aplicar);
-  if (selTipo) selTipo.addEventListener('change', aplicar);
-  if (btnLimpar) btnLimpar.addEventListener('click', function() {
+  selGrupo.onchange = aplicar;
+  if (selTipo) selTipo.onchange = aplicar;
+  if (btnLimpar) btnLimpar.onclick = function() {
     selGrupo.value = '';
     if (selTipo) selTipo.value = '';
     aplicar();
-  });
+  };
 
   if (!_dreResultadoFiltroWrapped && DRE && typeof DRE.recalcular === 'function') {
     var origRecalc = DRE.recalcular;
@@ -1339,8 +1382,9 @@ function _dreAtualizarDerivadasBD(gridBD) {
     r[19] = pc ? (pc.grupo || '') : (conta ? '#N/A' : '');
     r[18] = pc ? (SE_MAP[pc.grupo] || 'S') : (conta ? '#N/A' : '');
 
-    // DT_CAIXA = índice 1
-    var dt = String(r[1] || '');
+    // O DRE é organizado por DT_VENC; DT_CAIXA é apenas fallback para
+    // lançamentos antigos que ainda não possuem vencimento.
+    var dt = String(r[2] || r[1] || '');
     var d  = _dreParseDataUTC(dt);
     var ok = d && !isNaN(d);
 
@@ -1419,18 +1463,19 @@ function _drePatchGrid(grid, cb) {
     var ri = grid.selRow, ci = grid.selCol;
     origCommit();
     // Col # (ci=0): impede duplicata — auto-incrementa para próximo disponível
-    if (ci === 0 && ri >= 0 && grid.allData[ri]) {
-      var val = String(grid.allData[ri][0] || '').trim();
+    var dataRi = typeof grid._dataIndex === 'function' ? grid._dataIndex(ri) : ri;
+    if (ci === 0 && dataRi >= 0 && grid.allData[dataRi]) {
+      var val = String(grid.allData[dataRi][0] || '').trim();
       if (val !== '') {
         var isDup = grid.allData.some(function(r, i) {
-          return i !== ri && r && String(r[0] || '').trim() === val;
+          return i !== dataRi && r && String(r[0] || '').trim() === val;
         });
         if (isDup) {
           var used = {};
-          grid.allData.forEach(function(r, i) { if (i !== ri && r) used[String(r[0] || '').trim()] = true; });
+          grid.allData.forEach(function(r, i) { if (i !== dataRi && r) used[String(r[0] || '').trim()] = true; });
           var n = parseInt(val) || 1;
           while (used[String(n)]) n++;
-          grid.allData[ri][0] = n;
+          grid.allData[dataRi][0] = n;
           grid._render();
         }
       }
@@ -1642,7 +1687,14 @@ function _dreLigarDateInputs() {
   function aplicar() {
     var vi = elInicio ? elInicio.value : '';
     var vf = elFim    ? elFim.value    : '';
-    if (!vi && !vf) return;
+    if (!vi && !vf) {
+      DRE.estado.anoInicio = DRE.estado.ano;
+      DRE.estado.anoFim = DRE.estado.ano;
+      DRE.estado.mesInicio = 0;
+      DRE.estado.mesFim = 11;
+      DRE.recalcular();
+      return;
+    }
 
     var di = vi ? new Date(vi) : null;
     var df = vf ? new Date(vf) : null;
@@ -1662,6 +1714,17 @@ function _dreLigarDateInputs() {
       changed = true;
     }
 
+    if (changed && (DRE.estado.anoInicio > DRE.estado.anoFim
+      || (DRE.estado.anoInicio === DRE.estado.anoFim
+        && DRE.estado.mesInicio > DRE.estado.mesFim))) {
+      var tmpAno = DRE.estado.anoInicio;
+      var tmpMes = DRE.estado.mesInicio;
+      DRE.estado.anoInicio = DRE.estado.anoFim;
+      DRE.estado.mesInicio = DRE.estado.mesFim;
+      DRE.estado.anoFim = tmpAno;
+      DRE.estado.mesFim = tmpMes;
+    }
+
     if (changed) {
       var selMes = document.getElementById('fin-filtro-mes');
       if (selMes) selMes.value = '';
@@ -1669,8 +1732,8 @@ function _dreLigarDateInputs() {
     }
   }
 
-  if (elInicio) elInicio.addEventListener('change', aplicar);
-  if (elFim)    elFim.addEventListener('change', aplicar);
+  if (elInicio) elInicio.onchange = aplicar;
+  if (elFim)    elFim.onchange = aplicar;
 }
 
 var _dreSinoClickForaLigado = false;

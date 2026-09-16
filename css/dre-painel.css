@@ -826,7 +826,7 @@ td.fin-dre-col-med { background: #cdf3d9 !important; font-weight: 700; }
 .lg-pb:hover { background: #1C64C0; color: #fff; }
 
 /* Filtro dropdown DRE — reutiliza .col-filter-dropdown do jss.js */
-.col-filter-dropdown { font-family: “Outfit”, “Segoe UI”, system-ui, sans-serif; }
+.col-filter-dropdown { font-family: "Outfit", "Segoe UI", system-ui, sans-serif; }
 
 /* ============================================================
    MELHORIAS VISUAIS v2 — filtros Excel-like, cabeçalhos, ID col
@@ -999,8 +999,8 @@ td.fin-dre-col-med { background: #cdf3d9 !important; font-weight: 700; }
   margin-bottom: 4px !important;
 }
 .fin-campo select,
-.fin-campo input[type=”date”],
-.fin-campo input[type=”text”] {
+.fin-campo input[type="date"],
+.fin-campo input[type="text"] {
   min-height: 32px !important;
   border: 1.5px solid #c8d0e2 !important;
   border-radius: 5px !important;
@@ -1098,4 +1098,3 @@ td.fin-dre-col-med { background: #cdf3d9 !important; font-weight: 700; }
 
 /* Abas do financeiro do cliente (Resultados / Laudo Grupo) */
 .fin-tabs-cliente { margin: 0 0 14px; }
-

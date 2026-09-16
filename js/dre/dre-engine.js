@@ -73,7 +73,9 @@ const DRE = (() => {
     mesFim: 11,
     slots: [],          // [{ano, mes}] — lista plana de meses no recorte
     charts: {},
-    empresa: ''
+    empresa: '',
+    empresaId: '',
+    auditoriaDuplicidades: { plano: 0, lancamentosPorId: 0, candidatosLancamentos: 0 }
   };
 
   /* ---------- 3. UTILITÁRIOS ---------- */
@@ -147,11 +149,16 @@ const DRE = (() => {
   // Indexa o plano por nome de conta. É a chave do PROCV.
   function indexarPlano() {
     const idx = new Map();
+    let duplicadas = 0;
     for (const c of estado.plano) {
       const k = norm(c.conta);
-      if (idx.has(k)) console.warn('[DRE] Conta duplicada no plano:', c.conta);
-      idx.set(k, c);
+      if (!k) continue;
+      if (idx.has(k)) duplicadas++;
+      // A primeira ocorrência é a fonte de verdade do relatório. Assim uma
+      // duplicata no plano não cria duas linhas nem troca o grupo em silêncio.
+      if (!idx.has(k)) idx.set(k, c);
     }
+    if (duplicadas) console.warn('[DRE] Contas duplicadas no plano:', duplicadas);
     return idx;
   }
 
@@ -210,10 +217,14 @@ const DRE = (() => {
 
     // meses[i] = valor do slot i (não mais índice de calendário fixo)
     const linhas = [];
+    const contasUsadas = new Set();
     let id = 1;
     for (const c of estado.plano) {
+      const contaKey = norm(c.conta);
+      if (!contaKey || contasUsadas.has(contaKey)) continue;
+      contasUsadas.add(contaKey);
       const meses = slots.map(sl =>
-        num(soma.get(`${norm(c.conta)}|${sl.ano}|${sl.mes}|${estado.cnpj}`))
+        num(soma.get(`${contaKey}|${sl.ano}|${sl.mes}|${estado.cnpj}`))
       );
       linhas.push({
         id: id++,
@@ -889,14 +900,57 @@ const DRE = (() => {
 
   function indexarPlanoPorNome() {
     const idx = new Map();
-    for (const c of estado.plano) idx.set(norm(c.conta), c);
+    for (const c of estado.plano) {
+      const k = norm(c.conta);
+      if (k && !idx.has(k)) idx.set(k, c);
+    }
     return idx;
+  }
+
+  // Auditoria conservadora: IDs repetidos são duplicidade objetiva; linhas
+  // sem ID apenas são apontadas como candidatas quando todos os campos de
+  // negócio coincidem, pois duas transações idênticas ainda podem ser reais.
+  function auditarDuplicidades() {
+    const contas = new Set();
+    let plano = 0;
+    for (const c of estado.plano) {
+      const k = norm(c.conta);
+      if (!k) continue;
+      if (contas.has(k)) plano++;
+      contas.add(k);
+    }
+
+    const ids = new Set();
+    let lancamentosPorId = 0;
+    const semId = new Map();
+    for (const l of estado.lancamentos) {
+      const id = l.id != null ? String(l.id).trim() : (l.id_externo != null ? String(l.id_externo).trim() : '');
+      if (id) {
+        if (ids.has(id)) lancamentosPorId++;
+        ids.add(id);
+        continue;
+      }
+      const chave = ['dt_caixa','dt_venc','dt_pag','conta','valor','tot_pago','parceiro',
+        'documento','banco','forma','parcela','tot_parcelas','obs','dt_custoria','historico']
+        .map(k => norm(l[k])).join('|');
+      if (chave !== '|'.repeat(14)) semId.set(chave, (semId.get(chave) || 0) + 1);
+    }
+    let candidatosLancamentos = 0;
+    semId.forEach(qtd => { if (qtd > 1) candidatosLancamentos += qtd - 1; });
+    estado.auditoriaDuplicidades = { plano, lancamentosPorId, candidatosLancamentos };
+    return estado.auditoriaDuplicidades;
   }
 
   /** Linhas prontas para POST em fin_dre_plano_contas (sem empresa_id). */
   function registrosPlanoParaSalvar() {
+    const vistos = new Set();
     return estado.plano
-      .filter(l => l.conta)
+      .filter(l => {
+        const k = norm(l.conta);
+        if (!k || vistos.has(k)) return false;
+        vistos.add(k);
+        return true;
+      })
       .map(l => ({
         cod: l.cod || l.conta,
         conta: l.conta,
@@ -1092,6 +1146,7 @@ const DRE = (() => {
   }
 
   function renderAlertas(res) {
+    const duplicidades = auditarDuplicidades();
     const alvo = document.getElementById('fin-alertas');
     if (!alvo) return;
     const t = res.total, base = res.base || 1, a = analiseFVDI();
@@ -1129,6 +1184,13 @@ const DRE = (() => {
     if (gruposOrfaos.nomes.length) add('negativo','Grupo(s) não reconhecido(s) pelo DRE',
       `${gruposOrfaos.nomes.join(', ')} — somando ${fmt(gruposOrfaos.total)} que não entram em nenhuma linha `
       + `nem no total do DRE. Corrija o GRUPO dessas contas no Plano para um dos grupos válidos.`);
+
+    if (duplicidades.plano) add('atencao', 'Contas duplicadas no Plano de Contas',
+      `${duplicidades.plano} duplicata(s) encontrada(s). O cálculo considera a primeira ocorrência para evitar duplicar o relatório.`);
+    if (duplicidades.lancamentosPorId) add('negativo', 'Lançamentos com ID duplicado',
+      `${duplicidades.lancamentosPorId} registro(s) repetem o mesmo ID e precisam ser revisados na origem.`);
+    if (duplicidades.candidatosLancamentos) add('atencao', 'Possíveis lançamentos repetidos',
+      `${duplicidades.candidatosLancamentos} linha(s) sem ID possuem todos os campos iguais. Revise antes de excluir, pois podem ser transações legítimas.`);
 
     alvo.innerHTML = out.join('');
     _dreAtualizarBadgeAlertas(pendencias);
@@ -1513,14 +1575,14 @@ const DRE = (() => {
 
   function ligarAbas() {
     document.querySelectorAll('.fin-tab').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.onclick = () => {
         document.querySelectorAll('.fin-tab').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.fin-pane').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         const paneId = btn.dataset.finPane;
         document.getElementById(paneId)?.classList.add('active');
         _dreAtualizarVisibilidadeFiltros(paneId);
-      });
+      };
     });
     // Aplica estado inicial conforme aba já ativa
     const abaAtiva = document.querySelector('.fin-tab.active');
@@ -1556,25 +1618,25 @@ const DRE = (() => {
     if (selAno) {
       selAno.innerHTML = anos.map(a =>
         `<option value="${a}"${a === estado.ano ? ' selected' : ''}>${a}</option>`).join('');
-      selAno.addEventListener('change', () => {
+      selAno.onchange = () => {
         estado.ano = +selAno.value;
         estado.anoInicio = estado.ano;
         estado.anoFim    = estado.ano;
         recalcular();
-      });
+      };
     }
 
     const selMes = document.getElementById('fin-filtro-mes');
     if (selMes) {
       selMes.innerHTML = '<option value="">Ano inteiro</option>' +
         MESES.map((m,i) => `<option value="${i}">${m}</option>`).join('');
-      selMes.addEventListener('change', () => {
+      selMes.onchange = () => {
         if (selMes.value === '') { estado.mesInicio = 0; estado.mesFim = 11; }
         else { estado.mesInicio = estado.mesFim = +selMes.value; }
         estado.anoInicio = estado.ano;
         estado.anoFim    = estado.ano;
         recalcular();
-      });
+      };
     }
 
     const selGrupo = document.getElementById('fin-dre-filtro-grupo');
@@ -1587,15 +1649,16 @@ const DRE = (() => {
     if (selGrupoLanc) {
       selGrupoLanc.innerHTML = '<option value="">Grupo: todos</option>' +
         Object.keys(SE_POR_GRUPO).map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
-      selGrupoLanc.addEventListener('change', renderLancamentos);
+      selGrupoLanc.onchange = renderLancamentos;
     }
 
-    document.getElementById('fin-btn-atualizar')?.addEventListener('click', recalcular);
+    const btnAtualizar = document.getElementById('fin-btn-atualizar');
+    if (btnAtualizar) btnAtualizar.onclick = recalcular;
   }
 
   /* ---------- 17. API PÚBLICA ---------- */
 
-  function init({ plano = [], lancamentos = [], empresa = '', cnpj = 1, ano = null } = {}) {
+  function init({ plano = [], lancamentos = [], empresa = '', empresaId = '', cnpj = 1, ano = null } = {}) {
     estado.plano = plano.map(c => ({ ...c, fv: c.fv || '', di: c.di || '' }));
     estado.lancamentos = lancamentos;
     estado.cnpj = cnpj;
@@ -1604,6 +1667,8 @@ const DRE = (() => {
     estado.anoFim    = ano;
 
     estado.empresa = empresa || '';
+    estado.empresaId = empresaId || '';
+    estado.auditoriaDuplicidades = { plano: 0, lancamentosPorId: 0, candidatosLancamentos: 0 };
 
     const el = document.getElementById('fin-empresa');
     if (el) el.textContent = empresa || 'RESUTE';

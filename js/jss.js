@@ -225,7 +225,8 @@ LiteGrid.prototype._build = function() {
     if ((e.key === 'Delete' || e.key === 'Backspace') && self.selRow >= 0 && self.selCol >= 0) {
       e.preventDefault();
       var defDel = self.def; if (defDel.cols[self.selCol] && defDel.cols[self.selCol].auto) return;
-      var riDel = self.selRow, ncolsDel = defDel.cols.length;
+      var riDel = self._dataIndex(self.selRow), ncolsDel = defDel.cols.length;
+      if (riDel < 0) return;
       while (self.allData.length <= riDel) { var erDel=[]; for(var jd=0;jd<ncolsDel;jd++) erDel.push(''); self.allData.push(erDel); }
       while (self.allData[riDel].length < ncolsDel) self.allData[riDel].push('');
       var oldDel = self.allData[riDel][self.selCol];
@@ -233,7 +234,9 @@ LiteGrid.prototype._build = function() {
         self._pushUndo({ type:'cells', oldLength:self.allData.length, changes:[{ri:riDel, ci:self.selCol, oldVal:oldDel}] });
         self.allData[riDel][self.selCol] = '';
         FULL_DATA[self.key] = self.allData.filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null; }); });
-        self._renderRow(riDel); self._updateStatus();
+        if (self.filtered !== null) self.applyFilter(JSS_FILTERS[self.key] || {});
+        else self._renderRow(riDel);
+        self._updateStatus();
       }
       return;
     }
@@ -349,7 +352,9 @@ LiteGrid.prototype._select = function(ri, ci, td) {
 LiteGrid.prototype._commit = function() {
   if (this.selRow < 0 || this.selCol < 0 || !this._inp) return;
   var val = this._inp.value;
-  var ri = this.selRow, ci = this.selCol;
+  var viewRi = this.selRow, ci = this.selCol;
+  var ri = this._dataIndex(viewRi);
+  if (ri < 0) return;
   var ncols = this.def.cols.length;
   while (this.allData.length <= ri) {
     var er = []; for(var j=0;j<ncols;j++) er.push(''); this.allData.push(er);
@@ -359,7 +364,8 @@ LiteGrid.prototype._commit = function() {
   if (oldVal !== val) this._pushUndo({ type:'cells', oldLength:this.allData.length, changes:[{ri:ri, ci:ci, oldVal:oldVal}] });
   this.allData[ri][ci] = val;
   FULL_DATA[this.key] = this.allData.filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null; }); });
-  this._renderRow(ri);
+  if (this.filtered !== null) this.applyFilter(JSS_FILTERS[this.key] || {});
+  else this._renderRow(ri);
   this._updateStatus();
 };
 
@@ -388,8 +394,9 @@ LiteGrid.prototype._undo = function() {
   }
   FULL_DATA[this.key] = this.allData.filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null; }); });
   this.filtered = null;
-  this._render();
-  this._updateStatus();
+  var filtrosAtivos = JSS_FILTERS[this.key] || {};
+  if (Object.keys(filtrosAtivos).length || typeof this._extraFilter === 'function') this.applyFilter(filtrosAtivos);
+  else { this._render(); this._updateStatus(); }
   if (this.selRow >= 0 && this.selCol >= 0) {
     var from = this.page * this.pageSize;
     var rowIdx = this.selRow - from;
@@ -433,7 +440,11 @@ LiteGrid.prototype._move = function(dr, dc) {
   var ncols = this.def.cols.length;
   ri = Math.max(0, ri);
   ci = Math.max(0, Math.min(ncols-1, ci));
-  this._ensureRow(ri);
+  if (this.filtered !== null) {
+    if (ri >= this.filtered.length) return;
+  } else {
+    this._ensureRow(ri);
+  }
   // Vai para a página certa se necessário
   var from = this.page * this.pageSize;
   if (ri >= from + this.pageSize) { this.page++; this._render(); }
@@ -514,11 +525,25 @@ LiteGrid.prototype._pasteAt = function(txt, startRow, startCol) {
   if (!lines.length) return;
   var changes = [];
   var oldLength = this.allData.length;
-  while (this.allData.length < startRow + lines.length) {
-    var er=[]; for(var j=0;j<ncols;j++) er.push(''); this.allData.push(er);
+  var filteredRows = this.filtered !== null ? this.filtered : null;
+  var targetRows = [];
+  if (filteredRows) {
+    // Em uma visão filtrada, cada linha colada segue a ordem das linhas
+    // visíveis, como no Excel, sem atingir registros ocultos.
+    for (var fi = 0; fi < lines.length; fi++) {
+      var vis = filteredRows[startRow + fi];
+      if (!vis) break;
+      targetRows.push(this.allData.indexOf(vis));
+    }
+  } else {
+    while (this.allData.length < startRow + lines.length) {
+      var er=[]; for(var j=0;j<ncols;j++) er.push(''); this.allData.push(er);
+    }
+    for (var ui = 0; ui < lines.length; ui++) targetRows.push(startRow + ui);
   }
   lines.forEach(function(line, li) {
-    var ri = startRow + li;
+    var ri = targetRows[li];
+    if (ri == null || ri < 0) return;
     if (!this.allData[ri]) { this.allData[ri]=[]; }
     while (this.allData[ri].length < ncols) this.allData[ri].push('');
     line.split('\t').forEach(function(v,ci){
@@ -532,9 +557,10 @@ LiteGrid.prototype._pasteAt = function(txt, startRow, startCol) {
   }.bind(this));
   if (changes.length) this._pushUndo({ type:'cells', oldLength:oldLength, changes:changes });
   FULL_DATA[this.key] = this.allData.filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null; }); });
-  this.filtered=null; this._render();
+  if (this.filtered !== null) this.applyFilter(JSS_FILTERS[this.key] || {});
+  else this._render();
   if (this._inp) {
-    var _src = this.allData;
+    var _src = this.filtered !== null ? this.filtered : this.allData;
     this._inp.value = (_src[this.selRow] && _src[this.selRow][this.selCol] !== undefined) ? _src[this.selRow][this.selCol] : '';
     this._inp.style.display = 'none';
   }
@@ -542,6 +568,10 @@ LiteGrid.prototype._pasteAt = function(txt, startRow, startCol) {
 };
 
 LiteGrid.prototype._paste = function(txt) {
+  if (this.filtered !== null && this.selRow >= 0 && this.selCol >= 0) {
+    this._pasteAt(txt, this.selRow, this.selCol);
+    return;
+  }
   var ncols = this.def.cols.length;
   var lines = String(txt || '').replace(/\r/g, '').split('\n');
   if (lines.length && lines[lines.length - 1] === '') lines.pop();
@@ -574,9 +604,27 @@ LiteGrid.prototype.getData = function() {
 };
 
 LiteGrid.prototype.setData = function(data) {
-  this.allData = (data||[]).filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null&&c!==undefined; }); });
+  var origem = data || [];
+  this.allData = origem.filter(function(r){ return r&&r.some(function(c){ return c!==''&&c!==null&&c!==undefined; }); });
+  FULL_DATA[this.key] = this.allData.slice();
   this.undoStack = [];
-  this.filtered=null; this.page=0; this._render(); this._updateStatus();
+  this.filtered=null; this.page=0;
+  var filtrosAtivos = JSS_FILTERS[this.key] || {};
+  if (Object.keys(filtrosAtivos).length || typeof this._extraFilter === 'function') {
+    this.applyFilter(filtrosAtivos);
+  } else {
+    this._render(); this._updateStatus();
+  }
+};
+
+// Converte a posição visível (filtrada) para o índice real em allData.
+// Sem isso, editar uma linha após um filtro alterava outra linha por trás da
+// grade, quebrando o comportamento esperado do filtro do Excel.
+LiteGrid.prototype._dataIndex = function(ri) {
+  if (ri < 0) return -1;
+  if (this.filtered === null) return ri;
+  var row = this.filtered[ri];
+  return row ? this.allData.indexOf(row) : -1;
 };
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
@@ -637,19 +685,55 @@ LiteGrid.prototype._updateStatus = function() {
   else { el.textContent='Pronto'; el.className='jss-status-badge'; }
 };
 
-LiteGrid.prototype.applyFilter = function(filters) {
-  JSS_FILTERS[this.key]=filters;
-  var mode=JSS_FILTERS_MODE[this.key]||{};
-  var src=FULL_DATA[this.key]||this.allData, fks=Object.keys(filters);
-  this.filtered=fks.length===0?null:src.filter(function(r){
-    return fks.every(function(ci){
-      var cell=String(r[parseInt(ci)]||'').trim();
-      var fv=filters[ci];
-      if(mode[ci]==='contains') return cell.toLowerCase().indexOf(String(fv||'').toLowerCase())>=0;
-      if(mode[ci]==='exact-multi'&&Array.isArray(fv)) return fv.indexOf(cell)>=0;
-      return cell===String(fv||'');
-    });
+var LG_EMPTY_VALUE = '__LG_EMPTY__';
+
+function lgFilterRowMatches(grd, row, filters, skipCol) {
+  if (!row) return false;
+  if (typeof grd._extraFilter === 'function' && !grd._extraFilter(row)) return false;
+  var mode = JSS_FILTERS_MODE[grd.key] || {};
+  return Object.keys(filters || {}).every(function(ci) {
+    if (String(ci) === String(skipCol)) return true;
+    var cell = String(row[parseInt(ci, 10)] == null ? '' : row[parseInt(ci, 10)]).trim();
+    var fv = filters[ci];
+    if (mode[ci] === 'contains') return cell.toLowerCase().indexOf(String(fv || '').toLowerCase()) >= 0;
+    if (mode[ci] === 'exact-multi' && Array.isArray(fv)) {
+      return fv.some(function(value) {
+        return value === LG_EMPTY_VALUE ? cell === '' : String(value) === cell;
+      });
+    }
+    return cell === String(fv || '');
   });
+}
+
+function lgEsc(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, function(c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+function lgSortValue(a, b, asc) {
+  var va=String(a||''), vb=String(b||''), na=parseFloat(va), nb=parseFloat(vb);
+  return (!isNaN(na)&&!isNaN(nb)) ? (asc ? na-nb : nb-na) : (asc ? va.localeCompare(vb) : vb.localeCompare(va));
+}
+
+function lgSortGrid(grd, colIdx, asc) {
+  var src = FULL_DATA[grd.key] || grd.allData;
+  src.sort(function(a,b){ return lgSortValue(a[colIdx], b[colIdx], asc); });
+  if (FULL_DATA[grd.key]) {
+    grd.allData = src.filter(function(r){ return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; }); });
+  }
+  grd.page=0;
+  grd.applyFilter(JSS_FILTERS[grd.key] || {});
+}
+
+LiteGrid.prototype.applyFilter = function(filters) {
+  filters = filters || {};
+  JSS_FILTERS[this.key]=filters;
+  var src=FULL_DATA[this.key]||this.allData;
+  var fks=Object.keys(filters), hasExtra=typeof this._extraFilter === 'function';
+  this.filtered=(!fks.length && !hasExtra) ? null : src.filter(function(r){
+    return lgFilterRowMatches(this, r, filters);
+  }, this);
   this.page=0; this._render();
   var self=this;
   this.container.querySelectorAll('.col-filter-btn').forEach(function(b){
@@ -658,7 +742,7 @@ LiteGrid.prototype.applyFilter = function(filters) {
     b.innerHTML=has?'▾●':'▾'; b.style.color=has?'#ffd24a':'';
   });
   var sEl=document.getElementById('jss-status-'+this.key);
-  if(sEl){ var tot=src.length,res=(this.filtered||this.allData).length,has=fks.length>0;
+  if(sEl){ var tot=src.length,res=(this.filtered||this.allData).length,has=fks.length>0||hasExtra;
     sEl.textContent=has?'🔽 '+res.toLocaleString('pt-BR')+' de '+tot.toLocaleString('pt-BR'):'✓ '+tot.toLocaleString('pt-BR')+' linhas';
     sEl.className='jss-status-badge jss-status-ok'; }
 };
@@ -669,17 +753,22 @@ function lgGo(key,page){ if(GRIDS[key]){GRIDS[key].page=page;GRIDS[key]._render(
 function lgSortCol(key,ci,th){
   var grd=GRIDS[key]; if(!grd) return;
   var asc=th.dataset.asc!=='true'; th.dataset.asc=asc;
-  grd.allData.sort(function(a,b){ var va=String(a[ci]||''),vb=String(b[ci]||''),na=parseFloat(va),nb=parseFloat(vb); return(!isNaN(na)&&!isNaN(nb))?asc?na-nb:nb-na:asc?va.localeCompare(vb):vb.localeCompare(va); });
-  grd.filtered=null; grd.page=0; grd._render();
+  lgSortGrid(grd, ci, asc);
 }
 
 function lgShowFilter(key,colIdx,anchor){
   document.querySelectorAll('.col-filter-dropdown').forEach(function(d){d.remove();});
   var grd=GRIDS[key]; if(!grd) return;
-  var src=FULL_DATA[key]||grd.allData, seen={}, vals=[];
-  src.forEach(function(r){var v=String(r[colIdx]||'').trim();if(v&&!seen[v]){seen[v]=1;vals.push(v);}});
+  var src=FULL_DATA[key]||grd.allData, seen={}, vals=[], hasEmpty=false;
+  var filtrosAtivos=JSS_FILTERS[key]||{};
+  src.filter(function(r){ return lgFilterRowMatches(grd,r,filtrosAtivos,colIdx); }).forEach(function(r){
+    var v=String(r[colIdx] == null ? '' : r[colIdx]).trim();
+    if (!v) { hasEmpty=true; return; }
+    if(!seen[v]){seen[v]=1;vals.push(v);}
+  });
   vals.sort(function(a,b){var na=parseFloat(a),nb=parseFloat(b);return(!isNaN(na)&&!isNaN(nb))?na-nb:a.localeCompare(b);});
   vals=vals.slice(0,500);
+  if (hasEmpty) vals.unshift(LG_EMPTY_VALUE);
   var modeAtivo=(JSS_FILTERS_MODE[key]||{})[colIdx];
   var ativo=(JSS_FILTERS[key]||{})[colIdx];
   var searchVal=modeAtivo==='contains'?(ativo||''):'';
@@ -691,14 +780,22 @@ function lgShowFilter(key,colIdx,anchor){
   var drop=document.createElement('div'); drop.className='col-filter-dropdown'+(isDRE?' cfd-light':'');
   drop.style.cssText='position:fixed;top:'+(rect.bottom+4)+'px;left:'+Math.min(rect.left,window.innerWidth-290)+'px;z-index:9999;min-width:280px';
   var listId='cfd-list-'+key+'-'+colIdx, srchId='cfd-srch-'+key+'-'+colIdx, allId='cfd-all-'+key+'-'+colIdx;
-  var items=vals.map(function(v){var chk=allChecked||activeVals.indexOf(v)>=0;return '<label class="cfd-item'+((!allChecked&&activeVals.indexOf(v)>=0)?' cfd-active':'')+'"><input type="checkbox" name="lgf'+key+colIdx+'" value="'+v.replace(/"/g,'&quot;')+'"'+(chk?' checked':'')+'><span>'+v+'</span></label>';}).join('');
+  var items=vals.map(function(v){
+    var chk=allChecked||activeVals.indexOf(v)>=0;
+    var texto=v===LG_EMPTY_VALUE?'(Vazio)':v;
+    return '<label class="cfd-item'+((!allChecked&&activeVals.indexOf(v)>=0)?' cfd-active':'')+'"><input type="checkbox" name="lgf'+key+colIdx+'" value="'+lgEsc(v)+'"'+(chk?' checked':'')+'><span>'+lgEsc(texto)+'</span></label>';
+  }).join('');
   drop.innerHTML=
     '<div class="cfd-header"><span>'+label+'</span><button class="cfd-clear" onclick="lgClearFilter(\''+key+'\','+colIdx+')">✕ Limpar</button></div>'
     +'<div class="cfd-sort-row"><button class="cfd-sort-btn" onclick="lgSortFromDrop(\''+key+'\','+colIdx+',true)">▲ Menor → Maior</button><button class="cfd-sort-btn" onclick="lgSortFromDrop(\''+key+'\','+colIdx+',false)">▼ Maior → Menor</button></div>'
     +'<div class="cfd-search-row"><input class="cfd-search-input" id="'+srchId+'" placeholder="Pesquisar…" value="'+searchVal.replace(/"/g,'&quot;')+'" autocomplete="off"><button class="cfd-apply cfd-srch-btn" onclick="lgApplySearch(\''+key+'\','+colIdx+',this)">Filtrar</button></div>'
     +'<div class="cfd-list" id="'+listId+'"><label class="cfd-item cfd-item-all"><input type="checkbox" id="'+allId+'" '+(allChecked?'checked':'')+' onchange="lgToggleAll(\''+key+'\','+colIdx+',this)"><span>(Selecionar tudo)</span></label>'+items+'</div>'
     +'<div class="cfd-footer"><button class="cfd-apply" onclick="lgApplyFilter(\''+key+'\','+colIdx+',this)">Aplicar</button></div>';
-  document.body.appendChild(drop);
+  // Mantém o dropdown dentro do contexto visual do DRE para que o tema claro
+  // escopado da ferramenta seja aplicado; position:fixed continua ancorado
+  // na janela e não sofre com o overflow das grades.
+  var dropHost = document.getElementById('view-dash-dre') || document.body;
+  dropHost.appendChild(drop);
   var si=document.getElementById(srchId), li=document.getElementById(listId);
   if(si&&li){
     si.addEventListener('input',function(){
@@ -752,8 +849,7 @@ function lgToggleAll(key,colIdx,cb){
 
 function lgSortFromDrop(key,colIdx,asc){
   var grd=GRIDS[key]; if(!grd) return;
-  grd.allData.sort(function(a,b){var va=String(a[colIdx]||''),vb=String(b[colIdx]||''),na=parseFloat(va),nb=parseFloat(vb);return(!isNaN(na)&&!isNaN(nb))?asc?na-nb:nb-na:asc?va.localeCompare(vb):vb.localeCompare(va);});
-  grd.filtered=null; grd.page=0; grd._render();
+  lgSortGrid(grd, colIdx, asc);
   document.querySelectorAll('.col-filter-dropdown').forEach(function(d){d.remove();});
 }
 
