@@ -542,10 +542,7 @@ function _dreLigarSalvarGrades(empresaId) {
   var btnBD = document.getElementById('fin-dre-bd-salvar');
   if (btnBD) {
     btnBD.onclick = async function() {
-      // Pega o total BRUTO da grade ANTES de qualquer filtro — _dreLancDeRows
-      // já descarta silenciosamente linha sem CONTA/DT_CAIXA, então o total
-      // tem que ser medido antes dele, senão a contagem final nunca bate com
-      // o que foi colado e a pergunta de confirmação parece "número errado".
+      // Pega todas as linhas da grade, inclusive as que ainda estão incompletas.
       var linhasGrid = GRIDS['dre_bd'] ? GRIDS['dre_bd'].getData() : [];
       var totalNaGrade = linhasGrid.length;
       if (!totalNaGrade) {
@@ -554,36 +551,7 @@ function _dreLigarSalvarGrades(empresaId) {
       }
 
       DRE.estado.lancamentos = _dreLancDeRows(linhasGrid);
-      // Etapa 1: linha sem CONTA ou sem DT_CAIXA na célula (_dreLancDeRows já
-      // exige as duas pra sequer criar o objeto do lançamento).
-      var semContaOuData = totalNaGrade - DRE.estado.lancamentos.length;
-
-      // Etapa 2: DT_CAIXA preenchida mas em formato que não vira data (ex:
-      // "31/13/2024") — _dreLancDeRows já normaliza e zera esses casos, então
-      // registrosBDParaSalvar() os filtra aqui.
       var registros = DRE.registrosBDParaSalvar();
-      var formatoInvalido = DRE.estado.lancamentos.length - registros.length;
-
-      if (!registros.length) {
-        alert('Nenhum lançamento válido encontrado de ' + totalNaGrade.toLocaleString('pt-BR') + ' linha(s) coladas na grade.\n\n'
-          + 'Verifique:\n• DT_CAIXA preenchida e em formato DD/MM/AAAA (1ª coluna)\n• CONTA preenchida (4ª coluna)\n\nCole os dados do BD (Ctrl+V) e tente novamente.');
-        return;
-      }
-
-      // Aviso crítico: se TODOS os valores forem zero, a importação está errada.
-      var todosZero = registros.every(function(r) { return !r.valor || r.valor === 0; });
-      if (todosZero) {
-        var prosseguir = window.confirm(
-          '⚠ ATENÇÃO: todos os ' + registros.length + ' lançamentos têm VALOR = 0.\n\n' +
-          'Isso significa que o DRE não vai mostrar nenhum dado.\n\n' +
-          'Prováveis causas:\n' +
-          '• A coluna VALOR (6ª coluna) está vazia ou com texto\n' +
-          '• Os valores estão em outra coluna — verifique o mapeamento\n' +
-          '• Valores em formato BR (ex: 1.234,56) — tente trocar vírgula por ponto\n\n' +
-          'Deseja salvar mesmo assim?'
-        );
-        if (!prosseguir) return;
-      }
 
       // Normaliza datas (dt_venc/dt_pag; dt_caixa já vem normalizada desde
       // _dreLancDeRows) antes de montar os lotes que vão pro banco.
@@ -591,18 +559,13 @@ function _dreLigarSalvarGrades(empresaId) {
         return _dreNormalizarDatasRegistro(Object.assign({}, r, { empresa_id: empresaId }));
       });
 
-      var descartadas = semContaOuData + formatoInvalido;
-      var linhasConfirm = ['Total de linhas coladas na grade: ' + totalNaGrade.toLocaleString('pt-BR') + '.'];
-      if (semContaOuData) linhasConfirm.push('• ' + semContaOuData.toLocaleString('pt-BR') + ' sem CONTA ou DT_CAIXA preenchida — ignoradas.');
-      if (formatoInvalido) linhasConfirm.push('• ' + formatoInvalido.toLocaleString('pt-BR') + ' com DT_CAIXA em formato inválido — ignoradas.');
-      linhasConfirm.push('\nSerão salvas ' + lotes.length.toLocaleString('pt-BR') + ' linha(s), substituindo todos os lançamentos atuais desta empresa. Continuar?');
+      var linhasConfirm = ['Serão salvas ' + lotes.length.toLocaleString('pt-BR') + ' linha(s), substituindo todos os lançamentos atuais desta empresa. Continuar?'];
       if (!window.confirm(linhasConfirm.join('\n'))) return;
 
       _dreStatusGrade('fin-dre-status-bd', 'Salvando...', '');
       try {
         var enviados = await _dreSalvarTabela('fin_dre_lancamentos', empresaId, lotes);
-        _dreStatusGrade('fin-dre-status-bd', '✓ ' + enviados.toLocaleString('pt-BR') + ' lançamento(s) salvo(s).'
-          + (descartadas ? ' (' + descartadas.toLocaleString('pt-BR') + ' ignorado(s) de ' + totalNaGrade.toLocaleString('pt-BR') + ' na grade)' : ''), 'ok');
+        _dreStatusGrade('fin-dre-status-bd', '✓ ' + enviados.toLocaleString('pt-BR') + ' lançamento(s) salvo(s).', 'ok');
       } catch (e) {
         console.error('[DRE] Falha ao salvar BD:', e);
         alert('Falha ao salvar BD:\n' + e.message);
@@ -1553,14 +1516,13 @@ function _dreRowsBD(lancs) {
   });
 }
 
-/** Array de linhas da grade -> array de objetos lançamento (filtra sem CONTA+DT_CAIXA). */
+/** Array de linhas da grade -> array de objetos lançamento, inclusive incompletos. */
 function _dreLancDeRows(rows) {
   var cnpj = DRE.estado.cnpj;
   return rows
-    .filter(function(r) { return r[4] && r[1]; })  // CONTA(4) + DT_CAIXA(1)
     .map(function(r) {
       return {
-        conta:        r[4]  || '',
+        conta:        r[4]  ? String(r[4]).trim() : null,
         dt_caixa:     _dreNormalizarData(r[1]) || '',
         dt_venc:      _dreNormalizarData(r[2]) || null,
         dt_pag:       _dreNormalizarData(r[3]) || null,

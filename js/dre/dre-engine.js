@@ -178,8 +178,7 @@ const DRE = (() => {
     return estado.lancamentos.map(l => {
       const c = idx.get(norm(l.conta));
       // A ferramenta organiza tudo (mês/ano/BD_DRE/DRE/Laudo Grupo) pela
-      // DATA DE VENCIMENTO — cai pra DT_CAIXA só quando DT_VENC vier vazia
-      // (linha antiga/incompleta), pra não sumir lançamento do relatório.
+      // DATA DE VENCIMENTO — cai pra DT_CAIXA só quando DT_VENC vier vazia.
       const d = parseData(l.dt_venc || l.dt_caixa);
       const valido = d && !isNaN(d);
       // ISO date strings ("2024-01-15") são UTC midnight. getFullYear/getMonth usam
@@ -818,8 +817,8 @@ const DRE = (() => {
       // The financial and operational labels in the result view are intentionally
       // presented in the business order requested by the DRE: their values are
       // exchanged without changing the underlying calculation formulas.
-      mkRow('RESULTADO FINANCEIRO NO MÊS',      resultadoBalancoMeses, resultadoBalancoTotal, resultadoBalancoTotal/nM, safeDiv(resultadoBalancoTotal,base), resultadoBalancoTotal >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
-      mkRow('RESULTADO OPERACIONAL NO MÊS',     resultadoOperacionalBalancoMeses, resultadoOperacionalBalancoTotal, resultadoOperacionalBalancoTotal/nM, safeDiv(resultadoOperacionalBalancoTotal,base), resultadoOperacionalBalancoTotal >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
+      mkRow('RESULTADO FINANCEIRO NO MÊS',      resultadoOperacionalBalancoMeses, resultadoOperacionalBalancoTotal, resultadoOperacionalBalancoTotal/nM, safeDiv(resultadoOperacionalBalancoTotal,base), resultadoOperacionalBalancoTotal >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
+      mkRow('RESULTADO OPERACIONAL NO MÊS',     resultadoBalancoMeses, resultadoBalancoTotal, resultadoBalancoTotal/nM, safeDiv(resultadoBalancoTotal,base), resultadoBalancoTotal >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
       // ── % ───────────────────────────────────────────────────────────────
       evolRow(),
       mkPctRow('% Result. Operac. sobre recebimento', s.resultOperacional, s.totReceita,         t.resultOperacional, base),
@@ -986,13 +985,12 @@ const DRE = (() => {
   /** Linhas prontas para POST em fin_dre_lancamentos (sem empresa_id). */
   function registrosBDParaSalvar() {
     return estado.lancamentos
-      .filter(l => l.conta && l.dt_caixa)
       .map(l => ({
-        conta: l.conta,
+        conta: l.conta || null,
         valor: num(l.valor),
         tot_pago: (l.tot_pago === '' || l.tot_pago == null) ? null : num(l.tot_pago),
-        dt_caixa: l.dt_caixa,
-        dt_venc: l.dt_venc || l.dt_caixa,
+        dt_caixa: l.dt_caixa || null,
+        dt_venc: l.dt_venc || null,
         dt_pag: l.dt_pag || null,
         parceiro: l.parceiro || null,
         documento: l.documento || null,
