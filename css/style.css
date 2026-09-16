@@ -6864,6 +6864,98 @@ body.bpo-admin-mode #admin-action-bar::before {
   pointer-events: none;
 }
 
+/* ============================================================
+   PAINEL DO ADMIN DA EMPRESA
+   Fluxo reduzido para entrada de dados comerciais e financeiros.
+   ============================================================ */
+body.company-admin-mode #av-home > .page-header,
+body.company-admin-mode #admin-empresa-tabs,
+body.company-admin-mode #admin-action-bar,
+body.company-admin-mode .av-exibir-grid {
+  display: none !important;
+}
+
+body.company-admin-mode #av-home {
+  gap: 18px !important;
+}
+
+body.company-admin-mode .admin-company-workspace {
+  display: flex;
+}
+
+.admin-company-workspace {
+  flex-direction: column;
+  gap: 20px;
+  padding: 30px;
+  background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(235,247,244,.94));
+  border: 1px solid rgba(213,237,232,.98);
+  border-radius: 30px;
+  box-shadow: 0 26px 64px rgba(10,47,47,.10);
+}
+
+.admin-owner-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid rgba(20,116,111,.12);
+}
+
+.admin-owner-brand { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.admin-owner-logo-wrap {
+  width: 64px; height: 64px; flex: 0 0 64px; display: grid; place-items: center;
+  overflow: hidden; border-radius: 19px; background: linear-gradient(135deg,#1c64c0,#0a2f2f);
+  box-shadow: 0 14px 28px rgba(28,100,192,.18);
+}
+.admin-owner-logo { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.admin-owner-logo-fallback { color: #fff; font-size: 28px; font-weight: 900; }
+.admin-owner-kicker { color: #1c64c0; font-size: 11px; font-weight: 900; letter-spacing: .14em; }
+.admin-owner-hero h2 { margin: 5px 0 4px; color: #0e1424; font-size: clamp(26px, 3vw, 38px); line-height: 1.05; }
+.admin-owner-hero p { margin: 0; color: #567c76; font-size: 14px; }
+.admin-owner-role { padding: 9px 13px; border: 1px solid rgba(28,100,192,.18); border-radius: 999px; color: #1c64c0; background: rgba(255,255,255,.72); font-size: 10px; font-weight: 900; letter-spacing: .12em; white-space: nowrap; }
+
+.admin-owner-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.admin-owner-summary-card { min-width: 0; padding: 18px; border: 1px solid rgba(213,237,232,.98); border-radius: 20px; background: rgba(255,255,255,.82); }
+.admin-owner-summary-label { display: block; color: #567c76; font-size: 10px; font-weight: 900; letter-spacing: .1em; }
+.admin-owner-summary-card strong { display: block; margin: 7px 0 3px; color: #0e1424; font-size: 26px; line-height: 1; }
+.admin-owner-summary-card small { color: #6b8d87; font-size: 11px; }
+
+.admin-owner-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.admin-owner-action { display: flex; align-items: center; gap: 14px; min-height: 104px; padding: 18px; text-align: left; border: 1px solid rgba(213,237,232,.98); border-radius: 22px; background: rgba(255,255,255,.86); color: #0e1424; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+.admin-owner-action:hover { transform: translateY(-2px); border-color: rgba(28,100,192,.35); box-shadow: 0 16px 34px rgba(10,47,47,.10); }
+.admin-owner-action-icon { width: 44px; height: 44px; flex: 0 0 44px; display: grid; place-items: center; border-radius: 14px; background: rgba(28,100,192,.10); color: #1c64c0; }
+.admin-owner-action-icon svg { width: 21px; height: 21px; stroke-width: 1.8; }
+.admin-owner-action-copy { display: flex; flex: 1; flex-direction: column; gap: 5px; }
+.admin-owner-action-copy strong { font-size: 16px; }
+.admin-owner-action-copy small { color: #5a7a74; font-size: 12px; line-height: 1.4; }
+.admin-owner-action-arrow { color: #1c64c0; font-size: 25px; }
+.admin-owner-action-financial .admin-owner-action-icon { background: rgba(169,138,98,.14); color: #896b43; }
+.admin-owner-action-financial .admin-owner-action-arrow { color: #896b43; }
+
+.admin-owner-footer { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 18px; border-radius: 18px; background: rgba(20,116,111,.06); }
+.admin-owner-footer div { display: flex; flex-direction: column; gap: 4px; }
+.admin-owner-footer strong { color: #0e1424; font-size: 13px; }
+.admin-owner-footer span { color: #5a7a74; font-size: 12px; }
+.admin-owner-refresh { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; padding: 10px 13px; border: 1px solid rgba(28,100,192,.22); border-radius: 12px; background: #fff; color: #1c64c0; font-size: 12px; font-weight: 800; cursor: pointer; }
+.admin-owner-refresh svg { width: 14px; height: 14px; }
+.admin-owner-data-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 0 0 18px; padding: 16px 18px; border: 1px solid rgba(213,237,232,.98); border-radius: 18px; background: rgba(255,255,255,.86); }
+.admin-owner-data-toolbar > div:first-child { display: flex; flex-direction: column; gap: 4px; }
+.admin-owner-data-toolbar strong { color: #0e1424; font-size: 14px; }
+.admin-owner-data-toolbar span { color: #5a7a74; font-size: 12px; }
+.admin-owner-data-toolbar-actions { display: flex; align-items: center; gap: 9px; }
+.admin-owner-data-toolbar-actions .admin-owner-refresh { white-space: nowrap; }
+.admin-owner-clear { padding: 10px 13px; border: 1px solid rgba(220,38,38,.22); border-radius: 12px; background: #fff; color: #b42318; font-size: 12px; font-weight: 800; cursor: pointer; }
+
+@media (max-width: 760px) {
+  .admin-company-workspace { padding: 20px; border-radius: 22px; }
+  .admin-owner-hero, .admin-owner-footer { align-items: flex-start; flex-direction: column; }
+  .admin-owner-role { align-self: flex-start; }
+  .admin-owner-summary, .admin-owner-actions { grid-template-columns: 1fr; }
+  .admin-owner-summary-card { padding: 15px; }
+  .admin-owner-data-toolbar, .admin-owner-data-toolbar-actions { align-items: stretch; flex-direction: column; }
+}
+
 body.bpo-admin-mode .adm-header {
   display: flex;
   align-items: flex-start;

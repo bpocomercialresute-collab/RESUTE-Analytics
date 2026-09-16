@@ -1383,6 +1383,8 @@ async function adminConsoleAbrirOperacao(companyId) {
         slug: c.slug || '',
         ativo: c.ativo !== false,
         tem_api: !!api && origem === 'api',
+        logo_url: c.logo_url || null,
+        funcoes: c.funcoes || {},
         sistema: api ? api.sistema : null,
         exibir_origem: origem
       };

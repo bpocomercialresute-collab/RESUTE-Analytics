@@ -431,6 +431,10 @@ function avShowBD() {
 }
 
 function avShowRel(tipo) {
+  if (typeof _relatorioEmpresaHabilitado === 'function' && !_relatorioEmpresaHabilitado(tipo)) {
+    if (typeof toast === 'function') toast('Este relatório não está liberado para esta empresa.', 'warn', 4000);
+    return;
+  }
   _hide('av-home');
   _hide('av-bd-area');
   _hide('av-rel-area');

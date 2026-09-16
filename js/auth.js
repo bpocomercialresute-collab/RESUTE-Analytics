@@ -237,6 +237,7 @@ function abrirDREAdmin() {
     _mostrarLogin();
     return;
   }
+  if (SESSION.papel !== 'admin' && SESSION.papel !== 'super_admin') return;
   if (typeof MODULO_ATIVO !== 'undefined' && MODULO_ATIVO && MODULO_ATIVO !== 'dre') {
     if (typeof _fecharModulo === 'function') _fecharModulo(MODULO_ATIVO);
   }
@@ -263,6 +264,23 @@ function _aplicarFuncoesEmpresa(eObj) {
   });
 }
 
+function _empresaFuncaoContexto() {
+  if (typeof DC_ADMIN_PREVIEW_COMPANY !== 'undefined' && DC_ADMIN_PREVIEW_COMPANY) return DC_ADMIN_PREVIEW_COMPANY;
+  if (typeof FIN_ADMIN_PREVIEW_COMPANY !== 'undefined' && FIN_ADMIN_PREVIEW_COMPANY) return FIN_ADMIN_PREVIEW_COMPANY;
+  if (typeof DRE_ADMIN_PREVIEW_COMPANY !== 'undefined' && DRE_ADMIN_PREVIEW_COMPANY) return DRE_ADMIN_PREVIEW_COMPANY;
+  if (typeof EMPRESA_ATIVA !== 'undefined' && EMPRESA_ATIVA) return EMPRESA_ATIVA;
+  return null;
+}
+
+function _relatorioEmpresaHabilitado(tipo) {
+  var chave = {
+    'relat-produtos': 'rel_produtos',
+    'relat-representantes': 'rel_representantes'
+  }[tipo];
+  if (!chave || typeof temFuncao !== 'function') return true;
+  return temFuncao(_empresaFuncaoContexto(), chave);
+}
+
 /** Mostra/esconde o card "Financeiro (DRE)" em Ferramentas conforme o modulo contratado. */
 function _atualizarCardFinanceiroFerramentas() {
   var card = document.getElementById('tool-card-financeiro');
@@ -279,6 +297,39 @@ function _abrirModuloPadrao(empresaIdPreview) {
   }
   // Fallback defensivo: se js/modulos.js não carregou, mantém o comportamento antigo.
   _abrirDashCliente(empresaIdPreview);
+}
+
+function abrirAreaComercialAdmin(item) {
+  SESSION = _readStoredSession();
+  if (!SESSION || !SESSION.token) { _mostrarLogin(); return; }
+  if (typeof setSidebarActive === 'function' && item) setSidebarActive(item);
+  if (SESSION.papel === 'admin') {
+    document.body.classList.add('bpo-admin-mode', 'company-admin-mode');
+    if (typeof switchView === 'function') switchView('view-app');
+    if (typeof adminInicializar === 'function') adminInicializar();
+    return;
+  }
+  if (SESSION.papel === 'super_admin') {
+    if (typeof abrirAnaliseVendas === 'function') abrirAnaliseVendas();
+    return;
+  }
+  _abrirModuloPadrao();
+}
+
+function abrirAreaFinanceiraAdmin(item) {
+  SESSION = _readStoredSession();
+  if (!SESSION || !SESSION.token) { _mostrarLogin(); return; }
+  if (typeof setSidebarActive === 'function' && item) setSidebarActive(item);
+  if (SESSION.papel === 'admin') {
+    document.body.classList.add('bpo-admin-mode', 'company-admin-mode');
+    if (typeof abrirDREAdmin === 'function') abrirDREAdmin();
+    return;
+  }
+  if (SESSION.papel === 'super_admin') {
+    if (typeof adminConsoleAbrir === 'function') adminConsoleAbrir('financeiro', item);
+    return;
+  }
+  _abrirModuloPadrao();
 }
 
 function _adminPreviewEscape(value) {
@@ -532,6 +583,7 @@ function _mostrarLogin() {
   if (vc) vc.style.display = 'none';
   document.body.classList.remove('client-report-mode');
   document.body.classList.remove('bpo-admin-mode');
+  document.body.classList.remove('company-admin-mode');
   setTimeout(function(){
     var email = document.getElementById('login-email');
     if (email) email.focus();
@@ -712,9 +764,12 @@ function _abrirApp() {
   var sb = document.getElementById('sidebar');     if (sb) sb.style.display = 'flex';
   var wr = document.getElementById('cui-wrapper'); if (wr) wr.style.display = 'flex';
 
+  var nomeEmpresaAdmin = SESSION.papel === 'super_admin'
+    ? 'RESUTE Admin'
+    : (SESSION.empresa_nome || 'Minha empresa');
   var campos = {
-    'user-nome': SESSION.nome, 'user-empresa': 'RESUTE Admin',
-    'sidebar-user-nome': SESSION.nome, 'sidebar-user-empresa': 'RESUTE Admin'
+    'user-nome': SESSION.nome, 'user-empresa': nomeEmpresaAdmin,
+    'sidebar-user-nome': SESSION.nome, 'sidebar-user-empresa': nomeEmpresaAdmin
   };
   Object.keys(campos).forEach(function(id){
     var el = document.getElementById(id); if (el) el.textContent = campos[id];
@@ -965,10 +1020,14 @@ async function carregarDadosDoSupabase(empresa_id) {
 
     _setStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' vendas carregadas!', 'ok');
 
-    // Se cliente → abre relatórios automaticamente
+    // Se cliente, abre o primeiro relatório liberado para a empresa.
     if (SESSION && SESSION.papel === 'cliente') {
       setTimeout(function(){
-        if (typeof avShowRel === 'function') avShowRel('relat-produtos');
+        if (typeof avShowRel !== 'function') return;
+        var tipoRelatorio = _relatorioEmpresaHabilitado('relat-produtos')
+          ? 'relat-produtos'
+          : (_relatorioEmpresaHabilitado('relat-representantes') ? 'relat-representantes' : null);
+        if (tipoRelatorio) avShowRel(tipoRelatorio);
       }, 300);
     }
   } catch(e) {
@@ -2028,6 +2087,10 @@ function dcPrepararDadosRelatorios(rows) {
 }
 
 function dcAbrirRelatorio(tipo) {
+  if (typeof _relatorioEmpresaHabilitado === 'function' && !_relatorioEmpresaHabilitado(tipo)) {
+    dcStatus('Este relatório não está liberado para esta empresa.');
+    return;
+  }
   var rows = Array.isArray(DC_DATA) ? DC_DATA : DC_RAW;
   if (!rows || !rows.length) {
     dcStatus('⚠ Nenhum dado disponível para abrir o relatório.');
@@ -3537,6 +3600,8 @@ async function _adminCarregarEmpresasMeta() {
         nome: empresaDb.nome || 'Empresa',
         slug: empresaDb.slug || null,
         tem_api: !!apiCfg && origem === 'api',
+        logo_url: empresaDb.logo_url || null,
+        funcoes: empresaDb.funcoes || {},
         sistema: apiCfg && apiCfg.sistema ? apiCfg.sistema : (empresaDb.sistema || null),
         api_url: apiCfg && apiCfg.api_url ? apiCfg.api_url : (empresaDb.api_url || ''),
         modulos: modulosPorEmpresa[empresaDb.id || empresaDb.empresa_id] || [],
@@ -3558,6 +3623,14 @@ async function _adminCarregarEmpresasMeta() {
 
 async function adminInicializar() {
   var sa = document.getElementById('sync-area'); if (sa) sa.style.display = 'none';
+  var ehAdminEmpresa = !!(SESSION && SESSION.papel === 'admin');
+  document.body.classList.toggle('company-admin-mode', ehAdminEmpresa);
+  var ownerWorkspace = document.getElementById('admin-company-workspace');
+  if (ownerWorkspace) ownerWorkspace.hidden = !ehAdminEmpresa;
+  ['admin-action-bar', 'av-exibir-grid'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = ehAdminEmpresa ? 'none' : '';
+  });
   await _adminCarregarEmpresasMeta();
   var allowedIds = SESSION && Array.isArray(SESSION.empresa_ids) ? SESSION.empresa_ids : null;
   var lista = (allowedIds && allowedIds.length)
@@ -3576,6 +3649,7 @@ async function adminInicializar() {
   if (somenteUmaEmpresa && lista[0]) {
     if (tituloEl) tituloEl.textContent = lista[0].nome || 'Meus dados';
     if (subtituloEl) subtituloEl.textContent = 'Cole seus dados comerciais e acompanhe os relatorios da sua empresa.';
+    if (ehAdminEmpresa) _adminOwnerPreencherEmpresa(lista[0]);
   } else {
     if (tituloEl) tituloEl.textContent = 'Análise de Vendas';
     if (subtituloEl) subtituloEl.textContent = 'Selecione o módulo que deseja acessar';
@@ -3587,6 +3661,95 @@ async function adminInicializar() {
     ? SESSION.empresa_id
     : (lista[0] && lista[0].empresa_id);
   if (autoId) adminSelecionarEmpresa(autoId);
+}
+
+function _adminOwnerPreencherEmpresa(empresa) {
+  var nome = (empresa && empresa.nome) || 'Sua empresa';
+  var title = document.getElementById('admin-owner-title');
+  if (title) title.textContent = nome;
+
+  var logo = document.getElementById('admin-owner-logo');
+  var fallback = document.getElementById('admin-owner-logo-fallback');
+  if (logo && empresa && empresa.logo_url) {
+    logo.onerror = function() {
+      logo.hidden = true;
+      if (fallback) {
+        fallback.hidden = false;
+        fallback.textContent = nome.trim().charAt(0).toUpperCase() || 'R';
+      }
+    };
+    logo.src = empresa.logo_url;
+    logo.alt = nome;
+    logo.hidden = false;
+    if (fallback) fallback.hidden = true;
+  } else {
+    if (logo) { logo.removeAttribute('src'); logo.hidden = true; }
+    if (fallback) {
+      fallback.hidden = false;
+      fallback.textContent = nome.trim().charAt(0).toUpperCase() || 'R';
+    }
+  }
+}
+
+function _adminOwnerDefinirResumo(id, countId, statusId, count, readyText) {
+  var countEl = document.getElementById(countId);
+  var statusEl = document.getElementById(statusId);
+  if (countEl) countEl.textContent = Number(count || 0).toLocaleString('pt-BR');
+  if (statusEl) statusEl.textContent = Number(count || 0) > 0 ? readyText : 'Nenhum dado cadastrado ainda';
+}
+
+async function _adminOwnerContarTabela(tabela, empresaId) {
+  var r = await fetch(SUPA_URL + '/rest/v1/' + tabela + '?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=empresa_id&limit=1', {
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'count=exact', 'Range': '0-0' }
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  var faixa = r.headers.get('content-range') || '';
+  var total = faixa.indexOf('/') >= 0 ? faixa.split('/')[1] : '0';
+  return total === '*' ? 0 : Number(total) || 0;
+}
+
+async function adminOwnerAtualizarResumo() {
+  var empresa = typeof EMPRESA_ATIVA !== 'undefined' ? EMPRESA_ATIVA : null;
+  if (!empresa || !empresa.empresa_id || !SESSION || SESSION.papel !== 'admin') return;
+  _adminOwnerPreencherEmpresa(empresa);
+
+  var comercial = (typeof BD_DATA !== 'undefined' && BD_DATA.rows) ? BD_DATA.rows.length : 0;
+  _adminOwnerDefinirResumo(empresa.empresa_id, 'admin-owner-commercial-count', 'admin-owner-commercial-status', comercial, 'Registros comerciais prontos');
+
+  var planEl = document.getElementById('admin-owner-plan-count');
+  var finEl = document.getElementById('admin-owner-financial-count');
+  var planStatus = document.getElementById('admin-owner-plan-status');
+  var finStatus = document.getElementById('admin-owner-financial-status');
+  if (planEl) planEl.textContent = '...';
+  if (finEl) finEl.textContent = '...';
+  if (planStatus) planStatus.textContent = 'Consultando banco';
+  if (finStatus) finStatus.textContent = 'Consultando banco';
+
+  try {
+    var totais = await Promise.all([
+      _adminOwnerContarTabela('fin_dre_plano_contas', empresa.empresa_id),
+      _adminOwnerContarTabela('fin_dre_lancamentos', empresa.empresa_id)
+    ]);
+    if (!EMPRESA_ATIVA || EMPRESA_ATIVA.empresa_id !== empresa.empresa_id) return;
+    _adminOwnerDefinirResumo(empresa.empresa_id, 'admin-owner-plan-count', 'admin-owner-plan-status', totais[0], 'Contas disponiveis para o DRE');
+    _adminOwnerDefinirResumo(empresa.empresa_id, 'admin-owner-financial-count', 'admin-owner-financial-status', totais[1], 'Lancamentos disponiveis para o DRE');
+  } catch (e) {
+    if (planEl) planEl.textContent = '--';
+    if (finEl) finEl.textContent = '--';
+    if (planStatus) planStatus.textContent = 'Status indisponivel';
+    if (finStatus) finStatus.textContent = 'Status indisponivel';
+    console.warn('[ADMIN EMPRESA] Nao foi possivel consultar o resumo financeiro:', e);
+  }
+}
+
+function adminOwnerAbrirComercial() {
+  if (!SESSION || SESSION.papel !== 'admin' || !EMPRESA_ATIVA) return;
+  if (typeof avShowBD === 'function') avShowBD();
+}
+
+function adminOwnerAbrirFinanceiro() {
+  if (!SESSION || SESSION.papel !== 'admin' || !EMPRESA_ATIVA) return;
+  if (typeof abrirDREAdmin === 'function') abrirDREAdmin();
 }
 
 function _adminRenderAbas(lista) {
@@ -3632,6 +3795,7 @@ async function adminSelecionarEmpresa(id) {
   // Carrega dados existentes
   await _adminCarregar(id);
   await _adminCarregarCadastrosApiSalvos();
+  if (SESSION && SESSION.papel === 'admin') await adminOwnerAtualizarResumo();
 }
 
 // ── AUTO-SYNC SCHEDULER ───────────────────────────────────────────────────────
@@ -4797,6 +4961,7 @@ async function adminProcessarManual() {
 
     _adminSetStatus('✓ ' + inseridos.toLocaleString('pt-BR') + ' linhas manuais salvas para ' + EMPRESA_ATIVA.nome + '!', true);
     _adminAtualizarContagens();
+    if (SESSION && SESSION.papel === 'admin') adminOwnerAtualizarResumo();
 
   } catch(e) {
     _adminSetStatus('✗ ' + e.message);
@@ -4819,6 +4984,7 @@ async function adminLimparOrigem(origem) {
     if (r.ok) {
       _adminSetStatus('✓ ' + label + ' de ' + EMPRESA_ATIVA.nome + ' apagados!', true);
       _adminAtualizarContagens();
+      if (SESSION && SESSION.papel === 'admin') adminOwnerAtualizarResumo();
     }
   } catch(e) { _adminSetStatus('✗ ' + e.message); }
 }
