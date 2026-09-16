@@ -123,8 +123,31 @@ function getSessionEmpresaIds(appUser) {
 function extractEmpresaIdsFromUrl(url) {
   const values = [];
   const direct = url.searchParams.get('empresa_id');
-  if (direct && direct.startsWith('eq.')) values.push(decodeURIComponent(direct.slice(3)));
+  if (direct) {
+    if (direct.startsWith('eq.')) values.push(decodeURIComponent(direct.slice(3)));
+    else if (direct.startsWith('in.(') && direct.endsWith(')')) {
+      direct.slice(4, -1).split(',').forEach((raw) => {
+        const val = decodeURIComponent(String(raw).trim().replace(/^["']|["']$/g, ''));
+        if (val) values.push(val);
+      });
+    }
+  }
   return values.filter(Boolean);
+}
+
+/**
+ * Aceita `id=eq.<uuid>` OU `id=in.(a,b,c)` na URL da tabela empresas.
+ * Devolve lista de ids extraidos (usa pra checar acesso).
+ */
+function extractEmpresaIdsFromEmpresasUrl(url) {
+  const raw = url.searchParams.get('id') || '';
+  if (raw.startsWith('eq.')) return [decodeURIComponent(raw.slice(3))].filter(Boolean);
+  if (raw.startsWith('in.(') && raw.endsWith(')')) {
+    return raw.slice(4, -1).split(',').map((seg) => {
+      return decodeURIComponent(String(seg).trim().replace(/^["']|["']$/g, ''));
+    }).filter(Boolean);
+  }
+  return [];
 }
 
 function extractEmpresaIdsFromBody(body) {
@@ -384,20 +407,32 @@ function assertAuthorized(appUser, targetUrl, method, body) {
   }
 
   if (targetUrl.pathname === '/rest/v1/empresas') {
-    // Clientes podem ler dados da sua própria empresa (exibir_origem)
+    // Clientes/admin podem ler dados da propria empresa; admin da empresa pode
+    // trocar SO o campo exibir_origem (nao pode renomear empresa, mudar slug,
+    // ativar/desativar - isso continua so super_admin).
     if (appUser.papel !== 'super_admin') {
-      if (isWrite) {
-        throw new Error('Apenas super_admin pode alterar empresas.');
-      }
-      // Verifica se está filtrando pela empresa do cliente
-      var filtroId = targetUrl.searchParams.get('id') || '';
-      if (filtroId.startsWith('eq.')) {
-        var idFiltrado = filtroId.slice(3);
-        if (!canAccessEmpresa(appUser, idFiltrado)) {
-          throw new Error('Acesso negado a esta empresa.');
-        }
-      } else {
+      const idsEmpresa = extractEmpresaIdsFromEmpresasUrl(targetUrl);
+      if (!idsEmpresa.length) {
         throw new Error('Filtro de empresa obrigatorio.');
+      }
+      if (!idsEmpresa.every((id) => canAccessEmpresa(appUser, id))) {
+        throw new Error('Acesso negado a esta empresa.');
+      }
+      if (isWrite) {
+        if (appUser.papel !== 'admin') {
+          throw new Error('Apenas super_admin ou admin da empresa pode alterar empresas.');
+        }
+        // Admin so pode PATCH com o campo exibir_origem. Body vem como string.
+        let bodyFields = null;
+        try { bodyFields = body ? JSON.parse(body) : null; } catch (e) { bodyFields = null; }
+        const camposPermitidos = new Set(['exibir_origem']);
+        if (!bodyFields || typeof bodyFields !== 'object' || Array.isArray(bodyFields)) {
+          throw new Error('Corpo invalido para alterar empresa.');
+        }
+        const camposEnviados = Object.keys(bodyFields);
+        if (!camposEnviados.length || !camposEnviados.every((c) => camposPermitidos.has(c))) {
+          throw new Error('Admin da empresa so pode alterar exibir_origem.');
+        }
       }
     }
     return;
@@ -427,15 +462,26 @@ function assertAuthorized(appUser, targetUrl, method, body) {
       throw new Error('Acesso negado para esta empresa.');
     }
 
-    if (isWrite && appUser.papel !== 'super_admin') {
-      throw new Error('Apenas super_admin pode alterar snapshots.');
+    if (isWrite && appUser.papel !== 'super_admin' && appUser.papel !== 'admin') {
+      throw new Error('Apenas super_admin ou admin da empresa pode alterar snapshots.');
     }
     return;
   }
 
   if (targetUrl.pathname === '/rest/v1/api_config' || targetUrl.pathname === '/rest/v1/sync_log') {
+    // Admin da empresa le/edita a integracao (API) so da propria empresa;
+    // super_admin acessa tudo, inclusive listagem sem filtro (usada no console).
     if (appUser.papel !== 'super_admin') {
-      throw new Error('Apenas super_admin pode acessar esta rota.');
+      const empresaIdsCfg = [
+        ...extractEmpresaIdsFromUrl(targetUrl),
+        ...extractEmpresaIdsFromBody(body)
+      ];
+      if (!empresaIdsCfg.length) {
+        throw new Error('Filtro de empresa obrigatorio.');
+      }
+      if (appUser.papel !== 'admin' || !empresaIdsCfg.every((id) => canAccessEmpresa(appUser, id))) {
+        throw new Error('Acesso negado a esta empresa.');
+      }
     }
     return;
   }

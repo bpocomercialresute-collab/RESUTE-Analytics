@@ -3446,12 +3446,28 @@ var EMPRESAS_ADMIN = [];
 
 async function _adminCarregarEmpresasMeta() {
   try {
-    var empresasResp = await fetch(SUPA_URL + '/rest/v1/empresas?select=*&ativo=eq.true', {
+    // super_admin ve todas as empresas; admin da empresa so a(s) propria(s).
+    var ehSuperAdmin = SESSION && SESSION.papel === 'super_admin';
+    var idsPermitidos = (SESSION && Array.isArray(SESSION.empresa_ids) && SESSION.empresa_ids.length)
+      ? SESSION.empresa_ids
+      : (SESSION && SESSION.empresa_id ? [SESSION.empresa_id] : []);
+    var filtroEmpresaId = ehSuperAdmin
+      ? ''
+      : ('&id=in.(' + idsPermitidos.map(encodeURIComponent).join(',') + ')');
+
+    if (!ehSuperAdmin && !idsPermitidos.length) {
+      console.warn('[ADMIN] Sessao sem empresa_id associada.');
+      EMPRESAS_ADMIN = [];
+      return;
+    }
+
+    var empresasResp = await fetch(SUPA_URL + '/rest/v1/empresas?select=*&ativo=eq.true' + filtroEmpresaId, {
       headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
     });
     var empresas = await empresasResp.json();
 
-    var apiResp = await fetch(SUPA_URL + '/rest/v1/api_config?select=empresa_id,sistema,api_url,ativo', {
+    var filtroApiConfig = ehSuperAdmin ? '' : ('&empresa_id=in.(' + idsPermitidos.map(encodeURIComponent).join(',') + ')');
+    var apiResp = await fetch(SUPA_URL + '/rest/v1/api_config?select=empresa_id,sistema,api_url,ativo' + filtroApiConfig, {
       headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
     });
     var apiConfigs = await apiResp.json();
@@ -3459,7 +3475,8 @@ async function _adminCarregarEmpresasMeta() {
     // Contratos de módulo — falha aqui não pode derrubar o painel admin
     var modulosPorEmpresa = {};
     try {
-      var modResp = await fetch(SUPA_URL + '/rest/v1/empresa_modulos?select=empresa_id,modulo,ativo,expira_em', {
+      var filtroModulos = ehSuperAdmin ? '' : ('&empresa_id=in.(' + idsPermitidos.map(encodeURIComponent).join(',') + ')');
+      var modResp = await fetch(SUPA_URL + '/rest/v1/empresa_modulos?select=empresa_id,modulo,ativo,expira_em' + filtroModulos, {
         headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
       });
       var modRows = await modResp.json();
