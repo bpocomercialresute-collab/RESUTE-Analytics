@@ -1152,3 +1152,39 @@ td.fin-dre-col-med { background: #cdf3d9 !important; font-weight: 700; }
 
 /* Abas do financeiro do cliente (Resultados / Laudo Grupo) */
 .fin-tabs-cliente { margin: 0 0 14px; }
+
+/* Acabamento visual das áreas de trabalho: bordas consistentes e separação
+   clara entre colunas sem alterar a paleta da planilha de referência. */
+.fin-filtros {
+  box-shadow: 0 2px 8px rgba(0, 32, 96, .06) !important;
+}
+.fin-tabs {
+  padding: 0 4px;
+  background: #fff;
+  box-shadow: 0 1px 0 #d4dce9;
+}
+.fin-tab { min-height: 34px; }
+.fin-tab.active { font-weight: 800; background: #eef4ff; border-radius: 5px 5px 0 0; }
+.fin-dre-bloco,
+.fin-dre-resultado-bloco,
+.fin-balanco-wrap {
+  box-shadow: 0 3px 12px rgba(0, 32, 96, .08);
+}
+.fin-dre-tabela thead th + th,
+.fin-dre-tabela tbody td + td,
+.fin-dre-tabela tfoot td + td {
+  border-left: 1px solid rgba(0, 32, 96, .09);
+}
+.fin-dre-tabela tbody tr:hover td {
+  box-shadow: inset 0 1px 0 rgba(28, 100, 192, .12), inset 0 -1px 0 rgba(28, 100, 192, .12);
+}
+.fin-dre-tabela tbody td.fin-dre-col-conta,
+.fin-dre-tabela tfoot td.fin-dre-col-conta {
+  border-right: 2px solid #b8c7df;
+}
+.fin-tabela-scroll,
+.fin-dre-bloco-scroll,
+.fin-balanco-scroll {
+  scrollbar-color: #9db3d4 #edf2f8;
+  scrollbar-width: thin;
+}

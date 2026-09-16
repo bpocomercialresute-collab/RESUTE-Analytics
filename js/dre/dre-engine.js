@@ -171,6 +171,13 @@ const DRE = (() => {
 
   const seDoGrupo = g => SE_POR_GRUPO[g] ?? 'S';
 
+  // Despesas e investimentos representam saídas no resultado. Aceita tanto
+  // bases antigas com valores positivos quanto bases já sinalizadas.
+  const valorContabil = (grupo, valor) => {
+    const n = num(valor);
+    return seDoGrupo(grupo) === 'S' ? -Math.abs(n) : n;
+  };
+
   /* ---------- 5. ESTÁGIO 2: BD (PROCV + derivadas de data) ---------- */
 
   function enriquecerBD() {
@@ -231,7 +238,7 @@ const DRE = (() => {
       if (!contaKey || contasUsadas.has(contaKey)) continue;
       contasUsadas.add(contaKey);
       const meses = slots.map(sl =>
-        num(soma.get(`${contaKey}|${sl.ano}|${sl.mes}|${estado.cnpj}`))
+        valorContabil(c.grupo, soma.get(`${contaKey}|${sl.ano}|${sl.mes}|${estado.cnpj}`))
       );
       linhas.push({
         id: id++,
@@ -273,9 +280,9 @@ const DRE = (() => {
     const linhas = estado.bdDre.filter(l => l.grupo === nome);
     const n = estado.slots.length || mesesDoRecorte();
     const meses = Array.from({ length: n }, (_, i) =>
-      linhas.reduce((s, l) => s + (l.meses[i] || 0), 0)
+      linhas.reduce((s, l) => s + valorContabil(nome, l.meses[i]), 0)
     );
-    const total = linhas.reduce((s, l) => s + l.total, 0);
+    const total = linhas.reduce((s, l) => s + valorContabil(nome, l.total), 0);
     return { linhas, meses, total, med: n > 0 ? total / n : 0 };
   }
 
@@ -301,7 +308,7 @@ const DRE = (() => {
     for (const l of estado.bd) {
       if (l.ano !== ano || l.grupo !== nomeGrupo || l.cnpj !== estado.cnpj) continue;
       if (l.mesIdx == null) continue;
-      meses[l.mesIdx] += num(l.valor);
+      meses[l.mesIdx] += valorContabil(l.grupo, l.valor);
     }
     return meses;
   }
@@ -313,7 +320,7 @@ const DRE = (() => {
     for (const l of estado.bd) {
       if (l.ano !== ano || l.cnpj !== estado.cnpj || l.s_e !== 'E') continue;
       if (l.mesIdx == null) continue;
-      meses[l.mesIdx] += num(l.valor);
+      meses[l.mesIdx] += valorContabil(l.grupo, l.valor);
     }
     return meses;
   }
@@ -411,15 +418,16 @@ const DRE = (() => {
       serie.resultFinanceiro.push(rf);
       serie.resultOperacional.push(ro);
 
-      // legado
-      const rl = recOp - trib;
-      const lb = rl - custo;
-      const eb = lb - oper - com - log - adm - manut;
-      const as = eb - fin + recNOp;
-      const ll = as - soc;
+      // Métricas auxiliares usam a mesma convenção de sinais do DRE:
+      // receitas positivas + saídas negativas, sem segunda inversão.
+      const rl = recOp + trib;
+      const lb = rl + custo;
+      const eb = lb + oper + com + log + adm + manut;
+      const as = eb + fin + recNOp;
+      const ll = as + soc;
       serie.receitaLiquida.push(rl); serie.lucroBruto.push(lb);
       serie.ebitda.push(eb);         serie.antesSocios.push(as);
-      serie.lucroLiquido.push(ll);   serie.geracaoCaixa.push(ll - inv);
+      serie.lucroLiquido.push(ll);   serie.geracaoCaixa.push(ll + inv);
     }
 
     const somaRecorte = arr => arr.reduce((s, v) => s + v, 0);
@@ -437,7 +445,7 @@ const DRE = (() => {
     const saidas = estado.bdDre.filter(l => l.s_e === 'S');
     const bucket = (campo, valor) => saidas
       .filter(l => (l[campo] || '-') === valor)
-      .reduce((s, l) => s + l.total, 0);
+      .reduce((s, l) => s + valorContabil(l.grupo, l.total), 0);
 
     const fv = { F: bucket('fv','F'), V: bucket('fv','V'), '-': bucket('fv','-') };
     const di = { D: bucket('di','D'), I: bucket('di','I'), '-': bucket('di','-') };
@@ -1054,11 +1062,12 @@ const DRE = (() => {
   /* ---------- 13. RENDER: ANÁLISE F/V E D/I ---------- */
 
   function barra(partes, total, classes) {
-    if (!total) return '<div class="fin-dre-barra"></div>';
+    const totalAbs = Object.values(partes).reduce((s, v) => s + Math.abs(num(v)), 0);
+    if (!totalAbs) return '<div class="fin-dre-barra"></div>';
     const segs = Object.entries(partes)
-      .filter(([, v]) => v > 0)
+      .filter(([, v]) => Math.abs(num(v)) > 0)
       .map(([k, v]) => {
-        const p = (v / total) * 100;
+        const p = (Math.abs(num(v)) / totalAbs) * 100;
         return `<div class="fin-dre-barra-seg ${classes[k]}" style="width:${p.toFixed(2)}%">${
           p >= 9 ? p.toFixed(0) + '%' : ''}</div>`;
       }).join('');
@@ -1069,20 +1078,19 @@ const DRE = (() => {
     const alvo = document.getElementById('fin-dre-tab-fv');
     if (!alvo) return;
     const a = analiseFVDI();
-    const totFV = a.fv.F + a.fv.V + a.fv['-'];
-    const totDI = a.di.D + a.di.I + a.di['-'];
+    const totDI = Math.abs(a.di.D) + Math.abs(a.di.I) + Math.abs(a.di['-']);
 
     alvo.innerHTML = `<div class="fin-dre-quadros">
 
       <div class="fin-dre-quadro">
         <h3>F_V — Fixo × Variável</h3>
         <div class="fin-dre-quadro-corpo">
-          ${barra({F:a.fv.F, V:a.fv.V, '-':a.fv['-']}, totFV,
+          ${barra({F:a.fv.F, V:a.fv.V, '-':a.fv['-']}, null,
                   {F:'fixo', V:'variavel', '-':'naomarcado'})}
           <div class="fin-dre-legenda">
-            <span><i style="background:#002060"></i>Fixo ${fmt(a.fv.F)}</span>
-            <span><i style="background:#00B050"></i>Variável ${fmt(a.fv.V)}</span>
-            <span><i style="background:#c3cad6"></i>Não marcado ${fmt(a.fv['-'])}</span>
+            <span><i style="background:#002060"></i>Fixo ${fmt(Math.abs(a.fv.F))}</span>
+            <span><i style="background:#00B050"></i>Variável ${fmt(Math.abs(a.fv.V))}</span>
+            <span><i style="background:#c3cad6"></i>Não marcado ${fmt(Math.abs(a.fv['-']))}</span>
           </div>
           <div class="fin-dre-indicadores">
             <div class="fin-dre-ind">
@@ -1101,12 +1109,12 @@ const DRE = (() => {
       <div class="fin-dre-quadro">
         <h3>D_I — Direto × Indireto</h3>
         <div class="fin-dre-quadro-corpo">
-          ${barra({D:a.di.D, I:a.di.I, '-':a.di['-']}, totDI,
+          ${barra({D:a.di.D, I:a.di.I, '-':a.di['-']}, null,
                   {D:'direto', I:'indireto', '-':'naomarcado'})}
           <div class="fin-dre-legenda">
-            <span><i style="background:#00B050"></i>Direto ${fmt(a.di.D)}</span>
-            <span><i style="background:#5a6a7e"></i>Indireto ${fmt(a.di.I)}</span>
-            <span><i style="background:#c3cad6"></i>Não marcado ${fmt(a.di['-'])}</span>
+            <span><i style="background:#00B050"></i>Direto ${fmt(Math.abs(a.di.D))}</span>
+            <span><i style="background:#5a6a7e"></i>Indireto ${fmt(Math.abs(a.di.I))}</span>
+            <span><i style="background:#c3cad6"></i>Não marcado ${fmt(Math.abs(a.di['-']))}</span>
           </div>
           <div class="fin-dre-indicadores">
             <div class="fin-dre-ind">
@@ -1116,7 +1124,7 @@ const DRE = (() => {
               <div class="fin-dre-ind-valor">${fmt(a.custoDiretoUnit)}</div>
               <div class="fin-dre-ind-label">Custo direto unitário</div></div>
             <div class="fin-dre-ind">
-              <div class="fin-dre-ind-valor">${fmtPct(totDI ? a.di.D/totDI : 0)}</div>
+              <div class="fin-dre-ind-valor">${fmtPct(totDI ? Math.abs(a.di.D)/totDI : 0)}</div>
               <div class="fin-dre-ind-label">Peso do direto</div></div>
           </div>
         </div>
@@ -1130,7 +1138,6 @@ const DRE = (() => {
   function kpi(valor, label, sub) {
     return `<div class="dc-kpi-card">
       <div class="dc-kpi-value">${valor}</div>
-      <div class="dc-kpi-label">${esc(label)}</div>
       <div class="dc-kpi-sub">${esc(sub)}</div></div>`;
   }
 
@@ -1262,7 +1269,7 @@ const DRE = (() => {
     const grupos = Object.keys(SE_POR_GRUPO)
       .filter(g => seDoGrupo(g) === 'S')
       .map(g => ({ nome:g, total: totalGrupo(g).total }))
-      .filter(g => g.total > 0)
+      .filter(g => Math.abs(g.total) > 0)
       .sort((a,b) => b.total - a.total);
 
     grafico('fin-dre-chart-grupos', {
@@ -1278,7 +1285,7 @@ const DRE = (() => {
     grafico('fin-dre-chart-fv', {
       type: 'doughnut',
       data: { labels:['Fixo','Variável','Não marcado'],
-              datasets:[{ data:[a.fv.F, a.fv.V, a.fv['-']],
+              datasets:[{ data:[Math.abs(a.fv.F), Math.abs(a.fv.V), Math.abs(a.fv['-'])],
                           backgroundColor:['#002060','#00B050','#c3cad6'] }]},
       options: { responsive:true, maintainAspectRatio:false }
     });
