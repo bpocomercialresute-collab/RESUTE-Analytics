@@ -61,6 +61,11 @@ function financeiroAbrir(opts) {
 
   var view = document.getElementById('view-dash-financeiro');
   if (view) view.style.display = 'flex';
+  // Mesma tela de carregamento do painel DRE do admin (js/dre/dre-view.js) —
+  // sem isso a area de conteudo fica em branco enquanto os dados carregam.
+  if (typeof _dreMostrarCarregando === 'function') {
+    _dreMostrarCarregando(document.querySelector('#view-dash-financeiro .fin-main') || view, 'Carregando painel...');
+  }
 
   _finMontarHeader();
 
@@ -328,6 +333,64 @@ async function finCarregarDadosLegado(empresaId) {
  */
 var FIN_RESUMO_LISTENERS_LIGADOS = false;
 
+async function _finBuscarDoSupabase(empresaId, signal) {
+  var qs = '?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=*';
+  var headers = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY };
+  // O Supabase capa cada resposta em ~1000 linhas (Max Rows do projeto),
+  // mesmo com &limit=100000 na URL — precisa paginar por Range pra trazer
+  // tudo. _fetchAll (js/auth.js) ja faz isso (429/erro incluso).
+  var dados;
+  try {
+    dados = await Promise.all([
+      _fetchAll(SUPA_URL + '/rest/v1/fin_dre_plano_contas' + qs, headers, signal),
+      _fetchAll(SUPA_URL + '/rest/v1/fin_dre_lancamentos' + qs + '&order=dt_venc.desc', headers, signal)
+    ]);
+  } catch (fetchErr) {
+    if (fetchErr && fetchErr.name === 'AbortError') throw fetchErr;
+    var fmsg = String(fetchErr && fetchErr.message || '');
+    throw new Error(fmsg.indexOf('HTTP 403') >= 0
+      ? 'Acesso negado aos dados do DRE desta empresa.'
+      : 'Falha ao carregar os dados do DRE: ' + fmsg);
+  }
+  var plano = Array.isArray(dados[0]) ? dados[0] : [];
+  var lancamentos = (Array.isArray(dados[1]) ? dados[1] : []).map(function(l) {
+    return Object.assign({}, l, { cnpj: 1 }); // ver DRE.init(): sempre cnpj fixo, multiempresa ja e por empresa_id
+  });
+  return { plano: plano, lancamentos: lancamentos };
+}
+
+async function _finAplicarDadosCarregados(plano, lancamentos) {
+  if (typeof _dreInjetarCSS === 'function') await _dreInjetarCSS();
+  if (typeof DRE === 'undefined') throw new Error('Motor do DRE (js/dre/dre-engine.js) nao carregou.');
+
+  DRE.init({
+    plano: plano,
+    lancamentos: lancamentos,
+    empresa: (typeof SESSION !== 'undefined' && SESSION) ? SESSION.empresa_nome : '',
+    cnpj: 1,
+    ano: null
+  });
+
+  _finLigarResumoFiltroDRE();
+  finAtualizarResumoFiltroDRE();
+
+  finStatus(lancamentos.length
+    ? String.fromCharCode(10003) + ' ' + lancamentos.length.toLocaleString('pt-BR') + ' lancamentos'
+    : 'Nenhum lancamento cadastrado.');
+
+  var atualizado = document.getElementById('fin-last-update');
+  if (atualizado) atualizado.textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR');
+}
+
+/**
+ * Cache local (IndexedDB) primeiro — mesma chave que js/dre/dre-view.js usa
+ * (resute_dre_cache_<empresaId>, via _dreCacheKey/_dreCacheLer/_dreCacheSalvar),
+ * pra quem edita no admin e quem so ve aqui compartilharem o mesmo cache.
+ * Sem cache: mostra a tela de carregamento e busca tudo do Supabase (igual
+ * ao painel Comercial, js/auth.js dcCarregarDados). Com cache: mostra na
+ * hora e atualiza em segundo plano — aqui e so leitura, sem risco de perder
+ * edicao em andamento, entao pode re-renderizar se os dados mudaram.
+ */
 async function finCarregarDados(empresaId) {
   if (!empresaId) { finStatus('Empresa nao configurada.'); return; }
 
@@ -338,55 +401,38 @@ async function finCarregarDados(empresaId) {
 
   if (FIN_ABORT_CONTROLLER) { try { FIN_ABORT_CONTROLLER.abort(); } catch (e) {} }
   FIN_ABORT_CONTROLLER = new AbortController();
+  var signal = FIN_ABORT_CONTROLLER.signal;
+  var mainEl = document.querySelector('#view-dash-financeiro .fin-main');
 
   try {
-    var qs = '?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=*';
-    var headers = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY };
-    // O Supabase capa cada resposta em ~1000 linhas (Max Rows do projeto),
-    // mesmo com &limit=100000 na URL — precisa paginar por Range pra trazer
-    // tudo. _fetchAll (js/auth.js) ja faz isso (429/erro incluso).
-    var dados;
-    try {
-      dados = await Promise.all([
-        _fetchAll(SUPA_URL + '/rest/v1/fin_dre_plano_contas' + qs, headers, FIN_ABORT_CONTROLLER.signal),
-        _fetchAll(SUPA_URL + '/rest/v1/fin_dre_lancamentos' + qs + '&order=dt_venc.desc', headers, FIN_ABORT_CONTROLLER.signal)
-      ]);
-    } catch (fetchErr) {
-      if (fetchErr && fetchErr.name === 'AbortError') throw fetchErr;
-      var fmsg = String(fetchErr && fetchErr.message || '');
-      throw new Error(fmsg.indexOf('HTTP 403') >= 0
-        ? 'Acesso negado aos dados do DRE desta empresa.'
-        : 'Falha ao carregar os dados do DRE: ' + fmsg);
-    }
+    var cache = (typeof _dreCacheLer === 'function') ? await _dreCacheLer(empresaId) : null;
     if (sequencia !== FIN_LOAD_SEQUENCE) return;
 
-    var plano = Array.isArray(dados[0]) ? dados[0] : [];
-    var lancamentos = (Array.isArray(dados[1]) ? dados[1] : []).map(function(l) {
-      return Object.assign({}, l, { cnpj: 1 }); // ver DRE.init(): sempre cnpj fixo, multiempresa ja e por empresa_id
-    });
+    if (cache) {
+      await _finAplicarDadosCarregados(cache.plano, cache.lancamentos);
+      if (typeof _dreEsconderCarregando === 'function') _dreEsconderCarregando(mainEl);
 
-    if (typeof _dreInjetarCSS === 'function') await _dreInjetarCSS();
-    if (typeof DRE === 'undefined') throw new Error('Motor do DRE (js/dre/dre-engine.js) nao carregou.');
+      _finBuscarDoSupabase(empresaId, signal).then(function(fresco) {
+        if (sequencia !== FIN_LOAD_SEQUENCE) return;
+        if (typeof _dreCacheSalvar === 'function') _dreCacheSalvar(empresaId, fresco.plano, fresco.lancamentos);
+        var mudou = fresco.lancamentos.length !== cache.lancamentos.length
+          || fresco.plano.length !== cache.plano.length;
+        if (mudou) _finAplicarDadosCarregados(fresco.plano, fresco.lancamentos);
+      }).catch(function(e) {
+        if (e && e.name === 'AbortError') return;
+        console.warn('[FIN] Atualizacao de cache em segundo plano falhou:', e);
+      });
+      return;
+    }
 
-    DRE.init({
-      plano: plano,
-      lancamentos: lancamentos,
-      empresa: (typeof SESSION !== 'undefined' && SESSION) ? SESSION.empresa_nome : '',
-      cnpj: 1,
-      ano: null
-    });
-
-    _finLigarResumoFiltroDRE();
-    finAtualizarResumoFiltroDRE();
-
-    finStatus(lancamentos.length
-      ? String.fromCharCode(10003) + ' ' + lancamentos.length.toLocaleString('pt-BR') + ' lancamentos'
-      : 'Nenhum lancamento cadastrado.');
-
-    var atualizado = document.getElementById('fin-last-update');
-    if (atualizado) atualizado.textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR');
+    var dados = await _finBuscarDoSupabase(empresaId, signal);
+    if (sequencia !== FIN_LOAD_SEQUENCE) return;
+    if (typeof _dreCacheSalvar === 'function') _dreCacheSalvar(empresaId, dados.plano, dados.lancamentos);
+    await _finAplicarDadosCarregados(dados.plano, dados.lancamentos);
+    if (typeof _dreEsconderCarregando === 'function') _dreEsconderCarregando(mainEl);
 
   } catch (e) {
+    if (typeof _dreEsconderCarregando === 'function') _dreEsconderCarregando(mainEl);
     if (e && e.name === 'AbortError') return;
     if (sequencia !== FIN_LOAD_SEQUENCE) return;
     console.error('[FIN] Erro ao carregar DRE:', e);
@@ -460,14 +506,15 @@ function finMontarMapaPlanoDRE(plano) {
 }
 
 function finNormalizarLancamentoDRE(linha, planoDre) {
-  if (!linha || !linha.dt_caixa) return null;
+  // O financeiro acompanha os relatórios pelo vencimento. Linhas sem
+  // DT_VENC continuam no BD, mas ficam fora da camada de visualização.
+  if (!linha || !linha.dt_venc) return null;
 
   var conta = linha.conta || 'Sem conta';
   var plano = planoDre[String(conta).trim().toLowerCase()] || {};
   var grupo = plano.grupo || linha.grupo || conta;
   var bruto = Number(linha.valor);
-  if (!Number.isFinite(bruto)) bruto = Number(linha.tot_pago) || 0;
-  if (!bruto) return null;
+  if (!Number.isFinite(bruto) || bruto === 0) return null;
 
   var tipo = finTipoDRE(grupo, linha.tipo, bruto);
   if (!tipo) return null;
@@ -487,7 +534,7 @@ function finNormalizarLancamentoDRE(linha, planoDre) {
     categoria:        grupo || conta,
     valor:            Math.abs(Number(valor) || 0),
     data_competencia: linha.dt_caixa || null,
-    data_vencimento:  linha.dt_venc || linha.dt_caixa || null,
+    data_vencimento:  linha.dt_venc,
     data_pagamento:   linha.dt_pag || null,
     status:           status,
     origem:           'dre'

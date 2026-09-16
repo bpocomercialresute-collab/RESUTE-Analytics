@@ -774,6 +774,21 @@ async function proxyExternalGeneric(req, res, targetUrl, method, incomingHeaders
   return res.send(text);
 }
 
+/**
+ * Config de API ativa da empresa (api_config), quando existir. Usada pra
+ * sync (Visual Saef) nunca depender de UMA URL/credencial global do
+ * sistema inteiro — cada empresa pode ter sua propria conta/instancia.
+ */
+async function buscarApiConfigEmpresa(env, empresaId) {
+  if (!empresaId) return null;
+  const cfgResp = await fetch(
+    `${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(empresaId)}&ativo=eq.true&select=api_url,api_user,api_pass&limit=1`,
+    { headers: { 'apikey': env.serviceKey, 'Authorization': `Bearer ${env.serviceKey}` } }
+  );
+  const cfgData = cfgResp.ok ? await cfgResp.json() : [];
+  return (cfgData && cfgData[0]) || null;
+}
+
 async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, empresaId, env) {
   const sessionToken = req.headers['x-session-token']
     || String(incomingHeaders['authorization'] || '').replace(/^Bearer\s+/i, '');
@@ -789,37 +804,26 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, emp
     return res.status(403).json({ erro: 'Rota externa nao permitida.' });
   }
 
+  // Config da empresa (api_config), se existir — todo branch abaixo prefere
+  // ela em vez das variaveis de ambiente globais, pra nao travar o sistema
+  // inteiro numa unica conta/URL do Visual Saef. Sem config por empresa,
+  // cai pras globais (env.visual*), mesmo comportamento de sempre.
+  const cfg = await buscarApiConfigEmpresa(env, empresaId);
+  const baseUrl = (cfg && cfg.api_url ? cfg.api_url : env.visualUrl).replace(/\/+$/, '');
+
   let upstream;
   if (targetUrl.pathname === '/login') {
-    let loginClientId = env.visualClientId;
-    let loginClientSecret = env.visualClientSecret;
-    let loginBase = env.visualUrl;
-
-    // Busca credenciais por empresa quando empresa_id fornecido
-    if (empresaId) {
-      const cfgResp = await fetch(
-        `${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(empresaId)}&ativo=eq.true&select=api_url,api_user,api_pass&limit=1`,
-        { headers: { 'apikey': env.serviceKey, 'Authorization': `Bearer ${env.serviceKey}` } }
-      );
-      const cfgData = cfgResp.ok ? await cfgResp.json() : [];
-      const cfg = cfgData && cfgData[0];
-      if (cfg && cfg.api_user && cfg.api_pass) {
-        loginClientId = cfg.api_user;
-        loginClientSecret = cfg.api_pass;
-        if (cfg.api_url) loginBase = cfg.api_url.replace(/\/+$/, '');
-      }
-    }
+    const loginClientId = (cfg && cfg.api_user) ? cfg.api_user : env.visualClientId;
+    const loginClientSecret = (cfg && cfg.api_pass) ? cfg.api_pass : env.visualClientSecret;
 
     upstream = await fetch(
-      `${loginBase}/login?client_id=${encodeURIComponent(loginClientId)}&client_secret=${encodeURIComponent(loginClientSecret)}`,
+      `${baseUrl}/login?client_id=${encodeURIComponent(loginClientId)}&client_secret=${encodeURIComponent(loginClientSecret)}`,
       { method: 'GET', headers: { 'Accept': 'application/json' } }
     );
   } else if (isVisualCadastroPath(targetUrl.pathname)) {
-    const cadastroAuth = await getVisualLoginToken(
-      env,
-      env.visualCadastroClientId || env.visualClientId,
-      env.visualCadastroClientSecret || env.visualClientSecret
-    );
+    const cadastroClientId = (cfg && cfg.api_user) ? cfg.api_user : (env.visualCadastroClientId || env.visualClientId);
+    const cadastroClientSecret = (cfg && cfg.api_pass) ? cfg.api_pass : (env.visualCadastroClientSecret || env.visualClientSecret);
+    const cadastroAuth = await getVisualLoginToken(env, cadastroClientId, cadastroClientSecret, baseUrl);
 
     if (!cadastroAuth.ok || !cadastroAuth.token) {
       console.error('[proxy] Visual Saef auth falhou:', cadastroAuth.status, String(cadastroAuth.text || '').slice(0, 200));
@@ -828,7 +832,7 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, emp
       });
     }
 
-    upstream = await fetch(`${env.visualUrl}${targetUrl.pathname}${targetUrl.search}`, {
+    upstream = await fetch(`${baseUrl}${targetUrl.pathname}${targetUrl.search}`, {
       method,
       headers: {
         'Authorization': `Bearer ${cadastroAuth.token}`,
@@ -837,7 +841,7 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, emp
       }
     });
   } else {
-    upstream = await fetch(`${env.visualUrl}${targetUrl.pathname}${targetUrl.search}`, {
+    upstream = await fetch(`${baseUrl}${targetUrl.pathname}${targetUrl.search}`, {
       method,
       headers: {
         'Authorization': incomingHeaders['authorization'] || '',

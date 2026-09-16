@@ -178,10 +178,13 @@ const DRE = (() => {
     const idx = indexarPlano();
     return estado.lancamentos.map(l => {
       const c = idx.get(norm(l.conta));
-      // A ferramenta organiza tudo (mês/ano/BD_DRE/DRE/Laudo Grupo) pela
-      // DATA DE VENCIMENTO — cai pra DT_CAIXA só quando DT_VENC vier vazia.
-      const d = parseData(l.dt_venc || l.dt_caixa);
-      const valido = d && !isNaN(d);
+      // O relatório usa somente DT_VENC. DT_CAIXA é mantida no BD, mas nunca
+      // substitui a data de vencimento.
+      const d = parseData(l.dt_venc);
+      const dataValida = d && !isNaN(d);
+      const valorInformado = l.valor !== null && l.valor !== undefined
+        && String(l.valor).trim() !== '';
+      const entraRelatorio = Boolean(dataValida && valorInformado && num(l.valor) !== 0);
       // ISO date strings ("2024-01-15") são UTC midnight. getFullYear/getMonth usam
       // fuso local — no Brasil (UTC-3) viram o dia anterior. getUTC* evita isso.
       return {
@@ -190,9 +193,11 @@ const DRE = (() => {
         s_e:   c ? seDoGrupo(c.grupo) : '#N/A',
         fv:    c ? (c.fv || '') : '',
         di:    c ? (c.di || '') : '',
-        ano:   valido ? d.getUTCFullYear() : null,
-        mesIdx: valido ? d.getUTCMonth() : null,
-        mes:   valido ? MESES[d.getUTCMonth()] : null,
+        ano:   dataValida ? d.getUTCFullYear() : null,
+        mesIdx: dataValida ? d.getUTCMonth() : null,
+        mes:   dataValida ? MESES[d.getUTCMonth()] : null,
+        valorInformado,
+        entraRelatorio,
         status: l.dt_pag ? 'PG' : 'N'
       };
     });
@@ -217,7 +222,7 @@ const DRE = (() => {
     // Indexa todos os lançamentos por conta|ano|mesIdx|cnpj (multi-ano)
     const soma = new Map();
     for (const l of bd) {
-      if (l.ano == null) continue;
+      if (!l.entraRelatorio || l.ano == null) continue;
       const chave = `${norm(l.conta)}|${l.ano}|${l.mesIdx}|${l.cnpj}`;
       soma.set(chave, num(soma.get(chave)) + num(l.valor));
     }
@@ -289,7 +294,7 @@ const DRE = (() => {
   // Anos distintos com lançamento válido (ano != null), mais recente primeiro.
   function anosDisponiveis() {
     const anos = new Set();
-    for (const l of estado.bd) if (l.ano != null) anos.add(l.ano);
+    for (const l of estado.bd) if (l.entraRelatorio && l.ano != null) anos.add(l.ano);
     return Array.from(anos).sort((a, b) => b - a);
   }
 
@@ -299,7 +304,7 @@ const DRE = (() => {
     const meses = new Array(12).fill(0);
     if (ano == null) return meses;
     for (const l of estado.bd) {
-      if (l.ano !== ano || l.grupo !== nomeGrupo || l.cnpj !== estado.cnpj) continue;
+      if (!l.entraRelatorio || l.ano !== ano || l.grupo !== nomeGrupo || l.cnpj !== estado.cnpj) continue;
       if (l.mesIdx == null) continue;
       meses[l.mesIdx] += num(l.valor);
     }
@@ -311,7 +316,7 @@ const DRE = (() => {
     const meses = new Array(12).fill(0);
     if (ano == null) return meses;
     for (const l of estado.bd) {
-      if (l.ano !== ano || l.cnpj !== estado.cnpj || l.s_e !== 'E') continue;
+      if (!l.entraRelatorio || l.ano !== ano || l.cnpj !== estado.cnpj || l.s_e !== 'E') continue;
       if (l.mesIdx == null) continue;
       meses[l.mesIdx] += num(l.valor);
     }
@@ -687,7 +692,7 @@ const DRE = (() => {
     if (!porGrupo.size) return { nomes: [], total: 0 };
 
     for (const l of (estado.bd || [])) {
-      if (porGrupo.has(l.grupo)) {
+      if (l.entraRelatorio && porGrupo.has(l.grupo)) {
         porGrupo.set(l.grupo, porGrupo.get(l.grupo) + num(l.valor));
       }
     }
@@ -985,16 +990,13 @@ const DRE = (() => {
 
   /** Linhas prontas para POST em fin_dre_lancamentos (sem empresa_id). */
   function registrosBDParaSalvar() {
-    // conta e dt_caixa sao NOT NULL em fin_dre_lancamentos no Supabase — sem
-    // este filtro, uma linha em branco (sobra de colagem do Excel) quebra o
-    // lote inteiro com HTTP 400 "null value in column conta violates
-    // not-null constraint". As linhas incompletas continuam visiveis na
-    // grade (estado.lancamentos nao e tocado aqui) pro usuario corrigir.
+    // O BD guarda as linhas preenchidas mesmo quando faltam campos que o
+    // relatório exige. A filtragem de DT_VENC/VALOR acontece somente no motor
+    // de relatórios, nunca no armazenamento.
     return estado.lancamentos
-      .filter(l => l.conta && l.dt_caixa)
       .map(l => ({
         conta: l.conta || null,
-        valor: num(l.valor),
+        valor: (l.valor === '' || l.valor == null) ? null : num(l.valor),
         tot_pago: (l.tot_pago === '' || l.tot_pago == null) ? null : num(l.tot_pago),
         dt_caixa: l.dt_caixa || null,
         dt_venc: l.dt_venc || null,
@@ -1026,7 +1028,7 @@ const DRE = (() => {
     const filtroGrupo = document.getElementById('fin-lanc-filtro-grupo')?.value || '';
     const filtroSE    = document.getElementById('fin-lanc-filtro-se')?.value    || '';
     const filtroMes   = document.getElementById('fin-lanc-filtro-mes')?.value   || '';
-    let bd = enriquecerBD().filter(l => l.ano === estado.ano);
+    let bd = enriquecerBD().filter(l => l.entraRelatorio && l.ano === estado.ano);
     if (filtroGrupo) bd = bd.filter(l => l.grupo === filtroGrupo);
     if (filtroSE)    bd = bd.filter(l => l.s_e   === filtroSE);
     if (filtroMes)   bd = bd.filter(l => l.mes   === filtroMes);
@@ -1204,7 +1206,7 @@ const DRE = (() => {
     if (semDI) add('atencao','Contas sem marcação D_I',
       `${semDI} contas de saída sem Direto/Indireto — custo por produto incompleto.`);
 
-    const orfas = enriquecerBD().filter(l => l.grupo === '#N/A');
+    const orfas = enriquecerBD().filter(l => l.entraRelatorio && l.grupo === '#N/A');
     if (orfas.length) add('negativo','Contas fora do plano',
       `${orfas.length} lançamento(s) com conta inexistente no plano (#N/A). Não entram no DRE.`);
 
@@ -1651,7 +1653,8 @@ const DRE = (() => {
   function montarFiltros() {
     const contagemPorAno = new Map();
     for (const l of estado.lancamentos) {
-      const d = parseData(l.dt_venc || l.dt_caixa);
+      if (l.valor === null || l.valor === undefined || String(l.valor).trim() === '' || num(l.valor) === 0) continue;
+      const d = parseData(l.dt_venc);
       if (!d || isNaN(d)) continue;
       const a = d.getUTCFullYear();
       contagemPorAno.set(a, (contagemPorAno.get(a) || 0) + 1);

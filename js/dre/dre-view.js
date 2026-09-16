@@ -46,6 +46,75 @@ var DRE_ADMIN_PREVIEW_COMPANY = null;
 var DRE_HTML_URL = 'views/dre-painel.html';
 var DRE_CSS_URL  = 'css/dre-painel.css';
 
+// ── CACHE LOCAL (IndexedDB) — mesmo mecanismo do Comercial ───────────────────
+//
+// Reaproveita _dcIdbGet/_dcIdbSet/_dcIdbDelete (js/auth.js): mesmo banco
+// IndexedDB, so troca a chave. Guarda { gerado_em, plano, lancamentos } por
+// empresa. Chave e a MESMA usada por js/financeiro/financeiro-core.js
+// (finCarregarDados) de proposito — quem edita aqui e quem so ve no painel
+// do cliente compartilham o mesmo cache, empresa por empresa. Vale pra toda
+// empresa do sistema, nao so uma: a chave e sempre resute_dre_cache_<id>.
+function _dreCacheKey(empresaId) {
+  return 'resute_dre_cache_' + empresaId;
+}
+
+/** Grava o cache assim que os dados terminam de carregar OU depois de salvar. */
+function _dreCacheSalvar(empresaId, plano, lancamentos) {
+  if (!empresaId || typeof _dcIdbSet !== 'function') return;
+  try {
+    _dcIdbSet(_dreCacheKey(empresaId), {
+      gerado_em: new Date().toISOString(),
+      plano: plano || [],
+      lancamentos: lancamentos || []
+    });
+  } catch (e) { /* cache e so otimizacao — falha aqui nao pode travar o salvar */ }
+}
+
+async function _dreCacheLer(empresaId) {
+  if (!empresaId || typeof _dcIdbGet !== 'function') return null;
+  try {
+    var dado = await _dcIdbGet(_dreCacheKey(empresaId));
+    if (!dado || !Array.isArray(dado.lancamentos)) return null;
+    return dado;
+  } catch (e) { return null; }
+}
+
+// ── TELA DE CARREGAMENTO ──────────────────────────────────────────────────────
+//
+// Sem isso a tela fica em branco (view visivel, mas vazia) enquanto o HTML/CSS
+// da ferramenta e injetado e os dados sao buscados no Supabase — o que pode
+// levar segundos numa empresa com dezenas de milhares de lancamentos.
+if (!document.getElementById('dre-loading-style')) {
+  var _dreLoadingStyle = document.createElement('style');
+  _dreLoadingStyle.id = 'dre-loading-style';
+  _dreLoadingStyle.textContent =
+    '@keyframes dreLoadingGiro{to{transform:rotate(360deg)}}' +
+    '.dre-loading-overlay{position:fixed;inset:0;z-index:9500;display:flex;' +
+    'flex-direction:column;align-items:center;justify-content:center;gap:14px;' +
+    'background:#F5F7FA;font-family:Outfit,system-ui,sans-serif;color:#1e3a5f}' +
+    '.dre-loading-spinner{width:34px;height:34px;border-radius:50%;' +
+    'border:3px solid #cdd8ea;border-top-color:#002060;animation:dreLoadingGiro .8s linear infinite}' +
+    '.dre-loading-texto{font-size:13px;font-weight:600;letter-spacing:.02em}';
+  document.head.appendChild(_dreLoadingStyle);
+}
+
+function _dreMostrarCarregando(container, texto) {
+  if (!container) return;
+  _dreEsconderCarregando(container);
+  var overlay = document.createElement('div');
+  overlay.className = 'dre-loading-overlay';
+  overlay.setAttribute('data-dre-loading', '1');
+  overlay.innerHTML = '<div class="dre-loading-spinner"></div><div class="dre-loading-texto">'
+    + (texto || 'Carregando painel...') + '</div>';
+  container.appendChild(overlay);
+}
+
+function _dreEsconderCarregando(container) {
+  var alvo = container || document;
+  var overlay = alvo.querySelector('[data-dre-loading]');
+  if (overlay) overlay.remove();
+}
+
 // ── CSS ESCOPADO ─────────────────────────────────────────────────────────────
 
 /**
@@ -257,21 +326,27 @@ async function dreAbrir(opts) {
   var view = document.getElementById('view-dash-dre');
   if (!view) { console.error('[DRE] Container #view-dash-dre nao existe no HTML.'); return; }
   view.style.display = 'block';
+  _dreMostrarCarregando(view, 'Abrindo painel...');
 
   try {
     await _dreInjetarCSS();
     await _dreMontarHTML(view);
+    // _dreMontarHTML troca view.innerHTML — reaplica o overlay por cima do
+    // HTML recem-injetado, continua cobrindo a tela ate os dados chegarem.
+    _dreMostrarCarregando(view, 'Carregando dados...');
     _dreResetarFiltrosAoAbrir();
 
     var eid = _dreResolverEmpresaId(empresaIdPreview);
 
     // Super_admin sem empresa selecionada: mostrar seletor antes de carregar.
     if (!eid && typeof SESSION !== 'undefined' && SESSION && SESSION.papel === 'super_admin') {
+      _dreEsconderCarregando(view);
       var empresaEscolhida = await _dreEscolherEmpresaAdmin(view);
       if (!empresaEscolhida) return; // fechou sem escolher
       eid = empresaEscolhida;
       empresaIdPreview = eid;
       DRE_ADMIN_PREVIEW = true;
+      _dreMostrarCarregando(view, 'Carregando dados...');
     }
 
     if (!eid) {
@@ -279,30 +354,54 @@ async function dreAbrir(opts) {
       if (status) status.textContent = '⚠ Empresa não configurada.';
     }
 
-    var dados = await _dreCarregarDados(eid);
-
-    DRE.init({
-      plano:       dados.plano,
-      lancamentos: dados.lancamentos,
-      empresa:     _dreNomeEmpresa(),
-      empresaId:   eid,
-      cnpj:        1,
-      ano:         null
-    });
-
-    _dreAplicarHeader();
-    _dreLigarSalvarGrades(eid);
-    _dreLigarExportar();
-    _dreLigarDateInputs();
-    _dreLigarSino();
-    _dreIniciarGradesLiteGrid(dados.plano, dados.lancamentos);
+    // Cache local (IndexedDB) primeiro — abre na hora com o que ja tinha na
+    // ultima vez, sem esperar o Supabase. Atualiza o cache em segundo plano
+    // (sem re-renderizar a grade: o usuario pode estar editando/colando
+    // nela, e sobrescrever no meio disso perderia o que ele digitou).
+    var cache = eid ? await _dreCacheLer(eid) : null;
+    var dados;
+    if (cache) {
+      dados = { plano: cache.plano, lancamentos: cache.lancamentos };
+      _dreAplicarDadosCarregados(dados, eid);
+      _dreEsconderCarregando(view);
+      _dreCarregarDados(eid).then(function(fresco) {
+        if (!fresco) return;
+        _dreCacheSalvar(eid, fresco.plano, fresco.lancamentos);
+      }).catch(function(e) { console.warn('[DRE] Atualizacao de cache em segundo plano falhou:', e); });
+    } else {
+      dados = await _dreCarregarDados(eid);
+      _dreCacheSalvar(eid, dados.plano, dados.lancamentos);
+      _dreAplicarDadosCarregados(dados, eid);
+      _dreEsconderCarregando(view);
+    }
 
   } catch (e) {
+    _dreEsconderCarregando(view);
     console.error('[DRE] Erro ao abrir:', e);
     view.innerHTML = '<div style="padding:40px;text-align:center;font-family:system-ui;color:#b30000">'
       + 'Nao foi possivel carregar o painel DRE.<br><small>' + (e && e.message ? e.message : '') + '</small>'
       + '</div>';
   }
+}
+
+/** DRE.init() + toda a fiacao de botoes/grades — reaproveitado no load do
+ *  cache e no load fresco, pra nao duplicar a sequencia nos dois. */
+function _dreAplicarDadosCarregados(dados, eid) {
+  DRE.init({
+    plano:       dados.plano,
+    lancamentos: dados.lancamentos,
+    empresa:     _dreNomeEmpresa(),
+    empresaId:   eid,
+    cnpj:        1,
+    ano:         null
+  });
+
+  _dreAplicarHeader();
+  _dreLigarSalvarGrades(eid);
+  _dreLigarExportar();
+  _dreLigarDateInputs();
+  _dreLigarSino();
+  _dreIniciarGradesLiteGrid(dados.plano, dados.lancamentos);
 }
 
 /** Busca o bloco da ferramenta e o injeta no container. */
@@ -507,9 +606,8 @@ function _dreNormalizarDatasRegistro(r) {
   ['dt_caixa', 'dt_venc', 'dt_pag', 'dt_custoria'].forEach(function(k) {
     if (out[k]) out[k] = _dreNormalizarData(out[k]);
   });
-  // DT_VENC ilegível vira null pela normalização acima — cai de volta pro
-  // DT_CAIXA (já validado) em vez de deixar a coluna vazia/inválida.
-  if (!out.dt_venc) out.dt_venc = out.dt_caixa;
+  // DT_VENC vazio permanece vazio. O relatório usa exclusivamente essa data;
+  // DT_CAIXA continua armazenada no BD, mas não substitui o vencimento.
   return out;
 }
 
@@ -534,6 +632,7 @@ function _dreLigarSalvarGrades(empresaId) {
           registros.map(function(r) { return Object.assign({}, r, { empresa_id: empresaId }); }));
         _dreStatusGrade('fin-dre-status-plano', '✓ ' + enviados.toLocaleString('pt-BR') + ' conta(s) salva(s).', 'ok');
         _dreLimparDirtyPlano();
+        _dreCacheSalvar(empresaId, DRE.estado.plano, DRE.estado.lancamentos);
       } catch (e) {
         console.error('[DRE] Falha ao salvar plano:', e);
         alert('Falha ao salvar Plano de Contas:\n' + e.message);
@@ -562,21 +661,11 @@ function _dreLigarSalvarGrades(empresaId) {
         return _dreNormalizarDatasRegistro(Object.assign({}, r, { empresa_id: empresaId }));
       });
 
-      // registrosBDParaSalvar() já descarta linha sem CONTA ou sem DT_CAIXA
-      // (coluna obrigatória no banco) — avisa quantas ficaram de fora pra
-      // não sumir dado sem o usuário perceber.
-      var descartadas = totalNaGrade - lotes.length;
-      var linhasConfirm = ['Serão salvas ' + lotes.length.toLocaleString('pt-BR') + ' linha(s), substituindo todos os lançamentos atuais desta empresa.'];
-      if (descartadas > 0) {
-        linhasConfirm.push(descartadas.toLocaleString('pt-BR') + ' linha(s) da grade sem CONTA ou sem DT_CAIXA foram ignoradas (não têm como salvar).');
-      }
-      linhasConfirm.push('Continuar?');
-      if (!window.confirm(linhasConfirm.join('\n'))) return;
-
       _dreStatusGrade('fin-dre-status-bd', 'Salvando...', '');
       try {
         var enviados = await _dreSalvarTabela('fin_dre_lancamentos', empresaId, lotes);
         _dreStatusGrade('fin-dre-status-bd', '✓ ' + enviados.toLocaleString('pt-BR') + ' lançamento(s) salvo(s).', 'ok');
+        _dreCacheSalvar(empresaId, DRE.estado.plano, DRE.estado.lancamentos);
       } catch (e) {
         console.error('[DRE] Falha ao salvar BD:', e);
         alert('Falha ao salvar BD:\n' + e.message);
@@ -597,6 +686,7 @@ function _dreLigarSalvarGrades(empresaId) {
         DRE.estado.lancamentos = [];
         if (GRIDS['dre_bd']) { GRIDS['dre_bd'].allData = []; GRIDS['dre_bd']._render(); }
         DRE.recalcular();
+        _dreCacheSalvar(empresaId, DRE.estado.plano, DRE.estado.lancamentos);
         _dreStatusGrade('fin-dre-status-bd', '✓ BD apagado.', 'ok');
       } catch (e) {
         console.error('[DRE] Falha ao limpar BD:', e);
@@ -633,6 +723,7 @@ function _dreLigarSalvarGrades(empresaId) {
         DRE.estado.plano = [];
         if (GRIDS['dre_plano']) { GRIDS['dre_plano'].allData = []; GRIDS['dre_plano']._render(); }
         DRE.recalcular();
+        _dreCacheSalvar(empresaId, DRE.estado.plano, DRE.estado.lancamentos);
         _dreStatusGrade('fin-dre-status-plano', '✓ Plano apagado.', 'ok');
       } catch (e) {
         console.error('[DRE] Falha ao limpar Plano:', e);
@@ -728,7 +819,7 @@ function _dreImportarArquivo(file) {
 function _dreAtualizarFiltrosAno() {
   var anos = [];
   (DRE.estado.lancamentos || []).forEach(function(l) {
-    var d = _dreParseDataUTC(l.dt_venc || l.dt_caixa);
+    var d = _dreParseDataUTC(l.dt_venc);
     if (d && !isNaN(d)) anos.push(d.getUTCFullYear());
   });
   anos = anos.filter(function(v, i, a) { return a.indexOf(v) === i; }).sort();
@@ -1184,7 +1275,7 @@ function _dreBDDrePopularFiltros() {
   if (selAno) {
     var anos = {};
     (DRE.estado.lancamentos || []).forEach(function(l) {
-      var d = _dreParseDataUTC(l.dt_venc || l.dt_caixa);
+      var d = _dreParseDataUTC(l.dt_venc);
       if (d && !isNaN(d)) anos[d.getUTCFullYear()] = true;
     });
     if (DRE.estado.ano) anos[DRE.estado.ano] = true;
@@ -1358,9 +1449,9 @@ function _dreAtualizarDerivadasBD(gridBD) {
     r[19] = pc ? (pc.grupo || '') : (conta ? '#N/A' : '');
     r[18] = pc ? (SE_MAP[pc.grupo] || 'S') : (conta ? '#N/A' : '');
 
-    // O DRE é organizado por DT_VENC; DT_CAIXA é apenas fallback para
-    // lançamentos antigos que ainda não possuem vencimento.
-    var dt = String(r[2] || r[1] || '');
+    // O DRE é organizado exclusivamente por DT_VENC. DT_CAIXA permanece
+    // disponível no BD, mas não substitui a data de vencimento no relatório.
+    var dt = String(r[2] || '');
     var d  = _dreParseDataUTC(dt);
     var ok = d && !isNaN(d);
 
@@ -1531,15 +1622,25 @@ function _dreRowsBD(lancs) {
 function _dreLancDeRows(rows) {
   var cnpj = DRE.estado.cnpj;
   return rows
+    // A coluna ID é automática. Linhas sem nenhum campo editável são apenas
+    // espaço de grade; qualquer linha com algum dado é preservada no BD,
+    // mesmo quando CONTA, DT_CAIXA ou VALOR estiverem vazios.
+    .filter(function(r) {
+      return Array.isArray(r) && r.slice(1, 18).some(function(v) {
+        return v !== null && v !== undefined && String(v).trim() !== '';
+      });
+    })
     .map(function(r) {
+      var valorInformado = r[6] !== null && r[6] !== undefined && String(r[6]).trim() !== '';
+      var totalPagoInformado = r[7] !== null && r[7] !== undefined && String(r[7]).trim() !== '';
       return {
         conta:        r[4]  ? String(r[4]).trim() : null,
         dt_caixa:     _dreNormalizarData(r[1]) || '',
         dt_venc:      _dreNormalizarData(r[2]) || null,
         dt_pag:       _dreNormalizarData(r[3]) || null,
         tipo:         r[5]  || null,
-        valor:        _dreParseNum(r[6]),
-        tot_pago:     _dreParseNum(r[7]),
+        valor:        valorInformado ? _dreParseNum(r[6]) : null,
+        tot_pago:     totalPagoInformado ? _dreParseNum(r[7]) : null,
         parceiro:     r[8]  || null,
         documento:    r[9]  || null,
         banco:        r[10] || null,

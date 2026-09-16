@@ -860,9 +860,8 @@ function bdUpdateVendaProduto() {
     const v  = metrica(r);
     const gr = g(r,'grupo');
     if (!p || mi < 0) return;
-    var marcaCadastro = g(r,'marca');
-    var marcaFinal = marcaCadastro || ((produtoOriginal || '').toUpperCase().indexOf('PLASTRIO') >= 0 ? 'PLASTRIO' : '');
-    var nomeLimpo = p.replace(/\s*PLASTRIO\s*/gi, ' ').replace(/\s{2,}/g, ' ').trim();
+    var marcaFinal = g(r,'marca') || '';
+    var nomeLimpo = p.replace(/\s{2,}/g, ' ').trim();
     if (!pivot.has(nomeLimpo)) pivot.set(nomeLimpo, {meses:Array(12).fill(0), total:0, grupo:gr, marca:marcaFinal, label:nomeLimpo});
     pivot.get(nomeLimpo).meses[mi] += v;
     pivot.get(nomeLimpo).total += v;
