@@ -814,17 +814,8 @@ const DRE = (() => {
     const periodo = (s0.ano === sN.ano && s0.mes === sN.mes)
       ? fmtSlotLbl(s0) + ' ' + s0.ano
       : fmtSlotLbl(s0) + ' a ' + fmtSlotLbl(sN) + (multiAno ? '' : ' ' + s0.ano);
-    const orfas = _dreOrfas();
-    const avisoOrfa = orfas > 0
-      ? `<div class="fin-dre-aviso-orfa">⚠ ${orfas} lançamento(s) com conta fora do Plano (#N/A) — não entram no DRE.</div>`
-      : '';
-
-    const gruposOrfaos = _dreGruposOrfaos();
-    const avisoGrupoOrfao = gruposOrfaos.nomes.length > 0
-      ? `<div class="fin-dre-aviso-orfa">⚠ Grupo(s) do Plano de Contas não reconhecido(s) pelo DRE — `
-        + `${esc(gruposOrfaos.nomes.join(', '))} — somando ${fmt(gruposOrfaos.total)} que não entram em nenhuma linha `
-        + `nem no total do DRE. Corrija o GRUPO dessas contas no Plano para um dos grupos válidos.</div>`
-      : '';
+    // Avisos de conta órfã / grupo não reconhecido não ficam mais fixos aqui —
+    // vão pro sino de alertas (renderAlertas), junto com os outros avisos.
 
     const blocos = ESTRUTURA.map(item => {
       if (item.tipo === 'grupo')     return renderBloco(item);
@@ -832,7 +823,7 @@ const DRE = (() => {
       return renderResultado(item, res);
     }).join('');
 
-    alvo.innerHTML = `<div class="fin-dre-periodo-label">${periodo}</div>${avisoOrfa}${avisoGrupoOrfao}${blocos}${renderBalanco(res)}`;
+    alvo.innerHTML = `<div class="fin-dre-periodo-label">${periodo}</div>${blocos}${renderBalanco(res)}`;
     return res;
   }
 
@@ -1085,13 +1076,28 @@ const DRE = (() => {
       kpi(fmt(t.geracaoCaixa), 'Geração de caixa', 'após investimentos');
   }
 
+  /** Mostra/esconde o número no sino de alertas do cabeçalho. */
+  function _dreAtualizarBadgeAlertas(qtd) {
+    const badge = document.getElementById('fin-sino-badge');
+    if (!badge) return;
+    if (qtd > 0) {
+      badge.textContent = qtd > 99 ? '99+' : String(qtd);
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+  }
+
   function renderAlertas(res) {
     const alvo = document.getElementById('fin-alertas');
     if (!alvo) return;
     const t = res.total, base = res.base || 1, a = analiseFVDI();
     const out = [];
-    const add = (tipo, titulo, txt) =>
+    let pendencias = 0;
+    const add = (tipo, titulo, txt) => {
+      if (tipo !== 'positivo') pendencias++;
       out.push(`<div class="dc-alert-card ${tipo}"><strong>${esc(titulo)}</strong><span>${esc(txt)}</span></div>`);
+    };
 
     if (t.lucroLiquido < 0) add('negativo','Prejuízo no período',
       `Lucro líquido de ${fmt(t.lucroLiquido)}.`);
@@ -1114,9 +1120,15 @@ const DRE = (() => {
 
     const orfas = enriquecerBD().filter(l => l.grupo === '#N/A');
     if (orfas.length) add('negativo','Contas fora do plano',
-      `${orfas.length} lançamentos com conta inexistente no plano (#N/A). Não entram no DRE.`);
+      `${orfas.length} lançamento(s) com conta inexistente no plano (#N/A). Não entram no DRE.`);
+
+    const gruposOrfaos = _dreGruposOrfaos();
+    if (gruposOrfaos.nomes.length) add('negativo','Grupo(s) não reconhecido(s) pelo DRE',
+      `${gruposOrfaos.nomes.join(', ')} — somando ${fmt(gruposOrfaos.total)} que não entram em nenhuma linha `
+      + `nem no total do DRE. Corrija o GRUPO dessas contas no Plano para um dos grupos válidos.`);
 
     alvo.innerHTML = out.join('');
+    _dreAtualizarBadgeAlertas(pendencias);
   }
 
   function renderResumo(res) {

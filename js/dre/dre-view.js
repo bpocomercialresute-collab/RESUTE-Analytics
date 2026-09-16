@@ -292,6 +292,7 @@ async function dreAbrir(opts) {
     _dreLigarSalvarGrades(eid);
     _dreLigarExportar();
     _dreLigarDateInputs();
+    _dreLigarSino();
     _dreIniciarGradesLiteGrid(dados.plano, dados.lancamentos);
 
   } catch (e) {
@@ -1670,6 +1671,32 @@ function _dreLigarDateInputs() {
 
   if (elInicio) elInicio.addEventListener('change', aplicar);
   if (elFim)    elFim.addEventListener('change', aplicar);
+}
+
+var _dreSinoClickForaLigado = false;
+
+/** Sino de avisos/alertas do cabeçalho — abre/fecha o painel dropdown. */
+function _dreLigarSino() {
+  var btn = document.getElementById('fin-sino-btn');
+  var painel = document.getElementById('fin-sino-painel');
+  if (!btn || !painel) return;
+
+  btn.onclick = function(ev) {
+    ev.stopPropagation();
+    painel.hidden = !painel.hidden;
+  };
+  painel.onclick = function(ev) { ev.stopPropagation(); };
+
+  // Liga o listener de "clique fora fecha" só uma vez por sessão de página —
+  // a cada dreAbrir() o HTML é remontado do zero (fetch de novo), então
+  // document.getElementById('fin-sino-painel') sempre acha o elemento atual.
+  if (!_dreSinoClickForaLigado) {
+    _dreSinoClickForaLigado = true;
+    document.addEventListener('click', function() {
+      var p = document.getElementById('fin-sino-painel');
+      if (p && !p.hidden) p.hidden = true;
+    });
+  }
 }
 
 // ── FECHAMENTO ───────────────────────────────────────────────────────────────
