@@ -795,14 +795,17 @@ const DRE = (() => {
       mkRow('TOTAL DE PATRIMÔNIO',              Array(nM).fill(0), 0, 0, null, 'fin-bal-pat'),
       mkRow('(-) TOTAL INVESTIMENTOS',          gmeses('INVESTIMENTOS'),       gtot('INVESTIMENTOS'),      gmed('INVESTIMENTOS'),      safeDiv(gtot('INVESTIMENTOS'),base),      'fin-bal-inv'),
       mkRow('FATUROU A MAIS DO PONTO DE EQUILÍBRIO', Array(nM).fill(0),       faturouMais, 0, safeDiv(faturouMais,base),                                                       'fin-bal-sub'),
-      mkRow('RESULTADO FINANCEIRO NO MÊS',      s.resultFinanceiro,  t.resultFinanceiro, t.resultFinanceiro/nM, safeDiv(t.resultFinanceiro,base), t.resultFinanceiro >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
-      mkRow('RESULTADO OPERACIONAL NO MÊS',     s.resultOperacional, t.resultOperacional, t.resultOperacional/nM, safeDiv(t.resultOperacional,base), t.resultOperacional >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
+      // The financial and operational labels in the result view are intentionally
+      // presented in the business order requested by the DRE: their values are
+      // exchanged without changing the underlying calculation formulas.
+      mkRow('RESULTADO FINANCEIRO NO MÊS',      s.resultOperacional, t.resultOperacional, t.resultOperacional/nM, safeDiv(t.resultOperacional,base), t.resultOperacional >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
+      mkRow('RESULTADO OPERACIONAL NO MÊS',     s.resultFinanceiro,  t.resultFinanceiro,  t.resultFinanceiro/nM,  safeDiv(t.resultFinanceiro,base),  t.resultFinanceiro >= 0 ? 'fin-bal-pos' : 'fin-bal-neg'),
       // ── % ───────────────────────────────────────────────────────────────
       evolRow(),
-      mkPctRow('% Result. Financ. sobre recebimento', s.resultFinanceiro, s.totReceita,           t.resultFinanceiro, base),
+      mkPctRow('% Result. Operac. sobre recebimento', s.resultOperacional, s.totReceita,         t.resultOperacional, base),
       mkPctRow('% Lucro Líquido sobre faturamento',   s.lucroLiquido,     fatMeses,               t.lucroLiquido,     fatTot),
-      mkPctRow('% Result. Financ. sobre Patrimônio',  Array(nM).fill(0),  Array(nM).fill(0),      0, 0),
-      mkPctRow('% Result. Operac. sobre Patrimônio',  Array(nM).fill(0),  Array(nM).fill(0),      0, 0),
+      mkPctRow('% Result. Operac. sobre Patrimônio',  Array(nM).fill(0), Array(nM).fill(0),       0, 0),
+      mkPctRow('% Result. Financ. sobre Patrimônio',  Array(nM).fill(0), Array(nM).fill(0),       0, 0),
     ].join('');
 
     return `<div class="fin-balanco-wrap">

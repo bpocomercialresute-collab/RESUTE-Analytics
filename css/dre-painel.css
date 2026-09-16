@@ -1009,6 +1009,51 @@ td.fin-dre-col-med { background: #cdf3d9 !important; font-weight: 700; }
   color: #1a2035 !important;
   box-shadow: 0 1px 2px rgba(0,0,0,.04) !important;
 }
+
+/* Dropdown de filtros do DRE: manter o menu claro mesmo quando o tema global
+   aplica regras escuras com !important aos componentes compartilhados. */
+.col-filter-dropdown.cfd-light {
+  background: #fff !important;
+  color: #1e293b !important;
+  border: 1px solid #c8d0dc !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 28px rgba(15, 35, 70, .2) !important;
+  overflow: hidden !important;
+}
+.col-filter-dropdown.cfd-light .cfd-header {
+  background: #002060 !important;
+  color: #fff !important;
+  border-bottom: 1px solid #001540 !important;
+  padding: 9px 12px !important;
+}
+.col-filter-dropdown.cfd-light .cfd-sort-row,
+.col-filter-dropdown.cfd-light .cfd-search-row,
+.col-filter-dropdown.cfd-light .cfd-footer {
+  background: #f4f7fc !important;
+  border-color: #d4dce9 !important;
+}
+.col-filter-dropdown.cfd-light .cfd-sort-btn,
+.col-filter-dropdown.cfd-light .cfd-search-input {
+  background: #fff !important;
+  color: #1e293b !important;
+  border-color: #bcc8da !important;
+}
+.col-filter-dropdown.cfd-light .cfd-item {
+  color: #1e293b !important;
+  background: #fff !important;
+  padding: 7px 12px !important;
+}
+.col-filter-dropdown.cfd-light .cfd-item:hover,
+.col-filter-dropdown.cfd-light .cfd-item.cfd-active,
+.col-filter-dropdown.cfd-light .cfd-item-all {
+  background: #e8f0fe !important;
+}
+.col-filter-dropdown.cfd-light .cfd-list { max-height: 260px !important; }
+.col-filter-dropdown.cfd-light .cfd-apply,
+.col-filter-dropdown.cfd-light .cfd-srch-btn {
+  background: #002060 !important;
+  color: #fff !important;
+}
 .fin-campo select:focus,
 .fin-campo input:focus {
   border-color: #002060 !important;

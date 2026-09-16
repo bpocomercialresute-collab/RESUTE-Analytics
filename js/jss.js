@@ -509,6 +509,22 @@ LiteGrid.prototype._firstTd = function() {
   return tds[1] || null;
 };
 
+// Only remove a pasted header when the row is clearly made of column names.
+// A data value such as COD123 or GRUPO ALIMENTAR must never discard row 1.
+function lgLooksLikeHeader(line) {
+  var headers = {
+    ID: 1, COD: 1, CODIGO: 1, CONTA: 1, PRODUTO: 1, VALOR: 1,
+    GRUPO: 1, CLIENTE: 1, CLIENTES: 1, VENDEDOR: 1, REPRESENTANTE: 1,
+    DT_CAIXA: 1, DT_VENC: 1, DT_PAG: 1, F_V: 1, D_I: 1,
+    PEDIDO: 1, TIPO: 1, MES: 1, ANO: 1
+  };
+  var cells = String(line || '').split('\t').map(function(cell) {
+    return cell.trim().toUpperCase().replace(/\s+/g, '_');
+  }).filter(Boolean);
+  var hits = cells.filter(function(cell) { return headers[cell]; }).length;
+  return hits >= 2;
+}
+
 // ── PASTE ─────────────────────────────────────────────────────────────────────
 LiteGrid.prototype._pasteAt = function(txt, startRow, startCol) {
   if (startRow < 0) startRow = 0;
@@ -517,11 +533,7 @@ LiteGrid.prototype._pasteAt = function(txt, startRow, startCol) {
   var lines = String(txt || '').replace(/\r/g, '').split('\n');
   if (lines.length && lines[lines.length - 1] === '') lines.pop();
   lines = lines.filter(function(l){ return l.length || l.indexOf('\t') >= 0; });
-  if (lines.length > 1) {
-    var kw = ['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE','GRUPO','COD'];
-    var fc = lines[0].split('\t');
-    if (fc.some(function(c){ return kw.some(function(k){ return c.toUpperCase().indexOf(k)>=0; }); })) lines.shift();
-  }
+  if (lines.length > 1 && lgLooksLikeHeader(lines[0])) lines.shift();
   if (!lines.length) return;
   var changes = [];
   var oldLength = this.allData.length;
@@ -576,12 +588,7 @@ LiteGrid.prototype._paste = function(txt) {
   var lines = String(txt || '').replace(/\r/g, '').split('\n');
   if (lines.length && lines[lines.length - 1] === '') lines.pop();
   lines = lines.filter(function(l){ return l.length || l.indexOf('\t') >= 0; });
-  var start = 0;
-  if (lines.length>0) {
-    var kw=['ID','PEDIDO','PRODUTO','VALOR','VENDEDOR','CLIENTES','REPRESENTANTE','GRUPO','COD'];
-    var fc=lines[0].split('\t');
-    if(fc.some(function(c){return kw.some(function(k){return c.toUpperCase().indexOf(k)>=0;});})) start=1;
-  }
+  var start = lines.length > 0 && lgLooksLikeHeader(lines[0]) ? 1 : 0;
   var data=[];
   for(var i=start;i<lines.length;i++){
     var cells=lines[i].split('\t');
