@@ -1513,11 +1513,27 @@ const DRE = (() => {
   }
 
   function montarFiltros() {
-    const anos = [...new Set(estado.lancamentos
-      .map(l => { const d = parseData(l.dt_caixa); return (d && !isNaN(d)) ? d.getUTCFullYear() : null; })
-      .filter(v => v !== null))].sort();
+    const contagemPorAno = new Map();
+    for (const l of estado.lancamentos) {
+      const d = parseData(l.dt_caixa);
+      if (!d || isNaN(d)) continue;
+      const a = d.getUTCFullYear();
+      contagemPorAno.set(a, (contagemPorAno.get(a) || 0) + 1);
+    }
+    const anos = [...contagemPorAno.keys()].sort();
     if (!anos.length) anos.push(new Date().getFullYear());
-    estado.ano = estado.ano ?? anos[anos.length - 1];
+
+    // Ano padrão = o com MAIS lançamentos, não o maior número. Uma única
+    // linha com data digitada errada (ex: 2029 por engano) não pode fazer
+    // o painel inteiro abrir num ano quase vazio e parecer quebrado.
+    let anoPadrao = anos[anos.length - 1];
+    if (contagemPorAno.size > 1) {
+      let maiorContagem = -1;
+      for (const [a, qtd] of contagemPorAno) {
+        if (qtd > maiorContagem) { maiorContagem = qtd; anoPadrao = a; }
+      }
+    }
+    estado.ano = estado.ano ?? anoPadrao;
     if (estado.anoInicio == null) estado.anoInicio = estado.ano;
     if (estado.anoFim   == null) estado.anoFim   = estado.ano;
 
