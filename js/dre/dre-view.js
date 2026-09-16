@@ -110,26 +110,26 @@ function _dreEscoparRegras(regras) {
 async function _dreCarregarDados(empresaId) {
   if (!empresaId) return { plano: [], lancamentos: [] };
 
-  var qs = '?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=*&limit=100000';
+  var qs = '?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=*';
+  var headers = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY };
 
-  var respostas = await Promise.all([
-    fetch(SUPA_URL + '/rest/v1/fin_dre_plano_contas' + qs, {
-      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
-    }),
-    fetch(SUPA_URL + '/rest/v1/fin_dre_lancamentos' + qs + '&order=dt_caixa.desc', {
-      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
-    })
-  ]);
-
-  for (var i = 0; i < respostas.length; i++) {
-    if (!respostas[i].ok) throw new Error(respostas[i].status === 403
+  // O Supabase devolve no maximo ~1000 linhas por requisicao (Max Rows do
+  // projeto), mesmo pedindo limit=100000 na URL — precisa paginar por Range
+  // pra trazer tudo. _fetchAll (js/auth.js) ja faz isso (e trata 429/erro).
+  var plano, lancamentos;
+  try {
+    var resultados = await Promise.all([
+      _fetchAll(SUPA_URL + '/rest/v1/fin_dre_plano_contas' + qs, headers),
+      _fetchAll(SUPA_URL + '/rest/v1/fin_dre_lancamentos' + qs + '&order=dt_caixa.desc', headers)
+    ]);
+    plano = resultados[0];
+    lancamentos = resultados[1];
+  } catch (e) {
+    var msg = String(e && e.message || '');
+    throw new Error(msg.indexOf('HTTP 403') >= 0
       ? 'Acesso negado aos dados do DRE desta empresa.'
-      : 'Falha ao carregar os dados do DRE (HTTP ' + respostas[i].status + ').');
+      : 'Falha ao carregar os dados do DRE: ' + msg);
   }
-
-  var dados = await Promise.all(respostas.map(function(r) { return r.json(); }));
-  var plano = Array.isArray(dados[0]) ? dados[0] : [];
-  var lancamentos = Array.isArray(dados[1]) ? dados[1] : [];
 
   // O motor filtra lançamento por cnpj (estado.cnpj). Aqui a multiempresa já é
   // feita por empresa_id, então todo lançamento entra sob o mesmo cnpj fixo —
@@ -536,12 +536,31 @@ function _dreLigarSalvarGrades(empresaId) {
   var btnBD = document.getElementById('fin-dre-bd-salvar');
   if (btnBD) {
     btnBD.onclick = async function() {
-      // Sincroniza do grid no momento do clique (evita estado desatualizado).
-      if (GRIDS['dre_bd']) DRE.estado.lancamentos = _dreLancDeRows(GRIDS['dre_bd'].getData());
+      // Pega o total BRUTO da grade ANTES de qualquer filtro — _dreLancDeRows
+      // já descarta silenciosamente linha sem CONTA/DT_CAIXA, então o total
+      // tem que ser medido antes dele, senão a contagem final nunca bate com
+      // o que foi colado e a pergunta de confirmação parece "número errado".
+      var linhasGrid = GRIDS['dre_bd'] ? GRIDS['dre_bd'].getData() : [];
+      var totalNaGrade = linhasGrid.length;
+      if (!totalNaGrade) {
+        alert('Grade do BD está vazia. Cole os dados (Ctrl+V) e tente novamente.');
+        return;
+      }
 
+      DRE.estado.lancamentos = _dreLancDeRows(linhasGrid);
+      // Etapa 1: linha sem CONTA ou sem DT_CAIXA na célula (_dreLancDeRows já
+      // exige as duas pra sequer criar o objeto do lançamento).
+      var semContaOuData = totalNaGrade - DRE.estado.lancamentos.length;
+
+      // Etapa 2: DT_CAIXA preenchida mas em formato que não vira data (ex:
+      // "31/13/2024") — _dreLancDeRows já normaliza e zera esses casos, então
+      // registrosBDParaSalvar() os filtra aqui.
       var registros = DRE.registrosBDParaSalvar();
+      var formatoInvalido = DRE.estado.lancamentos.length - registros.length;
+
       if (!registros.length) {
-        alert('Nenhum lançamento válido encontrado.\n\nVerifique:\n• DT_CAIXA preenchida (1ª coluna)\n• CONTA preenchida (4ª coluna)\n\nCole os dados do BD (Ctrl+V) e tente novamente.');
+        alert('Nenhum lançamento válido encontrado de ' + totalNaGrade.toLocaleString('pt-BR') + ' linha(s) coladas na grade.\n\n'
+          + 'Verifique:\n• DT_CAIXA preenchida e em formato DD/MM/AAAA (1ª coluna)\n• CONTA preenchida (4ª coluna)\n\nCole os dados do BD (Ctrl+V) e tente novamente.');
         return;
       }
 
@@ -560,38 +579,24 @@ function _dreLigarSalvarGrades(empresaId) {
         if (!prosseguir) return;
       }
 
-      if (!window.confirm('Salvar ' + registros.length + ' lançamento(s)? Substitui todos os lançamentos atuais desta empresa.')) return;
+      // Normaliza datas (dt_venc/dt_pag; dt_caixa já vem normalizada desde
+      // _dreLancDeRows) antes de montar os lotes que vão pro banco.
+      var lotes = registros.map(function(r) {
+        return _dreNormalizarDatasRegistro(Object.assign({}, r, { empresa_id: empresaId }));
+      });
+
+      var descartadas = semContaOuData + formatoInvalido;
+      var linhasConfirm = ['Total de linhas coladas na grade: ' + totalNaGrade.toLocaleString('pt-BR') + '.'];
+      if (semContaOuData) linhasConfirm.push('• ' + semContaOuData.toLocaleString('pt-BR') + ' sem CONTA ou DT_CAIXA preenchida — ignoradas.');
+      if (formatoInvalido) linhasConfirm.push('• ' + formatoInvalido.toLocaleString('pt-BR') + ' com DT_CAIXA em formato inválido — ignoradas.');
+      linhasConfirm.push('\nSerão salvas ' + lotes.length.toLocaleString('pt-BR') + ' linha(s), substituindo todos os lançamentos atuais desta empresa. Continuar?');
+      if (!window.confirm(linhasConfirm.join('\n'))) return;
 
       _dreStatusGrade('fin-dre-status-bd', 'Salvando...', '');
       try {
-        // Normaliza datas BR (DD/MM/AAAA → AAAA-MM-DD) antes de enviar ao banco.
-        // Linha cuja DT_CAIXA não vira uma data válida é descartada aqui — mandar
-        // string inválida pro Postgres é o que gerava "Falha ao gravar o lote N".
-        var descartadas = 0;
-        var lotes = registros.map(function(r) {
-          return _dreNormalizarDatasRegistro(Object.assign({}, r, { empresa_id: empresaId }));
-        }).filter(function(r) {
-          if (r.dt_caixa) return true;
-          descartadas++;
-          return false;
-        });
-
-        if (!lotes.length) {
-          alert('Nenhuma linha tem DT_CAIXA em formato de data válido (DD/MM/AAAA ou AAAA-MM-DD).\n\nVerifique a coluna DT_CAIXA e tente novamente.');
-          _dreStatusGrade('fin-dre-status-bd', '', '');
-          return;
-        }
-        if (descartadas > 0 && !window.confirm(
-          descartadas + ' de ' + registros.length + ' linha(s) têm DT_CAIXA em formato inválido e serão IGNORADAS.\n\n' +
-          'Deseja continuar salvando as outras ' + lotes.length + ' linha(s)?'
-        )) {
-          _dreStatusGrade('fin-dre-status-bd', '', '');
-          return;
-        }
-
         var enviados = await _dreSalvarTabela('fin_dre_lancamentos', empresaId, lotes);
         _dreStatusGrade('fin-dre-status-bd', '✓ ' + enviados.toLocaleString('pt-BR') + ' lançamento(s) salvo(s).'
-          + (descartadas ? ' (' + descartadas + ' ignorado(s) por data inválida)' : ''), 'ok');
+          + (descartadas ? ' (' + descartadas.toLocaleString('pt-BR') + ' ignorado(s) de ' + totalNaGrade.toLocaleString('pt-BR') + ' na grade)' : ''), 'ok');
       } catch (e) {
         console.error('[DRE] Falha ao salvar BD:', e);
         alert('Falha ao salvar BD:\n' + e.message);
