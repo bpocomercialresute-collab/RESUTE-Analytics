@@ -75,6 +75,7 @@ const DRE = (() => {
     charts: {},
     empresa: '',
     empresaId: '',
+    laudoGrupo: null, // grupo escolhido no filtro da aba Laudo — null = usa LAUDO_GRUPO_PADRAO
     auditoriaDuplicidades: { plano: 0, lancamentosPorId: 0, candidatosLancamentos: 0 }
   };
 
@@ -1321,11 +1322,18 @@ const DRE = (() => {
      100% dos primitivos que ja calculam por grupo/ano/mes
      (serieAnualGrupo, serieAnualReceita, anosDisponiveis, evolucaoPct). */
 
-  // Chave exata do grupo (tem que bater com SE_POR_GRUPO/plano de contas —
-  // nao mexer). LAUDO_GRUPO_LABEL e so o texto mostrado pro usuario, cobre
-  // custo de materia-prima E revenda (mesma categoria no plano de contas).
-  const LAUDO_GRUPO_NOME = 'CUSTO. MP OU REVENDA';
+  // Grupo escolhido no filtro do Laudo (estado.laudoGrupo, trocavel pelo
+  // usuario). Chaves batem com SE_POR_GRUPO/plano de contas — nao mexer.
+  // LAUDO_GRUPO_LABEL e so o texto mostrado pro usuario no grupo padrao,
+  // cobre custo de materia-prima E revenda (mesma categoria no plano).
+  const LAUDO_GRUPO_PADRAO = 'CUSTO. MP OU REVENDA';
   const LAUDO_GRUPO_LABEL = 'CUSTO M.P. E REVENDA';
+
+  // Lista de grupos disponiveis no filtro do Laudo — mesma ordem/nome do
+  // Resultado (ESTRUTURA), pra bater com o que o usuario ja conhece dali.
+  const LAUDO_GRUPOS_DISPONIVEIS = ESTRUTURA
+    .filter(item => item.tipo === 'grupo')
+    .map(item => item.nome);
 
   // Faixa larga de anos, igual a planilha original (2017-2028, ancorada no
   // ano corrente: 9 anos pra tras + ano atual + 2 pra frente = 12 colunas).
@@ -1435,15 +1443,34 @@ const DRE = (() => {
     return `<div class="fin-laudo-legenda">${texto}</div>`;
   }
 
+  /** Select de grupo do Laudo — mesmo HTML nos dois desfechos (com e sem dado). */
+  function laudoFiltroHtml(nomeGrupo) {
+    const opts = LAUDO_GRUPOS_DISPONIVEIS.map(g =>
+      `<option value="${esc(g)}"${g === nomeGrupo ? ' selected' : ''}>${esc(g)}</option>`
+    ).join('');
+    return `<div class="fin-campo fin-laudo-filtro">
+      <label for="fin-laudo-grupo-select">Grupo do laudo</label>
+      <select id="fin-laudo-grupo-select" onchange="DRE.selecionarGrupoLaudo(this.value)">${opts}</select>
+    </div>`;
+  }
+
+  /** Troca o grupo do filtro do Laudo e re-renderiza. Chamado pelo <select> acima. */
+  function selecionarGrupoLaudo(nomeGrupo) {
+    if (!nomeGrupo || LAUDO_GRUPOS_DISPONIVEIS.indexOf(nomeGrupo) === -1) return;
+    estado.laudoGrupo = nomeGrupo;
+    renderLaudoGrupo();
+  }
+
   function renderLaudoGrupo() {
     const alvo = document.getElementById('fin-laudo-corpo');
     if (!alvo) return;
 
-    const nomeGrupo = LAUDO_GRUPO_NOME;
-    const labelGrupo = LAUDO_GRUPO_LABEL;
+    const nomeGrupo = estado.laudoGrupo || LAUDO_GRUPO_PADRAO;
+    const labelGrupo = nomeGrupo === LAUDO_GRUPO_PADRAO ? LAUDO_GRUPO_LABEL : nomeGrupo;
     const d = laudoGrupoDados(nomeGrupo);
     if (!d) {
-      alvo.innerHTML = '<div class="fin-dre-bloco-vazio"><span class="fin-dre-bloco-vazio-msg">Sem dados suficientes no BD pra montar o laudo.</span></div>';
+      alvo.innerHTML = laudoFiltroHtml(nomeGrupo)
+        + '<div class="fin-dre-bloco-vazio"><span class="fin-dre-bloco-vazio-msg">Sem dados suficientes no BD pra montar o laudo deste grupo.</span></div>';
       return;
     }
     const mom = laudoMoMGrupo(nomeGrupo);
@@ -1503,6 +1530,7 @@ const DRE = (() => {
     })();
 
     alvo.innerHTML = `
+      ${laudoFiltroHtml(nomeGrupo)}
       <div class="fin-laudo-secao">
         <div class="fin-laudo-titulo">LAUDO DE RESULTADOS DE ${esc(labelGrupo)}</div>
         <div class="fin-laudo-subtitulo">Por trimestre</div>
@@ -1714,7 +1742,7 @@ const DRE = (() => {
   return { init, recalcular, estado, MESES, SE_POR_GRUPO, ESTRUTURA,
            montarBDDRE, calcularResultado, analiseFVDI, totalGrupo,
            registrosPlanoParaSalvar, registrosBDParaSalvar, renderLancamentos,
-           laudoGrupoDados, laudoMoMGrupo, renderLaudoGrupo };
+           laudoGrupoDados, laudoMoMGrupo, renderLaudoGrupo, selecionarGrupoLaudo };
 })();
 
 if (typeof module !== 'undefined') module.exports = DRE;
