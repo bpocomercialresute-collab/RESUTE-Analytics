@@ -459,6 +459,11 @@ function dreVoltarFerramentasAdmin() {
   var wrapperEl = document.getElementById('cui-wrapper');
   if (sidebarEl) sidebarEl.style.display = 'flex';
   if (wrapperEl) wrapperEl.style.display = 'flex';
+  // dreAbrir() tambem tira 'bpo-admin-mode' do body ao abrir (o DRE tem o
+  // proprio tema claro, escopado). Sem devolver essa classe aqui, o layout
+  // que sobra (sidebar, titulo "OPERACOES DOS CLIENTES" etc.) volta pro
+  // estilo padrao errado em vez do tema escuro do admin.
+  document.body.classList.add('bpo-admin-mode');
   if (document.body.classList.contains('company-admin-mode')) {
     if (typeof switchView === 'function') switchView('view-app');
     if (typeof adminOwnerAtualizarResumo === 'function') adminOwnerAtualizarResumo();
