@@ -723,6 +723,18 @@ function fazerLogout() {
   }
   var breadcrumb = document.getElementById('breadcrumb-text');
   if (breadcrumb) breadcrumb.textContent = 'Análise de Vendas';
+  // adminConsoleAbrir() esconde av-home via style inline (display:none) toda
+  // vez que o super_admin abre uma secao do console — sem devolver aqui, o
+  // proximo usuario a logar NESSA ABA (ex.: admin da empresa) herdava a tela
+  // em branco, porque #av-home (onde mora o painel dele) ficava preso oculto.
+  // As outras tres (drill-down de BD/relatorio/representantes) voltam pro
+  // estado escondido de sempre — sao display:none por padrao no HTML.
+  var avHomeEl = document.getElementById('av-home');
+  if (avHomeEl) avHomeEl.style.display = '';
+  ['av-bd-area', 'av-rel-area', 'av-rep-area'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
   if (DC_ABORT_CONTROLLER) { try { DC_ABORT_CONTROLLER.abort(); } catch (e) {} DC_ABORT_CONTROLLER = null; }
   DC_LOAD_SEQUENCE += 1;
   DC_ACTIVE_COMPANY = '';
@@ -3638,6 +3650,17 @@ async function _adminCarregarEmpresasMeta() {
 
 async function adminInicializar() {
   var sa = document.getElementById('sync-area'); if (sa) sa.style.display = 'none';
+  // adminConsoleAbrir() (console do super_admin) esconde av-home via style
+  // inline sempre que abre uma secao. Se isso ficou preso de uma sessao
+  // anterior na mesma aba, a tela do admin da empresa (que mora dentro de
+  // av-home) renderiza mas fica invisivel. As outras tres (drill-down)
+  // voltam pro estado escondido de sempre.
+  var avHomeAdminEl = document.getElementById('av-home');
+  if (avHomeAdminEl) avHomeAdminEl.style.display = '';
+  ['av-bd-area', 'av-rel-area', 'av-rep-area'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
   var ehAdminEmpresa = !!(SESSION && SESSION.papel === 'admin');
   document.body.classList.toggle('company-admin-mode', ehAdminEmpresa);
   var ownerWorkspace = document.getElementById('admin-company-workspace');
