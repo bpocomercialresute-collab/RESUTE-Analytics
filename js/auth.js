@@ -712,6 +712,17 @@ async function fazerLogin() {
 function fazerLogout() {
   SESSION = null; EMPRESAS = [];
   _clearStoredSession();
+  // Sem isso, texto/estado do console super_admin (breadcrumb "Usuarios e
+  // acessos", ultima secao aberta) sobrevivia na mesma aba e vazava pro
+  // proximo login (admin da empresa, outro super_admin) sem passar por
+  // login de novo — reseta pra ninguem herdar sessao de outro usuario.
+  if (typeof ADMIN_CONSOLE !== 'undefined' && ADMIN_CONSOLE) {
+    ADMIN_CONSOLE.activeSection = 'overview';
+    ADMIN_CONSOLE.loaded = false;
+    ADMIN_CONSOLE.loading = false;
+  }
+  var breadcrumb = document.getElementById('breadcrumb-text');
+  if (breadcrumb) breadcrumb.textContent = 'Análise de Vendas';
   if (DC_ABORT_CONTROLLER) { try { DC_ABORT_CONTROLLER.abort(); } catch (e) {} DC_ABORT_CONTROLLER = null; }
   DC_LOAD_SEQUENCE += 1;
   DC_ACTIVE_COMPANY = '';
@@ -788,6 +799,10 @@ function _abrirApp() {
     adminConsoleAbrir('overview');
     if (typeof adminConsoleInicializar === 'function') adminConsoleInicializar();
   } else {
+    // Admin da empresa nunca deve ver texto de secao do console super_admin
+    // (ex.: "Usuarios e acessos" de uma sessao anterior na mesma aba).
+    var breadcrumbAdmin = document.getElementById('breadcrumb-text');
+    if (breadcrumbAdmin) breadcrumbAdmin.textContent = 'Análise de Vendas';
     if (typeof switchView === 'function') switchView('view-app');
     if (typeof adminInicializar === 'function') adminInicializar();
   }
