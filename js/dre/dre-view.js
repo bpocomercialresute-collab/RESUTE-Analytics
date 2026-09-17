@@ -451,6 +451,14 @@ function dreVoltarFerramentasAdmin() {
   if (typeof SESSION === 'undefined' || !SESSION || SESSION.papel !== 'admin') return;
   dreDestruir();
   if (typeof MODULO_ATIVO !== 'undefined') MODULO_ATIVO = null;
+  // dreAbrir() escondeu sidebar/cui-wrapper ao abrir (o DRE ocupa a tela
+  // inteira) — sem devolver aqui, view-app (que mora DENTRO do wrapper)
+  // fica com display:block mas invisivel, porque o pai continua oculto.
+  // Isso deixava a tela toda em branco ao clicar em "voltar".
+  var sidebarEl = document.getElementById('sidebar');
+  var wrapperEl = document.getElementById('cui-wrapper');
+  if (sidebarEl) sidebarEl.style.display = 'flex';
+  if (wrapperEl) wrapperEl.style.display = 'flex';
   if (document.body.classList.contains('company-admin-mode')) {
     if (typeof switchView === 'function') switchView('view-app');
     if (typeof adminOwnerAtualizarResumo === 'function') adminOwnerAtualizarResumo();
