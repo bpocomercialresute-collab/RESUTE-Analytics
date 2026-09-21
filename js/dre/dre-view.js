@@ -77,6 +77,9 @@ async function _dreCacheLer(empresaId) {
   try {
     var dado = await _dcIdbGet(_dreCacheKey(empresaId));
     if (!dado || !Array.isArray(dado.lancamentos)) return null;
+    // Caches gravados antes da correcao podem ter o texto da coluna CNPJ colada
+    // no lugar do cnpj fixo do motor — o que tirava tudo do relatorio.
+    dado.lancamentos.forEach(function(l) { l.cnpj = 1; });
     return dado;
   } catch (e) { return null; }
 }
@@ -561,7 +564,12 @@ async function _dreSalvarLancamentos(empresaId, registros, aoProgredir) {
       var numero = i / DRE_SALVAR_LOTE + 1;
       if (aoProgredir) aoProgredir(numero, totalLotes, enviados, registros.length);
       var lote = registros.slice(i, i + DRE_SALVAR_LOTE).map(function(r) {
-        return Object.assign({}, r, { id: _dreNovoId(), criado_por: marcador });
+        var linha = Object.assign({}, r, { id: _dreNovoId(), criado_por: marcador });
+        Object.keys(linha).forEach(function(k) {
+          // Postgres recusa o caractere NUL em texto.
+          if (typeof linha[k] === 'string' && linha[k].indexOf('\u0000') >= 0) linha[k] = linha[k].replace(/\u0000/g, '');
+        });
+        return linha;
       });
       var resposta = await _dreFetchComRetry(base + '?on_conflict=id', {
         method: 'POST',
@@ -605,13 +613,14 @@ async function _dreSalvarLancamentos(empresaId, registros, aoProgredir) {
 async function _dreSalvarPlano(empresaId, registros) {
   if (!registros.length) { await _dreApagarTudo('fin_dre_plano_contas', empresaId); return { enviados: 0, repetidas: [] }; }
 
-  var vistos = {}, unicos = [], repetidas = [];
+  var vistos = {}, unicos = [], repetidas = [], salvas = {};
   registros.forEach(function(r) {
     var conta = String(r.conta == null ? '' : r.conta).trim();
     if (!conta) return;
     var chave = conta.toLowerCase();
     if (vistos[chave]) { repetidas.push(conta); return; }
     vistos[chave] = true;
+    salvas[conta] = true;
     unicos.push(Object.assign({}, r, { conta: conta, empresa_id: empresaId }));
   });
 
@@ -633,7 +642,7 @@ async function _dreSalvarPlano(empresaId, registros) {
   // Remove do banco as contas que nao estao mais na grade.
   var noBanco = await _fetchAll(base + '?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=id,conta',
     { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY });
-  var sobras = noBanco.filter(function(l) { return !vistos[String(l.conta || '').trim().toLowerCase()]; })
+  var sobras = noBanco.filter(function(l) { return !salvas[l.conta]; })
     .map(function(l) { return l.id; });
   for (var j = 0; j < sobras.length; j += 80) {
     var ids = sobras.slice(j, j + 80).join(',');
@@ -671,6 +680,10 @@ function _dreParseNum(v) {
   if (s === '' || s === '-') return null;
   var negativo = /^\(.*\)$/.test(s);
   if (negativo) s = s.slice(1, -1);
+  // "1.234" / "12.345.678" (ponto de milhar, sem virgula) = mil, nao 1,234 —
+  // mesma regra do motor (num() em dre-engine.js). Sem isso o valor era gravado
+  // 1000 vezes menor.
+  if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
   var n = Number(s);
   if (Number.isFinite(n)) return negativo ? -Math.abs(n) : n;
   // Tenta formato BR: "1.234,56" → "1234.56"
@@ -690,17 +703,23 @@ function _dreNormalizarData(v) {
   var s = String(v).trim();
   if (!s) return null;
 
+  // Data impossivel (31/02, 31/04...) nao pode ir pro banco: o Postgres recusa
+  // o lote inteiro. Vira vazio e a linha continua salva (fica fora do relatorio).
+  function dataReal(a, m, d) {
+    var t = new Date(Date.UTC(Number(a), Number(m) - 1, Number(d)));
+    return t.getUTCFullYear() === Number(a) && t.getUTCMonth() === Number(m) - 1 && t.getUTCDate() === Number(d);
+  }
+
   var br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (br) {
-    var dd = ('0' + br[1]).slice(-2), mm = ('0' + br[2]).slice(-2);
-    if (mm < '01' || mm > '12' || dd < '01' || dd > '31') return null;
-    return br[3] + '-' + mm + '-' + dd;
+    if (!dataReal(br[3], br[2], br[1])) return null;
+    return br[3] + '-' + ('0' + br[2]).slice(-2) + '-' + ('0' + br[1]).slice(-2);
   }
 
   var iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
   if (iso) {
-    var imm = ('0' + iso[2]).slice(-2), idd = ('0' + iso[3]).slice(-2);
-    return iso[1] + '-' + imm + '-' + idd;
+    if (!dataReal(iso[1], iso[2], iso[3])) return null;
+    return iso[1] + '-' + ('0' + iso[2]).slice(-2) + '-' + ('0' + iso[3]).slice(-2);
   }
 
   // Serial de data do Excel (ex.: 43466 = 01/01/2019), sem parte decimal de hora.
