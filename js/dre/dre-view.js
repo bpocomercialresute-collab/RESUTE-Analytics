@@ -60,6 +60,8 @@ function _dreCacheKey(empresaId) {
 
 /** Grava o cache assim que os dados terminam de carregar OU depois de salvar. */
 function _dreCacheSalvar(empresaId, plano, lancamentos) {
+  // Salvou/limpou: o resumo dos cards do console admin ficou velho.
+  if (typeof DRE_ADMIN_RESUMO_OK !== 'undefined') DRE_ADMIN_RESUMO_OK = false;
   if (!empresaId || typeof _dcIdbSet !== 'function') return;
   try {
     _dcIdbSet(_dreCacheKey(empresaId), {
