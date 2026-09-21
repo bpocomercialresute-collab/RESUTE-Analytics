@@ -476,42 +476,170 @@ function dreVoltarFerramentasAdmin() {
 // (_dreGradeSalvarTabela) — só mudou de lugar. Grava em fin_dre_plano_contas
 // e fin_dre_lancamentos, sempre restrito a empresa_id=eq.<id>.
 
-var DRE_SALVAR_LOTE = 500;
+// 1000 linhas por requisicao: o proxy limita 120 req/min por sessao, e um BD de
+// 40-50 mil linhas com lote de 500 chegava perto disso (429 no meio do salvar).
+var DRE_SALVAR_LOTE = 1000;
+var DRE_SALVANDO = false;
 
-async function _dreSalvarTabela(tabela, empresaId, registros) {
-  var remocao = await fetch(
+function _dreEsperar(ms) {
+  return new Promise(function(resolve) { setTimeout(resolve, ms); });
+}
+
+function _dreNovoId() {
+  if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+function _dreHeadersEscrita(prefer) {
+  var h = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Content-Type': 'application/json' };
+  if (prefer) h['Prefer'] = prefer;
+  return h;
+}
+
+async function _dreLerErro(resposta) {
+  try {
+    var corpo = await resposta.text();
+    try {
+      var json = JSON.parse(corpo);
+      return String(json.message || json.msg || json.error_description || json.erro || corpo).slice(0, 300);
+    } catch (e) { return String(corpo).slice(0, 300); }
+  } catch (e) { return ''; }
+}
+
+/**
+ * fetch com nova tentativa em falha transitoria (rede, 429 do limite do proxy,
+ * 5xx). Erro definitivo (400/403/409...) volta pro chamador tratar. Seguro pra
+ * POST porque as gravacoes sao idempotentes (id gerado no cliente / upsert).
+ */
+async function _dreFetchComRetry(url, opcoes) {
+  var esperas = [2000, 5000, 12000, 25000];
+  var ultimo = null;
+  for (var t = 0; t <= esperas.length; t++) {
+    var espera = esperas[t];
+    try {
+      var resposta = await fetch(url, opcoes);
+      if (resposta.ok || (resposta.status !== 429 && resposta.status < 500)) return resposta;
+      ultimo = new Error('HTTP ' + resposta.status);
+      if (resposta.status === 429) espera = 20000; // janela do limite e de 60s
+    } catch (e) { ultimo = e; }
+    if (t < esperas.length) await _dreEsperar(espera);
+  }
+  throw ultimo;
+}
+
+/** Apaga TUDO da empresa na tabela (botoes "Limpar BD" / "Limpar Plano"). */
+async function _dreApagarTudo(tabela, empresaId) {
+  var resposta = await _dreFetchComRetry(
     SUPA_URL + '/rest/v1/' + tabela + '?empresa_id=eq.' + encodeURIComponent(empresaId),
-    { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
+    { method: 'DELETE', headers: _dreHeadersEscrita() }
   );
-  if (!remocao.ok) throw new Error('Falha ao limpar antes de salvar (HTTP ' + remocao.status + ').');
-  if (!registros.length) return 0;
+  if (!resposta.ok) throw new Error('Falha ao apagar (HTTP ' + resposta.status + ').');
+}
 
+/**
+ * Salva o BD sem nunca perder o que ja existe: grava a versao nova primeiro
+ * (cada linha com id proprio e um marcador da execucao em criado_por) e so
+ * depois remove o que nao tem esse marcador. Se qualquer lote falhar, desfaz o
+ * que entrou e o BD anterior segue intacto. Antes era DELETE de tudo e depois
+ * POST — uma falha no meio deixava a empresa sem nenhum lancamento.
+ */
+async function _dreSalvarLancamentos(empresaId, registros, aoProgredir) {
+  if (!registros.length) { await _dreApagarTudo('fin_dre_lancamentos', empresaId); return 0; }
+
+  var base = SUPA_URL + '/rest/v1/fin_dre_lancamentos';
+  var marcador = 'dre-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+  var totalLotes = Math.ceil(registros.length / DRE_SALVAR_LOTE);
   var enviados = 0;
-  for (var i = 0; i < registros.length; i += DRE_SALVAR_LOTE) {
-    var lote = registros.slice(i, i + DRE_SALVAR_LOTE);
-    var resposta = await fetch(SUPA_URL + '/rest/v1/' + tabela, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY,
-        'Content-Type': 'application/json', 'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify(lote)
-    });
-    if (!resposta.ok) {
-      var detalhe = '';
-      try {
-        var corpo = await resposta.text();
-        var json = JSON.parse(corpo);
-        detalhe = json.message || json.msg || json.error_description || json.erro || corpo;
-      } catch (e) {}
-      throw new Error(
-        'Falha ao gravar o lote ' + (i / DRE_SALVAR_LOTE + 1) + ' (HTTP ' + resposta.status + ')'
-        + (detalhe ? ':\n' + String(detalhe).slice(0, 300) : '.')
-      );
+
+  try {
+    for (var i = 0; i < registros.length; i += DRE_SALVAR_LOTE) {
+      var numero = i / DRE_SALVAR_LOTE + 1;
+      if (aoProgredir) aoProgredir(numero, totalLotes, enviados, registros.length);
+      var lote = registros.slice(i, i + DRE_SALVAR_LOTE).map(function(r) {
+        return Object.assign({}, r, { id: _dreNovoId(), criado_por: marcador });
+      });
+      var resposta = await _dreFetchComRetry(base + '?on_conflict=id', {
+        method: 'POST',
+        headers: _dreHeadersEscrita('resolution=ignore-duplicates,return=minimal'),
+        body: JSON.stringify(lote)
+      });
+      if (!resposta.ok) {
+        var detalhe = await _dreLerErro(resposta);
+        throw new Error('Falha ao gravar o lote ' + numero + ' de ' + totalLotes + ' (HTTP ' + resposta.status + ')'
+          + (detalhe ? ': ' + detalhe : '.'));
+      }
+      enviados += lote.length;
     }
-    enviados += lote.length;
+  } catch (e) {
+    try {
+      await _dreFetchComRetry(base + '?empresa_id=eq.' + encodeURIComponent(empresaId)
+        + '&criado_por=eq.' + encodeURIComponent(marcador),
+        { method: 'DELETE', headers: _dreHeadersEscrita() });
+    } catch (e2) { console.warn('[DRE] Nao foi possivel desfazer o salvamento parcial:', e2); }
+    e.message += '\nNada foi perdido: o BD anterior continua salvo.';
+    throw e;
+  }
+
+  if (aoProgredir) aoProgredir(totalLotes, totalLotes, enviados, registros.length, true);
+  var remocao = await _dreFetchComRetry(base + '?empresa_id=eq.' + encodeURIComponent(empresaId)
+    + '&or=(criado_por.is.null,criado_por.neq.' + encodeURIComponent(marcador) + ')',
+    { method: 'DELETE', headers: _dreHeadersEscrita() });
+  if (!remocao.ok) {
+    throw new Error(enviados.toLocaleString('pt-BR') + ' lançamento(s) novos foram gravados, mas não foi possível remover a versão antiga (HTTP '
+      + remocao.status + '). Clique em Salvar no banco de novo para concluir a troca.');
   }
   return enviados;
+}
+
+/**
+ * Salva o Plano de Contas por upsert em (empresa_id, conta) — a tabela tem
+ * UNIQUE nessa dupla, entao DELETE+POST com conta repetida na colagem apagava
+ * o plano inteiro e falhava depois. Contas repetidas sao unificadas (fica a
+ * primeira) e o que sobrou no banco fora da grade e removido no fim.
+ */
+async function _dreSalvarPlano(empresaId, registros) {
+  if (!registros.length) { await _dreApagarTudo('fin_dre_plano_contas', empresaId); return { enviados: 0, repetidas: [] }; }
+
+  var vistos = {}, unicos = [], repetidas = [];
+  registros.forEach(function(r) {
+    var conta = String(r.conta == null ? '' : r.conta).trim();
+    if (!conta) return;
+    var chave = conta.toLowerCase();
+    if (vistos[chave]) { repetidas.push(conta); return; }
+    vistos[chave] = true;
+    unicos.push(Object.assign({}, r, { conta: conta, empresa_id: empresaId }));
+  });
+
+  var base = SUPA_URL + '/rest/v1/fin_dre_plano_contas';
+  for (var i = 0; i < unicos.length; i += DRE_SALVAR_LOTE) {
+    var numero = i / DRE_SALVAR_LOTE + 1;
+    var resposta = await _dreFetchComRetry(base + '?on_conflict=empresa_id,conta', {
+      method: 'POST',
+      headers: _dreHeadersEscrita('resolution=merge-duplicates,return=minimal'),
+      body: JSON.stringify(unicos.slice(i, i + DRE_SALVAR_LOTE))
+    });
+    if (!resposta.ok) {
+      var detalhe = await _dreLerErro(resposta);
+      throw new Error('Falha ao gravar o Plano de Contas (lote ' + numero + ', HTTP ' + resposta.status + ')'
+        + (detalhe ? ': ' + detalhe : '.') + '\nNada foi perdido: o plano anterior continua salvo.');
+    }
+  }
+
+  // Remove do banco as contas que nao estao mais na grade.
+  var noBanco = await _fetchAll(base + '?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=id,conta',
+    { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY });
+  var sobras = noBanco.filter(function(l) { return !vistos[String(l.conta || '').trim().toLowerCase()]; })
+    .map(function(l) { return l.id; });
+  for (var j = 0; j < sobras.length; j += 80) {
+    var ids = sobras.slice(j, j + 80).join(',');
+    var del = await _dreFetchComRetry(base + '?empresa_id=eq.' + encodeURIComponent(empresaId) + '&id=in.(' + ids + ')',
+      { method: 'DELETE', headers: _dreHeadersEscrita() });
+    if (!del.ok) throw new Error('Plano gravado, mas não foi possível remover contas antigas (HTTP ' + del.status + ').');
+  }
+  return { enviados: unicos.length, repetidas: repetidas };
 }
 
 function _dreStatusGrade(elId, msg, tipo) {
@@ -638,18 +766,27 @@ function _dreLigarSalvarGrades(empresaId) {
         return;
       }
       if (!window.confirm('Salvar ' + registros.length + ' conta(s)? Substitui todo o plano atual desta empresa.')) return;
+      if (DRE_SALVANDO) return;
 
-      _dreStatusGrade('fin-dre-status-plano', 'Salvando...', '');
+      DRE_SALVANDO = true;
+      btnPlano.disabled = true;
+      _dreStatusGrade('fin-dre-status-plano', 'Salvando Plano de Contas...', '');
       try {
-        var enviados = await _dreSalvarTabela('fin_dre_plano_contas', empresaId,
-          registros.map(function(r) { return Object.assign({}, r, { empresa_id: empresaId }); }));
-        _dreStatusGrade('fin-dre-status-plano', '✓ ' + enviados.toLocaleString('pt-BR') + ' conta(s) salva(s).', 'ok');
+        var resultado = await _dreSalvarPlano(empresaId, registros);
+        var msg = '✓ ' + resultado.enviados.toLocaleString('pt-BR') + ' conta(s) salva(s).';
+        if (resultado.repetidas.length) {
+          msg += ' ' + resultado.repetidas.length + ' conta(s) repetida(s) unificada(s) (fica a primeira): '
+            + resultado.repetidas.slice(0, 5).join(', ') + (resultado.repetidas.length > 5 ? '…' : '');
+        }
+        _dreStatusGrade('fin-dre-status-plano', msg, 'ok');
         _dreLimparDirtyPlano();
         _dreCacheSalvar(empresaId, DRE.estado.plano, DRE.estado.lancamentos);
       } catch (e) {
         console.error('[DRE] Falha ao salvar plano:', e);
-        alert('Falha ao salvar Plano de Contas:\n' + e.message);
         _dreStatusGrade('fin-dre-status-plano', 'Falha ao salvar: ' + e.message, 'erro');
+      } finally {
+        DRE_SALVANDO = false;
+        btnPlano.disabled = false;
       }
     };
   }
@@ -665,6 +802,8 @@ function _dreLigarSalvarGrades(empresaId) {
         return;
       }
 
+      if (DRE_SALVANDO) return;
+
       DRE.estado.lancamentos = _dreLancDeRows(linhasGrid);
       var registros = DRE.registrosBDParaSalvar();
 
@@ -674,15 +813,23 @@ function _dreLigarSalvarGrades(empresaId) {
         return _dreNormalizarDatasRegistro(Object.assign({}, r, { empresa_id: empresaId }));
       });
 
-      _dreStatusGrade('fin-dre-status-bd', 'Salvando...', '');
+      DRE_SALVANDO = true;
+      btnBD.disabled = true;
+      _dreStatusGrade('fin-dre-status-bd', 'Salvando ' + lotes.length.toLocaleString('pt-BR') + ' linha(s)...', '');
       try {
-        var enviados = await _dreSalvarTabela('fin_dre_lancamentos', empresaId, lotes);
+        var enviados = await _dreSalvarLancamentos(empresaId, lotes, function(n, total, feitas, todas, concluindoTroca) {
+          _dreStatusGrade('fin-dre-status-bd', concluindoTroca
+            ? 'Finalizando a troca da versão anterior...'
+            : 'Salvando lote ' + n + '/' + total + ' — ' + feitas.toLocaleString('pt-BR') + ' de ' + todas.toLocaleString('pt-BR') + ' linhas', '');
+        });
         _dreStatusGrade('fin-dre-status-bd', '✓ ' + enviados.toLocaleString('pt-BR') + ' lançamento(s) salvo(s).', 'ok');
         _dreCacheSalvar(empresaId, DRE.estado.plano, DRE.estado.lancamentos);
       } catch (e) {
         console.error('[DRE] Falha ao salvar BD:', e);
-        alert('Falha ao salvar BD:\n' + e.message);
         _dreStatusGrade('fin-dre-status-bd', 'Falha ao salvar: ' + e.message, 'erro');
+      } finally {
+        DRE_SALVANDO = false;
+        btnBD.disabled = false;
       }
     };
   }
@@ -694,7 +841,7 @@ function _dreLigarSalvarGrades(empresaId) {
       if (!window.confirm('Apagar TODOS os lançamentos desta empresa no banco?\nEsta ação não pode ser desfeita.')) return;
       _dreStatusGrade('fin-dre-status-bd', 'Limpando...', '');
       try {
-        await _dreSalvarTabela('fin_dre_lancamentos', empresaId, []);
+        await _dreApagarTudo('fin_dre_lancamentos', empresaId);
         // Limpa a grade local também
         DRE.estado.lancamentos = [];
         if (GRIDS['dre_bd']) { GRIDS['dre_bd'].allData = []; GRIDS['dre_bd']._render(); }
@@ -731,7 +878,7 @@ function _dreLigarSalvarGrades(empresaId) {
       if (!window.confirm('Apagar TODO o Plano de Contas desta empresa no banco?\nEsta ação não pode ser desfeita.')) return;
       _dreStatusGrade('fin-dre-status-plano', 'Limpando...', '');
       try {
-        await _dreSalvarTabela('fin_dre_plano_contas', empresaId, []);
+        await _dreApagarTudo('fin_dre_plano_contas', empresaId);
         // Limpa a grade local também
         DRE.estado.plano = [];
         if (GRIDS['dre_plano']) { GRIDS['dre_plano'].allData = []; GRIDS['dre_plano']._render(); }
@@ -1661,7 +1808,10 @@ function _dreLancDeRows(rows) {
         parcela:      r[12] || null,
         tot_parcelas: r[13] || null,
         obs:          r[14] || null,
-        cnpj:         r[15] || cnpj,
+        // Multiempresa ja e por empresa_id; o motor filtra por um cnpj fixo
+        // (DRE.estado.cnpj). Usar o texto da coluna CNPJ colada aqui fazia a
+        // linha sair do relatorio (e do cache) assim que a grade era relida.
+        cnpj:         cnpj,
         dt_custoria:  r[16] || null,
         historico:    r[17] || null
       };
