@@ -42,39 +42,6 @@
     </div>
   </header>
 
-  <!-- ===================== FILTROS ===================== -->
-  <section class="fin-filtros">
-    <div class="fin-campo">
-      <label for="fin-filtro-ano">Ano</label>
-      <select id="fin-filtro-ano"></select>
-    </div>
-    <div class="fin-campo">
-      <label for="fin-filtro-mes">Mês</label>
-      <select id="fin-filtro-mes"></select>
-    </div>
-    <div class="fin-campo">
-      <label for="fin-filtro-inicio">Início</label>
-      <input type="date" id="fin-filtro-inicio">
-    </div>
-    <div class="fin-campo">
-      <label for="fin-filtro-fim">Fim</label>
-      <input type="date" id="fin-filtro-fim">
-    </div>
-    <button id="fin-btn-atualizar" class="fin-btn-primario">
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/>
-      </svg>
-      Atualizar
-    </button>
-    <button id="fin-dre-btn-exportar" class="fin-btn-secundario">
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>
-      </svg>
-      Exportar
-    </button>
-    <span id="fin-status" class="fin-status"></span>
-  </section>
-
   <!-- ===================== ABAS ===================== -->
   <nav class="fin-tabs">
     <button class="fin-tab active" data-fin-pane="fin-dre-pane-bd">BD</button>
@@ -159,6 +126,38 @@
 
   <!-- ---------- ABA 4: RESULTADOS ---------- -->
   <section class="fin-pane" id="fin-dre-pane-dre">
+    <!-- Filtro de periodo (ano/mes/inicio/fim): so vale pro DRE, entao mora aqui. -->
+    <section class="fin-filtros">
+      <div class="fin-campo">
+        <label for="fin-filtro-ano">Ano</label>
+        <select id="fin-filtro-ano"></select>
+      </div>
+      <div class="fin-campo">
+        <label for="fin-filtro-mes">Mês</label>
+        <select id="fin-filtro-mes"></select>
+      </div>
+      <div class="fin-campo">
+        <label for="fin-filtro-inicio">Início</label>
+        <input type="date" id="fin-filtro-inicio">
+      </div>
+      <div class="fin-campo">
+        <label for="fin-filtro-fim">Fim</label>
+        <input type="date" id="fin-filtro-fim">
+      </div>
+      <button id="fin-btn-atualizar" class="fin-btn-primario">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/>
+        </svg>
+        Atualizar
+      </button>
+      <button id="fin-dre-btn-exportar" class="fin-btn-secundario">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>
+        </svg>
+        Exportar
+      </button>
+      <span id="fin-status" class="fin-status"></span>
+    </section>
     <div class="fin-barra-filtro" id="fin-dre-resultado-barra">
       <select id="fin-dre-resultado-grupo">
         <option value="">Grupo: todos</option>

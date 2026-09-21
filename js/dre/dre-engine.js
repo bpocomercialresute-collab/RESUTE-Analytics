@@ -1642,7 +1642,9 @@ const DRE = (() => {
     }
   }
 
-  const ABAS_SEM_FILTRO = new Set(['fin-dre-pane-plano', 'fin-dre-pane-dre', 'fin-dre-pane-bddre', 'fin-dre-pane-laudo']);
+  // O filtro de periodo agora mora dentro da aba DRE (views/dre-painel.html) e
+  // aparece/some junto com ela — nao precisa mais esconder por aba.
+  const ABAS_SEM_FILTRO = new Set();
 
   function _dreAtualizarVisibilidadeFiltros(paneId) {
     const filtros = document.querySelector('.fin-filtros');
