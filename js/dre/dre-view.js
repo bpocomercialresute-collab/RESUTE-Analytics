@@ -1682,6 +1682,21 @@ function _dreNormalizarPastePlano(txt, startCol) {
   }).join('\n');
 }
 
+/**
+ * A grade do BD tem a coluna "#" antes de DT_CAIXA, mas o BD que vem do Excel
+ * comeca direto em DT_CAIXA. Colando com a celula "#" selecionada (ou sem
+ * selecao), tudo entrava uma coluna deslocada: data virava "#", conta virava
+ * TIPO... e o lancamento ficava sem CONTA/DT_VENC. Detecta pela 1a celula: se
+ * ja e uma data (BR, ISO ou serial do Excel) nao tem coluna "#" no texto.
+ */
+function _dreColagemSemColunaId(txt) {
+  var linhas = String(txt || '').replace(/\r/g, '').split('\n', 3);
+  var iLinha = (linhas.length > 1 && typeof lgLooksLikeHeader === 'function' && lgLooksLikeHeader(linhas[0])) ? 1 : 0;
+  var primeira = String(linhas[iLinha] || '').split('\t')[0].trim();
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(primeira) || /^\d{4}-\d{2}-\d{2}/.test(primeira)) return true;
+  return /^\d{5,6}$/.test(primeira) && Number(primeira) > 15000;
+}
+
 function _drePatchGrid(grid, cb) {
   var origCommit  = grid._commit.bind(grid);
   var origPasteAt = grid._pasteAt.bind(grid);
@@ -1726,12 +1741,17 @@ function _drePatchGrid(grid, cb) {
 
   grid._pasteAt = function(txt, r, c) {
     if (grid.key === 'dre_plano') txt = _dreNormalizarPastePlano(txt, c);
+    if (grid.key === 'dre_bd' && c === 0 && _dreColagemSemColunaId(txt)) c = 1;
     origPasteAt(txt, r, c);
     _dreDeduplicarHash();
     cb();
   };
   grid._paste   = function(txt) {
     if (grid.key === 'dre_plano') txt = _dreNormalizarPastePlano(txt, 0);
+    if (grid.key === 'dre_bd' && _dreColagemSemColunaId(txt)) {
+      // Cola do Excel comeca em DT_CAIXA; a grade tem a coluna # antes dela.
+      txt = String(txt).replace(/\r\n?/g, '\n').split('\n').map(function(l) { return l === '' ? l : '\t' + l; }).join('\n');
+    }
     origPaste(txt);
     _dreDeduplicarHash();
     cb();

@@ -1206,9 +1206,24 @@ const DRE = (() => {
     if (semDI) add('atencao','Contas sem marcação D_I',
       `${semDI} contas de saída sem Direto/Indireto — custo por produto incompleto.`);
 
-    const orfas = enriquecerBD().filter(l => l.entraRelatorio && l.grupo === '#N/A');
+    const bdAlerta = enriquecerBD();
+    const orfas = bdAlerta.filter(l => l.entraRelatorio && l.grupo === '#N/A');
     if (orfas.length) add('negativo','Contas fora do plano',
       `${orfas.length} lançamento(s) com conta inexistente no plano (#N/A). Não entram no DRE.`);
+
+    // Todas as linhas coladas ficam salvas no BD; estas só não entram nos
+    // relatórios ate o campo faltante ser preenchido (aviso, nunca descarte).
+    const semVencAlerta = bdAlerta.filter(l => l.ano == null).length;
+    const semValorAlerta = bdAlerta.filter(l => !l.valorInformado || num(l.valor) === 0).length;
+    const semContaAlerta = bdAlerta.filter(l => !String(l.conta ?? '').trim()).length;
+    if (semVencAlerta || semValorAlerta || semContaAlerta) {
+      const partes = [];
+      if (semVencAlerta) partes.push(`${semVencAlerta.toLocaleString('pt-BR')} sem DT_VENC`);
+      if (semValorAlerta) partes.push(`${semValorAlerta.toLocaleString('pt-BR')} sem VALOR (ou zerado)`);
+      if (semContaAlerta) partes.push(`${semContaAlerta.toLocaleString('pt-BR')} sem CONTA`);
+      add('atencao', 'Linhas salvas que ficaram fora dos relatórios',
+        `${partes.join(' · ')}. Estão salvas no BD; preencha na aba BD e elas passam a entrar nos relatórios.`);
+    }
 
     const gruposOrfaos = _dreGruposOrfaos();
     if (gruposOrfaos.nomes.length) add('negativo','Grupo(s) não reconhecido(s) pelo DRE',

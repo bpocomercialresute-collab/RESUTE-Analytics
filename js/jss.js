@@ -526,39 +526,77 @@ function lgLooksLikeHeader(line) {
 }
 
 // ── PASTE ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Le o texto colado do Excel/Sheets em linhas de celulas. Celula com quebra de
+ * linha ou TAB vem entre aspas ("a\nb"); quebrar so no \n transformava uma
+ * celula em varias linhas e deslocava as colunas. Sem aspas no texto (o caso
+ * comum, dezenas de milhares de linhas) usa o caminho rapido.
+ */
+function lgParseTSV(txt) {
+  txt = String(txt || '').replace(/\r\n?/g, '\n');
+  var rows = [];
+  if (txt.indexOf('"') < 0) {
+    var linhas = txt.split('\n');
+    for (var i = 0; i < linhas.length; i++) rows.push(linhas[i].split('\t'));
+  } else {
+    var row = [], cel = '', i2 = 0, n = txt.length, aberto = false, iniCel = true;
+    for (; i2 < n; i2++) {
+      var ch = txt.charAt(i2);
+      if (aberto) {
+        if (ch === '"') {
+          if (txt.charAt(i2 + 1) === '"') { cel += '"'; i2++; }
+          else aberto = false;
+        } else cel += ch;
+      } else if (ch === '"' && iniCel) { aberto = true; iniCel = false; }
+      else if (ch === '\t') { row.push(cel); cel = ''; iniCel = true; }
+      else if (ch === '\n') { row.push(cel); rows.push(row); row = []; cel = ''; iniCel = true; }
+      else { cel += ch; iniCel = false; }
+    }
+    row.push(cel); rows.push(row);
+  }
+  // Ultima linha vazia (o texto termina com quebra) e linhas totalmente em branco.
+  return rows.filter(function(r) { return r.length > 1 || (r.length === 1 && r[0] !== ''); });
+}
+
 LiteGrid.prototype._pasteAt = function(txt, startRow, startCol) {
   if (startRow < 0) startRow = 0;
   if (startCol < 0) startCol = 0;
   var ncols = this.def.cols.length;
-  var lines = String(txt || '').replace(/\r/g, '').split('\n');
-  if (lines.length && lines[lines.length - 1] === '') lines.pop();
-  lines = lines.filter(function(l){ return l.length || l.indexOf('\t') >= 0; });
-  if (lines.length > 1 && lgLooksLikeHeader(lines[0])) lines.shift();
+  var lines = lgParseTSV(txt);
+  if (lines.length > 1 && lgLooksLikeHeader(lines[0].join('\t'))) lines.shift();
   if (!lines.length) return;
   var changes = [];
   var oldLength = this.allData.length;
   var filteredRows = this.filtered !== null ? this.filtered : null;
   var targetRows = [];
+  var novaLinha = function(self) {
+    var er = []; for (var j = 0; j < ncols; j++) er.push('');
+    self.allData.push(er);
+    return self.allData.length - 1;
+  };
   if (filteredRows) {
-    // Em uma visão filtrada, cada linha colada segue a ordem das linhas
-    // visíveis, como no Excel, sem atingir registros ocultos.
+    // Em uma visao filtrada, cada linha colada segue a ordem das linhas
+    // visiveis, como no Excel, sem atingir registros ocultos. O que passar do
+    // fim das linhas visiveis vira linha nova no fim da grade — antes era
+    // descartado em silencio (colar 40 mil numa grade de 35 mil aceitava 35 mil).
+    var indice = new Map();
+    for (var ai = 0; ai < this.allData.length; ai++) indice.set(this.allData[ai], ai);
     for (var fi = 0; fi < lines.length; fi++) {
       var vis = filteredRows[startRow + fi];
-      if (!vis) break;
-      targetRows.push(this.allData.indexOf(vis));
+      var pos = vis ? indice.get(vis) : undefined;
+      targetRows.push(pos === undefined ? novaLinha(this) : pos);
     }
   } else {
-    while (this.allData.length < startRow + lines.length) {
-      var er=[]; for(var j=0;j<ncols;j++) er.push(''); this.allData.push(er);
-    }
+    while (this.allData.length < startRow + lines.length) novaLinha(this);
     for (var ui = 0; ui < lines.length; ui++) targetRows.push(startRow + ui);
   }
-  lines.forEach(function(line, li) {
+  lines.forEach(function(cells, li) {
     var ri = targetRows[li];
     if (ri == null || ri < 0) return;
     if (!this.allData[ri]) { this.allData[ri]=[]; }
     while (this.allData[ri].length < ncols) this.allData[ri].push('');
-    line.split('\t').forEach(function(v,ci){
+    cells.forEach(function(v,ci){
       var d=startCol+ci;
       if(d<ncols) {
         var oldVal = this.allData[ri][d];
@@ -585,15 +623,13 @@ LiteGrid.prototype._paste = function(txt) {
     return;
   }
   var ncols = this.def.cols.length;
-  var lines = String(txt || '').replace(/\r/g, '').split('\n');
-  if (lines.length && lines[lines.length - 1] === '') lines.pop();
-  lines = lines.filter(function(l){ return l.length || l.indexOf('\t') >= 0; });
-  var start = lines.length > 0 && lgLooksLikeHeader(lines[0]) ? 1 : 0;
+  var lines = lgParseTSV(txt);
+  var start = lines.length > 0 && lgLooksLikeHeader(lines[0].join('\t')) ? 1 : 0;
   var data=[];
   for(var i=start;i<lines.length;i++){
-    var cells=lines[i].split('\t');
+    var cells=lines[i].slice(0,ncols);
     while(cells.length<ncols) cells.push('');
-    data.push(cells.slice(0,ncols));
+    data.push(cells);
   }
   this._pushUndo({ type:'replace', oldData:this.allData.map(function(r){ return (r || []).slice(); }), oldPage:this.page });
   FULL_DATA[this.key]=data; this.allData=data; this.filtered=null; this.page=0;
