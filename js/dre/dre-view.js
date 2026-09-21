@@ -64,6 +64,13 @@ function _dreCacheSalvar(empresaId, plano, lancamentos) {
   if (typeof DRE_ADMIN_RESUMO_OK !== 'undefined') DRE_ADMIN_RESUMO_OK = false;
   if (!empresaId || typeof _dcIdbSet !== 'function') return;
   try {
+    // Cache vazio nao vale nada — e ate atrapalha: outro PC que abriu o DRE
+    // antes dos dados existirem ficava preso mostrando tela vazia. Sem dado,
+    // apaga o cache em vez de guardar.
+    if (!(plano || []).length && !(lancamentos || []).length) {
+      if (typeof _dcIdbDelete === 'function') _dcIdbDelete(_dreCacheKey(empresaId));
+      return;
+    }
     _dcIdbSet(_dreCacheKey(empresaId), {
       gerado_em: new Date().toISOString(),
       plano: plano || [],
@@ -77,11 +84,39 @@ async function _dreCacheLer(empresaId) {
   try {
     var dado = await _dcIdbGet(_dreCacheKey(empresaId));
     if (!dado || !Array.isArray(dado.lancamentos)) return null;
+    if (!dado.lancamentos.length && !(dado.plano || []).length) return null; // cache vazio: ignora
     // Caches gravados antes da correcao podem ter o texto da coluna CNPJ colada
     // no lugar do cnpj fixo do motor — o que tirava tudo do relatorio.
     dado.lancamentos.forEach(function(l) { l.cnpj = 1; });
     return dado;
   } catch (e) { return null; }
+}
+
+/** Assinatura barata do conteudo (quantidades + soma dos valores em centavos). */
+function _dreAssinatura(dados) {
+  var soma = 0;
+  (dados.lancamentos || []).forEach(function(l) { soma += Math.round((Number(l.valor) || 0) * 100); });
+  return (dados.plano || []).length + '|' + (dados.lancamentos || []).length + '|' + soma;
+}
+
+// true depois que o usuario mexeu na grade (colou/editou) e antes de salvar:
+// nesse estado a tela NUNCA e trocada por dado do banco (perderia o que ele fez).
+var DRE_GRADE_SUJA = false;
+
+/**
+ * Abriu pelo cache (rapido) — confere o banco em segundo plano. Se o banco tem
+ * outra versao (ex.: salvaram em outro PC) e o usuario nao mexeu na grade,
+ * troca a tela pela versao do banco. Antes so atualizava o cache e a tela ficava
+ * mostrando o dado velho (ou vazio) ate o proximo F5.
+ */
+async function _dreRevalidarCache(eid, dadosCache) {
+  var fresco = await _dreCarregarDados(eid);
+  if (!fresco) return false;
+  _dreCacheSalvar(eid, fresco.plano, fresco.lancamentos);
+  if (DRE_GRADE_SUJA || _dreAssinatura(fresco) === _dreAssinatura(dadosCache)) return false;
+  _dreAplicarDadosCarregados(fresco, eid);
+  _dreStatusGrade('fin-dre-status-bd', 'Dados atualizados com a versão salva no banco.', 'ok');
+  return true;
 }
 
 // ── TELA DE CARREGAMENTO ──────────────────────────────────────────────────────
@@ -190,11 +225,15 @@ async function _dreCarregarDados(empresaId) {
   // O Supabase devolve no maximo ~1000 linhas por requisicao (Max Rows do
   // projeto), mesmo pedindo limit=100000 na URL — precisa paginar por Range
   // pra trazer tudo. _fetchAll (js/auth.js) ja faz isso (e trata 429/erro).
+  // ORDEM UNICA (criado_em, id): paginar por Range com ORDER BY dt_venc (muitas
+  // linhas com a mesma data) devolvia linhas repetidas e deixava outras de fora
+  // entre uma pagina e outra — 39.121 recebidas, so 39.074 distintas. criado_em e
+  // gravado pelo salvar na ordem em que a planilha foi colada, id desempata.
   var plano, lancamentos;
   try {
     var resultados = await Promise.all([
-      _fetchAll(SUPA_URL + '/rest/v1/fin_dre_plano_contas' + qs, headers),
-      _fetchAll(SUPA_URL + '/rest/v1/fin_dre_lancamentos' + qs + '&order=dt_venc.desc', headers)
+      _fetchAll(SUPA_URL + '/rest/v1/fin_dre_plano_contas' + qs + '&order=criado_em.asc,id.asc', headers),
+      _fetchAll(SUPA_URL + '/rest/v1/fin_dre_lancamentos' + qs + '&order=criado_em.asc,id.asc', headers)
     ]);
     plano = resultados[0];
     lancamentos = resultados[1];
@@ -208,7 +247,13 @@ async function _dreCarregarDados(empresaId) {
   // O motor filtra lançamento por cnpj (estado.cnpj). Aqui a multiempresa já é
   // feita por empresa_id, então todo lançamento entra sob o mesmo cnpj fixo —
   // ver DRE.init() logo abaixo, que abre sempre com cnpj: 1.
-  lancamentos = lancamentos.map(function(l) { return Object.assign({}, l, { cnpj: 1 }); });
+  var idsVistos = {};
+  lancamentos = lancamentos.filter(function(l) {
+    if (!l.id) return true;
+    if (idsVistos[l.id]) return false; // defesa: nunca contar a mesma linha duas vezes
+    idsVistos[l.id] = true;
+    return true;
+  }).map(function(l) { return Object.assign({}, l, { cnpj: 1 }); });
 
   console.log('[DRE] Carregado: ' + plano.length + ' conta(s) no plano, ' + lancamentos.length + ' lançamento(s).');
   return { plano: plano, lancamentos: lancamentos };
@@ -369,10 +414,7 @@ async function dreAbrir(opts) {
       dados = { plano: cache.plano, lancamentos: cache.lancamentos };
       _dreAplicarDadosCarregados(dados, eid);
       _dreEsconderCarregando(view);
-      _dreCarregarDados(eid).then(function(fresco) {
-        if (!fresco) return;
-        _dreCacheSalvar(eid, fresco.plano, fresco.lancamentos);
-      }).catch(function(e) { console.warn('[DRE] Atualizacao de cache em segundo plano falhou:', e); });
+      _dreRevalidarCache(eid, dados).catch(function(e) { console.warn('[DRE] Conferencia com o banco em segundo plano falhou:', e); });
     } else {
       dados = await _dreCarregarDados(eid);
       _dreCacheSalvar(eid, dados.plano, dados.lancamentos);
@@ -392,6 +434,7 @@ async function dreAbrir(opts) {
 /** DRE.init() + toda a fiacao de botoes/grades — reaproveitado no load do
  *  cache e no load fresco, pra nao duplicar a sequencia nos dois. */
 function _dreAplicarDadosCarregados(dados, eid) {
+  DRE_GRADE_SUJA = false;
   DRE.init({
     plano:       dados.plano,
     lancamentos: dados.lancamentos,
@@ -558,13 +601,19 @@ async function _dreSalvarLancamentos(empresaId, registros, aoProgredir) {
   var marcador = 'dre-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
   var totalLotes = Math.ceil(registros.length / DRE_SALVAR_LOTE);
   var enviados = 0;
+  var baseMs = Date.now() - registros.length; // ordem de colagem: 1 ms por linha, crescente
 
   try {
     for (var i = 0; i < registros.length; i += DRE_SALVAR_LOTE) {
       var numero = i / DRE_SALVAR_LOTE + 1;
       if (aoProgredir) aoProgredir(numero, totalLotes, enviados, registros.length);
-      var lote = registros.slice(i, i + DRE_SALVAR_LOTE).map(function(r) {
-        var linha = Object.assign({}, r, { id: _dreNovoId(), criado_por: marcador });
+      var lote = registros.slice(i, i + DRE_SALVAR_LOTE).map(function(r, k) {
+        var linha = Object.assign({}, r, {
+          id: _dreNovoId(), criado_por: marcador,
+          // criado_em cresce com a posicao na grade: ao reabrir (ou em outro PC)
+          // as linhas voltam na MESMA ordem em que foram coladas.
+          criado_em: new Date(baseMs + i + k).toISOString()
+        });
         Object.keys(linha).forEach(function(k) {
           // Postgres recusa o caractere NUL em texto.
           if (typeof linha[k] === 'string' && linha[k].indexOf('\u0000') >= 0) linha[k] = linha[k].replace(/\u0000/g, '');
@@ -625,12 +674,15 @@ async function _dreSalvarPlano(empresaId, registros) {
   });
 
   var base = SUPA_URL + '/rest/v1/fin_dre_plano_contas';
+  var baseMs = Date.now() - unicos.length;
   for (var i = 0; i < unicos.length; i += DRE_SALVAR_LOTE) {
     var numero = i / DRE_SALVAR_LOTE + 1;
     var resposta = await _dreFetchComRetry(base + '?on_conflict=empresa_id,conta', {
       method: 'POST',
       headers: _dreHeadersEscrita('resolution=merge-duplicates,return=minimal'),
-      body: JSON.stringify(unicos.slice(i, i + DRE_SALVAR_LOTE))
+      body: JSON.stringify(unicos.slice(i, i + DRE_SALVAR_LOTE).map(function(r, k) {
+        return Object.assign({}, r, { criado_em: new Date(baseMs + i + k).toISOString() }); // ordem da grade
+      }))
     });
     if (!resposta.ok) {
       var detalhe = await _dreLerErro(resposta);
@@ -800,6 +852,7 @@ function _dreLigarSalvarGrades(empresaId) {
             + resultado.repetidas.slice(0, 5).join(', ') + (resultado.repetidas.length > 5 ? '…' : '');
         }
         _dreStatusGrade('fin-dre-status-plano', msg, 'ok');
+        DRE_GRADE_SUJA = false;
         _dreLimparDirtyPlano();
         _dreCacheSalvar(empresaId, DRE.estado.plano, DRE.estado.lancamentos);
       } catch (e) {
@@ -844,6 +897,7 @@ function _dreLigarSalvarGrades(empresaId) {
             : 'Salvando lote ' + n + '/' + total + ' — ' + feitas.toLocaleString('pt-BR') + ' de ' + todas.toLocaleString('pt-BR') + ' linhas', '');
         });
         _dreStatusGrade('fin-dre-status-bd', '✓ ' + enviados.toLocaleString('pt-BR') + ' lançamento(s) salvo(s).', 'ok');
+        DRE_GRADE_SUJA = false;
         _dreCacheSalvar(empresaId, DRE.estado.plano, DRE.estado.lancamentos);
       } catch (e) {
         console.error('[DRE] Falha ao salvar BD:', e);
@@ -1231,6 +1285,7 @@ function _dreIniciarGradesLiteGrid(plano, lancamentos) {
 
       if (gridPlano._inp) gridPlano._inp.style.display = 'none';
       gridPlano._render();
+      DRE_GRADE_SUJA = true;
       atualizarPlano();
     }, true);
 
@@ -1724,7 +1779,11 @@ function _drePatchGrid(grid, cb) {
 
   grid._commit = function() {
     var ri = grid.selRow, ci = grid.selCol;
+    var dataRi0 = typeof grid._dataIndex === 'function' ? grid._dataIndex(ri) : ri;
+    var antes = (dataRi0 >= 0 && grid.allData[dataRi0]) ? grid.allData[dataRi0][ci] : undefined;
     origCommit();
+    var depois = (dataRi0 >= 0 && grid.allData[dataRi0]) ? grid.allData[dataRi0][ci] : undefined;
+    if (String(antes == null ? '' : antes) !== String(depois == null ? '' : depois)) DRE_GRADE_SUJA = true;
     // Col # (ci=0): impede duplicata — auto-incrementa para próximo disponível
     var dataRi = typeof grid._dataIndex === 'function' ? grid._dataIndex(ri) : ri;
     if (ci === 0 && dataRi >= 0 && grid.allData[dataRi]) {
@@ -1762,6 +1821,7 @@ function _drePatchGrid(grid, cb) {
     if (grid.key === 'dre_plano') txt = _dreNormalizarPastePlano(txt, c);
     if (grid.key === 'dre_bd' && c === 0 && _dreColagemSemColunaId(txt)) c = 1;
     origPasteAt(txt, r, c);
+    DRE_GRADE_SUJA = true;
     _dreDeduplicarHash();
     cb();
   };
@@ -1772,10 +1832,11 @@ function _drePatchGrid(grid, cb) {
       txt = String(txt).replace(/\r\n?/g, '\n').split('\n').map(function(l) { return l === '' ? l : '\t' + l; }).join('\n');
     }
     origPaste(txt);
+    DRE_GRADE_SUJA = true;
     _dreDeduplicarHash();
     cb();
   };
-  if (origUndo) grid._undo = function() { origUndo(); cb(); };
+  if (origUndo) grid._undo = function() { origUndo(); DRE_GRADE_SUJA = true; cb(); };
 }
 
 /** Objeto plano -> array de células (mesma ordem de GRID_DEFS dre_plano). */

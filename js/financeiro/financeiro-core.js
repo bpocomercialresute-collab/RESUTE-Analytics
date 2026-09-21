@@ -342,8 +342,8 @@ async function _finBuscarDoSupabase(empresaId, signal) {
   var dados;
   try {
     dados = await Promise.all([
-      _fetchAll(SUPA_URL + '/rest/v1/fin_dre_plano_contas' + qs, headers, signal),
-      _fetchAll(SUPA_URL + '/rest/v1/fin_dre_lancamentos' + qs + '&order=dt_venc.desc', headers, signal)
+      _fetchAll(SUPA_URL + '/rest/v1/fin_dre_plano_contas' + qs + '&order=criado_em.asc,id.asc', headers, signal),
+      _fetchAll(SUPA_URL + '/rest/v1/fin_dre_lancamentos' + qs + '&order=criado_em.asc,id.asc', headers, signal)
     ]);
   } catch (fetchErr) {
     if (fetchErr && fetchErr.name === 'AbortError') throw fetchErr;
@@ -415,8 +415,9 @@ async function finCarregarDados(empresaId) {
       _finBuscarDoSupabase(empresaId, signal).then(function(fresco) {
         if (sequencia !== FIN_LOAD_SEQUENCE) return;
         if (typeof _dreCacheSalvar === 'function') _dreCacheSalvar(empresaId, fresco.plano, fresco.lancamentos);
-        var mudou = fresco.lancamentos.length !== cache.lancamentos.length
-          || fresco.plano.length !== cache.plano.length;
+        var mudou = (typeof _dreAssinatura === 'function')
+          ? _dreAssinatura(fresco) !== _dreAssinatura(cache)
+          : (fresco.lancamentos.length !== cache.lancamentos.length || fresco.plano.length !== cache.plano.length);
         if (mudou) _finAplicarDadosCarregados(fresco.plano, fresco.lancamentos);
       }).catch(function(e) {
         if (e && e.name === 'AbortError') return;
