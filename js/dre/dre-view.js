@@ -527,7 +527,19 @@ function dreVoltarFerramentasAdmin() {
 // 1000 linhas por requisicao: o proxy limita 120 req/min por sessao, e um BD de
 // 40-50 mil linhas com lote de 500 chegava perto disso (429 no meio do salvar).
 var DRE_SALVAR_LOTE = 1000;
+var DRE_LOTE_MAX_BYTES = 1500000; // limite do proxy e 2 MB por requisicao
 var DRE_SALVANDO = false;
+
+/** Tamanho em bytes (UTF-8) de um texto — o limite do servidor e em bytes, nao em caracteres. */
+function _dreBytes(s) {
+  var n = 0;
+  for (var i = 0; i < s.length; i++) {
+    var c = s.charCodeAt(i);
+    if (c < 0x80) n += 1; else if (c < 0x800) n += 2;
+    else if (c >= 0xD800 && c <= 0xDBFF) { n += 4; i++; } else n += 3;
+  }
+  return n;
+}
 
 function _dreEsperar(ms) {
   return new Promise(function(resolve) { setTimeout(resolve, ms); });
@@ -603,10 +615,35 @@ async function _dreSalvarLancamentos(empresaId, registros, aoProgredir) {
   var enviados = 0;
   var baseMs = Date.now() - registros.length; // ordem de colagem: 1 ms por linha, crescente
 
+  var envios = 0;
+  // O servidor recusa corpo acima de 2 MB (HTTP 413). 1000 linhas cabem com folga
+  // no normal, mas linhas com texto grande (OBS/Historico) estouravam e o salvar
+  // inteiro falhava. Lote que passa de ~1,5 MB e dividido ao meio (recursivo).
+  async function enviarLote(lote) {
+    var corpo = JSON.stringify(lote);
+    if (lote.length > 1 && _dreBytes(corpo) > DRE_LOTE_MAX_BYTES) {
+      var meio = lote.length >> 1;
+      await enviarLote(lote.slice(0, meio));
+      await enviarLote(lote.slice(meio));
+      return;
+    }
+    envios++;
+    if (aoProgredir) aoProgredir(envios, Math.max(totalLotes, envios), enviados, registros.length);
+    var resposta = await _dreFetchComRetry(base + '?on_conflict=id', {
+      method: 'POST',
+      headers: _dreHeadersEscrita('resolution=ignore-duplicates,return=minimal'),
+      body: corpo
+    });
+    if (!resposta.ok) {
+      var detalhe = await _dreLerErro(resposta);
+      throw new Error('Falha ao gravar o lote ' + envios + ' de ' + Math.max(totalLotes, envios) + ' (HTTP ' + resposta.status + ')'
+        + (detalhe ? ': ' + detalhe : '.'));
+    }
+    enviados += lote.length;
+  }
+
   try {
     for (var i = 0; i < registros.length; i += DRE_SALVAR_LOTE) {
-      var numero = i / DRE_SALVAR_LOTE + 1;
-      if (aoProgredir) aoProgredir(numero, totalLotes, enviados, registros.length);
       var lote = registros.slice(i, i + DRE_SALVAR_LOTE).map(function(r, k) {
         var linha = Object.assign({}, r, {
           id: _dreNovoId(), criado_por: marcador,
@@ -620,17 +657,7 @@ async function _dreSalvarLancamentos(empresaId, registros, aoProgredir) {
         });
         return linha;
       });
-      var resposta = await _dreFetchComRetry(base + '?on_conflict=id', {
-        method: 'POST',
-        headers: _dreHeadersEscrita('resolution=ignore-duplicates,return=minimal'),
-        body: JSON.stringify(lote)
-      });
-      if (!resposta.ok) {
-        var detalhe = await _dreLerErro(resposta);
-        throw new Error('Falha ao gravar o lote ' + numero + ' de ' + totalLotes + ' (HTTP ' + resposta.status + ')'
-          + (detalhe ? ': ' + detalhe : '.'));
-      }
-      enviados += lote.length;
+      await enviarLote(lote);
     }
   } catch (e) {
     try {
@@ -728,10 +755,13 @@ function _dreLimparDirtyPlano() {
  */
 function _dreParseNum(v) {
   if (v === '' || v == null) return null;
-  var s = String(v).trim().replace(/\s/g, '').replace(/^R\$\s*/, '');
+  // "R$" pode vir em qualquer posicao: "R$ 10", "-R$ 10", "R$ -10", "(R$ 10)".
+  var s = String(v).trim().replace(/\s/g, '').replace(/R\$/gi, '');
   if (s === '' || s === '-') return null;
   var negativo = /^\(.*\)$/.test(s);
   if (negativo) s = s.slice(1, -1);
+  // Sinal no fim ("1.234,56-"), comum em exportacao de ERP.
+  if (/^[^-].*-$/.test(s)) { negativo = true; s = s.slice(0, -1); }
   // "1.234" / "12.345.678" (ponto de milhar, sem virgula) = mil, nao 1,234 —
   // mesma regra do motor (num() em dre-engine.js). Sem isso o valor era gravado
   // 1000 vezes menor.
@@ -1829,7 +1859,13 @@ function _drePatchGrid(grid, cb) {
     if (grid.key === 'dre_plano') txt = _dreNormalizarPastePlano(txt, 0);
     if (grid.key === 'dre_bd' && _dreColagemSemColunaId(txt)) {
       // Cola do Excel comeca em DT_CAIXA; a grade tem a coluna # antes dela.
-      txt = String(txt).replace(/\r\n?/g, '\n').split('\n').map(function(l) { return l === '' ? l : '\t' + l; }).join('\n');
+      // Reescreve celula a celula (respeitando as aspas do Excel) — prefixar TAB
+      // em cada "linha" do texto quebrava celula com Enter dentro.
+      txt = lgParseTSV(txt).map(function(cel) {
+        return [''].concat(cel).map(function(c) {
+          return /[\t\n"]/.test(c) ? '"' + String(c).replace(/"/g, '""') + '"' : c;
+        }).join('\t');
+      }).join('\n');
     }
     origPaste(txt);
     DRE_GRADE_SUJA = true;

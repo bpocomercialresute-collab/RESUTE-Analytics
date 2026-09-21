@@ -87,10 +87,11 @@ const DRE = (() => {
 
   const num = v => {
     if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
-    let s = String(v ?? '').trim().replace(/\s/g, '').replace(/^R\$?/i, '');
+    let s = String(v ?? '').trim().replace(/\s/g, '').replace(/R\$/gi, '');
     if (!s || s === '-') return 0;
     let negativo = false;
     if (/^\(.*\)$/.test(s)) { negativo = true; s = s.slice(1, -1); }
+    if (/^[^-].*-$/.test(s)) { negativo = true; s = s.slice(0, -1); }
     if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
     else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
     const n = Number(s);
