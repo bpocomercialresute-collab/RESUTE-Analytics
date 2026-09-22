@@ -1000,11 +1000,15 @@ async function carregarDadosDoSupabase(empresa_id) {
   if (!empresa_id) return;
   _setStatus('⏳ Carregando dados...', '');
   try {
-    var r = await fetch(
-      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&select=*&order=dt_saida.asc',
-      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
+    // _fetchAll pagina por Range: um fetch simples com muitas vendas na mesma
+    // data (dt_saida) parava no teto de ~1000 linhas do Supabase mesmo sem
+    // limit na URL, e o id.asc desempata paginas com data repetida (sem isso,
+    // linha some ou repete entre uma pagina e outra — mesmo bug corrigido no
+    // DRE por criado_em/id).
+    var vendas = await _fetchAll(
+      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&select=*&order=dt_saida.asc,id.asc',
+      { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
     );
-    var vendas = await r.json();
     if (!Array.isArray(vendas) || !vendas.length) {
       dcLimparPainelVazio('Nenhum dado disponivel ainda', 'Sincronize a API no painel admin ou confirme se a empresa esta configurada para exibir API.');
       dcLoading(false);
@@ -1726,17 +1730,21 @@ async function dcCarregarDados(empresa_id_param) {
     var origemD = preflight[0];
     var exibir  = (origemD && origemD[0] && origemD[0].exibir_origem) || 'manual';
 
-    // Request único em vez de _fetchAll sequencial (era N×1000 requests, agora é 1)
+    // Request unico (sem _fetchAll) parecia otimizacao, mas o Supabase capa a
+    // resposta em ~1000 linhas (Max Rows do projeto) mesmo com limit=100000 na
+    // URL — empresa com mais de ~1000 vendas via API perdia o resto em
+    // silencio. _fetchAll pagina por Range; dt_saida.asc,id.asc desempata
+    // paginas com a mesma data (sem isso, linha some ou repete entre paginas).
     dcStatus('⏳ Carregando dados...');
-    var _vendasResp = await dcComTimeout(
-      fetch(
-        SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + encodeURIComponent(eid) + '&origem=eq.' + encodeURIComponent(exibir) + '&select=*&order=dt_saida.asc&limit=100000',
-        { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }, signal: currentSignal }
+    var vendas = await dcComTimeout(
+      _fetchAll(
+        SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + encodeURIComponent(eid) + '&origem=eq.' + encodeURIComponent(exibir) + '&select=*&order=dt_saida.asc,id.asc',
+        { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY },
+        currentSignal
       ),
       180000,
       'O carregamento dos registros demorou mais de 3 minutos.'
     );
-    var vendas = await _vendasResp.json();
 
     if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
 
@@ -3954,8 +3962,10 @@ function admSyncAba(aba) {
 
 async function _adminCarregar(empresa_id) {
   try {
+    // id.asc desempata paginas com a mesma dt_saida — sem isso, uma linha pode
+    // sumir ou repetir entre uma pagina e outra da paginacao por Range.
     var v = await _fetchAll(
-      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&select=*&order=dt_saida.asc',
+      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&select=*&order=dt_saida.asc,id.asc',
       { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
     );
     if (!Array.isArray(v) || !v.length) { _adminSetStatus('Sem dados. Cole na grade ou sincronize.'); return; }
@@ -4842,7 +4852,7 @@ async function _dcCarregarTodas() {
       // Busca vendas paginadas
       dcStatus('⏳ Empresa ' + (i + 1) + '/' + ids.length + ' — buscando dados...');
       var vendas = await _fetchAll(
-        SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + encodeURIComponent(eid) + '&origem=eq.' + encodeURIComponent(exibir) + '&select=*&order=dt_saida.asc',
+        SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + encodeURIComponent(eid) + '&origem=eq.' + encodeURIComponent(exibir) + '&select=*&order=dt_saida.asc,id.asc',
         { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY },
         sig
       );
@@ -4966,9 +4976,12 @@ async function adminProcessarManual() {
       origem:       'manual',
       id_externo:   'manual_' + eid.slice(0,8) + '_' + ts + '_' + i,
       num_pedido:   r[1]||null, produto:   r[2]||null,
-      qtd:          parseFloat(r[3])||null,
+      // parseSmartNumber (js/utils.js) — o mesmo parser usado nos relatorios do
+      // Comercial. O parseFloat direto lia "1.234,56" como 1.234 (so ate o
+      // primeiro caractere invalido), gravando o valor 1000x menor no banco.
+      qtd:          parseSmartNumber(r[3]) || null,
       dt_emissao:   _cvData(r[4]), dt_saida: _cvData(r[5]),
-      valor:        parseFloat(String(r[6]||'0').replace(',','.'))||null,
+      valor:        parseSmartNumber(r[6]) || null,
       vendedor:     r[7]||null, industria: r[8]||null, cliente:   r[9]||null,
       ano:          parseInt(r[10])||null, mes: r[11]||null, grupo: r[12]||null,
       cidade:       r[16]||null, uf: r[17]||null,
@@ -4976,35 +4989,48 @@ async function adminProcessarManual() {
     };
   });
 
+  // Insere a versao NOVA primeiro (marcada pelo prefixo unico de id_externo
+  // desta execucao) e so DEPOIS apaga a antiga. Antes era DELETE de tudo e
+  // so entao POST em lotes — uma falha no meio (rede, limite de requisicoes)
+  // deixava a empresa sem NENHUM dado comercial ate colar de novo.
+  var marcadorPrefixo = 'manual_' + eid.slice(0,8) + '_' + ts + '_';
+  var escritaHeaders = { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' };
+  var fetchRetry = (typeof _dreFetchComRetry === 'function') ? _dreFetchComRetry : fetch;
   try {
-    // Apaga manuais antigos desta empresa
-    await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid + '&origem=eq.manual', {
-      method: 'DELETE',
-      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' }
-    });
-
-    // Insere em lotes
     var inseridos = 0;
     for (var i = 0; i < regs.length; i += 500) {
       var batch = regs.slice(i, i+500);
-      var r = await fetch(SUPA_URL + '/rest/v1/vendas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' },
-        body: JSON.stringify(batch)
+      var r = await fetchRetry(SUPA_URL + '/rest/v1/vendas', {
+        method: 'POST', headers: escritaHeaders, body: JSON.stringify(batch)
       });
       if (!r.ok) { var e = await r.text(); throw new Error(e.slice(0,200)); }
       inseridos += batch.length;
       _adminSetStatus('⏳ Salvando... ' + inseridos + '/' + regs.length);
     }
-
-    _adminSetStatus('✓ ' + inseridos.toLocaleString('pt-BR') + ' linhas manuais salvas para ' + EMPRESA_ATIVA.nome + '!', true);
-    _adminAtualizarContagens();
-    if (SESSION && SESSION.papel === 'admin') adminOwnerAtualizarResumo();
-
   } catch(e) {
-    _adminSetStatus('✗ ' + e.message);
+    try {
+      await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid + '&id_externo=like.' + encodeURIComponent(marcadorPrefixo) + '*', {
+        method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
+      });
+    } catch (e2) { console.warn('[ADMIN] Nao foi possivel desfazer o salvamento parcial:', e2); }
+    _adminSetStatus('✗ Falha ao salvar: ' + e.message + ' — nada foi perdido, os dados anteriores continuam salvos.');
     console.error(e);
+    return;
   }
+
+  try {
+    // So remove a versao antiga depois que a nova ja esta 100% gravada.
+    var del = await fetchRetry(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid + '&origem=eq.manual&id_externo=not.like.' + encodeURIComponent(marcadorPrefixo) + '*', {
+      method: 'DELETE',
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' }
+    });
+    if (!del.ok) throw new Error('HTTP ' + del.status);
+    _adminSetStatus('✓ ' + regs.length.toLocaleString('pt-BR') + ' linhas manuais salvas para ' + EMPRESA_ATIVA.nome + '!', true);
+  } catch (e) {
+    _adminSetStatus('✓ ' + regs.length.toLocaleString('pt-BR') + ' linhas novas salvas, mas a versão antiga não pôde ser removida (' + e.message + '). Clique em Processar e Salvar de novo para concluir a troca.');
+  }
+  _adminAtualizarContagens();
+  if (SESSION && SESSION.papel === 'admin') adminOwnerAtualizarResumo();
 }
 
 // ── LIMPAR ORIGEM ESPECÍFICA ──────────────────────────────────────────────────
@@ -5058,12 +5084,21 @@ async function _adminAtualizarContagens() {
 }
 
 // ── UTILITÁRIO CONVERSÃO DE DATA ───────────────────────────────────────────────
+/** Confere se a data existe de verdade (31/02, 31/04... nao existem). */
+function _cvDataReal(a, m, d) {
+  var t = new Date(Date.UTC(a, m - 1, d));
+  return t.getUTCFullYear() === a && t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
+}
+
 function _cvData(v) {
   if (!v) return null;
   var s = String(v).trim();
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  var iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return _cvDataReal(+iso[1], +iso[2], +iso[3]) ? iso[0].slice(0, 10) : null;
+  // Data invalida (31/02, 31/04...) nao pode ir pro banco: coluna date do
+  // Postgres recusa e derruba o lote de 500 inteiro. Vira vazio em vez disso.
   var m = s.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
-  if (m) return m[3] + '-' + m[2] + '-' + m[1];
+  if (m) return _cvDataReal(+m[3], +m[2], +m[1]) ? (m[3] + '-' + m[2] + '-' + m[1]) : null;
   var d = new Date(s);
   return isNaN(d.getTime()) ? null : d.toISOString().slice(0,10);
 }

@@ -66,7 +66,7 @@ async function repPremiacaoCarregarCadastroClientes() {
 // Toda leitura de outras empresas passa pelo /api/secure-proxy (SUPA_KEY/SVC_KEY
 // em auth.js são placeholders '__SERVER_ONLY__', não funcionam no navegador).
 
-function repProxyFetch(url, method) {
+function repProxyFetch(url, method, headers) {
   return fetch('/api/secure-proxy', {
     method: 'POST',
     headers: {
@@ -74,8 +74,28 @@ function repProxyFetch(url, method) {
       'x-session-token': (window.SESSION && SESSION.token) || '',
       'X-Requested-With': 'XMLHttpRequest'
     },
-    body: JSON.stringify({ url: url, method: method || 'GET' })
+    body: JSON.stringify({ url: url, method: method || 'GET', headers: headers || {} })
   });
+}
+
+/**
+ * Mesma paginacao por Range de _fetchAll (js/auth.js), so que via repProxyFetch
+ * (POST pro /api/secure-proxy com a URL no corpo, sem o fetch remendado de
+ * auth.js). Sem isso, repMergeEmpresasCarregarDados so trazia ~1000 vendas —
+ * o teto de "Max Rows" do Supabase, mesmo pedindo limit=100000 na URL.
+ */
+async function repFetchAll(baseUrl) {
+  var all = []; var from = 0; var pageSize = 1000;
+  for (var pagina = 0; pagina < 200; pagina++) {
+    var r = await repProxyFetch(baseUrl, 'GET', { Range: from + '-' + (from + pageSize - 1), 'Range-Unit': 'items' });
+    if (!r.ok && r.status !== 206) throw new Error('Falha ao carregar (HTTP ' + r.status + ')' + (all.length ? ' apos ' + all.length + ' registros.' : '.'));
+    var batch = await r.json();
+    if (!Array.isArray(batch) || !batch.length) break;
+    all = all.concat(batch);
+    if (batch.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
 }
 
 function repMergeEmpresasSalvar() {
@@ -98,26 +118,21 @@ async function repMergeEmpresasCarregarDados(empresa_id, nome) {
   const btn = document.getElementById(btnId);
   if (btn) { btn.disabled = true; btn.textContent = 'Carregando...'; }
   try {
-    const r = await repProxyFetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + encodeURIComponent(empresa_id) + '&select=*&order=dt_saida.asc&limit=100000');
-    const vendas = await r.json();
-    if (r.ok && Array.isArray(vendas)) {
-      const rows = vendas.map(function(v) { return [
-        v.id_externo||'', v.num_pedido||'', v.produto||'', String(v.qtd||''),
-        v.dt_emissao||'', v.dt_saida||'', String(v.valor||''),
-        v.vendedor||'', v.industria||'', v.cliente||'',
-        v.ano ? String(v.ano) : '', v.mes||'', v.grupo||'', v.semana||'',
-        v.tipo_mercado||'', v.setor||'', v.cidade||'', v.uf||'',
-        v.tipo_vendedor||'', '', '', '', '',
-        v.empresa_nome || nome || '', v.cnpj||'', v.grupo_produto||'', v.grupo_pai||'',
-        v.subgrupo||'', v.marca||'', v.familia||'', v.classes||''
-      ]; });
-      window.REP_EMPRESAS_CACHE[empresa_id] = { nome: nome, rows: rows };
-    } else {
-      console.error('Erro ao carregar empresa para merge:', vendas && vendas.erro);
-      alert('Não foi possível carregar os dados de ' + nome + (vendas && vendas.erro ? ': ' + vendas.erro : '.'));
-    }
+    const vendas = await repFetchAll(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + encodeURIComponent(empresa_id) + '&select=*&order=dt_saida.asc,id.asc');
+    const rows = vendas.map(function(v) { return [
+      v.id_externo||'', v.num_pedido||'', v.produto||'', String(v.qtd||''),
+      v.dt_emissao||'', v.dt_saida||'', String(v.valor||''),
+      v.vendedor||'', v.industria||'', v.cliente||'',
+      v.ano ? String(v.ano) : '', v.mes||'', v.grupo||'', v.semana||'',
+      v.tipo_mercado||'', v.setor||'', v.cidade||'', v.uf||'',
+      v.tipo_vendedor||'', '', '', '', '',
+      v.empresa_nome || nome || '', v.cnpj||'', v.grupo_produto||'', v.grupo_pai||'',
+      v.subgrupo||'', v.marca||'', v.familia||'', v.classes||''
+    ]; });
+    window.REP_EMPRESAS_CACHE[empresa_id] = { nome: nome, rows: rows };
   } catch(e) {
     console.error('Erro ao carregar empresa para merge:', e);
+    alert('Não foi possível carregar os dados de ' + nome + ': ' + e.message);
   }
   repPremiacao();
 }
