@@ -484,8 +484,13 @@ async function abrirBDManualAdmin(empresaId) {
   if (!SESSION || SESSION.papel !== 'super_admin') return;
   if (typeof switchView === 'function') switchView('view-app');
   if (typeof _adminRenderAbas === 'function') _adminRenderAbas(EMPRESAS_ADMIN);
-  await adminSelecionarEmpresa(empresaId);
+  // Mostra a grade (vazia, com indicador de carregando) ANTES de esperar os
+  // dados — adminSelecionarEmpresa faz 5 chamadas de rede em sequencia
+  // (origem, contagens, periodo, TODAS as vendas, cadastros da API), o que
+  // pode levar varios segundos numa empresa com bastante dado. Sem isso, o
+  // usuario fica olhando tela parada ate tudo terminar.
   if (typeof avShowBD === 'function') avShowBD();
+  await adminSelecionarEmpresa(empresaId);
 }
 
 /**
