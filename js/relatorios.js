@@ -417,9 +417,17 @@ function avGoHome() {
   _hide('av-bd-area');
   _hide('av-rel-area');
   _hide('av-rep-area');
+  // super_admin: volta pra tela de cards (view-client-access) de onde o BD
+  // Manual/relatorios foram abertos - antes caia em av-home, a tela antiga
+  // de abas por empresa, visualmente diferente de onde ele realmente estava.
+  if (typeof SESSION !== 'undefined' && SESSION && SESSION.papel === 'super_admin'
+      && typeof abrirSeletorEmpresasCliente === 'function') {
+    abrirSeletorEmpresasCliente();
+    return;
+  }
   _show('av-home');
-  // av-home E a area "Comercial" (empresa owner ou BD Manual do super_admin)
-  // — antes isso caia num "Inicio" generico sem marcar nenhuma aba da
+  // av-home E a area "Comercial" do admin da empresa (workspace dele) —
+  // antes isso caia num "Inicio" generico sem marcar nenhuma aba da
   // sidebar, dando a sensacao de tela solta ao clicar Voltar.
   if (typeof _marcarAbaComercialAtiva === 'function') _marcarAbaComercialAtiva();
   else _setBreadcrumb('Início');

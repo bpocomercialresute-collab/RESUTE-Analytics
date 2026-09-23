@@ -1396,6 +1396,9 @@ async function adminConsoleAbrirOperacao(companyId) {
   }
   if (typeof switchView === 'function') switchView('view-app');
   if (typeof _marcarAbaComercialAtiva === 'function') _marcarAbaComercialAtiva();
+  // Vai direto pra grade (igual o botao "BD Manual" dos cards) em vez de
+  // parar na tela de abas por empresa - mesmo destino, um passo a menos.
+  if (typeof avShowBD === 'function') avShowBD();
   if (typeof adminSelecionarEmpresa === 'function') adminSelecionarEmpresa(companyId);
 }
 
