@@ -28,7 +28,7 @@ function limparTudo() {
   }
 
   // Volta para a tela inicial
-  if (typeof switchView === 'function') switchView('view-home');
+  if (typeof switchView === 'function') switchView('view-app');
   toast('Todos os dados das planilhas foram limpos', 'success');
 }
 

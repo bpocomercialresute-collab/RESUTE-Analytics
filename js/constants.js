@@ -20,10 +20,8 @@ const ROLES = {
 
 /** Breadcrumb por view */
 const BREADCRUMB = {
-  'view-home':  'Início',
-  'view-tools': 'Ferramentas',
-  'view-app':   'Ferramentas › Análise de Vendas',
-  'view-uniao': 'Ferramentas › União de Planilhas'
+  'view-app':   'Análise de Vendas',
+  'view-uniao': 'União de Planilhas'
 };
 
 // ── Dicionário de cores (nome → hex) ──────────────────────────────────────────

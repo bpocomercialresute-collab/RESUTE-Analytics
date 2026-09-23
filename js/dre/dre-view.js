@@ -512,10 +512,10 @@ function dreVoltarFerramentasAdmin() {
   // que sobra (sidebar, titulo "OPERACOES DOS CLIENTES" etc.) volta pro
   // estilo padrao errado em vez do tema escuro do admin.
   document.body.classList.add('bpo-admin-mode');
+  if (typeof switchView === 'function') switchView('view-app');
   if (document.body.classList.contains('company-admin-mode')) {
-    if (typeof switchView === 'function') switchView('view-app');
     if (typeof adminOwnerAtualizarResumo === 'function') adminOwnerAtualizarResumo();
-  } else if (typeof switchView === 'function') switchView('view-tools');
+  }
 }
 
 // ── SALVAR NO BANCO (botões das abas Plano de Contas e BD) ───────────────────

@@ -488,6 +488,16 @@ async function abrirBDManualAdmin(empresaId) {
   if (typeof avShowBD === 'function') avShowBD();
 }
 
+/**
+ * "Voltar" do topo do av-home (BD e Cadastros/tabs de empresa). Só existe
+ * pro super_admin — pro admin da empresa esse botao fica escondido (ver
+ * adminInicializar), porque av-home JA e a casa dele.
+ */
+function avHomeVoltar() {
+  if (!SESSION || SESSION.papel !== 'super_admin') return;
+  if (typeof adminConsoleAbrir === 'function') adminConsoleAbrir('overview');
+}
+
 function abrirPainelClienteAdmin(empresaId) {
   if (!SESSION || SESSION.papel !== 'super_admin') return;
   var empresa = ADMIN_PREVIEW_COMPANIES.find(function(item) {
@@ -772,7 +782,7 @@ function fazerLogout() {
   DC_ADMIN_PREVIEW_COMPANY = null;
   ADMIN_PREVIEW_COMPANIES = [];
   dcLoading(false);
-  if (typeof switchView === 'function') switchView('view-home');
+  if (typeof switchView === 'function') switchView('view-app');
   ['sync-area','header-user','sidebar-user'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -3700,7 +3710,7 @@ async function adminInicializar() {
   document.body.classList.toggle('company-admin-mode', ehAdminEmpresa);
   var ownerWorkspace = document.getElementById('admin-company-workspace');
   if (ownerWorkspace) ownerWorkspace.hidden = !ehAdminEmpresa;
-  ['admin-action-bar', 'av-exibir-grid'].forEach(function(id) {
+  ['admin-action-bar', 'av-exibir-grid', 'av-home-voltar'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.style.display = ehAdminEmpresa ? 'none' : '';
   });

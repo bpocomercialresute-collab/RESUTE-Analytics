@@ -4860,9 +4860,7 @@ body,
 .dc-root,
 .dc-main,
 .admin-root,
-#view-app,
-#view-home,
-#view-tools {
+#view-app {
   background: #F5F7FA !important;
   color: #0E1424 !important;
 }
@@ -6453,15 +6451,11 @@ body.bpo-admin-mode .cui-main {
   padding: 32px 34px 48px !important;
 }
 
-body.bpo-admin-mode #view-home .content,
-body.bpo-admin-mode #view-tools .content,
 body.bpo-admin-mode #view-app .content {
   max-width: 1480px;
   margin: 0 auto;
 }
 
-body.bpo-admin-mode #view-home .content,
-body.bpo-admin-mode #view-tools .content,
 body.bpo-admin-mode #view-app #av-home {
   display: flex;
   flex-direction: column;
@@ -11116,9 +11110,7 @@ h1, h2, h3, h4,
 .cli-main,
 .admin-root,
 #view-login-page,
-#view-app,
-#view-home,
-#view-tools {
+#view-app {
   background: transparent !important;
   color: var(--brand-ink) !important;
 }
