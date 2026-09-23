@@ -219,6 +219,7 @@ function abrirAnaliseVendas() {
   // (view-dash-cliente) — inutil pra quem quer colar dado, nao ler relatorio.
   if (SESSION.papel === 'admin') {
     if (typeof switchView === 'function') switchView('view-app');
+    if (typeof _marcarAbaComercialAtiva === 'function') _marcarAbaComercialAtiva();
     if (typeof adminInicializar === 'function') adminInicializar();
     return;
   }
@@ -342,6 +343,25 @@ function _adminPreviewEscape(value) {
     .replace(/'/g, '&#039;');
 }
 
+/**
+ * Marca "Comercial" ativo na sidebar + breadcrumb "Comercial". Toda tela que
+ * vive dentro dessa aba (selecionar empresa, BD Manual, BD e Cadastros)
+ * tinha sua PROPRIA logica de breadcrumb/destaque na sidebar, cada uma
+ * escrevendo um texto diferente ("Analise de Vendas", "Inicio", ou nada) e
+ * nenhuma reaplicava o destaque que as outras apagavam — dava a sensacao de
+ * telas soltas, sem aba fixa. Uma unica fonte de verdade, chamada de todo
+ * lugar que leva pra essa area.
+ */
+function _marcarAbaComercialAtiva() {
+  document.querySelectorAll('.cui-nav-item').forEach(function(item) {
+    item.classList.remove('active', 'is-active');
+  });
+  var nav = document.querySelector('[data-admin-target="comercial"]');
+  if (nav) nav.classList.add('active');
+  var breadcrumb = document.getElementById('breadcrumb-text');
+  if (breadcrumb) breadcrumb.textContent = 'Comercial';
+}
+
 async function abrirSeletorEmpresasCliente(force) {
   SESSION = _readStoredSession();
   if (!SESSION || !SESSION.token) {
@@ -371,11 +391,7 @@ async function abrirSeletorEmpresasCliente(force) {
   if (wrapper) wrapper.style.display = 'flex';
   if (typeof switchView === 'function') switchView('view-client-access');
 
-  var breadcrumb = document.getElementById('breadcrumb-text');
-  if (breadcrumb) breadcrumb.textContent = 'Análise de Vendas';
-  document.querySelectorAll('.cui-nav-item').forEach(function(item) {
-    item.classList.remove('active', 'is-active');
-  });
+  _marcarAbaComercialAtiva();
 
   var grid = document.getElementById('admin-client-grid');
   var count = document.getElementById('admin-client-count');
@@ -483,6 +499,7 @@ function filtrarEmpresasParaVisualizacao() {
 async function abrirBDManualAdmin(empresaId) {
   if (!SESSION || SESSION.papel !== 'super_admin') return;
   if (typeof switchView === 'function') switchView('view-app');
+  _marcarAbaComercialAtiva();
   if (typeof _adminRenderAbas === 'function') _adminRenderAbas(EMPRESAS_ADMIN);
   // Mostra a grade (vazia, com indicador de carregando) ANTES de esperar os
   // dados — adminSelecionarEmpresa faz 5 chamadas de rede em sequencia
@@ -855,9 +872,8 @@ function _abrirApp() {
   } else {
     // Admin da empresa nunca deve ver texto de secao do console super_admin
     // (ex.: "Usuarios e acessos" de uma sessao anterior na mesma aba).
-    var breadcrumbAdmin = document.getElementById('breadcrumb-text');
-    if (breadcrumbAdmin) breadcrumbAdmin.textContent = 'Análise de Vendas';
     if (typeof switchView === 'function') switchView('view-app');
+    if (typeof _marcarAbaComercialAtiva === 'function') _marcarAbaComercialAtiva();
     if (typeof adminInicializar === 'function') adminInicializar();
   }
 }

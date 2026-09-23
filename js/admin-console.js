@@ -1395,9 +1395,8 @@ async function adminConsoleAbrirOperacao(companyId) {
     if (typeof _adminRenderAbas === 'function') _adminRenderAbas();
   }
   if (typeof switchView === 'function') switchView('view-app');
+  if (typeof _marcarAbaComercialAtiva === 'function') _marcarAbaComercialAtiva();
   if (typeof adminSelecionarEmpresa === 'function') adminSelecionarEmpresa(companyId);
-  var breadcrumb = document.getElementById('breadcrumb-text');
-  if (breadcrumb) breadcrumb.textContent = 'Analise de Vendas';
 }
 
 function adminConsoleAbrirModal(kicker, title, html, submitHandler) {

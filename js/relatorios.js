@@ -418,7 +418,11 @@ function avGoHome() {
   _hide('av-rel-area');
   _hide('av-rep-area');
   _show('av-home');
-  _setBreadcrumb('Início');
+  // av-home E a area "Comercial" (empresa owner ou BD Manual do super_admin)
+  // — antes isso caia num "Inicio" generico sem marcar nenhuma aba da
+  // sidebar, dando a sensacao de tela solta ao clicar Voltar.
+  if (typeof _marcarAbaComercialAtiva === 'function') _marcarAbaComercialAtiva();
+  else _setBreadcrumb('Início');
 }
 
 function avShowBD() {

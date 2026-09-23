@@ -513,6 +513,7 @@ function dreVoltarFerramentasAdmin() {
   // estilo padrao errado em vez do tema escuro do admin.
   document.body.classList.add('bpo-admin-mode');
   if (typeof switchView === 'function') switchView('view-app');
+  if (typeof _marcarAbaComercialAtiva === 'function') _marcarAbaComercialAtiva();
   if (document.body.classList.contains('company-admin-mode')) {
     if (typeof adminOwnerAtualizarResumo === 'function') adminOwnerAtualizarResumo();
   }
