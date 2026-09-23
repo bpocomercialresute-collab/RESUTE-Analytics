@@ -438,16 +438,27 @@ function renderEmpresasParaVisualizacao(empresas) {
       + '<span>' + _adminPreviewEscape(origem === 'api' ? 'Dados via API' : 'Dados manuais') + '</span>'
       + '<span>' + _adminPreviewEscape(integracao) + '</span>'
       + '</div>'
+      + '<div class="admin-client-actions">'
+      + '<button type="button" class="admin-client-manual" data-company-id="' + _adminPreviewEscape(empresa.empresa_id) + '">'
+      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>'
+      + '<span>BD Manual</span>'
+      + '</button>'
       + '<button type="button" class="admin-client-open" data-company-id="' + _adminPreviewEscape(empresa.empresa_id) + '">'
       + '<span>Abrir painel do cliente</span>'
       + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 5l7 7-7 7"/></svg>'
       + '</button>'
+      + '</div>'
       + '</article>';
   }).join('');
 
   grid.querySelectorAll('.admin-client-open').forEach(function(button) {
     button.addEventListener('click', function() {
       abrirPainelClienteAdmin(this.getAttribute('data-company-id'));
+    });
+  });
+  grid.querySelectorAll('.admin-client-manual').forEach(function(button) {
+    button.addEventListener('click', function() {
+      abrirBDManualAdmin(this.getAttribute('data-company-id'));
     });
   });
 }
@@ -459,6 +470,22 @@ function filtrarEmpresasParaVisualizacao() {
     return !termo || String(empresa.nome || '').toLowerCase().indexOf(termo) !== -1;
   });
   renderEmpresasParaVisualizacao(filtradas);
+}
+
+/**
+ * "BD Manual" no card da empresa (tela Comercial > empresas do super_admin):
+ * pula direto pra grade de colagem manual (BD e Cadastros) dessa empresa,
+ * reaproveitando o mesmo fluxo que a aba "Sincronizações" ja usa pra
+ * selecionar empresa (adminSelecionarEmpresa carrega EMPRESA_ATIVA, BD_DATA
+ * e o modo API/manual) — so que aqui pula o passo intermediario do av-home
+ * e cai direto no jss-container pronto pra Ctrl+V.
+ */
+async function abrirBDManualAdmin(empresaId) {
+  if (!SESSION || SESSION.papel !== 'super_admin') return;
+  if (typeof switchView === 'function') switchView('view-app');
+  if (typeof _adminRenderAbas === 'function') _adminRenderAbas(EMPRESAS_ADMIN);
+  await adminSelecionarEmpresa(empresaId);
+  if (typeof avShowBD === 'function') avShowBD();
 }
 
 function abrirPainelClienteAdmin(empresaId) {

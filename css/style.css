@@ -10137,6 +10137,12 @@ body.lp-about-open .lp-process-step span {
   text-transform: uppercase;
 }
 
+.admin-client-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .admin-client-open {
   width: 100%;
   min-height: 46px;
@@ -10153,6 +10159,34 @@ body.lp-about-open .lp-process-step span {
 
 .admin-client-open svg {
   margin-left: auto;
+}
+
+.admin-client-manual {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 46px;
+  padding: 0 16px;
+  color: #0d625e;
+  border: 1.5px solid #8bcac3;
+  border-radius: 14px;
+  background: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.admin-client-manual:hover {
+  background: #eef8f6;
+  border-color: #0d625e;
+}
+
+.admin-client-manual svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.9;
 }
 
 .admin-client-loading,
