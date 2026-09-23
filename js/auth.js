@@ -3731,7 +3731,7 @@ async function adminInicializar() {
   document.body.classList.toggle('company-admin-mode', ehAdminEmpresa);
   var ownerWorkspace = document.getElementById('admin-company-workspace');
   if (ownerWorkspace) ownerWorkspace.hidden = !ehAdminEmpresa;
-  ['admin-action-bar', 'av-exibir-grid', 'av-home-voltar'].forEach(function(id) {
+  ['av-exibir-grid', 'av-home-voltar'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.style.display = ehAdminEmpresa ? 'none' : '';
   });
@@ -3875,17 +3875,12 @@ async function adminSelecionarEmpresa(id) {
   EMPRESA_ATIVA = EMPRESAS_ADMIN.find(function(e){ return e.empresa_id === id; });
   if (!EMPRESA_ATIVA) return;
   document.querySelectorAll('.admin-emp-tab').forEach(function(b){ b.classList.toggle('active', b.dataset.id === id); });
-  var bar = document.getElementById('admin-action-bar'); if (bar) bar.style.display = 'flex';
-  var nEl = document.getElementById('admin-emp-nome');   if (nEl) nEl.textContent = EMPRESA_ATIVA.nome;
   var bs  = document.getElementById('admin-btn-sync');   if (bs)  bs.style.display = EMPRESA_ATIVA.tem_api ? 'inline-flex' : 'none';
   if (typeof _aplicarFuncoesEmpresa === 'function') _aplicarFuncoesEmpresa(EMPRESA_ATIVA);
   if (typeof FULL_DATA !== 'undefined') FULL_DATA.bd = [];
   if (typeof BD_DATA   !== 'undefined') { BD_DATA.rows = []; BD_DATA.count = 0; }
   if (typeof GRIDS !== 'undefined' && GRIDS.bd) { GRIDS.bd.allData = []; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render(); }
   _adminSetStatus('⏳ Carregando ' + EMPRESA_ATIVA.nome + '...');
-
-  // Mostra modo correto
-  _adminMostrarModo(EMPRESA_ATIVA.tem_api);
 
   // Atualiza select de empresa no painel de sync e carrega config de auto-sync
   _adminSyncAtualizarSelect(id);
@@ -5177,29 +5172,6 @@ function _cvData(v) {
   if (m) return _cvDataReal(+m[3], +m[2], +m[1]) ? (m[3] + '-' + m[2] + '-' + m[1]) : null;
   var d = new Date(s);
   return isNaN(d.getTime()) ? null : d.toISOString().slice(0,10);
-}
-// =============================================================================
-// PAINEL ADMIN — Modo API vs Manual
-// =============================================================================
-
-function _adminMostrarModo(temApi) {
-  var mApi = document.getElementById('adm-modo-api');
-  var mMan = document.getElementById('adm-modo-manual');
-  var btnSync = document.getElementById('admin-btn-sync');
-
-  // Mostra o modo correto
-  if (mApi) mApi.style.display = temApi ? 'block' : 'none';
-  if (mMan) mMan.style.display = 'block'; // Manual sempre disponível
-  if (btnSync) btnSync.style.display = temApi ? 'inline-flex' : 'none';
-
-  // Se não tem API, esconde modo API
-  if (!temApi && mApi) mApi.style.display = 'none';
-
-  // Esconde toggle se não tem API (sem escolha)
-  var tog = document.getElementById('toggle-origem');
-  if (tog) tog.style.display = temApi ? 'flex' : 'none';
-  var togLbl = document.querySelector('.adm-toggle-label');
-  if (togLbl) togLbl.style.display = temApi ? '' : 'none';
 }
 
 // ── PROGRESSO VISUAL DE SYNC ──────────────────────────────────────────────────

@@ -657,57 +657,6 @@
             </div>
           </section>
 
-          <!-- PAINEL EMPRESA ATIVA -->
-          <div id="admin-action-bar" class="admin-painel" style="display:none">
-
-            <!-- Cabeçalho -->
-            <div class="adm-header">
-              <div class="adm-header-left">
-                <div class="adm-nome" id="admin-emp-nome">—</div>
-                <div class="adm-status" id="admin-sync-status"></div>
-              </div>
-              <div class="adm-header-right">
-                <span class="adm-toggle-label">Cliente vê:</span>
-                <div class="adm-toggle-wrap" id="toggle-origem">
-                  <button class="adm-toggle-btn active" data-origem="api" onclick="adminToggleOrigem('api')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="11" height="11"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>API
-                  </button>
-                  <button class="adm-toggle-btn" data-origem="manual" onclick="adminToggleOrigem('manual')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="11" height="11"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg>Manual
-                  </button>
-                </div>
-              </div>
-            </div>
-
-
-            <!-- MODO MANUAL (empresas com dados colados do Excel) -->
-            <div id="adm-modo-manual" style="display:none">
-              <div class="adm-manual-wrap">
-                <div class="adm-manual-top">
-                  <button onclick="adminProcessarManual()" class="adm-btn adm-btn-manual">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                    Processar e Salvar
-                  </button>
-                  <button onclick="adminLimparOrigem('manual')" class="adm-btn adm-btn-danger">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-                    Limpar
-                  </button>
-                  <div id="adm-manual-count" class="adm-api-ultima"></div>
-                </div>
-                <div class="adm-manual-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                  Cole os dados do Excel na grade abaixo (Ctrl+V) → clique Processar e Salvar
-                </div>
-                <div class="adm-manual-cols">
-                  <span>Col A: Produto</span><span>Col B: Qtd</span><span>Col C: Valor</span>
-                  <span>Col D: Vendedor</span><span>Col E: Cliente</span><span>Col F: Data Saída</span>
-                  <span>Col G: Grupo</span><span>Col H: Cidade</span><span>Col I: UF</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
           <div class="av-exibir-grid">
             <div class="av-exibir-box">
               <div class="av-exibir-header">EXIBIR</div>
@@ -738,6 +687,7 @@
             <div>
               <strong>Base comercial da empresa</strong>
               <span>Cole as colunas do Excel na grade e salve quando terminar.</span>
+              <div class="adm-status" id="admin-sync-status"></div>
             </div>
             <div class="admin-owner-data-toolbar-actions">
               <button type="button" class="admin-owner-refresh" onclick="adminProcessarManual()">
