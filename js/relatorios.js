@@ -293,6 +293,27 @@ function garantirAbaPremiacaoRepresentantes() {
   var premioExistente = bar ? bar.querySelector('[data-target="rep-tab-premiacao"]') : null;
   var mensalExistente = bar ? bar.querySelector('[data-target="rep-tab-mensal"]') : null;
 
+  // Premiacao e liberada por empresa (Empresas > editar > "Funcoes
+  // liberadas") — desligada por padrao, diferente dos outros relatorios.
+  // Empresa sem a funcao: some a aba (e o painel, se ja existia de uma
+  // troca de empresa anterior na mesma sessao) em vez de mostrar pra todo
+  // mundo.
+  var contexto = (typeof _empresaFuncaoContexto === 'function') ? _empresaFuncaoContexto() : null;
+  var liberada = (typeof temFuncao !== 'function') || temFuncao(contexto, 'premiacao');
+  if (!liberada) {
+    var premioPaneFora = document.getElementById('rep-tab-premiacao');
+    var eraAtivo = premioExistente && premioExistente.classList.contains('active');
+    if (premioExistente) premioExistente.remove();
+    if (premioPaneFora) premioPaneFora.remove();
+    if (eraAtivo) {
+      var mensalBtn = bar ? bar.querySelector('[data-target="rep-tab-mix"]') : null;
+      var mensalPane = document.getElementById('rep-tab-mix');
+      if (mensalBtn) mensalBtn.classList.add('active');
+      if (mensalPane) mensalPane.classList.add('active');
+    }
+    return;
+  }
+
   if (bar) {
     if (!mensalExistente) {
       mensalExistente = document.createElement('button');

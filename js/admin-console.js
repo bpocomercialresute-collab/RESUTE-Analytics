@@ -1585,7 +1585,8 @@ function adminConsoleEmpresaModal(company) {
     + '<p class="admin-field-full" style="margin:0;font-size:12px;color:#6b7280">Sem logo cadastrada, o painel do cliente mostra automaticamente o nome da empresa no lugar.</p>'
     + '<div class="admin-field-full"><span style="display:block;font-size:12px;font-weight:600;color:#374151;margin:10px 0 6px">Funções liberadas para esta empresa</span>'
       + (typeof FUNCOES_DISPONIVEIS !== 'undefined' ? FUNCOES_DISPONIVEIS.map(function(f) {
-          var ligada = !(company && company.funcoes && company.funcoes[f.chave] === false);
+          var salvo = company && company.funcoes ? company.funcoes[f.chave] : undefined;
+          var ligada = (salvo === true || salvo === false) ? salvo : (f.padrao !== false);
           return '<label class="admin-field-switch" style="display:flex;align-items:center;gap:6px;margin:4px 0"><input name="funcao_' + f.chave + '" type="checkbox"' + (ligada ? ' checked' : '') + '><span>' + adminConsoleEscape(f.nome) + '</span></label>';
         }).join('') : '')
       + '</div>'

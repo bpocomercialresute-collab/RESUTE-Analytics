@@ -95,9 +95,14 @@ function temModulo(slug) {
 // Guardado em empresas.funcoes (jsonb) — ver docs/supabase-empresas-funcoes.sql.
 // Mesmo aviso de seguranca do topo do arquivo: isto e so UX.
 
+// padrao=true (padrao quando ausente) = "desligada so se marcarem false" —
+// bom pra relatorio que toda empresa ja tinha antes desse controle existir.
+// padrao=false = "so liga pra quem o admin escolher" — pra funcao nova,
+// tipo premiacao, que nao e pra toda empresa ganhar de graca.
 var FUNCOES_DISPONIVEIS = [
-  { chave: 'rel_produtos',        nome: 'Relatório de Produtos' },
-  { chave: 'rel_representantes',  nome: 'Relatório de Representantes' }
+  { chave: 'rel_produtos',        nome: 'Relatório de Produtos',        padrao: true },
+  { chave: 'rel_representantes',  nome: 'Relatório de Representantes',  padrao: true },
+  { chave: 'premiacao',           nome: 'Premiação de Representantes',  padrao: false }
 ];
 
 /**
@@ -110,7 +115,9 @@ function temFuncao(eObj, chave) {
   var funcoes = (eObj && eObj.funcoes)
     || (typeof SESSION !== 'undefined' && SESSION && SESSION.empresa_funcoes)
     || {};
-  return funcoes[chave] !== false;
+  if (funcoes[chave] === true || funcoes[chave] === false) return funcoes[chave];
+  var def = FUNCOES_DISPONIVEIS.find(function(f) { return f.chave === chave; });
+  return def ? def.padrao !== false : true;
 }
 
 /** Modulo que deve abrir logo apos o login. */
