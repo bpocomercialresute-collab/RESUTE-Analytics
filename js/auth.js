@@ -5071,6 +5071,24 @@ async function adminProcessarManual() {
   } catch (e) {
     _adminSetStatus('✓ ' + regs.length.toLocaleString('pt-BR') + ' linhas novas salvas, mas a versão antiga não pôde ser removida (' + e.message + '). Clique em Processar e Salvar de novo para concluir a troca.');
   }
+
+  // Empresa sem API: o manual e a UNICA origem possivel, entao o cliente ja
+  // deve ver essa base assim que ela e salva — sem isso, exibir_origem podia
+  // ficar preso num valor antigo (ou nunca configurado) e o painel do
+  // cliente/relatorios ficavam vazios mesmo com dado recem-colado no banco.
+  // Empresa COM API (toggle manual usado como complemento) mantem a escolha
+  // que o admin ja fez em "Cliente ve:" — nao mexe aqui.
+  if (!EMPRESA_ATIVA.tem_api && EMPRESA_ATIVA.exibir_origem !== 'manual') {
+    try {
+      var rOrig = await fetch(SUPA_URL + '/rest/v1/empresas?id=eq.' + eid, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ exibir_origem: 'manual' })
+      });
+      if (rOrig.ok) EMPRESA_ATIVA.exibir_origem = 'manual';
+    } catch (e) { console.warn('[ADMIN] Nao foi possivel marcar exibir_origem=manual:', e); }
+  }
+
   _adminAtualizarContagens();
   if (SESSION && SESSION.papel === 'admin') adminOwnerAtualizarResumo();
 }

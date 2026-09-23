@@ -6941,6 +6941,9 @@ body.company-admin-mode .admin-company-workspace {
 .admin-owner-data-toolbar-actions .admin-owner-refresh { white-space: nowrap; }
 .admin-owner-clear { padding: 10px 13px; border: 1px solid rgba(220,38,38,.22); border-radius: 12px; background: #fff; color: #b42318; font-size: 12px; font-weight: 800; cursor: pointer; }
 
+.admin-owner-clear-danger { background: #b42318; border-color: #b42318; color: #fff; }
+.admin-owner-clear-danger:hover { background: #8f1b12; border-color: #8f1b12; }
+
 @media (max-width: 760px) {
   .admin-company-workspace { padding: 20px; border-radius: 22px; }
   .admin-owner-hero, .admin-owner-footer { align-items: flex-start; flex-direction: column; }
