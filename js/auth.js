@@ -498,6 +498,7 @@ function filtrarEmpresasParaVisualizacao() {
  */
 async function abrirBDManualAdmin(empresaId) {
   if (!SESSION || SESSION.papel !== 'super_admin') return;
+  DC_ADMIN_PREVIEW_VOLTAR = 'comercial';
   if (typeof switchView === 'function') switchView('view-app');
   _marcarAbaComercialAtiva();
   if (typeof _adminRenderAbas === 'function') _adminRenderAbas(EMPRESAS_ADMIN);
@@ -517,7 +518,15 @@ async function abrirBDManualAdmin(empresaId) {
  */
 function avHomeVoltar() {
   if (!SESSION || SESSION.papel !== 'super_admin') return;
-  if (typeof adminConsoleAbrir === 'function') adminConsoleAbrir('overview');
+  // Respeita de onde essa grade foi aberta (Empresas > Abrir operacao,
+  // Usuarios > Entrar como, etc.) — sem isso, sempre voltava pra Visao
+  // geral, nada a ver com a tela de onde o super_admin realmente saiu.
+  var voltarPara = DC_ADMIN_PREVIEW_VOLTAR;
+  DC_ADMIN_PREVIEW_VOLTAR = null;
+  if (typeof adminConsoleAbrir !== 'function') return;
+  if (voltarPara && voltarPara !== 'comercial') { adminConsoleAbrir(voltarPara); return; }
+  if (voltarPara === 'comercial' && typeof abrirSeletorEmpresasCliente === 'function') { abrirSeletorEmpresasCliente(); return; }
+  adminConsoleAbrir('overview');
 }
 
 function abrirPainelClienteAdmin(empresaId) {
@@ -533,6 +542,11 @@ function abrirPainelClienteAdmin(empresaId) {
     return;
   }
 
+  // Marca a origem como "comercial" por padrao — quem chama esta funcao e
+  // quer voltar pra outro lugar (adminConsoleAbrirFinanceiroEmpresa, por
+  // exemplo) sobrescreve DC_ADMIN_PREVIEW_VOLTAR DEPOIS de chamar, que tem
+  // a palavra final.
+  DC_ADMIN_PREVIEW_VOLTAR = 'comercial';
   DC_ADMIN_PREVIEW = true;
   DC_ADMIN_PREVIEW_COMPANY = empresa;
   DC_LOAD_SEQUENCE += 1;
@@ -565,6 +579,16 @@ function dcVoltarAoAdmin() {
   DC_CHARTS = {};
   DC_ADMIN_PREVIEW = false;
   DC_ADMIN_PREVIEW_COMPANY = null;
+  // Respeita de onde esse preview foi aberto (Usuarios > Entrar como,
+  // Modulos/Financeiro > Ver painel do cliente, etc.) — antes sempre
+  // voltava pro card da empresa em Comercial, nada a ver com quem entrou
+  // via outra secao do console.
+  var voltarPara = DC_ADMIN_PREVIEW_VOLTAR;
+  DC_ADMIN_PREVIEW_VOLTAR = null;
+  if (voltarPara && voltarPara !== 'comercial' && typeof adminConsoleAbrir === 'function') {
+    adminConsoleAbrir(voltarPara);
+    return;
+  }
   abrirSeletorEmpresasCliente();
 }
 
@@ -1150,6 +1174,13 @@ var DC_LOADING_TIMER = null;
 var DC_IS_LOADING = false;
 var DC_ADMIN_PREVIEW = false;
 var DC_ADMIN_PREVIEW_COMPANY = null;
+// De onde o super_admin entrou numa visualizacao supervisionada (preview do
+// cliente, ou grade BD/Cadastros de admin da empresa) — "Voltar"/"Voltar ao
+// Admin" usa isso pra devolver pro MESMO lugar, em vez de sempre cair numa
+// tela generica fixa (era o que causava "a tela nao tem nada a ver com onde
+// eu estava"). null/'comercial' = veio do card da empresa em Comercial;
+// qualquer outro valor = chave de secao do console (adminConsoleAbrir).
+var DC_ADMIN_PREVIEW_VOLTAR = null;
 var DC_ABORT_CONTROLLER = null; // cancela fetches obsoletos ao trocar empresa
 var DC_CLI_CAD_TOTAL = null;    // total de clientes cadastrados (clientes_cad)
 var DC_PROD_TOTAL    = null;    // total de produtos cadastrados (produtos)

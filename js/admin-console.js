@@ -1016,7 +1016,7 @@ function adminConsoleRenderModulos() {
       +   '<small>Login de cliente. O super_admin gerencia tudo por aqui.</small></div>'
       +   '<button type="button" class="admin-btn-secondary" onclick="adminConsoleNovoUsuarioPara(\'' + adminConsoleEscape(id) + '\')">Adicionar acesso</button>'
       +   (temFinanceiro
-            ? '<button type="button" class="admin-btn-secondary" onclick="adminConsoleAbrirFinanceiroEmpresa(\'' + adminConsoleEscape(id) + '\')">Ver painel do cliente</button>'
+            ? '<button type="button" class="admin-btn-secondary" onclick="adminConsoleAbrirFinanceiroEmpresa(\'' + adminConsoleEscape(id) + '\', \'modules\')">Ver painel do cliente</button>'
             : '')
       + '</div>'
       + listaUsuarios
@@ -1266,7 +1266,7 @@ async function adminConsoleAplicarPlano(companyId) {
 }
 
 /** Abre o painel financeiro da empresa em modo de visualizacao supervisionada. */
-async function adminConsoleAbrirFinanceiroEmpresa(companyId) {
+async function adminConsoleAbrirFinanceiroEmpresa(companyId, origemSecao) {
   if (!companyId || typeof abrirPainelClienteAdmin !== 'function') return;
 
   // Garante que a lista de preview exista mesmo sem passar pelo seletor de empresas
@@ -1286,6 +1286,10 @@ async function adminConsoleAbrirFinanceiroEmpresa(companyId) {
   }
 
   abrirPainelClienteAdmin(companyId);
+  // abrirPainelClienteAdmin marca "comercial" por padrao — aqui veio de
+  // Modulos/Financeiro, entao sobrescreve pra "Voltar ao Admin" devolver
+  // pra secao certa (tem a palavra final, roda depois).
+  if (typeof DC_ADMIN_PREVIEW_VOLTAR !== 'undefined') DC_ADMIN_PREVIEW_VOLTAR = origemSecao || 'financeiro';
   if (typeof abrirModulo === 'function' && typeof MODULOS !== 'undefined') {
     abrirModulo(MODULOS.FINANCEIRO, { empresaIdPreview: companyId });
   }
@@ -1367,8 +1371,12 @@ function adminConsoleConfigurarAtualizacao(seconds) {
   }, seconds * 1000);
 }
 
-async function adminConsoleAbrirOperacao(companyId) {
+async function adminConsoleAbrirOperacao(companyId, origemSecao) {
   if (!companyId) return;
+  // "Voltar" (av-home-voltar/avHomeVoltar) usa isso pra devolver pra onde
+  // essa grade foi aberta — "Empresas" (Abrir operacao) por padrao, ou
+  // "Usuarios" quando chamado via "Entrar como" de um admin da empresa.
+  if (typeof DC_ADMIN_PREVIEW_VOLTAR !== 'undefined') DC_ADMIN_PREVIEW_VOLTAR = origemSecao || 'companies';
   // Sync EMPRESAS_ADMIN from admin console cache so adminSelecionarEmpresa can
   // find the company even when view-app was never opened in this session.
   if (ADMIN_CONSOLE.companies.length && typeof EMPRESAS_ADMIN !== 'undefined') {
@@ -1822,8 +1830,12 @@ function adminConsoleEntrarComo(userId) {
   if (!user.empresa_id) { adminConsoleAviso('Este usuario nao esta vinculado a uma empresa.', 'error'); return; }
   if (user.papel === 'admin') {
     // Usa a operacao existente que sincroniza EMPRESAS_ADMIN e abre view-app
-    adminConsoleAbrirOperacao(user.empresa_id);
+    adminConsoleAbrirOperacao(user.empresa_id, 'users');
   } else if (user.papel === 'cliente') {
+    // _abrirDashCliente nao passa por abrirPainelClienteAdmin (que marcaria
+    // "comercial" por padrao) — sem isso, "Voltar ao Admin" sempre devolvia
+    // pro card da empresa em Comercial, mesmo entrando por aqui.
+    if (typeof DC_ADMIN_PREVIEW_VOLTAR !== 'undefined') DC_ADMIN_PREVIEW_VOLTAR = 'users';
     // Popula ADMIN_PREVIEW_COMPANIES com dados do admin console para o preview
     if (typeof ADMIN_PREVIEW_COMPANIES !== 'undefined' && ADMIN_CONSOLE.companies.length) {
       ADMIN_PREVIEW_COMPANIES = ADMIN_CONSOLE.companies.map(function(c) {
