@@ -346,11 +346,13 @@ const DRE = (() => {
   // Bloco de evolução anual de um grupo, uma linha por coluna do recorte
   // atual (estado.slots), sempre comparando os 2 anos mais recentes do BD_DRE.
   function evolucaoAnualGrupo(nomeGrupo) {
-    // Ancorado no ano-calendario real (hoje), nao no maior ano que existir
-    // no BD — um lancamento com ano digitado errado (ex.: 2034) sequestrava
-    // o bloco inteiro pra comparar contra anos que nao existem de verdade.
-    // Em 2027 isso mostra 2027/2026 sozinho, sem precisar trocar nada aqui.
-    const anoAtual = new Date().getFullYear();
+    // Ancorado no ano SELECIONADO NO FILTRO (estado.ano), nao no ano-calendario
+    // real — selecionar 2025 no filtro tem que comparar 2025 vs 2024, nao
+    // sempre o ano de hoje vs o anterior. estado.ano por sua vez (montarFiltros)
+    // ja e escolhido pelo ano com MAIS lancamentos, nao o maior numero — entao
+    // um lancamento com ano digitado errado (ex.: 2034) continua sem conseguir
+    // sequestrar o bloco sozinho, mesmo sem usar o ano-calendario real aqui.
+    const anoAtual = estado.ano != null ? estado.ano : new Date().getFullYear();
     const anoAnterior = anoAtual - 1;
 
     const serieAtual    = serieAnualGrupo(nomeGrupo, anoAtual);
@@ -1423,7 +1425,9 @@ const DRE = (() => {
   // Variacao mes a mes (cruzando virada de ano), ancorada no ano-calendario
   // real — mesmo motivo do fix em evolucaoAnualGrupo acima.
   function laudoMoMGrupo(nomeGrupo) {
-    const anoAtual = new Date().getFullYear();
+    // Mesmo ancoramento de evolucaoAnualGrupo: segue o ano selecionado no
+    // filtro (estado.ano), nao o ano-calendario real.
+    const anoAtual = estado.ano != null ? estado.ano : new Date().getFullYear();
     const anoAnterior = anoAtual - 1;
     const serieAtual = serieAnualGrupo(nomeGrupo, anoAtual);
     const serieAnterior = serieAnualGrupo(nomeGrupo, anoAnterior);
