@@ -1125,77 +1125,6 @@ async function carregarDadosDoSupabase(empresa_id) {
   }
 }
 
-// ── SALVAR DADOS MANUAIS NO SUPABASE ─────────────────────────────────────────
-async function salvarDadosManuaisNoSupabase(silent) {
-  if (!SESSION || (SESSION.papel !== 'super_admin' && SESSION.papel !== 'admin')) {
-    alert('Apenas super_admin ou admin da empresa pode salvar dados manualmente.');
-    return;
-  }
-  var sel = document.getElementById('sync-empresa-select');
-  var empresa_id = (sel && sel.value) || (EMPRESAS[0] && EMPRESAS[0].empresa_id);
-  if (!empresa_id) { alert('Selecione uma empresa.'); return; }
-
-  var rows = (typeof FULL_DATA !== 'undefined' && FULL_DATA.bd) ? FULL_DATA.bd : [];
-  rows = rows.filter(function(r){ return r && r.some(function(c){ return c!==''&&c!==null; }); });
-  if (!rows.length) { alert('Sem dados para salvar. Cole no BD primeiro.'); return; }
-
-  _setStatus('⏳ Salvando ' + rows.length + ' linhas no Supabase...', '');
-
-  // Converte rows → registros do Supabase
-  var registros = rows.map(function(r) {
-    return {
-      empresa_id:    empresa_id,
-      id_externo:    'manual_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
-      num_pedido:    r[1] || null,
-      produto:       r[2] || null,
-      qtd:           parseFloat(r[3]) || null,
-      dt_emissao:    r[4] || null,
-      dt_saida:      r[5] || null,
-      valor:         parseFloat(String(r[6]).replace(',','.')) || null,
-      vendedor:      r[7] || null,
-      industria:     r[8] || null,
-      cliente:       r[9] || null,
-      ano:           parseInt(r[10]) || null,
-      mes:           r[11] || null,
-      grupo:         r[12] || null,
-      cidade:        r[16] || null,
-      uf:            r[17] || null,
-      empresa_nome:  r[23] || null,
-      cnpj:          r[24] || null,
-      marca:         r[28] || null
-    };
-  });
-
-  try {
-    // Upload em lotes de 500
-    var lote = 500;
-    for (var i = 0; i < registros.length; i += lote) {
-      var batch = registros.slice(i, i + lote);
-      var r = await fetch(SUPA_URL + '/rest/v1/vendas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPA_KEY,
-          'Authorization': 'Bearer ' + SVC_KEY,
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify(batch)
-      });
-      if (!r.ok) {
-        var err = await r.text();
-        throw new Error('Erro ao salvar: ' + err.slice(0, 200));
-      }
-      _setStatus('⏳ ' + Math.min(i + lote, registros.length) + '/' + registros.length + ' salvos...', '');
-    }
-    _setStatus('✓ ' + registros.length + ' linhas salvas no banco!', 'ok');
-    if (!silent) alert('✅ ' + registros.length + ' linhas salvas no Supabase!');
-  } catch(e) {
-    console.error(e);
-    _setStatus('✗ ' + e.message, 'erro');
-    if (!silent) alert('❌ Erro ao salvar: ' + e.message);
-  }
-}
-
 function _setStatus(msg, tipo) {
   var el = document.getElementById('sync-status');
   if (!el) return;
@@ -3692,7 +3621,9 @@ async function _adminCarregarEmpresasMeta() {
         empresa_id: empresaDb.id || empresaDb.empresa_id,
         nome: empresaDb.nome || 'Empresa',
         slug: empresaDb.slug || null,
-        tem_api: !!apiCfg && origem === 'api',
+        // Ter integracao configurada independe da origem que o cliente escolheu
+        // visualizar. Antes, trocar para Manual escondia/desativava o sync.
+        tem_api: !!apiCfg,
         logo_url: empresaDb.logo_url || null,
         funcoes: empresaDb.funcoes || {},
         sistema: apiCfg && apiCfg.sistema ? apiCfg.sistema : (empresaDb.sistema || null),
@@ -3892,7 +3823,9 @@ async function adminSelecionarEmpresa(id) {
   await _adminPreencherPeriodoSync(id);
 
   // Carrega dados existentes
-  await _adminCarregar(id);
+  // A grade editavel e exclusivamente manual. Misturar registros da API aqui
+  // fazia o proximo salvamento copiar a base sincronizada para origem=manual.
+  await _adminCarregar(id, 'manual');
   await _adminCarregarCadastrosApiSalvos();
   if (SESSION && SESSION.papel === 'admin') await adminOwnerAtualizarResumo();
 }
@@ -4013,15 +3946,29 @@ function admSyncAba(aba) {
   });
 }
 
-async function _adminCarregar(empresa_id) {
+async function _adminCarregar(empresa_id, origem) {
   try {
     // id.asc desempata paginas com a mesma dt_saida — sem isso, uma linha pode
     // sumir ou repetir entre uma pagina e outra da paginacao por Range.
+    var filtroOrigem = origem ? '&origem=eq.' + encodeURIComponent(origem) : '';
     var v = await _fetchAll(
-      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + '&select=*&order=dt_saida.asc,id.asc',
+      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + empresa_id + filtroOrigem + '&select=*&order=dt_saida.asc,id.asc',
       { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
     );
-    if (!Array.isArray(v) || !v.length) { _adminSetStatus('Sem dados. Cole na grade ou sincronize.'); return; }
+    if (!Array.isArray(v) || !v.length) {
+      if (typeof BD_DATA !== 'undefined') { BD_DATA.rows = []; BD_DATA.count = 0; }
+      if (typeof FULL_DATA !== 'undefined') FULL_DATA.bd = [];
+      if (typeof GRIDS !== 'undefined' && GRIDS.bd) {
+        GRIDS.bd.allData = [];
+        GRIDS.bd.filtered = null;
+        GRIDS.bd.page = 0;
+        GRIDS.bd._render();
+        GRIDS.bd._updateStatus();
+      }
+      _adminSetStatus('Sem dados ' + (origem === 'api' ? 'da API' : 'manuais') + '. Cole na grade ou sincronize.');
+      return;
+    }
+    v = _comercialOrdenarImportacao(v);
     var headers = ['ID','N° PEDIDO','PRODUTO OU SERVIÇO','QTD','Dt. Emissão','Data de Saída','VALOR','Vendedor','Indústria','Cliente','ANO','MÊS','GRUPO','SEM','tipo mercado','SETOR','CIDADE','UF','TIPO VENDEDOR','Dias Sem Compra','NOTA F','ROTA','DESCONTO','EMPRESA','cnpj','grupo_produto','GRUPO PAI','subgrupo_produto','marca','familia_produto','classes'];
     var rows = v.map(function(r){ return [r.id_externo||'',r.num_pedido||'',r.produto||'',String(r.qtd||''),r.dt_emissao||'',r.dt_saida||'',String(r.valor||''),r.vendedor||'',r.industria||'',r.cliente||'',r.ano?String(r.ano):'',r.mes||'',r.grupo||'',r.semana||'',r.tipo_mercado||'',r.setor||'',r.cidade||'',r.uf||'',r.tipo_vendedor||'','','','','',r.empresa_nome||'',r.cnpj||'',r.grupo_produto||'',r.grupo_pai||'',r.subgrupo||'',r.marca||'',r.familia||'',r.classes||'']; });
     if (typeof BD_DATA   !== 'undefined') { BD_DATA.headers = headers; BD_DATA.rows = rows; BD_DATA.count = rows.length; }
@@ -4670,109 +4617,6 @@ async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
 }
 
 
-function adminProcessar() {
-  if (!EMPRESA_ATIVA) { alert('Selecione uma empresa.'); return; }
-  var src = (typeof FULL_DATA !== 'undefined' && FULL_DATA.bd && FULL_DATA.bd.length) ? FULL_DATA.bd : (typeof GRIDS !== 'undefined' && GRIDS.bd ? GRIDS.bd.getData() : []);
-  var rows = src.filter(function(r){ return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; }); });
-  if (!rows.length) { alert('Sem dados. Cole na grade ou sincronize.'); return; }
-  _adminSetStatus('⏳ Processando ' + rows.length.toLocaleString('pt-BR') + ' linhas...');
-  var headers = ['ID','N° PEDIDO','PRODUTO OU SERVIÇO','QTD','Dt. Emissão','Data de Saída','VALOR','Vendedor','Indústria','Cliente','ANO','MÊS','GRUPO','SEM','tipo mercado','SETOR','CIDADE','UF','TIPO VENDEDOR','Dias Sem Compra','NOTA F','ROTA','DESCONTO','EMPRESA','cnpj','grupo_produto','GRUPO PAI','subgrupo_produto','marca','familia_produto','classes'];
-  if (typeof BD_DATA   !== 'undefined') { BD_DATA.headers = headers; BD_DATA.rows = rows; BD_DATA.count = rows.length; }
-  if (typeof FULL_DATA !== 'undefined') FULL_DATA.bd = rows;
-  setTimeout(function() {
-    try { bdMapColumns(); } catch(e) { console.error(e); }
-    try { bdAutoFill(); }   catch(e) { console.error(e); }
-    try { bdUpdateAllTabs(); } catch(e) { console.error(e); }
-    if (typeof GRIDS !== 'undefined' && GRIDS.bd) { GRIDS.bd.allData = BD_DATA.rows; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render(); }
-    _adminSetStatus('✓ ' + rows.length.toLocaleString('pt-BR') + ' linhas processadas — salvando no banco...', true);
-    // Salva automaticamente no Supabase para o cliente ver
-    adminSalvarBancoSilencioso(rows);
-  }, 10);
-}
-
-async function adminSalvarBancoSilencioso(rowsParam) {
-  if (!EMPRESA_ATIVA) return;
-  var eid = EMPRESA_ATIVA.empresa_id, ts = Date.now();
-  var rows = rowsParam || [];
-  if (!rows.length) return;
-
-  var regs = rows.map(function(r, i) {
-    return { empresa_id:eid, id_externo:'manual_'+eid.slice(0,8)+'_'+ts+'_'+i,
-      num_pedido:r[1]||null, produto:r[2]||null, qtd:parseFloat(r[3])||null,
-      dt_emissao:r[4]||null, dt_saida:r[5]||null,
-      valor:parseFloat(String(r[6]||'0').replace(',','.'))||null,
-      vendedor:r[7]||null, industria:r[8]||null, cliente:r[9]||null,
-      ano:parseInt(r[10])||null, mes:r[11]||null, grupo:r[12]||null,
-      cidade:r[16]||null, uf:r[17]||null,
-      empresa_nome:EMPRESA_ATIVA.nome, cnpj:r[24]||null, marca:r[28]||null };
-  });
-
-  try {
-    // Remove manuais antigos e insere novos
-    await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid + '&id_externo=like.manual_*',
-      { method:'DELETE', headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SVC_KEY} });
-
-    for (var i = 0; i < regs.length; i += 500) {
-      var batch = regs.slice(i, i+500);
-      await fetch(SUPA_URL + '/rest/v1/vendas', {
-        method:'POST',
-        headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SVC_KEY,'Prefer':'return=minimal'},
-        body:JSON.stringify(batch)
-      });
-      _adminSetStatus('⏳ Salvando... ' + Math.min(i+500,regs.length) + '/' + regs.length);
-    }
-    _adminSetStatus('✓ ' + regs.length.toLocaleString('pt-BR') + ' linhas salvas — cliente pode ver os relatórios!', true);
-  } catch(e) {
-    _adminSetStatus('⚠ Processado mas erro ao salvar: ' + e.message);
-    console.error(e);
-  }
-}
-
-async function adminSalvarBanco() {
-  if (!EMPRESA_ATIVA) { alert('Selecione uma empresa.'); return; }
-  var src = (typeof FULL_DATA !== 'undefined' && FULL_DATA.bd && FULL_DATA.bd.length) ? FULL_DATA.bd : (typeof GRIDS !== 'undefined' && GRIDS.bd ? GRIDS.bd.getData() : []);
-  var rows = src.filter(function(r){ return r && r.some(function(c){ return c!==''&&c!==null&&c!==undefined; }); });
-  if (!rows.length) { alert('Sem dados para salvar.'); return; }
-  if (!confirm('Salvar ' + rows.length.toLocaleString('pt-BR') + ' linhas para ' + EMPRESA_ATIVA.nome + '?')) return;
-  var eid = EMPRESA_ATIVA.empresa_id, ts = Date.now();
-  var regs = rows.map(function(r, i) {
-    return { empresa_id:eid, id_externo:'manual_'+eid.slice(0,8)+'_'+ts+'_'+i,
-      num_pedido:r[1]||null, produto:r[2]||null, qtd:parseFloat(r[3])||null,
-      dt_emissao:r[4]||null, dt_saida:r[5]||null, valor:parseFloat(String(r[6]||'0').replace(',','.'))||null,
-      vendedor:r[7]||null, industria:r[8]||null, cliente:r[9]||null,
-      ano:parseInt(r[10])||null, mes:r[11]||null, grupo:r[12]||null,
-      cidade:r[16]||null, uf:r[17]||null, empresa_nome:EMPRESA_ATIVA.nome, cnpj:r[24]||null, marca:r[28]||null };
-  });
-  try {
-    await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + eid + '&id_externo=like.manual_*',
-      { method:'DELETE', headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SVC_KEY} });
-    for (var i = 0; i < regs.length; i += 500) {
-      var batch = regs.slice(i, i+500);
-      var res = await fetch(SUPA_URL + '/rest/v1/vendas', {
-        method:'POST', headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SVC_KEY,'Prefer':'return=minimal'},
-        body:JSON.stringify(batch) });
-      if (!res.ok) { var err = await res.text(); throw new Error(err.slice(0,200)); }
-      _adminSetStatus('⏳ ' + Math.min(i+500,regs.length) + '/' + regs.length + ' salvos...');
-    }
-    _adminSetStatus('✓ ' + regs.length.toLocaleString('pt-BR') + ' linhas salvas para ' + EMPRESA_ATIVA.nome + '!', true);
-  } catch(e) { _adminSetStatus('✗ ' + e.message); alert('Erro ao salvar: ' + e.message); }
-}
-
-async function adminLimparBanco() {
-  if (!EMPRESA_ATIVA) return;
-  if (!confirm('⚠️ APAGAR TODOS OS DADOS de ' + EMPRESA_ATIVA.nome + '?\nEssa ação não pode ser desfeita!')) return;
-  if (!confirm('Confirme: Apagar TUDO de ' + EMPRESA_ATIVA.nome + '?')) return;
-  _adminSetStatus('⏳ Limpando banco de ' + EMPRESA_ATIVA.nome + '...');
-  try {
-    await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id,
-      { method:'DELETE', headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SVC_KEY} });
-    if (typeof FULL_DATA !== 'undefined') FULL_DATA.bd = [];
-    if (typeof BD_DATA   !== 'undefined') { BD_DATA.rows = []; BD_DATA.count = 0; }
-    if (typeof GRIDS !== 'undefined' && GRIDS.bd) { GRIDS.bd.allData = []; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render(); }
-    _adminSetStatus('✓ Banco de ' + EMPRESA_ATIVA.nome + ' limpo!', true);
-  } catch(e) { _adminSetStatus('✗ ' + e.message); }
-}
-
 function _adminSetStatus(msg, ok) {
   var el = document.getElementById('admin-sync-status'); if (!el) return;
   el.textContent = msg;
@@ -4990,9 +4834,106 @@ async function adminToggleOrigem(origem) {
 }
 
 // ── PROCESSAR MANUAL + SALVAR ─────────────────────────────────────────────────
+function _comercialPadOrdem(indice) {
+  return String(Math.max(0, Number(indice) || 0)).padStart(8, '0');
+}
+
+function _comercialNumeroApi(valor) {
+  if (valor === null || valor === undefined || valor === '') return 0;
+  if (typeof valor === 'number') return Number.isFinite(valor) ? valor : 0;
+  var texto = String(valor).trim();
+  if (!texto) return 0;
+  // Em JSON, ponto unico e separador decimal. No Excel pt-BR, a mesma grafia
+  // costuma ser milhar; por isso a API nao pode usar exatamente a regra manual.
+  if (texto.indexOf(',') < 0 && /^-?\d+(?:\.\d+)?$/.test(texto)) {
+    var numero = Number(texto);
+    return Number.isFinite(numero) ? numero : 0;
+  }
+  return parseSmartNumber(texto);
+}
+
+/**
+ * Recupera a sequencia gravada no id_externo sem depender de uma coluna nova
+ * no banco. Registros antigos continuam validos e mantem a ordem do servidor.
+ */
+function _comercialOrdemImportacao(registro) {
+  var id = String(registro && registro.id_externo || '');
+  var manual = id.match(/^manual_[^_]+_(\d+)_(\d+)(?:_|$)/);
+  if (manual) return { lote: 'manual_' + manual[1], ordem: Number(manual[2]) };
+  var api = id.match(/^api_(\d+)_(\d+)_/);
+  if (api) return { lote: 'api_' + api[1], ordem: Number(api[2]) };
+  return null;
+}
+
+function _comercialOrdenarImportacao(registros) {
+  if (!Array.isArray(registros) || registros.length < 2) return registros || [];
+  var marcados = registros.map(_comercialOrdemImportacao);
+  var lote = marcados[0] && marcados[0].lote;
+  // So reordena quando toda a resposta pertence a uma unica importacao. Em
+  // bases historicas com lotes diferentes, preserva a ordenacao do servidor.
+  if (!lote || marcados.some(function(item) { return !item || item.lote !== lote; })) return registros;
+  return registros.map(function(registro, indice) {
+    return { registro: registro, indice: indice, ordem: marcados[indice].ordem };
+  }).sort(function(a, b) {
+    return a.ordem - b.ordem || a.indice - b.indice;
+  }).map(function(item) { return item.registro; });
+}
+
+function _comercialRegistrosManuais(rows, empresaId, empresaNome, timestamp) {
+  var prefixo = 'manual_' + empresaId.slice(0, 8) + '_' + timestamp + '_';
+  return rows.map(function(r, i) {
+    return {
+      empresa_id: empresaId,
+      origem: 'manual',
+      id_externo: prefixo + _comercialPadOrdem(i),
+      num_pedido: r[1] || null,
+      produto: r[2] || null,
+      qtd: parseSmartNumber(r[3]) || null,
+      dt_emissao: _cvData(r[4]),
+      dt_saida: _cvData(r[5]),
+      valor: parseSmartNumber(r[6]) || null,
+      vendedor: r[7] || null,
+      industria: r[8] || null,
+      cliente: r[9] || null,
+      ano: parseInt(r[10], 10) || null,
+      mes: r[11] || null,
+      grupo: r[12] || null,
+      cidade: r[16] || null,
+      uf: r[17] || null,
+      empresa_nome: empresaNome || null,
+      cnpj: r[24] || null,
+      marca: r[28] || null
+    };
+  });
+}
+
+async function _comercialInvalidarCaches(empresaId) {
+  try {
+    if (window.ReportCache) await window.ReportCache.clearEmpresa(empresaId);
+  } catch (e) {
+    console.warn('[COMERCIAL] Cache remoto nao foi limpo:', e.message);
+  }
+  try { await _dcIdbDelete('resute_dc_cache_' + empresaId); } catch (e) {}
+}
+
+var _ADMIN_PROCESSANDO_MANUAL = false;
 async function adminProcessarManual() {
   if (!EMPRESA_ATIVA) { alert('Selecione uma empresa.'); return; }
+  // Sem essa trava, clicar duas vezes (ou dar duplo-clique por impaciencia
+  // numa colagem grande) dispara dois salvamentos em paralelo, cada um com
+  // seu proprio marcador/delete — dependendo da ordem de chegada das
+  // respostas, um pode apagar o resultado do outro no meio do processo e
+  // deixar o total inflado ou pela metade.
+  if (_ADMIN_PROCESSANDO_MANUAL) { alert('Já está processando — aguarde terminar antes de clicar de novo.'); return; }
+  _ADMIN_PROCESSANDO_MANUAL = true;
+  try {
+    await _adminProcessarManualExec();
+  } finally {
+    _ADMIN_PROCESSANDO_MANUAL = false;
+  }
+}
 
+async function _adminProcessarManualExec() {
   var src = (typeof FULL_DATA !== 'undefined' && FULL_DATA.bd && FULL_DATA.bd.length)
     ? FULL_DATA.bd
     : (typeof GRIDS !== 'undefined' && GRIDS.bd ? GRIDS.bd.getData() : []);
@@ -5023,24 +4964,7 @@ async function adminProcessarManual() {
   // Salva no Supabase com origem = 'manual'
   var eid = EMPRESA_ATIVA.empresa_id;
   var ts  = Date.now();
-  var regs = rows.map(function(r, i) {
-    return {
-      empresa_id:   eid,
-      origem:       'manual',
-      id_externo:   'manual_' + eid.slice(0,8) + '_' + ts + '_' + i,
-      num_pedido:   r[1]||null, produto:   r[2]||null,
-      // parseSmartNumber (js/utils.js) — o mesmo parser usado nos relatorios do
-      // Comercial. O parseFloat direto lia "1.234,56" como 1.234 (so ate o
-      // primeiro caractere invalido), gravando o valor 1000x menor no banco.
-      qtd:          parseSmartNumber(r[3]) || null,
-      dt_emissao:   _cvData(r[4]), dt_saida: _cvData(r[5]),
-      valor:        parseSmartNumber(r[6]) || null,
-      vendedor:     r[7]||null, industria: r[8]||null, cliente:   r[9]||null,
-      ano:          parseInt(r[10])||null, mes: r[11]||null, grupo: r[12]||null,
-      cidade:       r[16]||null, uf: r[17]||null,
-      empresa_nome: EMPRESA_ATIVA.nome, cnpj: r[24]||null, marca: r[28]||null
-    };
-  });
+  var regs = _comercialRegistrosManuais(rows, eid, EMPRESA_ATIVA.nome, ts);
 
   // Insere a versao NOVA primeiro (marcada pelo prefixo unico de id_externo
   // desta execucao) e so DEPOIS apaga a antiga. Antes era DELETE de tudo e
@@ -5078,6 +5002,7 @@ async function adminProcessarManual() {
       headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal' }
     });
     if (!del.ok) throw new Error('HTTP ' + del.status);
+    await _comercialInvalidarCaches(eid);
     _adminSetStatus('✓ ' + regs.length.toLocaleString('pt-BR') + ' linhas manuais salvas para ' + EMPRESA_ATIVA.nome + '!', true);
   } catch (e) {
     _adminSetStatus('✓ ' + regs.length.toLocaleString('pt-BR') + ' linhas novas salvas, mas a versão antiga não pôde ser removida (' + e.message + '). Clique em Processar e Salvar de novo para concluir a troca.');
@@ -5164,6 +5089,15 @@ function _cvDataReal(a, m, d) {
 function _cvData(v) {
   if (!v) return null;
   var s = String(v).trim();
+  // Excel pode entregar a data como numero serial quando a coluna esta no
+  // formato Geral. Converte em UTC para nao deslocar um dia pelo fuso local.
+  if (/^\d+(?:[.,]\d+)?$/.test(s)) {
+    var serial = Number(s.replace(',', '.'));
+    if (serial > 0 && serial < 100000) {
+      var excelMs = Date.UTC(1899, 11, 30) + Math.floor(serial) * 86400000;
+      return new Date(excelMs).toISOString().slice(0, 10);
+    }
+  }
   var iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (iso) return _cvDataReal(+iso[1], +iso[2], +iso[3]) ? iso[0].slice(0, 10) : null;
   // Data invalida (31/02, 31/04...) nao pode ir pro banco: coluna date do
@@ -5385,17 +5319,10 @@ adminSincronizar = async function() {
       return null;
     };
 
-    var cvData = function(v) {
-      if (!v) return null;
-      var s = String(v).trim();
-      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
-      var m = s.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
-      if (m) return m[3]+'-'+m[2]+'-'+m[1];
-      var d = new Date(s);
-      return isNaN(d.getTime()) ? null : d.toISOString().slice(0,10);
-    };
+    var cvData = _cvData;
 
     var idsSync = {};
+    var syncOrdemTs = Date.now();
     function montarIdExternoSync(item, idx) {
       var pedidoBase = String(get(item,['numeropedido','numpedido','pedido','cdpedido','nrpedido','idvenda','codigo']) || '').trim();
       var itemBase = String(get(item,['iditem','codigoitem','seq','cditem','nritem','item']) || '').trim();
@@ -5414,7 +5341,7 @@ adminSincronizar = async function() {
         finalId = baseId + '__' + n;
       }
       idsSync[finalId] = true;
-      return finalId;
+      return 'api_' + syncOrdemTs + '_' + _comercialPadOrdem(idx) + '_' + finalId;
     }
 
     var regs = lista.map(function(item, idx) {
@@ -5424,10 +5351,10 @@ adminSincronizar = async function() {
         id_externo:   montarIdExternoSync(item, idx),
         num_pedido:   String(get(item,['numeropedido','numpedido','pedido','cdpedido','nrpedido']) || ''),
         produto:      String(get(item,['descricaoitem','descricaoItem','descitem','produto','descricao','descricaoproduto','nmproduto']) || ''),
-        qtd:          Number(get(item,['quantidadevenda','quantidadeVenda','quantidade','qtd','qtde']) || 0),
+        qtd:          _comercialNumeroApi(get(item,['quantidadevenda','quantidadeVenda','quantidade','qtd','qtde'])) || 0,
         dt_emissao:   cvData(get(item,['dataemissao','dtemissao','emissao'])),
         dt_saida:     cvData(get(item,['datafaturamento','dataFaturamento','dataatendimento','datasaida','dtsaida','datavenda'])),
-        valor:        Number(String(get(item,['valortotal','valor','vltotal','totalitem','vlitem','valoritem']) || '0').replace(',','.')),
+        valor:        _comercialNumeroApi(get(item,['valortotal','valor','vltotal','totalitem','vlitem','valoritem'])) || 0,
         vendedor:     String(get(item,['nomevendedor','nomeVendedor','vendedor','representante','nomerepresentante']) || ''),
         industria:    String(get(item,['industria','fabricante','fornecedor','marca']) || ''),
         cliente:      String(get(item,['nomecliente','nomeCliente','cliente','razaosocial']) || ''),
@@ -5443,7 +5370,7 @@ adminSincronizar = async function() {
     var delFim = dataFim.toISOString().slice(0,10);
     _syncProgress('Removendo dados antigos do período...', 33, null);
     var delAll = await fetch(
-      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&dt_saida=gte.' + delInicio + '&dt_saida=lte.' + delFim,
+      SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&origem=eq.api&dt_saida=gte.' + delInicio + '&dt_saida=lte.' + delFim,
       { method: 'DELETE', headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'return=minimal', 'Content-Type': 'application/json' } }
     );
     if (!delAll.ok) {
@@ -5508,7 +5435,7 @@ adminSincronizar = async function() {
 
     // Gera relatórios automaticamente
     _syncProgress('Carregando dados e gerando relatórios...', 85, null);
-    await _adminCarregar(EMPRESA_ATIVA.empresa_id);
+    await _adminCarregar(EMPRESA_ATIVA.empresa_id, 'api');
 
     try { bdMapColumns(); } catch(e) { console.error(e); }
     try { bdAutoFill(); }   catch(e) { console.error(e); }

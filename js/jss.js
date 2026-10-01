@@ -923,10 +923,9 @@ function jssProcess(){
     if(GRIDS.bd){GRIDS.bd.allData=BD_DATA.rows;GRIDS.bd.filtered=null;GRIDS.bd.page=0;GRIDS.bd._render();}
     try{bdUpdateAllTabs();}catch(e){console.error(e);}
     setStatus('✓ '+rows.length.toLocaleString('pt-BR')+' linhas processadas — relatórios atualizados!',true);
-    // Salva automaticamente no Supabase
-    setTimeout(function(){
-      if(typeof salvarDadosManuaisNoSupabase==='function') salvarDadosManuaisNoSupabase(true);
-    },300);
+    // Persistencia e feita somente pelo fluxo "Processar e salvar" do painel.
+    // O salvamento automatico antigo concorria com esse fluxo e duplicava a
+    // base manual usando um conversor numerico diferente.
   },10);
 }
 

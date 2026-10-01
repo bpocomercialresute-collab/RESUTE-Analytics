@@ -12,10 +12,21 @@ function parseSmartNumber(value) {
   let raw = String(value).trim();
   if (!raw) return 0;
 
+  // Excel/contabilidade costuma representar negativos como (1.234,56),
+  // 1.234,56- ou -R$ 1.234,56. Sem preservar o sinal, devolucoes/descontos
+  // viravam receita positiva e inflavam o total.
+  let negative = /^\(.*\)$/.test(raw);
+  raw = raw.replace(/[()]/g, '').replace(/[−–—]/g, '-');
+  // O sinal pode vir em qualquer posicao, inclusive DEPOIS do "R$"
+  // ("R$ -101,00") — nao so no inicio/fim da string inteira.
+  if (raw.indexOf('-') !== -1) negative = true;
+
   raw = raw
     .replace(/R\$/gi, '')
     .replace(/\s+/g, '')
     .replace(/[^\d,.-]/g, '');
+
+  raw = raw.replace(/-/g, '');
 
   const hasComma = raw.indexOf(',') >= 0;
   const hasDot = raw.indexOf('.') >= 0;
@@ -28,10 +39,11 @@ function parseSmartNumber(value) {
       : raw.replace(/,/g, '');
   } else if (hasComma) {
     const parts = raw.split(',');
-    const tail = parts[parts.length - 1] || '';
-    raw = (parts.length > 2 || tail.length === 3)
-      ? raw.replace(/,/g, '')
-      : raw.replace(',', '.');
+    // No padrao brasileiro uma unica virgula e sempre decimal, inclusive em
+    // quantidades com 3 casas (1,234). Varias virgulas em grupos de 3 sao o
+    // formato de milhar americano (1,234,567).
+    const gruposMilhar = parts.length > 2 && parts.slice(1).every(function(p) { return p.length === 3; });
+    raw = gruposMilhar ? parts.join('') : (parts.slice(0, -1).join('') + '.' + parts[parts.length - 1]);
   } else if (hasDot) {
     const parts = raw.split('.');
     const tail = parts[parts.length - 1] || '';
@@ -41,7 +53,8 @@ function parseSmartNumber(value) {
   }
 
   const num = Number(raw);
-  return Number.isFinite(num) ? num : 0;
+  if (!Number.isFinite(num)) return 0;
+  return negative ? -Math.abs(num) : num;
 }
 
 /** Formata número sem centavos */
