@@ -4761,7 +4761,50 @@ function _adminSetStatus(msg, ok) {
   el.className = 'admin-sync-status' + (ok ? ' ok' : (msg.startsWith('✗') ? ' erro' : ''));
 }
 
+// Monta o seletor de empresas como dropdown (gatilho + menu), em vez de um
+// botao por empresa lado a lado — com 20+ empresas num grupo, os botoes
+// quebravam linha e amontoavam o topo da tela. O gatilho mostra so a
+// empresa ativa; o menu (fecha ao escolher ou clicar fora) lista o resto.
+function _dcMontarDropdownLojas(sel, itensHtml, labelInicial) {
+  sel.innerHTML =
+    '<div class="dc-loja-dropdown">' +
+      '<button type="button" class="dc-loja-trigger" id="dc-loja-trigger" aria-expanded="false">' +
+        '<span id="dc-loja-trigger-label">' + labelInicial + '</span>' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="6 9 12 15 18 9"/></svg>' +
+      '</button>' +
+      '<div class="dc-loja-menu" id="dc-loja-menu" hidden>' + itensHtml + '</div>' +
+    '</div>';
+  sel.style.display = 'flex';
+
+  var trigger = document.getElementById('dc-loja-trigger');
+  var menu = document.getElementById('dc-loja-menu');
+  trigger.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var abrir = menu.hidden;
+    menu.hidden = !abrir;
+    trigger.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  });
+  sel.querySelectorAll('.dc-loja-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { dcSelecionarLoja(this.dataset.id); });
+  });
+  if (!_DC_LOJA_DROPDOWN_FECHAR_LIGADO) {
+    _DC_LOJA_DROPDOWN_FECHAR_LIGADO = true;
+    document.addEventListener('click', function() {
+      var m = document.getElementById('dc-loja-menu');
+      var t = document.getElementById('dc-loja-trigger');
+      if (m) m.hidden = true;
+      if (t) t.setAttribute('aria-expanded', 'false');
+    });
+  }
+}
+var _DC_LOJA_DROPDOWN_FECHAR_LIGADO = false;
+
 function dcSelecionarLoja(empresa_id) {
+  var menu = document.getElementById('dc-loja-menu');
+  var trigger = document.getElementById('dc-loja-trigger');
+  if (menu) menu.hidden = true;
+  if (trigger) trigger.setAttribute('aria-expanded', 'false');
+
   // Modo "Todas" — carrega dados consolidados do grupo
   if (empresa_id === 'todas') {
     document.querySelectorAll('.dc-loja-btn').forEach(function(b) {
@@ -4769,6 +4812,8 @@ function dcSelecionarLoja(empresa_id) {
     });
     var badge = document.getElementById('dc-empresa');
     if (badge) badge.textContent = 'Todas as empresas';
+    var triggerLabel = document.getElementById('dc-loja-trigger-label');
+    if (triggerLabel) triggerLabel.textContent = 'Todas as empresas';
     _dcCarregarTodas();
     return;
   }
@@ -4776,9 +4821,12 @@ function dcSelecionarLoja(empresa_id) {
   document.querySelectorAll('.dc-loja-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.id === empresa_id);
   });
-  // Atualiza badge
+  // Atualiza badge e o rotulo do gatilho do dropdown
+  var nome = LOJA_NOMES[empresa_id] || 'Empresa';
   var badge = document.getElementById('dc-empresa');
-  if (badge) badge.textContent = LOJA_NOMES[empresa_id] || 'Empresa';
+  if (badge) badge.textContent = nome;
+  var triggerLabel = document.getElementById('dc-loja-trigger-label');
+  if (triggerLabel) triggerLabel.textContent = nome;
   // Carrega dados da loja selecionada
   dcCarregarDados(empresa_id);
 }
@@ -4788,13 +4836,10 @@ function _montarSeletorLojas() {
   if (!ids || ids.length <= 1) return;
   var sel = document.getElementById('dc-loja-selector');
   if (!sel) return;
-  sel.innerHTML = ids.map(function(id) {
-    return '<button class="dc-loja-btn" data-id="'+id+'">'+(LOJA_NOMES[id]||id.slice(0,8))+'</button>';
+  var itensHtml = ids.map(function(id) {
+    return '<button class="dc-loja-btn" data-id="' + id + '">' + (LOJA_NOMES[id] || id.slice(0, 8)) + '</button>';
   }).join('');
-  sel.style.display = 'flex';
-  sel.querySelectorAll('.dc-loja-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() { dcSelecionarLoja(this.dataset.id); });
-  });
+  _dcMontarDropdownLojas(sel, itensHtml, LOJA_NOMES[ids[0]] || ids[0].slice(0, 8));
   // Seleciona a primeira por padrão
   dcSelecionarLoja(ids[0]);
 }
@@ -4840,11 +4885,7 @@ function _dcRenderizarSeletorFiliais(empresaPaiId) {
   DC_FILIAIS.forEach(function(f) {
     btns += '<button class="dc-loja-btn" data-id="' + esc(f.empresa_filial_id) + '">' + esc(f.nome) + '</button>';
   });
-  sel.innerHTML = btns;
-  sel.style.display = 'flex';
-  sel.querySelectorAll('.dc-loja-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() { dcSelecionarLoja(this.dataset.id); });
-  });
+  _dcMontarDropdownLojas(sel, btns, esc(paiNome));
 }
 
 async function _dcCarregarTodas() {
