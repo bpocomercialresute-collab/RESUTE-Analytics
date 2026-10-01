@@ -579,6 +579,15 @@ function dcVoltarAoAdmin() {
   DC_CHARTS = {};
   DC_ADMIN_PREVIEW = false;
   DC_ADMIN_PREVIEW_COMPANY = null;
+  // adminConsoleAbrir() so esconde .page-view; #view-dash-cliente e um
+  // overlay fixo (position:fixed/z-index:9000) sem essa classe, escondido
+  // manualmente pelas telas que abrem este dashboard. Sem isso aqui, voltar
+  // pra uma secao do console (abaixo) roda certo mas fica invisivel, com
+  // esse dashboard ainda por cima — clicar parecia "nao fazer nada".
+  ['view-dash-cliente', 'view-dash-financeiro', 'view-dash-dre'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
   // Respeita de onde esse preview foi aberto (Usuarios > Entrar como,
   // Modulos/Financeiro > Ver painel do cliente, etc.) — antes sempre
   // voltava pro card da empresa em Comercial, nada a ver com quem entrou

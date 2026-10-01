@@ -1001,5 +1001,22 @@ function finVoltarAoAdmin() {
   if (typeof SESSION === 'undefined' || !SESSION || SESSION.papel !== 'super_admin') return;
   financeiroDestruir();
   MODULO_ATIVO = null;
+  // adminConsoleAbrir() so esconde .page-view; os overlays fixos do dashboard
+  // (view-dash-cliente/financeiro/dre) nao tem essa classe — garante que
+  // nenhum fique visivel por cima da secao do console (mesmo raciocinio de
+  // dcVoltarAoAdmin em js/auth.js).
+  ['view-dash-cliente', 'view-dash-financeiro', 'view-dash-dre'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  // Mesma logica de dcVoltarAoAdmin (js/auth.js): respeita de onde o preview
+  // foi aberto (Usuarios > Entrar como, Modulos > Ver painel do cliente...)
+  // em vez de sempre voltar pro card da empresa em Comercial.
+  var voltarPara = (typeof DC_ADMIN_PREVIEW_VOLTAR !== 'undefined') ? DC_ADMIN_PREVIEW_VOLTAR : null;
+  if (typeof DC_ADMIN_PREVIEW_VOLTAR !== 'undefined') DC_ADMIN_PREVIEW_VOLTAR = null;
+  if (voltarPara && voltarPara !== 'comercial' && typeof adminConsoleAbrir === 'function') {
+    adminConsoleAbrir(voltarPara);
+    return;
+  }
   if (typeof abrirSeletorEmpresasCliente === 'function') abrirSeletorEmpresasCliente();
 }
