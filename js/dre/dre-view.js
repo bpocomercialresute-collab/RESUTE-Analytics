@@ -769,6 +769,15 @@ function _dreParseNum(v) {
   if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
   var n = Number(s);
   if (Number.isFinite(n)) return negativo ? -Math.abs(n) : n;
+  // "1,234,567" (varias virgulas em grupos de 3) = milhar americano, nao
+  // decimal — sem isso, s.replace(',', '.') (sem /g) so troca a PRIMEIRA
+  // virgula e sobra uma virgula no meio, Number() vira NaN e o valor era
+  // perdido (null) em vez de 1234567.
+  var partesVirgula = s.split(',');
+  if (partesVirgula.length > 2 && partesVirgula.slice(1).every(function(p) { return p.length === 3; })) {
+    n = Number(partesVirgula.join(''));
+    if (Number.isFinite(n)) return negativo ? -Math.abs(n) : n;
+  }
   // Tenta formato BR: "1.234,56" → "1234.56"
   var br = s.replace(/\./g, '').replace(',', '.');
   n = Number(br);

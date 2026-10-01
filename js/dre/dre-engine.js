@@ -92,7 +92,15 @@ const DRE = (() => {
     let negativo = false;
     if (/^\(.*\)$/.test(s)) { negativo = true; s = s.slice(1, -1); }
     if (/^[^-].*-$/.test(s)) { negativo = true; s = s.slice(0, -1); }
-    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    if (s.indexOf(',') >= 0) {
+      // "1,234,567" (varias virgulas em grupos de 3) = milhar americano. Sem
+      // essa checagem, .replace(',', '.') (sem /g) so troca a 1a virgula,
+      // sobra uma no meio, Number() vira NaN e a linha era descartada do
+      // relatorio inteiro (valor virava 0 == entraRelatorio falso).
+      const partesVirgula = s.split(',');
+      const milharUS = partesVirgula.length > 2 && partesVirgula.slice(1).every(p => p.length === 3);
+      s = milharUS ? partesVirgula.join('') : s.replace(/\./g, '').replace(',', '.');
+    }
     else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
     const n = Number(s);
     return Number.isFinite(n) ? (negativo ? -Math.abs(n) : n) : 0;
