@@ -1980,7 +1980,10 @@ function repMensalRep() {
     if (!i) return null;
     const anterior = totalMes[i - 1];
     if (!anterior) return null;
-    return ((v - anterior) / anterior) * 100;
+    // Math.abs no denominador - mesmo motivo do fix em dcVariacaoAtualAnterior
+    // (auth.js) e evolucaoPct (dre-engine.js): mes anterior negativo nao pode
+    // inverter o sinal de uma melhora real.
+    return ((v - anterior) / Math.abs(anterior)) * 100;
   });
 
   let html = `${headerHtml}${repsFilterHtml}`;

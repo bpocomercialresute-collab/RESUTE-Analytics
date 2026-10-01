@@ -2408,7 +2408,11 @@ function dcPeriodoAnteriorRows() {
 
 function dcVariacaoAtualAnterior(atual, anterior) {
   if (!anterior) return { texto: 'sem base anterior', classe: 'neutro', pct: null };
-  var pct = ((atual - anterior) / anterior) * 100;
+  // Math.abs no denominador (mesma convencao do DRE/evolucaoPct): sem isso,
+  // um periodo anterior com total NEGATIVO (mais devolucao que venda) podia
+  // fazer uma melhora real (-100 -> +50) aparecer como "-150%" (parece
+  // piora, quando na verdade e recuperacao).
+  var pct = ((atual - anterior) / Math.abs(anterior)) * 100;
   return {
     texto: (pct >= 0 ? '+' : '') + dcNumeroLimpo(pct, 1) + '% vs periodo anterior',
     classe: pct >= 0 ? 'positivo' : 'negativo',
