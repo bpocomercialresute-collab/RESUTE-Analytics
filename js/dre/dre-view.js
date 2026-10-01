@@ -1926,9 +1926,36 @@ function _dreRowsBD(lancs) {
   });
 }
 
+/**
+ * O motor (dre-engine.js) faz soma algebrica pura — receita positiva,
+ * despesa negativa — e NUNCA corrige o sinal de um lancamento; o comentario
+ * de calcularResultado() e explicito: "nunca inverta um lancamento
+ * negativo". Mas quem digita nao pensa em "sinal contabil": escreve "500"
+ * pra uma despesa de aluguel do mesmo jeito que escreveria pra uma receita.
+ * Sem essa correcao, essa despesa positiva SOMAVA no resultado em vez de
+ * subtrair — o lucro saia inflado, silenciosamente, sem nenhum aviso.
+ * So corrige despesa (S); receita negativa (desconto/devolucao) e valida e
+ * fica como foi digitada.
+ */
+function _dreMapaPlanoPorConta() {
+  var mapa = {};
+  (DRE.estado.plano || []).forEach(function(c) {
+    var chave = String(c.conta || '').trim().toLowerCase();
+    if (chave) mapa[chave] = c.grupo;
+  });
+  return mapa;
+}
+function _dreCorrigirSinalDespesa(mapaPlano, contaNome, valor) {
+  if (valor == null || !contaNome) return valor;
+  var grupo = mapaPlano[String(contaNome).trim().toLowerCase()];
+  var se = grupo && typeof DRE.SE_POR_GRUPO !== 'undefined' ? DRE.SE_POR_GRUPO[grupo] : null;
+  return se === 'S' ? -Math.abs(valor) : valor;
+}
+
 /** Array de linhas da grade -> array de objetos lançamento, inclusive incompletos. */
 function _dreLancDeRows(rows) {
   var cnpj = DRE.estado.cnpj;
+  var mapaPlano = _dreMapaPlanoPorConta();
   return rows
     // A coluna ID é automática. Linhas sem nenhum campo editável são apenas
     // espaço de grade; qualquer linha com algum dado é preservada no BD,
@@ -1947,7 +1974,7 @@ function _dreLancDeRows(rows) {
         dt_venc:      _dreNormalizarData(r[2]) || null,
         dt_pag:       _dreNormalizarData(r[3]) || null,
         tipo:         r[5]  || null,
-        valor:        valorInformado ? _dreParseNum(r[6]) : null,
+        valor:        valorInformado ? _dreCorrigirSinalDespesa(mapaPlano, r[4] ? String(r[4]).trim() : null, _dreParseNum(r[6])) : null,
         tot_pago:     totalPagoInformado ? _dreParseNum(r[7]) : null,
         parceiro:     r[8]  || null,
         documento:    r[9]  || null,
