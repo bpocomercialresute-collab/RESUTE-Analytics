@@ -1548,12 +1548,22 @@ async function _dcCarregarTotaisCadastros(eid) {
   // de contar nomes unicos direto do BD de vendas (DC_RAW) que o resumo
   // executivo (dcMetricasDashboard) ja usava.
   var raw = Array.isArray(DC_RAW) ? DC_RAW : [];
-  // results[i] === null = fetch falhou OU tabela de cadastro nao tem nada
-  // pra essa empresa; so nesse caso cai pro fallback. results[i] === 0 e
-  // uma contagem valida (cadastro existe e esta vazio mesmo) - nao troca.
-  var cliTotal  = results[0] !== null ? results[0]  : (raw.length ? new Set(raw.map(dcClienteNome).filter(function(v) { return v && v !== 'Sem cliente'; })).size : null);
-  var prodTotal = results[1] !== null ? results[1]  : (raw.length ? new Set(raw.map(dcProdutoNome).filter(function(v) { return v && v !== 'Sem produto'; })).size : null);
-  var repTotal  = results[2] !== null ? results[2]  : (raw.length ? new Set(raw.map(dcRepresentanteNome).filter(function(v) { return v && v !== 'Sem representante'; })).size : null);
+  // "results[i] === 0" NAO e confiavel como "cadastro vazio de verdade": e
+  // EXATAMENTE a resposta de qualquer empresa que nunca colou/salvou nada
+  // nessas abas (clientes_cad/produtos/representantes), que ate hoje era a
+  // maioria — o salvamento manual delas so passou a funcionar de verdade
+  // nesta mesma sessao. Card "Clientes: 0" com Faturamento/Pedidos > 0 e
+  // sempre contraditorio (toda venda tem um cliente). Por isso usa o MAIOR
+  // entre a contagem da tabela de cadastro e os nomes unicos das vendas —
+  // nunca mostra menos do que as proprias vendas provam que existe, mas
+  // tambem nao perde uma contagem de cadastro maior que a amostra de vendas
+  // (cliente cadastrado que ainda nao comprou, por exemplo).
+  var cliUnicos  = raw.length ? new Set(raw.map(dcClienteNome).filter(function(v) { return v && v !== 'Sem cliente'; })).size : 0;
+  var prodUnicos = raw.length ? new Set(raw.map(dcProdutoNome).filter(function(v) { return v && v !== 'Sem produto'; })).size : 0;
+  var repUnicos  = raw.length ? new Set(raw.map(dcRepresentanteNome).filter(function(v) { return v && v !== 'Sem representante'; })).size : 0;
+  var cliTotal  = results[0] !== null ? Math.max(results[0], cliUnicos)  : (raw.length ? cliUnicos  : null);
+  var prodTotal = results[1] !== null ? Math.max(results[1], prodUnicos) : (raw.length ? prodUnicos : null);
+  var repTotal  = results[2] !== null ? Math.max(results[2], repUnicos)  : (raw.length ? repUnicos  : null);
   if (cliTotal !== null)  { DC_CLI_CAD_TOTAL = cliTotal;  _dcAtualizarKpiCard('Clientes',        cliTotal); }
   if (prodTotal !== null) { DC_PROD_TOTAL    = prodTotal; _dcAtualizarKpiCard('Produtos',         prodTotal); }
   if (repTotal !== null)  { DC_REP_TOTAL     = repTotal;  _dcAtualizarKpiCard('Representantes',   repTotal); }
