@@ -3364,6 +3364,9 @@ body.rep-roleta-presentation-open { overflow: hidden; }
   padding: 9px 12px; text-align: left;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
+.dc-th-sort { cursor: pointer; user-select: none; }
+.dc-th-sort:hover { filter: brightness(1.6); }
+.dc-sort-icon { font-size: 9px; margin-left: 2px; opacity: .85; }
 .dc-tabela tbody td {
   padding: 9px 12px; color: #cbd5e1;
   border-bottom: 1px solid rgba(255,255,255,0.03);

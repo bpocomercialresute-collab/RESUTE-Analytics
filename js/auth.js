@@ -2339,6 +2339,55 @@ function dcOrdenarItensRelatorio(lista, id) {
   });
 }
 
+/**
+ * Ordenacao por clique no cabecalho da coluna — mesma convencao ja usada
+ * no DRE (dreResultSortCol), agora pras tabelas do dashboard Comercial.
+ * Trata numero BR, percentual, data BR (DD/MM/AAAA, ordenada por valor
+ * cronologico, nao pelo texto concatenado) e texto (nome/status) no mesmo
+ * clique, sem precisar saber de antemao o tipo de cada coluna.
+ */
+function dcSortCol(th) {
+  var table = th.closest('table');
+  if (!table) return;
+  var tbody = table.querySelector('tbody');
+  if (!tbody) return;
+  var tr = th.closest('tr');
+  var thIndex = Array.prototype.indexOf.call(tr.cells, th);
+  var asc = th.dataset.asc !== 'true';
+
+  Array.prototype.forEach.call(tr.cells, function(c) {
+    delete c.dataset.asc;
+    var icone = c.querySelector('.dc-sort-icon');
+    if (icone) icone.textContent = '';
+  });
+  th.dataset.asc = String(asc);
+  var iconeAtual = th.querySelector('.dc-sort-icon');
+  if (iconeAtual) iconeAtual.textContent = asc ? ' ▲' : ' ▼';
+
+  function valorCelula(s) {
+    s = String(s == null ? '' : s).trim();
+    if (!s || s === '-' || s === '—') return null;
+    var dt = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (dt) return Number(dt[3] + dt[2] + dt[1]); // AAAAMMDD, comparavel direto
+    var limpo = s.replace(/[^0-9,.\-]/g, '');
+    if (!limpo) return null;
+    var neg = limpo.charAt(0) === '-';
+    limpo = limpo.replace(/^-/, '').replace(/\./g, '').replace(',', '.');
+    var n = parseFloat(limpo);
+    return isNaN(n) ? null : (neg ? -n : n);
+  }
+
+  var linhas = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+  linhas.sort(function(a, b) {
+    var ta = a.cells[thIndex] ? a.cells[thIndex].textContent : '';
+    var tb = b.cells[thIndex] ? b.cells[thIndex].textContent : '';
+    var na = valorCelula(ta), nb = valorCelula(tb);
+    if (na !== null && nb !== null) return asc ? na - nb : nb - na;
+    return asc ? ta.trim().localeCompare(tb.trim(), 'pt-BR') : tb.trim().localeCompare(ta.trim(), 'pt-BR');
+  });
+  linhas.forEach(function(r) { tbody.appendChild(r); });
+}
+
 function dcPeriodoAtualDatas() {
   var inicioEl = document.getElementById('dc-filtro-inicio');
   var fimEl = document.getElementById('dc-filtro-fim');
@@ -3273,7 +3322,13 @@ function _dcTabela(id, campo, rows, fatTotal, label) {
   lista = lista.slice(0, 12);
   var max = lista.length ? lista[0].fat : 1;
   var listaTotal = lista.reduce(function(s, e) { return s + e.fat; }, 0) || 1;
-  var html = '<table class="dc-tabela"><thead><tr><th>#</th><th>' + (label || 'Item') + '</th><th>Pedidos</th><th class="num">Faturamento</th><th class="num">%</th></tr></thead><tbody>';
+  var html = '<table class="dc-tabela"><thead><tr>'
+    + '<th class="dc-th-sort" onclick="dcSortCol(this)">#<span class="dc-sort-icon"></span></th>'
+    + '<th class="dc-th-sort" onclick="dcSortCol(this)">' + (label || 'Item') + '<span class="dc-sort-icon"></span></th>'
+    + '<th class="dc-th-sort" onclick="dcSortCol(this)">Pedidos<span class="dc-sort-icon"></span></th>'
+    + '<th class="num dc-th-sort" onclick="dcSortCol(this)">Faturamento<span class="dc-sort-icon"></span></th>'
+    + '<th class="num dc-th-sort" onclick="dcSortCol(this)">%<span class="dc-sort-icon"></span></th>'
+    + '</tr></thead><tbody>';
   lista.forEach(function(item, idx) {
     var pct = item.fat / listaTotal * 100;
     var bar = item.fat / max * 100;
@@ -3463,8 +3518,14 @@ function dcTabelaInativos(rows) {
 
   // Tabela
   var h = '<table class="dc-tabela dc-inactive-table"><thead><tr>'
-    + '<th>#</th><th>Cliente</th><th>Telefone</th><th>Rep</th><th>Última compra</th>'
-    + '<th class="num">Dias sem compra</th><th class="num">Valor última compra</th><th>Status</th>'
+    + '<th class="dc-th-sort" onclick="dcSortCol(this)">#<span class="dc-sort-icon"></span></th>'
+    + '<th class="dc-th-sort" onclick="dcSortCol(this)">Cliente<span class="dc-sort-icon"></span></th>'
+    + '<th class="dc-th-sort" onclick="dcSortCol(this)">Telefone<span class="dc-sort-icon"></span></th>'
+    + '<th class="dc-th-sort" onclick="dcSortCol(this)">Rep<span class="dc-sort-icon"></span></th>'
+    + '<th class="dc-th-sort" onclick="dcSortCol(this)">Última compra<span class="dc-sort-icon"></span></th>'
+    + '<th class="num dc-th-sort" onclick="dcSortCol(this)">Dias sem compra<span class="dc-sort-icon"></span></th>'
+    + '<th class="num dc-th-sort" onclick="dcSortCol(this)">Valor última compra<span class="dc-sort-icon"></span></th>'
+    + '<th class="dc-th-sort" onclick="dcSortCol(this)">Status<span class="dc-sort-icon"></span></th>'
     + '</tr></thead><tbody>';
   arr.forEach(function(e, i) {
     var status, classe;
