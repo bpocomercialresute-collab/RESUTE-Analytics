@@ -5208,8 +5208,112 @@ async function _adminProcessarManualExec() {
     } catch (e) { console.warn('[ADMIN] Nao foi possivel marcar exibir_origem=manual:', e); }
   }
 
+  // Cadastros (Clientes/Produto/Representantes): antes essas abas so
+  // enriqueciam a grade BD localmente e nunca eram salvas de verdade em
+  // nenhuma tabela — "Cadastros de produtos no comercial nao estao
+  // salvando". Mesmo botao "Processar e salvar" (nao cria botao novo):
+  // qualquer uma dessas grades que tiver dado tambem grava na tabela real.
+  var resumoCadastros = await _adminSalvarCadastrosManuais(eid);
+  if (resumoCadastros.length) {
+    var elStatus = document.getElementById('admin-sync-status');
+    if (elStatus) elStatus.textContent += ' · Cadastros: ' + resumoCadastros.join(', ') + '.';
+  }
+
   _adminAtualizarContagens();
   if (SESSION && SESSION.papel === 'admin') adminOwnerAtualizarResumo();
+}
+
+// ── CADASTROS MANUAIS (Clientes/Produto/Representantes) ──────────────────────
+// As abas de cadastro do BD Manual so existiam pra enriquecer a grade BD
+// localmente (bdAutoFill) — nunca persistiam em clientes_cad/produtos/
+// representantes. Reaproveita _adminReplaceApiTable (mesma funcao da
+// sincronizacao via API) pra gravar de verdade, so que com os dados
+// colados a mao em vez de vindos de uma API externa. "Grupos" nao tem
+// tabela propria no banco (so existe CADASTRO_TABLES pra clientes/
+// produtos/representantes), por isso fica de fora.
+async function _adminSalvarCadastrosManuais(eid) {
+  var fontes = [
+    { grid: 'clientes',        tabela: 'clientes_cad',  mapear: _adminMapClientesManual,        rotulo: 'cliente(s)' },
+    { grid: 'produto',         tabela: 'produtos',       mapear: _adminMapProdutosManual,         rotulo: 'produto(s)' },
+    { grid: 'representantes',  tabela: 'representantes', mapear: _adminMapRepresentantesManual,   rotulo: 'representante(s)' }
+  ];
+  var resumo = [];
+  for (var i = 0; i < fontes.length; i += 1) {
+    var f = fontes[i];
+    var grid = (typeof GRIDS !== 'undefined') ? GRIDS[f.grid] : null;
+    if (!grid) continue;
+    var linhas = grid.getData().filter(function(r) {
+      return r && r.some(function(c) { return c !== '' && c !== null && c !== undefined; });
+    });
+    if (!linhas.length) continue;
+    try {
+      var mapeados = f.mapear(linhas, eid);
+      var save = await _adminReplaceApiTable(f.tabela, mapeados);
+      resumo.push(save.count.toLocaleString('pt-BR') + ' ' + f.rotulo);
+    } catch (e) {
+      console.error('[ADMIN] Falha ao salvar cadastro ' + f.tabela + ':', e);
+      resumo.push('falha em ' + f.rotulo + ' (' + e.message + ')');
+    }
+  }
+  return resumo;
+}
+
+function _adminMapClientesManual(linhas, eid) {
+  var seen = {};
+  return linhas.map(function(r, idx) {
+    var codigo = String(r[1] || '').trim();
+    var id = codigo || ('cli_' + (idx + 1));
+    var base = id, seq = 1;
+    while (seen[id]) { seq += 1; id = base + '__' + seq; }
+    seen[id] = true;
+    var nome = String(r[2] || '').trim();
+    return {
+      empresa_id: eid, id_externo: id, nome: nome, razao_social: nome,
+      cnpj_cpf: String(r[4] || '').trim(), cidade: String(r[6] || '').trim(),
+      uf: String(r[7] || '').trim(), telefone: String(r[9] || '').trim(),
+      email: String(r[10] || '').trim(), endereco: String(r[8] || '').trim(),
+      grupo_cliente: String(r[3] || '').trim(), vendedor: String(r[12] || '').trim(),
+      data_cadastro: null
+    };
+  }).filter(function(x) { return x.nome; });
+}
+
+function _adminMapProdutosManual(linhas, eid) {
+  var seen = {};
+  return linhas.map(function(r, idx) {
+    var codigo = String(r[1] || '').trim();
+    var nome = String(r[2] || '').trim();
+    var id = codigo || nome || ('prd_' + (idx + 1));
+    var base = id, seq = 1;
+    while (seen[id]) { seq += 1; id = base + '__' + seq; }
+    seen[id] = true;
+    var ativoTxt = String(r[6] || '').trim().toLowerCase();
+    return {
+      empresa_id: eid, id_externo: id, codigo: codigo || id, nome: nome || id,
+      codigo_permanente: codigo || id, codigo_item: codigo || id, descricao_item: nome || id,
+      grupo: String(r[3] || '').trim() || 'SEM GRUPO', marca: 'SEM MARCA',
+      preco: 0, unidade: 'UN', cst: '000', aliq_icms: 0, aliq_ipi: 0, aliq_icms_st: 0,
+      percent_mva: 0, valor_venda: 0, desconto_maximo: 0,
+      ativo: ativoTxt === '' || ['ativo', '1', 'sim', 's', 'a'].indexOf(ativoTxt) >= 0
+    };
+  }).filter(function(x) { return x.nome; });
+}
+
+function _adminMapRepresentantesManual(linhas, eid) {
+  var seen = {};
+  return linhas.map(function(r, idx) {
+    var codigo = String(r[1] || '').trim();
+    var nome = String(r[2] || '').trim();
+    var id = codigo || nome || ('rep_' + (idx + 1));
+    var base = id, seq = 1;
+    while (seen[id]) { seq += 1; id = base + '__' + seq; }
+    seen[id] = true;
+    return {
+      empresa_id: eid, id_externo: id, codigo: codigo || id, nome: nome,
+      regiao: '', uf: '', telefone: String(r[5] || '').trim(), email: String(r[7] || '').trim(),
+      ativo: true
+    };
+  }).filter(function(x) { return x.nome; });
 }
 
 // ── LIMPAR ORIGEM ESPECÍFICA ──────────────────────────────────────────────────
