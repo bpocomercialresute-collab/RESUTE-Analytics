@@ -233,7 +233,17 @@ const DRE = (() => {
     for (const l of bd) {
       if (!l.entraRelatorio || l.ano == null) continue;
       const chave = `${norm(l.conta)}|${l.ano}|${l.mesIdx}|${l.cnpj}`;
-      soma.set(chave, num(soma.get(chave)) + num(l.valor));
+      // Despesa (s_e='S') digitada positiva é erro humano natural ("paguei
+      // 500 de aluguel", sem pensar em sinal contábil) — sem isso, soma em
+      // vez de subtrair e infla o resultado. Corrige aqui, no ponto único
+      // onde TODO lançamento passa (colado, carregado do banco, editado
+      // direto na grade), em vez de só no momento de colar — correção
+      // anterior (js/dre/dre-view.js, _dreCorrigirSinalDespesa) cobria só
+      // a colagem; reabrir dados já salvos ia direto pro motor sem passar
+      // por ela. Receita (s_e='E') negativa continua intacta — desconto ou
+      // devolução é legítimo com sinal negativo.
+      const valor = l.s_e === 'S' ? -Math.abs(num(l.valor)) : num(l.valor);
+      soma.set(chave, num(soma.get(chave)) + valor);
     }
 
     // meses[i] = valor do slot i (não mais índice de calendário fixo)
