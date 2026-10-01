@@ -4,28 +4,8 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --blue-50:  #fbf7f1;
-  --blue-100: #efe4d5;
-  --blue-200: #dfcfb8;
-  --blue-400: #a98a62;
-  --blue-500: #8d6b43;
-  --blue-600: #77583a;
-  --blue-700: #63482f;
-  --blue-800: #4c3926;
-  --blue-900: #372916;
   --sidebar-w: 260px;
   --header-h: 60px;
-  --sidebar-bg: #ffffff;
-  --sidebar-hover: rgba(141,107,67,0.06);
-  --sidebar-active: rgba(141,107,67,0.12);
-  --bg: #f3ece2;
-  --card-bg: #fbf6ef;
-  --text: #17324d;
-  --text-muted: #67809a;
-  --border: #e1d2bf;
-  --radius: 14px;
-  --shadow: 0 10px 30px rgba(72, 52, 26, 0.08);
-  --shadow-md: 0 14px 34px rgba(72, 52, 26, 0.12);
 }
 
 html, body {
@@ -199,7 +179,21 @@ html, body {
 .hero-actions { display:flex; gap:12px; flex-wrap:wrap; }
 
 /* BotÃµes gerais */
-.btn { display:inline-flex; align-items:center; gap:8px; padding:10px 20px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:none; font-family:inherit; transition:all 150ms; }
+.btn { position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:8px; padding:10px 20px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:none; font-family:inherit; transition:all 150ms; }
+.btn.ripple::after {
+  content: '';
+  position: absolute;
+  left: var(--rx, 50%); top: var(--ry, 50%);
+  width: 10px; height: 10px;
+  background: rgba(255,255,255,0.55);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  pointer-events: none;
+  animation: dc-ripple-spread 400ms ease-out;
+}
+@keyframes dc-ripple-spread {
+  to { transform: translate(-50%, -50%) scale(18); opacity: 0; }
+}
 .btn-primary { background:var(--blue-600); color:#fff; }
 .btn-primary:hover { background:var(--blue-700); transform:translateY(-1px); box-shadow:0 4px 12px rgba(37,99,235,0.3); }
 .btn-lg { padding:13px 28px; font-size:15px; border-radius:10px; }
@@ -4402,45 +4396,6 @@ body.rep-roleta-presentation-open { overflow: hidden; }
   color: #17324d;
 }
 
-/* ============================================================
-   PREMIUM LIGHT PALETTE REFRESH
-   - remove a sensaÃ§Ã£o de azul escuro
-   - prioriza leitura, contraste suave e aparÃªncia premium
-   ============================================================ */
-:root {
-  --blue-50:  #f7fbff;
-  --blue-100: #e6eef7;
-  --blue-200: #cfdceb;
-  --blue-400: #7ea7c9;
-  --blue-500: #4f87b8;
-  --blue-600: #2f6f9f;
-  --blue-700: #245a82;
-  --blue-800: #1d4766;
-  --blue-900: #163248;
-  --bg: #f6f8fb;
-  --card-bg: #ffffff;
-  --text: #17324d;
-  --text-muted: #6b7f96;
-  --border: #d8e4ef;
-  --sidebar-bg: #fbfdff;
-  --sidebar-hover: rgba(47,111,159,0.07);
-  --sidebar-active: rgba(47,111,159,0.12);
-  --shadow: 0 12px 32px rgba(18, 40, 72, 0.08);
-  --shadow-md: 0 18px 42px rgba(18, 40, 72, 0.12);
-}
-
-html, body {
-  background:
-    radial-gradient(circle at top left, rgba(47,111,159,.07), transparent 26%),
-    radial-gradient(circle at top right, rgba(179,138,76,.06), transparent 22%),
-    linear-gradient(180deg, #fbfcfe 0%, #f1f5fa 100%) !important;
-  color: #17324d !important;
-}
-
-body {
-  color: #17324d !important;
-}
-
 .cui-sidebar,
 .cui-header,
 .cui-main,
@@ -4817,31 +4772,6 @@ body {
 .av-tabs-bar {
   background: linear-gradient(180deg, rgba(247,250,253,.98) 0%, rgba(236,242,248,.98) 100%) !important;
   color: #5d738b !important;
-}
-
-/* ============================================================
-   RESUTE BRAND FINAL THEME
-   ============================================================ */
-:root {
-  --blue-50: #F5F7FA;
-  --blue-100: #EAEAEB;
-  --blue-200: #DCE3EC;
-  --blue-400: #2492EA;
-  --blue-500: #1C64C0;
-  --blue-600: #174F99;
-  --blue-700: #2F3848;
-  --blue-800: #182234;
-  --blue-900: #0E1424;
-  --bg: #F5F7FA;
-  --card-bg: #FFFFFF;
-  --text: #0E1424;
-  --text-muted: #8B90A4;
-  --border: #DCE3EC;
-  --sidebar-bg: #0E1424;
-  --sidebar-hover: rgba(255,255,255,0.05);
-  --sidebar-active: rgba(36,146,234,0.16);
-  --shadow: 0 1px 3px rgba(14,20,36,0.06);
-  --shadow-md: 0 2px 8px rgba(14,20,36,0.08);
 }
 
 html,
