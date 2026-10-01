@@ -1533,6 +1533,13 @@ async function _dcFetchCadastroCount(tabela, eid) {
 }
 
 async function _dcCarregarTotaisCadastros(eid) {
+  // Guarda a sequencia/empresa ativa ANTES das 3 chamadas de rede em
+  // paralelo: trocar de empresa rapido (ex. no dropdown) enquanto essa
+  // resposta ainda nao voltou fazia o resultado ATRASADO da empresa
+  // anterior sobrescrever os cards da empresa nova. dcCarregarDados ja
+  // se protege assim em todo ponto async — essa funcao tinha ficado de
+  // fora.
+  var seqNoInicio = DC_LOAD_SEQUENCE;
   DC_CLI_CAD_TOTAL = null;
   DC_PROD_TOTAL    = null;
   DC_REP_TOTAL     = null;
@@ -1541,6 +1548,10 @@ async function _dcCarregarTotaisCadastros(eid) {
     _dcFetchCadastroCount('produtos',       eid),
     _dcFetchCadastroCount('representantes', eid)
   ]);
+  // So checa a sequencia (nao eid === DC_ACTIVE_COMPANY): no modo "Todas",
+  // DC_ACTIVE_COMPANY fica literalmente 'todas' enquanto eid aqui e o id
+  // da empresa-pai — comparar os dois sempre bateria errado nesse modo.
+  if (seqNoInicio !== DC_LOAD_SEQUENCE) return;
   // Sem cadastro proprio (clientes_cad/produtos/representantes vazios —
   // empresa que so usa o BD de vendas, sem essas tabelas de apoio), os
   // cards de Clientes/Produtos/Representantes ficavam travados em "0" pra
