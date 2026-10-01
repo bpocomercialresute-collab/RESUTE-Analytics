@@ -13504,3 +13504,9 @@ body.bpo-admin-mode .admin-status-badge {
     line-height: 1.1 !important;
   }
 }
+
+/* Botao unico "Salvar tudo" do DRE (injetado por js/dre/dre-view.js no
+   cabecalho fixo da ferramenta) — views/dre-painel.html e css/dre-painel.css
+   nao sao editados diretamente, entao o estilo deste elemento novo fica aqui. */
+.fin-salvar-tudo-wrap { display: flex; align-items: center; gap: 10px; margin-right: 16px; }
+.fin-salvar-tudo-wrap .fin-status { margin-left: 0; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

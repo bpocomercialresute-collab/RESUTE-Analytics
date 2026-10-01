@@ -740,13 +740,16 @@ function _dreStatusGrade(elId, msg, tipo) {
   el.className = 'fin-status' + (tipo ? ' ' + tipo : '');
 }
 
+// Alvo mudou pro botao unico "Salvar tudo" (fin-dre-salvar-tudo) — os
+// botoes originais de cada aba (fin-dre-salvar-plano/fin-dre-bd-salvar)
+// ficam escondidos, ver _dreLigarSalvarTudo().
 function _dreMarcarDirtyPlano() {
-  var btn = document.getElementById('fin-dre-salvar-plano');
+  var btn = document.getElementById('fin-dre-salvar-tudo');
   if (btn) btn.classList.add('fin-btn-dirty');
 }
 
 function _dreLimparDirtyPlano() {
-  var btn = document.getElementById('fin-dre-salvar-plano');
+  var btn = document.getElementById('fin-dre-salvar-tudo');
   if (btn) btn.classList.remove('fin-btn-dirty');
 }
 
@@ -865,89 +868,125 @@ function _dreNormalizarDatasRegistro(r) {
   return out;
 }
 
-/** Liga os botões "Salvar no banco" das abas Plano de Contas e BD ao fetch acima. */
+/** Salva o Plano de Contas da grade atual. Usado pelo botão único "Salvar tudo". */
+async function _dreSalvarPlanoAgora(empresaId) {
+  // Sincroniza do grid no momento do clique (evita estado desatualizado).
+  if (GRIDS['dre_plano']) DRE.estado.plano = _drePlanoDeRows(GRIDS['dre_plano'].getData());
+  var registros = DRE.registrosPlanoParaSalvar();
+  if (!registros.length) return { ok: true, msg: 'Plano: nada para salvar.' };
+
+  _dreStatusGrade('fin-dre-status-plano', 'Salvando Plano de Contas...', '');
+  try {
+    var resultado = await _dreSalvarPlano(empresaId, registros);
+    var msg = 'Plano: ✓ ' + resultado.enviados.toLocaleString('pt-BR') + ' conta(s) salva(s).';
+    if (resultado.repetidas.length) {
+      msg += ' ' + resultado.repetidas.length + ' repetida(s) unificada(s) (fica a primeira): '
+        + resultado.repetidas.slice(0, 5).join(', ') + (resultado.repetidas.length > 5 ? '…' : '');
+    }
+    _dreStatusGrade('fin-dre-status-plano', msg.replace(/^Plano: /, ''), 'ok');
+    DRE_GRADE_SUJA = false;
+    _dreLimparDirtyPlano();
+    _dreCacheSalvar(empresaId, DRE.estado.plano, DRE.estado.lancamentos);
+    return { ok: true, msg: msg };
+  } catch (e) {
+    console.error('[DRE] Falha ao salvar plano:', e);
+    var msgErro = 'Plano: falha ao salvar — ' + e.message;
+    _dreStatusGrade('fin-dre-status-plano', msgErro.replace(/^Plano: /, ''), 'erro');
+    return { ok: false, msg: msgErro };
+  }
+}
+
+/** Salva os lançamentos (BD) da grade atual. Usado pelo botão único "Salvar tudo". */
+async function _dreSalvarBDAgora(empresaId) {
+  // Pega todas as linhas da grade, inclusive as que ainda estão incompletas.
+  var linhasGrid = GRIDS['dre_bd'] ? GRIDS['dre_bd'].getData() : [];
+  if (!linhasGrid.length) return { ok: true, msg: 'BD: nada para salvar.' };
+
+  DRE.estado.lancamentos = _dreLancDeRows(linhasGrid);
+  var registros = DRE.registrosBDParaSalvar();
+
+  // Normaliza datas (dt_venc/dt_pag; dt_caixa já vem normalizada desde
+  // _dreLancDeRows) antes de montar os lotes que vão pro banco.
+  var lotes = registros.map(function(r) {
+    return _dreNormalizarDatasRegistro(Object.assign({}, r, { empresa_id: empresaId }));
+  });
+
+  _dreStatusGrade('fin-dre-status-bd', 'Salvando ' + lotes.length.toLocaleString('pt-BR') + ' linha(s)...', '');
+  try {
+    var enviados = await _dreSalvarLancamentos(empresaId, lotes, function(n, total, feitas, todas, concluindoTroca) {
+      _dreStatusGrade('fin-dre-status-bd', concluindoTroca
+        ? 'Finalizando a troca da versão anterior...'
+        : 'Salvando lote ' + n + '/' + total + ' — ' + feitas.toLocaleString('pt-BR') + ' de ' + todas.toLocaleString('pt-BR') + ' linhas', '');
+    });
+    var msg = 'BD: ✓ ' + enviados.toLocaleString('pt-BR') + ' lançamento(s) salvo(s).';
+    _dreStatusGrade('fin-dre-status-bd', msg.replace(/^BD: /, ''), 'ok');
+    DRE_GRADE_SUJA = false;
+    _dreCacheSalvar(empresaId, DRE.estado.plano, DRE.estado.lancamentos);
+    return { ok: true, msg: msg };
+  } catch (e) {
+    console.error('[DRE] Falha ao salvar BD:', e);
+    var msgErro = 'BD: falha ao salvar — ' + e.message;
+    _dreStatusGrade('fin-dre-status-bd', msgErro.replace(/^BD: /, ''), 'erro');
+    return { ok: false, msg: msgErro };
+  }
+}
+
+/**
+ * Botão único "Salvar tudo" (BD + Plano de Contas), fixo no cabeçalho do DRE
+ * — visível em qualquer aba, substitui os 2 "Salvar no banco" de dentro das
+ * abas BD e Plano de Contas (escondidos aqui, não removidos: views/dre-painel.html
+ * é a ferramenta entregue, não é editada diretamente — ver cabeçalho do arquivo).
+ * Depois de salvar, chama DRE.recalcular() pra aba Resultados já refletir o
+ * dado novo sem precisar clicar em "Atualizar".
+ */
 function _dreLigarSalvarGrades(empresaId) {
-  var btnPlano = document.getElementById('fin-dre-salvar-plano');
-  if (btnPlano) {
-    btnPlano.onclick = async function() {
-      // Sincroniza do grid no momento do clique (evita estado desatualizado).
-      if (GRIDS['dre_plano']) DRE.estado.plano = _drePlanoDeRows(GRIDS['dre_plano'].getData());
+  var btnPlanoAntigo = document.getElementById('fin-dre-salvar-plano');
+  var btnBDAntigo = document.getElementById('fin-dre-bd-salvar');
+  if (btnPlanoAntigo) btnPlanoAntigo.style.display = 'none';
+  if (btnBDAntigo) btnBDAntigo.style.display = 'none';
 
-      var registros = DRE.registrosPlanoParaSalvar();
-      if (!registros.length) {
-        alert('Nenhuma conta encontrada na grade. Cole os dados do Plano de Contas (Ctrl+V) antes de salvar.');
-        return;
-      }
-      if (!window.confirm('Salvar ' + registros.length + ' conta(s)? Substitui todo o plano atual desta empresa.')) return;
-      if (DRE_SALVANDO) return;
-
-      DRE_SALVANDO = true;
-      btnPlano.disabled = true;
-      _dreStatusGrade('fin-dre-status-plano', 'Salvando Plano de Contas...', '');
-      try {
-        var resultado = await _dreSalvarPlano(empresaId, registros);
-        var msg = '✓ ' + resultado.enviados.toLocaleString('pt-BR') + ' conta(s) salva(s).';
-        if (resultado.repetidas.length) {
-          msg += ' ' + resultado.repetidas.length + ' conta(s) repetida(s) unificada(s) (fica a primeira): '
-            + resultado.repetidas.slice(0, 5).join(', ') + (resultado.repetidas.length > 5 ? '…' : '');
-        }
-        _dreStatusGrade('fin-dre-status-plano', msg, 'ok');
-        DRE_GRADE_SUJA = false;
-        _dreLimparDirtyPlano();
-        _dreCacheSalvar(empresaId, DRE.estado.plano, DRE.estado.lancamentos);
-      } catch (e) {
-        console.error('[DRE] Falha ao salvar plano:', e);
-        _dreStatusGrade('fin-dre-status-plano', 'Falha ao salvar: ' + e.message, 'erro');
-      } finally {
-        DRE_SALVANDO = false;
-        btnPlano.disabled = false;
-      }
-    };
+  var btn = document.getElementById('fin-dre-salvar-tudo');
+  if (!btn) {
+    var topoDir = document.querySelector('.fin-topo-dir');
+    if (!topoDir) return;
+    topoDir.insertAdjacentHTML('afterbegin',
+      '<div class="fin-salvar-tudo-wrap">' +
+        '<button type="button" id="fin-dre-salvar-tudo" class="fin-btn-primario">Salvar tudo</button>' +
+        '<span id="fin-dre-status-tudo" class="fin-status"></span>' +
+      '</div>');
+    btn = document.getElementById('fin-dre-salvar-tudo');
   }
 
-  var btnBD = document.getElementById('fin-dre-bd-salvar');
-  if (btnBD) {
-    btnBD.onclick = async function() {
-      // Pega todas as linhas da grade, inclusive as que ainda estão incompletas.
-      var linhasGrid = GRIDS['dre_bd'] ? GRIDS['dre_bd'].getData() : [];
-      var totalNaGrade = linhasGrid.length;
-      if (!totalNaGrade) {
-        alert('Grade do BD está vazia. Cole os dados (Ctrl+V) e tente novamente.');
-        return;
-      }
+  btn.onclick = async function() {
+    if (DRE_SALVANDO) return;
 
-      if (DRE_SALVANDO) return;
+    var dadosPlano = GRIDS['dre_plano'] ? GRIDS['dre_plano'].getData() : [];
+    var dadosBD = GRIDS['dre_bd'] ? GRIDS['dre_bd'].getData() : [];
+    var temPlano = dadosPlano.some(function(r) { return r && r.some(function(c) { return c !== '' && c !== null && c !== undefined; }); });
+    var temBD = dadosBD.length > 0;
 
-      DRE.estado.lancamentos = _dreLancDeRows(linhasGrid);
-      var registros = DRE.registrosBDParaSalvar();
+    if (!temPlano && !temBD) {
+      alert('Nenhum dado nas grades. Cole o Plano de Contas e/ou o BD (Ctrl+V) antes de salvar.');
+      return;
+    }
+    if (!window.confirm('Salvar tudo no banco (Plano de Contas e BD)?\nSubstitui os dados atuais desta empresa.')) return;
 
-      // Normaliza datas (dt_venc/dt_pag; dt_caixa já vem normalizada desde
-      // _dreLancDeRows) antes de montar os lotes que vão pro banco.
-      var lotes = registros.map(function(r) {
-        return _dreNormalizarDatasRegistro(Object.assign({}, r, { empresa_id: empresaId }));
-      });
+    DRE_SALVANDO = true;
+    btn.disabled = true;
+    _dreStatusGrade('fin-dre-status-tudo', '⏳ Salvando...', '');
 
-      DRE_SALVANDO = true;
-      btnBD.disabled = true;
-      _dreStatusGrade('fin-dre-status-bd', 'Salvando ' + lotes.length.toLocaleString('pt-BR') + ' linha(s)...', '');
-      try {
-        var enviados = await _dreSalvarLancamentos(empresaId, lotes, function(n, total, feitas, todas, concluindoTroca) {
-          _dreStatusGrade('fin-dre-status-bd', concluindoTroca
-            ? 'Finalizando a troca da versão anterior...'
-            : 'Salvando lote ' + n + '/' + total + ' — ' + feitas.toLocaleString('pt-BR') + ' de ' + todas.toLocaleString('pt-BR') + ' linhas', '');
-        });
-        _dreStatusGrade('fin-dre-status-bd', '✓ ' + enviados.toLocaleString('pt-BR') + ' lançamento(s) salvo(s).', 'ok');
-        DRE_GRADE_SUJA = false;
-        _dreCacheSalvar(empresaId, DRE.estado.plano, DRE.estado.lancamentos);
-      } catch (e) {
-        console.error('[DRE] Falha ao salvar BD:', e);
-        _dreStatusGrade('fin-dre-status-bd', 'Falha ao salvar: ' + e.message, 'erro');
-      } finally {
-        DRE_SALVANDO = false;
-        btnBD.disabled = false;
-      }
-    };
-  }
+    var resultados = [];
+    if (temPlano) resultados.push(await _dreSalvarPlanoAgora(empresaId));
+    if (temBD) resultados.push(await _dreSalvarBDAgora(empresaId));
+
+    DRE_SALVANDO = false;
+    btn.disabled = false;
+    var falhou = resultados.some(function(r) { return !r.ok; });
+    _dreStatusGrade('fin-dre-status-tudo', resultados.map(function(r) { return r.msg; }).join(' · '), falhou ? 'erro' : 'ok');
+
+    // Atualiza a aba Resultados na hora, sem precisar clicar em "Atualizar".
+    try { DRE.recalcular(); } catch (e) { console.error('[DRE] Falha ao recalcular apos salvar:', e); }
+  };
 
   // ── Botão Limpar BD ──────────────────────────────────────────────────────────
   var btnLimparBD = document.getElementById('fin-dre-bd-limpar');
