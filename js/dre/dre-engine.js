@@ -338,10 +338,12 @@ const DRE = (() => {
   // Bloco de evolução anual de um grupo, uma linha por coluna do recorte
   // atual (estado.slots), sempre comparando os 2 anos mais recentes do BD_DRE.
   function evolucaoAnualGrupo(nomeGrupo) {
-    const anos = anosDisponiveis();
-    if (!anos.length) return null;
-    const anoAtual = anos[0];
-    const anoAnterior = anos.length > 1 ? anos[1] : null;
+    // Ancorado no ano-calendario real (hoje), nao no maior ano que existir
+    // no BD — um lancamento com ano digitado errado (ex.: 2034) sequestrava
+    // o bloco inteiro pra comparar contra anos que nao existem de verdade.
+    // Em 2027 isso mostra 2027/2026 sozinho, sem precisar trocar nada aqui.
+    const anoAtual = new Date().getFullYear();
+    const anoAnterior = anoAtual - 1;
 
     const serieAtual    = serieAnualGrupo(nomeGrupo, anoAtual);
     const serieAnterior = serieAnualGrupo(nomeGrupo, anoAnterior);
@@ -1410,14 +1412,13 @@ const DRE = (() => {
     return { anos, porAno };
   }
 
-  // Variacao mes a mes (cruzando virada de ano) do ano mais recente com dado.
+  // Variacao mes a mes (cruzando virada de ano), ancorada no ano-calendario
+  // real — mesmo motivo do fix em evolucaoAnualGrupo acima.
   function laudoMoMGrupo(nomeGrupo) {
-    const anos = anosDisponiveis();
-    if (!anos.length) return { anoAtual: null, valores: [] };
-    const anoAtual = anos[0];
-    const anoAnterior = anos.length > 1 ? anos[1] : null;
+    const anoAtual = new Date().getFullYear();
+    const anoAnterior = anoAtual - 1;
     const serieAtual = serieAnualGrupo(nomeGrupo, anoAtual);
-    const serieAnterior = anoAnterior ? serieAnualGrupo(nomeGrupo, anoAnterior) : new Array(12).fill(0);
+    const serieAnterior = serieAnualGrupo(nomeGrupo, anoAnterior);
     const valores = serieAtual.map((v, i) => {
       const anterior = i === 0 ? serieAnterior[11] : serieAtual[i - 1];
       return evolucaoPct(v, anterior);
