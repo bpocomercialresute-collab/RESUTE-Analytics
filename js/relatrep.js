@@ -922,7 +922,10 @@ function repPremiacaoRelatorioHtml(rows, baseRows) {
     const anteriorIdx = Object.fromEntries(anteriorMap.map(r => [r.nome, r]));
     const linhas = atualMap.map(r => {
       const antFat = anteriorIdx[r.nome]?.fat || 0;
-      const cresc = antFat > 0 ? ((r.fat - antFat) / antFat) * 100 : 0;
+      // Mesma regra do premio trimestral: sem base no ano anterior (zero ou
+      // negativo) e com faturamento este ano conta como crescimento, nao
+      // fica de fora so por nao ter tido base pra comparar.
+      const cresc = antFat > 0 ? ((r.fat - antFat) / antFat) * 100 : (r.fat > 0 ? 100 : 0);
       const mediaMensalQtd = r.qtd / 12;
       return { nome: r.nome, fat: r.fat, mediaMensalQtd, cresc, elegivel: cresc >= 30 };
     }).sort((a, b) => b.fat - a.fat || b.mediaMensalQtd - a.mediaMensalQtd).map((r, i) => `
