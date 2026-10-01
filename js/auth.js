@@ -3309,15 +3309,27 @@ function _dcTabelaTicketCliente() {
 }
 
 function _dcTabela(id, campo, rows, fatTotal, label) {
+  // So faz sentido contar clientes/ticket medio POR representante — pra
+  // Cliente/Estado/Cidade essas colunas nao agregam nada (1 cliente = 1
+  // cliente, por definicao).
+  var comClientes = campo === 'vendedor';
   var map = {};
   rows.forEach(function(r) {
     var key = dcCampoRelatorio(r, campo) || 'Sem ' + dcTextoValor(label || 'dado').toLowerCase();
-    if (!map[key]) map[key] = { fat: 0, pedidos: new Set() };
+    if (!map[key]) map[key] = { fat: 0, pedidos: new Set(), clientes: new Set() };
     map[key].fat += dcValorLinha(r);
     map[key].pedidos.add(dcPedidoChave(r));
+    if (comClientes) map[key].clientes.add(dcClienteNome(r));
   });
   var lista = Object.entries(map)
-    .map(function(e) { return { nome: e[0], fat: e[1].fat, pedidos: e[1].pedidos.size }; });
+    .map(function(e) {
+      var pedidos = e[1].pedidos.size;
+      return {
+        nome: e[0], fat: e[1].fat, pedidos: pedidos,
+        clientes: e[1].clientes.size,
+        ticket: pedidos ? e[1].fat / pedidos : 0
+      };
+    });
   dcOrdenarItensRelatorio(lista, id);
   lista = lista.slice(0, 12);
   var max = lista.length ? lista[0].fat : 1;
@@ -3326,6 +3338,8 @@ function _dcTabela(id, campo, rows, fatTotal, label) {
     + '<th class="dc-th-sort" onclick="dcSortCol(this)">#<span class="dc-sort-icon"></span></th>'
     + '<th class="dc-th-sort" onclick="dcSortCol(this)">' + (label || 'Item') + '<span class="dc-sort-icon"></span></th>'
     + '<th class="dc-th-sort" onclick="dcSortCol(this)">Pedidos<span class="dc-sort-icon"></span></th>'
+    + (comClientes ? '<th class="num dc-th-sort" onclick="dcSortCol(this)">Clientes<span class="dc-sort-icon"></span></th>' : '')
+    + (comClientes ? '<th class="num dc-th-sort" onclick="dcSortCol(this)">Ticket médio<span class="dc-sort-icon"></span></th>' : '')
     + '<th class="num dc-th-sort" onclick="dcSortCol(this)">Faturamento<span class="dc-sort-icon"></span></th>'
     + '<th class="num dc-th-sort" onclick="dcSortCol(this)">%<span class="dc-sort-icon"></span></th>'
     + '</tr></thead><tbody>';
@@ -3333,6 +3347,8 @@ function _dcTabela(id, campo, rows, fatTotal, label) {
     var pct = item.fat / listaTotal * 100;
     var bar = item.fat / max * 100;
     html += '<tr><td class="pos">' + (idx + 1) + '</td><td>' + escapeHtml(item.nome) + '</td><td class="num">' + item.pedidos + '</td>'
+      + (comClientes ? '<td class="num">' + item.clientes + '</td>' : '')
+      + (comClientes ? '<td class="num">' + dcMoedaLimpa(item.ticket) + '</td>' : '')
       + '<td class="num">' + dcMoedaLimpa(item.fat) + '</td>'
       + '<td class="num" style="min-width:64px">'
       +   '<span style="font-size:11px;font-weight:700">' + dcNumeroLimpo(pct, 1) + '%</span>'
