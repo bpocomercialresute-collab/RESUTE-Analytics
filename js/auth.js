@@ -1259,9 +1259,12 @@ function _abrirDashCliente(empresaIdPreview) {
     else dcStatus('⚠ Empresa não configurada.');
   }
 
-  // Carrega filiais do grupo (async, não bloqueante) — apenas para clientes não-preview
-  if (!previewAdmin && SESSION && SESSION.empresa_id) {
-    _dcCarregarFiliais(SESSION.empresa_id);
+  // Carrega filiais do grupo (async, não bloqueante) — o admin em preview
+  // precisa ver EXATAMENTE o que o cliente real veria, incluindo as
+  // empresas/filiais agrupadas; antes isso so carregava fora do preview.
+  var empresaIdFiliais = previewAdmin ? empresaIdPreview : (SESSION && SESSION.empresa_id);
+  if (empresaIdFiliais) {
+    _dcCarregarFiliais(empresaIdFiliais);
   }
 
   // Botão de sync/atualizar no header do dashboard
@@ -1498,9 +1501,22 @@ async function _dcCarregarTotaisCadastros(eid) {
     _dcFetchCadastroCount('produtos',       eid),
     _dcFetchCadastroCount('representantes', eid)
   ]);
-  if (results[0] !== null) { DC_CLI_CAD_TOTAL = results[0]; _dcAtualizarKpiCard('Clientes',        results[0]); }
-  if (results[1] !== null) { DC_PROD_TOTAL    = results[1]; _dcAtualizarKpiCard('Produtos',         results[1]); }
-  if (results[2] !== null) { DC_REP_TOTAL     = results[2]; _dcAtualizarKpiCard('Representantes',   results[2]); }
+  // Sem cadastro proprio (clientes_cad/produtos/representantes vazios —
+  // empresa que so usa o BD de vendas, sem essas tabelas de apoio), os
+  // cards de Clientes/Produtos/Representantes ficavam travados em "0" pra
+  // sempre, mesmo a empresa tendo vendas normais. Cai pro mesmo fallback
+  // de contar nomes unicos direto do BD de vendas (DC_RAW) que o resumo
+  // executivo (dcMetricasDashboard) ja usava.
+  var raw = Array.isArray(DC_RAW) ? DC_RAW : [];
+  // results[i] === null = fetch falhou OU tabela de cadastro nao tem nada
+  // pra essa empresa; so nesse caso cai pro fallback. results[i] === 0 e
+  // uma contagem valida (cadastro existe e esta vazio mesmo) - nao troca.
+  var cliTotal  = results[0] !== null ? results[0]  : (raw.length ? new Set(raw.map(dcClienteNome).filter(function(v) { return v && v !== 'Sem cliente'; })).size : null);
+  var prodTotal = results[1] !== null ? results[1]  : (raw.length ? new Set(raw.map(dcProdutoNome).filter(function(v) { return v && v !== 'Sem produto'; })).size : null);
+  var repTotal  = results[2] !== null ? results[2]  : (raw.length ? new Set(raw.map(dcRepresentanteNome).filter(function(v) { return v && v !== 'Sem representante'; })).size : null);
+  if (cliTotal !== null)  { DC_CLI_CAD_TOTAL = cliTotal;  _dcAtualizarKpiCard('Clientes',        cliTotal); }
+  if (prodTotal !== null) { DC_PROD_TOTAL    = prodTotal; _dcAtualizarKpiCard('Produtos',         prodTotal); }
+  if (repTotal !== null)  { DC_REP_TOTAL     = repTotal;  _dcAtualizarKpiCard('Representantes',   repTotal); }
   _dcFetchClientesLista(eid).then(function() {
     _dcTabelaTicketCliente();
     dcTabelaInativos();
@@ -1514,7 +1530,8 @@ function dcAplicarVendasCarregadas(vendas) {
   dcPreencherFiltroAnos(DC_RAW);
   dcDefinirPeriodoInicial(DC_RAW);
   // No modo "Todas" usa empresa pai para cadastros (clientes/produtos/reps)
-  var cadEid = DC_ACTIVE_COMPANY === 'todas' ? SESSION && SESSION.empresa_id : DC_ACTIVE_COMPANY;
+  var empresaPaiAtivo = DC_ADMIN_PREVIEW && DC_ADMIN_PREVIEW_COMPANY ? DC_ADMIN_PREVIEW_COMPANY.empresa_id : (SESSION && SESSION.empresa_id);
+  var cadEid = DC_ACTIVE_COMPANY === 'todas' ? empresaPaiAtivo : DC_ACTIVE_COMPANY;
   if (cadEid) _dcCarregarTotaisCadastros(cadEid).catch(function(){});
   dcAplicarFiltro();
 }
@@ -4695,7 +4712,8 @@ async function _dcCarregarFiliais(empresaPaiId) {
 function _dcRenderizarSeletorFiliais(empresaPaiId) {
   var sel = document.getElementById('dc-loja-selector');
   if (!sel || !DC_FILIAIS.length) return;
-  var paiNome = LOJA_NOMES[empresaPaiId] || (SESSION && SESSION.empresa_nome) || 'Principal';
+  var nomePreview = DC_ADMIN_PREVIEW && DC_ADMIN_PREVIEW_COMPANY ? DC_ADMIN_PREVIEW_COMPANY.nome : null;
+  var paiNome = LOJA_NOMES[empresaPaiId] || nomePreview || (SESSION && SESSION.empresa_nome) || 'Principal';
   LOJA_NOMES[empresaPaiId] = paiNome;
   var esc = typeof escapeHtml === 'function' ? escapeHtml : function(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -4713,8 +4731,11 @@ function _dcRenderizarSeletorFiliais(empresaPaiId) {
 }
 
 async function _dcCarregarTodas() {
-  if (!DC_FILIAIS.length || !SESSION || !SESSION.empresa_id) return;
-  var ids = [SESSION.empresa_id].concat(DC_FILIAIS.map(function(f) { return f.empresa_filial_id; }));
+  var empresaPaiId = DC_ADMIN_PREVIEW && DC_ADMIN_PREVIEW_COMPANY
+    ? DC_ADMIN_PREVIEW_COMPANY.empresa_id
+    : (SESSION && SESSION.empresa_id);
+  if (!DC_FILIAIS.length || !empresaPaiId) return;
+  var ids = [empresaPaiId].concat(DC_FILIAIS.map(function(f) { return f.empresa_filial_id; }));
 
   if (DC_ABORT_CONTROLLER) { try { DC_ABORT_CONTROLLER.abort(); } catch (e) {} }
   DC_ABORT_CONTROLLER = new AbortController();
