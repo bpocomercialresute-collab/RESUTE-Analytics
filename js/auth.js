@@ -306,6 +306,15 @@ function abrirAreaComercialAdmin(item) {
   if (typeof setSidebarActive === 'function' && item) setSidebarActive(item);
   if (SESSION.papel === 'admin') {
     document.body.classList.add('bpo-admin-mode', 'company-admin-mode');
+    // _abrirDashCliente/financeiroAbrir/dreAbrir escondem sidebar e
+    // cui-wrapper ao abrir "Ver painel da empresa" — switchView() so
+    // cuida de .page-view, nao desses dois. Sem restaurar aqui, voltar do
+    // painel real deixava #view-app com display certo mas dentro de um
+    // #cui-wrapper ainda display:none — tela em branco.
+    ['sidebar', 'cui-wrapper'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = 'flex';
+    });
     if (typeof switchView === 'function') switchView('view-app');
     if (typeof adminInicializar === 'function') adminInicializar();
     return;

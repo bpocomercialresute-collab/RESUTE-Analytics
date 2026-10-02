@@ -6825,6 +6825,13 @@ body.company-admin-mode .av-exibir-grid {
   display: none !important;
 }
 
+/* Item "Financeiro" do menu lateral duplicava o card "Dados financeiros"
+   do painel (os dois chamam abrirDREAdmin) — some so pro admin da empresa;
+   o mesmo link continua servindo o menu do super_admin normalmente. */
+body.company-admin-mode .cui-nav-item[data-admin-target="financeiro"] {
+  display: none !important;
+}
+
 body.company-admin-mode #av-home {
   gap: 18px !important;
 }
