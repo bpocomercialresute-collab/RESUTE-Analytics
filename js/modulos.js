@@ -66,8 +66,12 @@ var MODULO_ATIVO = null;
 function sessaoModulos() {
   if (typeof SESSION === 'undefined' || !SESSION) return [MODULOS.COMERCIAL];
 
-  // super_admin enxerga todos os modulos de todas as empresas
-  if (SESSION.papel === 'super_admin') return MODULOS_PRIORIDADE.slice();
+  // super_admin enxerga todos os modulos de todas as empresas. Admin da
+  // empresa gerencia TUDO da propria empresa, contratado ou nao — o
+  // controle de modulo contratado (empresa_modulos) e pra limitar o que o
+  // CLIENTE final ve (ligado ao plano pago), nao faz sentido travar o
+  // proprio admin fora de Financeiro/Comercial da empresa dele.
+  if (SESSION.papel === 'super_admin' || SESSION.papel === 'admin') return MODULOS_PRIORIDADE.slice();
 
   var lista = Array.isArray(SESSION.modulos) ? SESSION.modulos : null;
   if (!lista || !lista.length) return [MODULOS.COMERCIAL];
