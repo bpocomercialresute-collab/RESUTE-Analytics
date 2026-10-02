@@ -3977,11 +3977,6 @@ function adminOwnerAbrirComercial() {
   if (typeof avShowBD === 'function') avShowBD();
 }
 
-function adminOwnerAbrirFinanceiro() {
-  if (!SESSION || SESSION.papel !== 'admin' || !EMPRESA_ATIVA) return;
-  if (typeof abrirDREAdmin === 'function') abrirDREAdmin();
-}
-
 /**
  * "Ver painel da empresa" — abre o MESMO painel (comercial e/ou financeiro,
  * conforme o que a empresa contratou) que ela ve ao entrar no sistema, com
