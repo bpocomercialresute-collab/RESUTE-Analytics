@@ -153,7 +153,14 @@ function abrirModulo(slug, opts) {
   if (slug === MODULOS.DRE) {
     if (typeof dreAbrir === 'function') dreAbrir(opts);
   } else if (slug === MODULOS.FINANCEIRO) {
-    if (typeof financeiroAbrir === 'function') financeiroAbrir(opts);
+    // Admin da empresa (ou super_admin em visualizacao supervisionada) ve
+    // o DRE completo (resultado de verdade, com todas as abas) em vez do
+    // painel financeiro simplificado — esse so e o que o cliente final via
+    // "Relatorios Financeiro" realmente usa no dia a dia.
+    var ehStaff = (typeof SESSION !== 'undefined' && SESSION)
+      && (SESSION.papel === 'admin' || (SESSION.papel === 'super_admin' && opts.empresaIdPreview));
+    if (ehStaff && typeof dreAbrir === 'function') dreAbrir(opts);
+    else if (typeof financeiroAbrir === 'function') financeiroAbrir(opts);
   } else {
     if (typeof _abrirDashCliente === 'function') _abrirDashCliente(opts.empresaIdPreview);
   }
