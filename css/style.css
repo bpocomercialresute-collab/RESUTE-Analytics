@@ -6882,6 +6882,7 @@ body.company-admin-mode .admin-company-workspace {
 .admin-owner-action-arrow { color: var(--brand-blue); font-size: 25px; }
 .admin-owner-action-financial .admin-owner-action-icon { background: rgba(169,138,98,.14); color: #896b43; }
 .admin-owner-action-financial .admin-owner-action-arrow { color: #896b43; }
+.admin-owner-action-full { grid-column: 1 / -1; }
 
 .admin-owner-footer { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 18px; border-radius: 18px; background: rgba(28,100,192,.06); }
 .admin-owner-footer div { display: flex; flex-direction: column; gap: 4px; }

@@ -564,7 +564,27 @@ function abrirPainelClienteAdmin(empresaId) {
 }
 
 function dcVoltarAoAdmin() {
-  if (!SESSION || SESSION.papel !== 'super_admin' || !DC_ADMIN_PREVIEW) return;
+  if (!SESSION || (SESSION.papel !== 'super_admin' && SESSION.papel !== 'admin')) return;
+  // Admin da empresa abrindo o painel real dela (via "Ver painel da
+  // empresa") nao e preview de super_admin — DC_ADMIN_PREVIEW nunca fica
+  // true nesse caso. Devolve direto pro painel de gestao dele
+  // (abrirAreaComercialAdmin), sem a logica de DC_ADMIN_PREVIEW_VOLTAR que
+  // so faz sentido pra quem entrou via o console do super_admin.
+  if (SESSION.papel === 'admin') {
+    DC_LOAD_SEQUENCE += 1;
+    DC_RAW = []; DC_DATA = [];
+    Object.keys(DC_CHARTS || {}).forEach(function(key) {
+      try { if (DC_CHARTS[key] && typeof DC_CHARTS[key].destroy === 'function') DC_CHARTS[key].destroy(); } catch (e) {}
+    });
+    DC_CHARTS = {};
+    ['view-dash-cliente', 'view-dash-financeiro', 'view-dash-dre'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    if (typeof abrirAreaComercialAdmin === 'function') abrirAreaComercialAdmin();
+    return;
+  }
+  if (!DC_ADMIN_PREVIEW) return;
   DC_LOAD_SEQUENCE += 1;
   DC_ACTIVE_COMPANY = '';
   DC_IS_LOADING = false;
@@ -1253,7 +1273,10 @@ function _abrirDashCliente(empresaIdPreview) {
   var eidAtual = (ids && ids[0]) || SESSION.empresa_id;
   var botaoVoltar = document.getElementById('dc-admin-back');
   var previewBadge = document.getElementById('dc-admin-preview-badge');
-  if (botaoVoltar) botaoVoltar.style.display = previewAdmin ? 'inline-flex' : 'none';
+  // Tambem aparece pro admin da empresa abrindo o proprio painel real (nao
+  // e preview de super_admin, so precisa de um jeito de voltar pro painel
+  // de gestao dele — ver dcVoltarAoAdmin).
+  if (botaoVoltar) botaoVoltar.style.display = (previewAdmin || (SESSION && SESSION.papel === 'admin')) ? 'inline-flex' : 'none';
   if (previewBadge) previewBadge.style.display = previewAdmin ? 'inline-flex' : 'none';
   var eObj = empresaPreview
     || (ADMIN_PREVIEW_COMPANIES || []).find(function(e){ return e.empresa_id === eidAtual; })
@@ -3957,6 +3980,22 @@ function adminOwnerAbrirComercial() {
 function adminOwnerAbrirFinanceiro() {
   if (!SESSION || SESSION.papel !== 'admin' || !EMPRESA_ATIVA) return;
   if (typeof abrirDREAdmin === 'function') abrirDREAdmin();
+}
+
+/**
+ * "Ver painel da empresa" — abre o MESMO painel (comercial e/ou financeiro,
+ * conforme o que a empresa contratou) que ela ve ao entrar no sistema, com
+ * dado real salvo no banco. Antes esse card chamava avShowRel(), uma tela
+ * de relatorio separada que so lia BD_DATA (sessao local do navegador, exige
+ * sincronizar/colar nessa mesma sessao pra aparecer algo) — por isso parecia
+ * "cair na tela do BD Manual" com "nenhum dado carregado" mesmo a empresa
+ * tendo vendas de verdade salvas. _abrirModuloPadrao() reaproveita o MESMO
+ * caminho que um login de cliente usa (view-dash-cliente, dado do Supabase),
+ * ja inclui Produtos/Representantes como abas dentro do proprio painel.
+ */
+function adminOwnerVerPainel() {
+  if (!SESSION || SESSION.papel !== 'admin' || !EMPRESA_ATIVA) return;
+  if (typeof _abrirModuloPadrao === 'function') _abrirModuloPadrao();
 }
 
 function _adminRenderAbas(lista) {

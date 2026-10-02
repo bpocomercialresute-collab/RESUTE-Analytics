@@ -153,7 +153,9 @@ function _finMontarHeader() {
 
   var voltar = document.getElementById('fin-admin-back');
   var previewBadge = document.getElementById('fin-admin-preview-badge');
-  if (voltar) voltar.style.display = previewAdmin ? 'inline-flex' : 'none';
+  // Tambem aparece pro admin da empresa abrindo o proprio painel real (nao
+  // e preview de super_admin) — ver finVoltarAoAdmin.
+  if (voltar) voltar.style.display = (previewAdmin || (typeof SESSION !== 'undefined' && SESSION && SESSION.papel === 'admin')) ? 'inline-flex' : 'none';
   if (previewBadge) previewBadge.style.display = previewAdmin ? 'inline-flex' : 'none';
 
   if (typeof renderizarSeletorModulos === 'function') renderizarSeletorModulos();
@@ -998,9 +1000,21 @@ function finAbrirAbaCliente(paneId, btn) {
 }
 
 function finVoltarAoAdmin() {
-  if (typeof SESSION === 'undefined' || !SESSION || SESSION.papel !== 'super_admin') return;
+  if (typeof SESSION === 'undefined' || !SESSION || (SESSION.papel !== 'super_admin' && SESSION.papel !== 'admin')) return;
   financeiroDestruir();
   MODULO_ATIVO = null;
+  // Admin da empresa abrindo o proprio painel real (via "Ver painel da
+  // empresa") nao e preview de super_admin — devolve direto pro painel de
+  // gestao dele, sem a logica de DC_ADMIN_PREVIEW_VOLTAR (so faz sentido
+  // pra quem entrou via o console do super_admin).
+  if (SESSION.papel === 'admin') {
+    ['view-dash-cliente', 'view-dash-financeiro', 'view-dash-dre'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    if (typeof abrirAreaComercialAdmin === 'function') abrirAreaComercialAdmin();
+    return;
+  }
   // adminConsoleAbrir() so esconde .page-view; os overlays fixos do dashboard
   // (view-dash-cliente/financeiro/dre) nao tem essa classe — garante que
   // nenhum fique visivel por cima da secao do console (mesmo raciocinio de
