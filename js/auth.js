@@ -650,8 +650,21 @@ function _normalizarTelaInicial() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  SESSION = null;
   dcLoading(false);
+  // F5/recarregar a pagina sempre deslogava na hora, mesmo dentro da janela
+  // de 90min da sessao (SESSION_TTL_MS) — o mecanismo de sessao persistida
+  // em localStorage ja existia (_readStoredSession, usado em toda navegacao
+  // interna), mas o carregamento inicial da pagina nunca chegava a consultar
+  // ele: sempre zerava SESSION e ia direto pra tela de login. Agora tenta
+  // restaurar a sessao salva primeiro; so mostra login se nao tiver nenhuma
+  // ou se ja tiver expirado.
+  var sessaoSalva = _readStoredSession();
+  if (sessaoSalva && sessaoSalva.token) {
+    SESSION = sessaoSalva;
+    _abrirApp();
+    return;
+  }
+  SESSION = null;
   _mostrarLogin();
 });
 
