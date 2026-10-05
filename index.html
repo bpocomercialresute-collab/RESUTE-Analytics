@@ -596,24 +596,33 @@
                   <p>Insira os dados da sua opera&ccedil;&atilde;o e acompanhe os relat&oacute;rios em um s&oacute; lugar.</p>
                 </div>
               </div>
-              <span class="admin-owner-role">ADMIN DA EMPRESA</span>
+              <div class="admin-owner-hero-side">
+                <span class="admin-owner-role">ADMIN DA EMPRESA</span>
+                <button type="button" id="admin-owner-refresh-btn" class="admin-owner-refresh" onclick="adminOwnerAtualizarResumo()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+                  Atualizar status
+                </button>
+              </div>
             </div>
 
-            <div class="admin-owner-summary" aria-label="Resumo dos dados">
+            <div class="admin-owner-summary" aria-label="Resumo dos dados" aria-live="polite">
               <article class="admin-owner-summary-card">
                 <span class="admin-owner-summary-label">DADOS COMERCIAIS</span>
                 <strong id="admin-owner-commercial-count">&mdash;</strong>
                 <small id="admin-owner-commercial-status">Aguardando carregamento</small>
+                <button type="button" id="admin-owner-commercial-cta" class="admin-owner-summary-cta" onclick="adminOwnerAbrirComercial()" hidden>Adicionar dados comerciais &rarr;</button>
               </article>
               <article class="admin-owner-summary-card">
                 <span class="admin-owner-summary-label">PLANO DE CONTAS</span>
                 <strong id="admin-owner-plan-count">&mdash;</strong>
                 <small id="admin-owner-plan-status">Aguardando carregamento</small>
+                <button type="button" id="admin-owner-plan-cta" class="admin-owner-summary-cta" onclick="adminOwnerAbrirFinanceiro()" hidden>Cadastrar plano de contas &rarr;</button>
               </article>
               <article class="admin-owner-summary-card">
                 <span class="admin-owner-summary-label">LAN&Ccedil;AMENTOS FINANCEIROS</span>
                 <strong id="admin-owner-financial-count">&mdash;</strong>
                 <small id="admin-owner-financial-status">Aguardando carregamento</small>
+                <button type="button" id="admin-owner-financial-cta" class="admin-owner-summary-cta" onclick="adminOwnerAbrirFinanceiro()" hidden>Colar lançamentos &rarr;</button>
               </article>
             </div>
 
@@ -642,11 +651,8 @@
             </div>
 
             <div class="admin-owner-footer">
-              <div><strong>Como funciona</strong><span>Os dados ficam vinculados somente &agrave; sua empresa. Voc&ecirc; pode atualizar a base quando precisar.</span></div>
-              <button type="button" class="admin-owner-refresh" onclick="adminOwnerAtualizarResumo()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
-                Atualizar status
-              </button>
+              <div><strong>Como funciona</strong><span id="admin-owner-api-info">Os dados ficam vinculados somente à sua empresa.</span></div>
+              <small id="admin-owner-updated" class="admin-owner-updated"></small>
             </div>
           </section>
 

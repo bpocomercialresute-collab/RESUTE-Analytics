@@ -6887,6 +6887,22 @@ body.company-admin-mode .admin-company-workspace {
 .admin-owner-action-copy strong { font-size: 16px; }
 .admin-owner-action-copy small { color: var(--brand-muted-blue); font-size: 12px; line-height: 1.4; }
 .admin-owner-action-arrow { color: var(--brand-blue); font-size: 25px; }
+
+.admin-owner-hero-side { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.admin-owner-hero-side .admin-owner-refresh { margin-top: 0; }
+.admin-owner-summary-cta {
+  margin-top: 10px; padding: 6px 10px; border: 1px solid rgba(28,100,192,.22); border-radius: 10px;
+  background: #fff; color: var(--brand-blue); font-size: 11px; font-weight: 800; cursor: pointer;
+}
+.admin-owner-summary-cta[hidden] { display: none; }
+.admin-owner-summary-cta:hover { background: rgba(28,100,192,.06); }
+.admin-owner-updated { color: var(--brand-muted-blue); font-size: 11px; white-space: nowrap; }
+.admin-owner-action:focus-visible,
+.admin-owner-summary-cta:focus-visible,
+.admin-owner-refresh:focus-visible {
+  outline: 3px solid rgba(36,146,234,.55); outline-offset: 2px;
+}
+.admin-owner-refresh:disabled { opacity: .6; cursor: progress; }
 .admin-owner-action-financial .admin-owner-action-icon { background: rgba(169,138,98,.14); color: #896b43; }
 .admin-owner-action-financial .admin-owner-action-arrow { color: #896b43; }
 .admin-owner-action-full { grid-column: 1 / -1; }
@@ -6913,6 +6929,9 @@ body.company-admin-mode .admin-company-workspace {
   .admin-owner-hero, .admin-owner-footer { align-items: flex-start; flex-direction: column; }
   .admin-owner-role { align-self: flex-start; }
   .admin-owner-summary, .admin-owner-actions { grid-template-columns: 1fr; }
+  .admin-owner-action { min-height: 84px; }
+  .admin-owner-hero-side { align-items: flex-start; }
+  .admin-owner-updated { white-space: normal; }
   .admin-owner-summary-card { padding: 15px; }
   .admin-owner-data-toolbar, .admin-owner-data-toolbar-actions { align-items: stretch; flex-direction: column; }
 }

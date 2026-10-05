@@ -3930,15 +3930,22 @@ function _adminOwnerPreencherEmpresa(empresa) {
   }
 }
 
-function _adminOwnerDefinirResumo(id, countId, statusId, count, readyText) {
+function _adminOwnerDefinirResumo(countId, statusId, ctaId, count, readyText) {
+  var n = Number(count || 0);
   var countEl = document.getElementById(countId);
   var statusEl = document.getElementById(statusId);
-  if (countEl) countEl.textContent = Number(count || 0).toLocaleString('pt-BR');
-  if (statusEl) statusEl.textContent = Number(count || 0) > 0 ? readyText : 'Nenhum dado cadastrado ainda';
+  var ctaEl = ctaId ? document.getElementById(ctaId) : null;
+  if (countEl) countEl.textContent = n.toLocaleString('pt-BR');
+  if (statusEl) statusEl.textContent = n > 0 ? readyText : 'Nenhum dado cadastrado ainda';
+  if (ctaEl) ctaEl.hidden = n > 0;
 }
 
-async function _adminOwnerContarTabela(tabela, empresaId) {
-  var r = await fetch(SUPA_URL + '/rest/v1/' + tabela + '?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=empresa_id&limit=1', {
+// Conta linhas de uma tabela da empresa pelo cabecalho content-range
+// (Prefer: count=exact). Filtro extra opcional (ex.: origem=eq.manual).
+async function _adminOwnerContarTabela(tabela, empresaId, filtroExtra) {
+  var url = SUPA_URL + '/rest/v1/' + tabela + '?empresa_id=eq.' + encodeURIComponent(empresaId)
+    + (filtroExtra ? '&' + filtroExtra : '') + '&select=empresa_id&limit=1';
+  var r = await fetch(url, {
     headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY, 'Prefer': 'count=exact', 'Range': '0-0' }
   });
   if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -3947,37 +3954,67 @@ async function _adminOwnerContarTabela(tabela, empresaId) {
   return total === '*' ? 0 : Number(total) || 0;
 }
 
+function _adminOwnerMarcarAtualizado(ok) {
+  var el = document.getElementById('admin-owner-updated');
+  if (!el) return;
+  var hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  el.textContent = ok === false ? 'Não foi possível atualizar agora' : 'Atualizado às ' + hora;
+}
+
+function _adminOwnerDefinirApi(empresa) {
+  var el = document.getElementById('admin-owner-api-info');
+  if (!el) return;
+  el.textContent = empresa && empresa.tem_api
+    ? 'Esta empresa sincroniza com o sistema externo (API). Você também pode complementar com dados colados.'
+    : 'Esta empresa trabalha com dados colados à mão. Use "Dados comerciais" e "Dados financeiros" para atualizar.';
+}
+
+var _ADMIN_OWNER_RESUMO_EM_CURSO = false;
+
 async function adminOwnerAtualizarResumo() {
   var empresa = typeof EMPRESA_ATIVA !== 'undefined' ? EMPRESA_ATIVA : null;
   if (!empresa || !empresa.empresa_id || !SESSION || SESSION.papel !== 'admin') return;
+  if (_ADMIN_OWNER_RESUMO_EM_CURSO) return;
+  _ADMIN_OWNER_RESUMO_EM_CURSO = true;
+  var eid = empresa.empresa_id;
   _adminOwnerPreencherEmpresa(empresa);
+  _adminOwnerDefinirApi(empresa);
 
-  var comercial = (typeof BD_DATA !== 'undefined' && BD_DATA.rows) ? BD_DATA.rows.length : 0;
-  _adminOwnerDefinirResumo(empresa.empresa_id, 'admin-owner-commercial-count', 'admin-owner-commercial-status', comercial, 'Registros comerciais prontos');
-
-  var planEl = document.getElementById('admin-owner-plan-count');
-  var finEl = document.getElementById('admin-owner-financial-count');
-  var planStatus = document.getElementById('admin-owner-plan-status');
-  var finStatus = document.getElementById('admin-owner-financial-status');
-  if (planEl) planEl.textContent = '...';
-  if (finEl) finEl.textContent = '...';
-  if (planStatus) planStatus.textContent = 'Consultando banco';
-  if (finStatus) finStatus.textContent = 'Consultando banco';
+  var btn = document.getElementById('admin-owner-refresh-btn');
+  if (btn) btn.disabled = true;
+  ['admin-owner-commercial-count', 'admin-owner-plan-count', 'admin-owner-financial-count'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.textContent = '…';
+  });
+  ['admin-owner-commercial-status', 'admin-owner-plan-status', 'admin-owner-financial-status'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.textContent = 'Consultando banco';
+  });
 
   try {
-    var totais = await Promise.all([
-      _adminOwnerContarTabela('fin_dre_plano_contas', empresa.empresa_id),
-      _adminOwnerContarTabela('fin_dre_lancamentos', empresa.empresa_id)
-    ]);
-    if (!EMPRESA_ATIVA || EMPRESA_ATIVA.empresa_id !== empresa.empresa_id) return;
-    _adminOwnerDefinirResumo(empresa.empresa_id, 'admin-owner-plan-count', 'admin-owner-plan-status', totais[0], 'Contas disponiveis para o DRE');
-    _adminOwnerDefinirResumo(empresa.empresa_id, 'admin-owner-financial-count', 'admin-owner-financial-status', totais[1], 'Lancamentos disponiveis para o DRE');
+    // Dados comerciais: conta no BANCO (vendas da empresa), nao na memoria da sessao.
+    var totais = await dcComTimeout(Promise.all([
+      _adminOwnerContarTabela('vendas', eid),
+      _adminOwnerContarTabela('fin_dre_plano_contas', eid),
+      _adminOwnerContarTabela('fin_dre_lancamentos', eid)
+    ]), 15000, 'A consulta do resumo demorou demais.');
+    if (!EMPRESA_ATIVA || EMPRESA_ATIVA.empresa_id !== eid) return;
+    _adminOwnerDefinirResumo('admin-owner-commercial-count', 'admin-owner-commercial-status', 'admin-owner-commercial-cta', totais[0], 'Registros comerciais salvos');
+    _adminOwnerDefinirResumo('admin-owner-plan-count', 'admin-owner-plan-status', 'admin-owner-plan-cta', totais[1], 'Contas disponíveis para o DRE');
+    _adminOwnerDefinirResumo('admin-owner-financial-count', 'admin-owner-financial-status', 'admin-owner-financial-cta', totais[2], 'Lançamentos disponíveis para o DRE');
+    _adminOwnerMarcarAtualizado(true);
   } catch (e) {
-    if (planEl) planEl.textContent = '--';
-    if (finEl) finEl.textContent = '--';
-    if (planStatus) planStatus.textContent = 'Status indisponivel';
-    if (finStatus) finStatus.textContent = 'Status indisponivel';
-    console.warn('[ADMIN EMPRESA] Nao foi possivel consultar o resumo financeiro:', e);
+    if (EMPRESA_ATIVA && EMPRESA_ATIVA.empresa_id === eid) {
+      ['admin-owner-commercial-count', 'admin-owner-plan-count', 'admin-owner-financial-count'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.textContent = '--';
+      });
+      ['admin-owner-commercial-status', 'admin-owner-plan-status', 'admin-owner-financial-status'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.textContent = 'Status indisponível';
+      });
+      _adminOwnerMarcarAtualizado(false);
+    }
+    console.warn('[ADMIN EMPRESA] Nao foi possivel consultar o resumo:', e);
+  } finally {
+    _ADMIN_OWNER_RESUMO_EM_CURSO = false;
+    if (btn) btn.disabled = false;
   }
 }
 
@@ -4032,6 +4069,9 @@ async function adminSelecionarEmpresa(id) {
   if (typeof BD_DATA   !== 'undefined') { BD_DATA.rows = []; BD_DATA.count = 0; }
   if (typeof GRIDS !== 'undefined' && GRIDS.bd) { GRIDS.bd.allData = []; GRIDS.bd.filtered = null; GRIDS.bd.page = 0; GRIDS.bd._render(); }
   _adminSetStatus('⏳ Carregando ' + EMPRESA_ATIVA.nome + '...');
+  // Resumo do painel do admin da empresa roda logo, sem esperar os
+  // carregamentos abaixo (se um deles travar, o resumo nao fica preso em "...").
+  if (SESSION && SESSION.papel === 'admin') adminOwnerAtualizarResumo();
 
   // Atualiza select de empresa no painel de sync e carrega config de auto-sync
   _adminSyncAtualizarSelect(id);
