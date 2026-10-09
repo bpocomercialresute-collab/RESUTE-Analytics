@@ -4360,6 +4360,8 @@ body.rep-roleta-presentation-open { overflow: hidden; }
 .dc-filtro,
 .dc-action-btn,
 .dc-loja-btn,
+.dc-loja-trigger,
+.dc-loja-menu,
 .dc-kpi-card,
 .dc-card,
 .dc-panel,
@@ -4369,6 +4371,8 @@ body.rep-roleta-presentation-open { overflow: hidden; }
   color: #17324d;
   box-shadow: var(--shadow);
 }
+.dc-loja-trigger { color: #17324d; }
+.dc-loja-trigger:hover { background: rgba(255,255,255,1); }
 .dc-filtro {
   color: #17324d;
 }
