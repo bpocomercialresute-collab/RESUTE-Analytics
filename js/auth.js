@@ -2236,7 +2236,14 @@ function dcAbrirRelatorio(tipo) {
     dcStatus('Este relatório não está liberado para esta empresa.');
     return;
   }
-  var rows = Array.isArray(DC_DATA) ? DC_DATA : DC_RAW;
+  // Usa o historico COMPLETO (DC_RAW), nao o recorte filtrado do dashboard
+  // (DC_DATA) -- o relatorio de representantes faz seus proprios filtros de
+  // periodo/ano, e a premiacao mensal precisa olhar pra tras de verdade pra
+  // achar a ultima compra do cliente (reativacao de +6 meses). Com DC_DATA,
+  // se o dashboard estivesse filtrado em "2026", todo historico de 2025
+  // desaparecia e cliente que so tinha compra anterior em 2025 virava
+  // "cliente novo" por engano, perdendo a reativacao.
+  var rows = (Array.isArray(DC_RAW) && DC_RAW.length) ? DC_RAW : DC_DATA;
   if (!rows || !rows.length) {
     dcStatus('⚠ Nenhum dado disponível para abrir o relatório.');
     return;
