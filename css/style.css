@@ -3202,6 +3202,11 @@ body.rep-roleta-presentation-open { overflow: hidden; }
   border: 1px solid #1e2d45; background: #0c1628;
   box-shadow: 0 12px 32px rgba(0,0,0,.4);
 }
+/* .dc-loja-menu acima fixa display:flex, que tem mais especificidade que o
+   estilo padrao do navegador pro atributo [hidden] — sem isso aqui, o JS
+   fazendo menu.hidden=true nunca escondia nada de verdade, o menu ficava
+   sempre aberto. */
+.dc-loja-menu[hidden] { display: none; }
 .dc-loja-menu .dc-loja-btn { width: 100%; text-align: left; border-radius: 6px; }
 
 /* Main scroll */
