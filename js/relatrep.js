@@ -78,14 +78,14 @@ async function repPremiacaoCarregarCadastroClientes() {
   const set = new Set();
   try {
     for (const eid of ids) {
-      const r = await repProxyFetch(SUPA_URL + '/rest/v1/clientes_cad?empresa_id=eq.' + encodeURIComponent(eid) + '&select=nome,razao_social&limit=50000');
-      const dados = await r.json();
-      if (r.ok && Array.isArray(dados)) {
-        dados.forEach(c => {
-          if (c.nome) set.add(repPremiacaoNormNome(c.nome));
-          if (c.razao_social) set.add(repPremiacaoNormNome(c.razao_social));
-        });
-      }
+      const dados = await repFetchAll(
+        SUPA_URL + '/rest/v1/clientes_cad?empresa_id=eq.' + encodeURIComponent(eid)
+          + '&select=nome,razao_social&order=id.asc'
+      );
+      dados.forEach(c => {
+        if (c.nome) set.add(repPremiacaoNormNome(c.nome));
+        if (c.razao_social) set.add(repPremiacaoNormNome(c.razao_social));
+      });
     }
   } catch (e) {}
   window.REP_CADASTRO_NOMES = set;
@@ -117,13 +117,23 @@ function repProxyFetch(url, method, headers) {
  */
 async function repFetchAll(baseUrl) {
   var all = []; var from = 0; var pageSize = 1000;
-  for (var pagina = 0; pagina < 200; pagina++) {
+  var terminou = false;
+  for (var pagina = 0; pagina <= 200; pagina++) {
     var r = await repProxyFetch(baseUrl, 'GET', { Range: from + '-' + (from + pageSize - 1), 'Range-Unit': 'items' });
     if (!r.ok && r.status !== 206) throw new Error('Falha ao carregar (HTTP ' + r.status + ')' + (all.length ? ' apos ' + all.length + ' registros.' : '.'));
     var batch = await r.json();
-    if (!Array.isArray(batch) || !batch.length) break;
+    if (!Array.isArray(batch) || !batch.length) {
+      terminou = true;
+      break;
+    }
+    if (pagina === 200) {
+      throw new Error('O cadastro possui mais de 200.000 registros. Reduza o escopo da consulta antes de gerar o ranking.');
+    }
     all = all.concat(batch);
-    if (batch.length < pageSize) break;
+    if (batch.length < pageSize) {
+      terminou = true;
+      break;
+    }
     from += pageSize;
   }
   return all;
