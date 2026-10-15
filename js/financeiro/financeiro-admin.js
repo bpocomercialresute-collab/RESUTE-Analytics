@@ -246,21 +246,19 @@ async function finAdminCarregarResumo(force) {
   if (FIN_ADMIN_RESUMO_OK && !force) return;
 
   try {
-    var resposta = await fetch(
-      SUPA_URL + '/rest/v1/fin_lancamentos?select=empresa_id,tipo,valor,status&limit=100000',
-      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY } }
+    var linhas = await _fetchAll(
+      SUPA_URL + '/rest/v1/fin_lancamentos?select=empresa_id,tipo,valor,status&order=id.asc',
+      { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
     );
-    if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
-
-    var linhas = await resposta.json();
     var resumo = {};
     (Array.isArray(linhas) ? linhas : []).forEach(function(l) {
       var id = String(l.empresa_id);
       if (!resumo[id]) resumo[id] = { registros: 0, receita: 0, despesa: 0 };
       resumo[id].registros += 1;
       if (String(l.status).toLowerCase() === 'cancelado') return;
-      if (String(l.tipo).toLowerCase() === 'receita') resumo[id].receita += Number(l.valor) || 0;
-      else resumo[id].despesa += Number(l.valor) || 0;
+      var tipo = String(l.tipo || '').trim().toLowerCase();
+      if (tipo === 'receita') resumo[id].receita += Number(l.valor) || 0;
+      else if (tipo === 'despesa') resumo[id].despesa += Number(l.valor) || 0;
     });
 
     FIN_ADMIN_RESUMO = resumo;
