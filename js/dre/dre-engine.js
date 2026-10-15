@@ -439,15 +439,25 @@ const DRE = (() => {
       serie.resultFinanceiro.push(rf);
       serie.resultOperacional.push(ro);
 
-      // legado
-      const rl = recOp - trib;
-      const lb = rl - custo;
-      const eb = lb - oper - com - log - adm - manut;
-      const as = eb - fin + recNOp;
-      const ll = as - soc;
+      // legado -- NAO sao mortos: alimentam de verdade os KPIs, o sino de
+      // alertas e o resumo executivo do painel (views/dre-painel.html,
+      // #fin-kpis/#fin-alertas/#fin-executive-summary), so nao ficam no
+      // bloco "fin-dre-corpo" que o renderDRE() principal desenha.
+      // trib/custo/oper/com/log/adm/manut/fin/soc ja vem NEGATIVOS daqui
+      // (toda conta de saida e forcada a -Math.abs no soma.set la em cima,
+      // igual tr/dv/df/rf/ro fazem por SOMA). Subtrair um valor que ja e
+      // negativo SOMA em vez de descontar -- inflava receita liquida, lucro
+      // bruto, EBITDA e lucro liquido (chegava a dobrar o resultado real),
+      // disparando "Resultado positivo" e "EBITDA" errados no sino de
+      // alertas mesmo quando a empresa tava no prejuizo de verdade.
+      const rl = recOp + trib;
+      const lb = rl + custo;
+      const eb = lb + oper + com + log + adm + manut;
+      const as = eb + fin + recNOp;
+      const ll = as + soc;
       serie.receitaLiquida.push(rl); serie.lucroBruto.push(lb);
       serie.ebitda.push(eb);         serie.antesSocios.push(as);
-      serie.lucroLiquido.push(ll);   serie.geracaoCaixa.push(ll - inv);
+      serie.lucroLiquido.push(ll);   serie.geracaoCaixa.push(ll + inv);
     }
 
     const somaRecorte = arr => arr.reduce((s, v) => s + v, 0);
