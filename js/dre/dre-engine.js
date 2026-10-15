@@ -212,6 +212,16 @@ const DRE = (() => {
     });
   }
 
+  // Despesa (s_e='S') digitada positiva é erro humano natural ("paguei 500
+  // de aluguel", sem pensar em sinal contábil) — sem isso, soma em vez de
+  // subtrair e infla o resultado. Receita (s_e='E'/'0') negativa continua
+  // intacta — desconto ou devolução é legítimo com sinal negativo. Usada em
+  // TODO lugar que soma estado.bd/estado.bdDre (montarBDDRE, serieAnualGrupo,
+  // serieAnualReceita) — antes só montarBDDRE corrigia o sinal, então o
+  // mesmo grupo de despesa saía negativo no TOTAL do bloco e positivo na
+  // linha de "Evolução anual"/Laudo Grupo logo abaixo, na mesma tabela.
+  const valorAssinado = l => l.s_e === 'S' ? -Math.abs(num(l.valor)) : num(l.valor);
+
   /* ---------- 6. ESTÁGIO 3: BD_DRE (o SUMIFS) ---------- */
 
   /*  Fórmula original, célula G2 do BD_DRE:
@@ -233,17 +243,12 @@ const DRE = (() => {
     for (const l of bd) {
       if (!l.entraRelatorio || l.ano == null) continue;
       const chave = `${norm(l.conta)}|${l.ano}|${l.mesIdx}|${l.cnpj}`;
-      // Despesa (s_e='S') digitada positiva é erro humano natural ("paguei
-      // 500 de aluguel", sem pensar em sinal contábil) — sem isso, soma em
-      // vez de subtrair e infla o resultado. Corrige aqui, no ponto único
-      // onde TODO lançamento passa (colado, carregado do banco, editado
-      // direto na grade), em vez de só no momento de colar — correção
-      // anterior (js/dre/dre-view.js, _dreCorrigirSinalDespesa) cobria só
-      // a colagem; reabrir dados já salvos ia direto pro motor sem passar
-      // por ela. Receita (s_e='E') negativa continua intacta — desconto ou
-      // devolução é legítimo com sinal negativo.
-      const valor = l.s_e === 'S' ? -Math.abs(num(l.valor)) : num(l.valor);
-      soma.set(chave, num(soma.get(chave)) + valor);
+      // Corrige aqui, no ponto único onde TODO lançamento passa (colado,
+      // carregado do banco, editado direto na grade), em vez de só no
+      // momento de colar — correção anterior (js/dre/dre-view.js,
+      // _dreCorrigirSinalDespesa) cobria só a colagem; reabrir dados já
+      // salvos ia direto pro motor sem passar por ela.
+      soma.set(chave, num(soma.get(chave)) + valorAssinado(l));
     }
 
     // meses[i] = valor do slot i (não mais índice de calendário fixo)
@@ -325,7 +330,7 @@ const DRE = (() => {
     for (const l of estado.bd) {
       if (!l.entraRelatorio || l.ano !== ano || l.grupo !== nomeGrupo || l.cnpj !== estado.cnpj) continue;
       if (l.mesIdx == null) continue;
-      meses[l.mesIdx] += num(l.valor);
+      meses[l.mesIdx] += valorAssinado(l);
     }
     return meses;
   }
@@ -337,7 +342,7 @@ const DRE = (() => {
     for (const l of estado.bd) {
       if (!l.entraRelatorio || l.ano !== ano || l.cnpj !== estado.cnpj || l.s_e !== 'E') continue;
       if (l.mesIdx == null) continue;
-      meses[l.mesIdx] += num(l.valor);
+      meses[l.mesIdx] += valorAssinado(l);
     }
     return meses;
   }
