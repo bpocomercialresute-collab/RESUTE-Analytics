@@ -473,6 +473,24 @@ function avShowRel(tipo) {
   _hide('av-rel-area');
   _hide('av-rep-area');
 
+  // Essa grade (super_admin "Abrir operação" -> BD Manual -> EXIBIR) e uma
+  // segunda porta pros mesmos relatorios que dcAbrirRelatorio() ja abre pelo
+  // painel do cliente -- mas essa aqui so renderizava o que estivesse em
+  // BD_DATA na hora (pode ser so o que foi colado manualmente, sem o
+  // historico completo). Se o dashboard comercial (DC_RAW) ja foi carregado
+  // pra essa MESMA empresa nessa sessao, reaproveita o historico completo
+  // em vez do que estiver no BD_DATA -- senao a Premiacao (reativacao de
+  // +6 meses) corta historico e da numero errado de novo, por essa porta.
+  var _avEid = (typeof EMPRESA_ATIVA !== 'undefined' && EMPRESA_ATIVA) ? EMPRESA_ATIVA.empresa_id : '';
+  if (_avEid && typeof DC_RAW !== 'undefined' && Array.isArray(DC_RAW) && DC_RAW.length
+      && typeof DC_ACTIVE_COMPANY !== 'undefined' && DC_ACTIVE_COMPANY === _avEid
+      && typeof dcPrepararDadosRelatorios === 'function') {
+    dcPrepararDadosRelatorios(DC_RAW);
+  }
+  // Mesmo sem o historico completo disponivel, zera filtro/merge/cadastro
+  // da empresa anterior (vazamento entre empresas corrigido nesta sessao).
+  if (_avEid && typeof repResetarAoTrocarEmpresa === 'function') repResetarAoTrocarEmpresa(_avEid);
+
   // RELAT REPRESENTANTES vai para área própria
   if (tipo === 'relat-representantes') {
     if (typeof garantirAbaPremiacaoRepresentantes === 'function') garantirAbaPremiacaoRepresentantes();
