@@ -23,6 +23,8 @@ var ADMIN_CONSOLE = {
   loadErrors: []
 };
 
+var ADMIN_SESSION_REDIRECTING = false;
+
 var ADMIN_SECTION_META = {
   overview: {
     title: 'Visao geral',
@@ -150,9 +152,46 @@ async function adminConsoleFetch(path, options) {
     var message = payload && payload.erro
       ? payload.erro
       : (payload && payload.message ? payload.message : ('HTTP ' + response.status));
+    if (response.status === 401 && /sess[aã]o inv[aá]lida/i.test(message)) {
+      adminConsoleHandleExpiredSession();
+    }
     throw new Error(message);
   }
   return { data: payload, response: response };
+}
+
+// Admin lists grow independently. Keep the browser from requesting an
+// unbounded table while preserving the existing array-based renderers.
+async function adminConsoleFetchAll(path, pageSize, maxPages) {
+  var size = Math.max(100, Number(pageSize) || 1000);
+  var pages = Math.max(1, Number(maxPages) || 100);
+  var separator = path.indexOf('?') >= 0 ? '&' : '?';
+  var rows = [];
+  var truncated = true;
+
+  for (var page = 0; page < pages; page += 1) {
+    var result = await adminConsoleFetch(
+      path + separator + 'limit=' + size + '&offset=' + (page * size)
+    );
+    var batch = Array.isArray(result.data) ? result.data : [];
+    rows = rows.concat(batch);
+    if (batch.length < size) {
+      truncated = false;
+      break;
+    }
+  }
+
+  return { data: rows, truncated: truncated };
+}
+
+function adminConsoleHandleExpiredSession() {
+  if (ADMIN_SESSION_REDIRECTING) return;
+  ADMIN_SESSION_REDIRECTING = true;
+  window.setTimeout(function() {
+    if (typeof fazerLogout === 'function') fazerLogout();
+    var error = document.getElementById('login-erro');
+    if (error) error.textContent = 'Sua sessao expirou. Entre novamente para continuar.';
+  }, 0);
 }
 
 async function adminConsoleAction(action, payload) {
@@ -173,16 +212,30 @@ async function adminConsoleAction(action, payload) {
     'A acao administrativa demorou mais que o esperado.'
   );
   var data = await response.json().catch(function() { return {}; });
-  if (!response.ok) throw new Error(data.erro || ('HTTP ' + response.status));
+  var message = data.erro || data.message || ('HTTP ' + response.status);
+  if (response.status === 401 && /sess[aã]o inv[aá]lida/i.test(message)) {
+    adminConsoleHandleExpiredSession();
+  }
+  if (!response.ok) throw new Error(message);
   return data;
 }
 
-function adminConsoleAviso(message, type) {
+function adminConsoleAviso(message, type, action) {
   var notice = document.getElementById('admin-console-notice');
   if (!notice) return;
   notice.hidden = false;
   notice.className = 'admin-console-notice ' + (type || 'info');
-  notice.textContent = message; // sempre textContent — nunca innerHTML com dados externos
+  notice.textContent = '';
+  notice.appendChild(document.createTextNode(String(message || '')));
+  if (action && action.label && typeof action.onClick === 'function') {
+    notice.appendChild(document.createTextNode(' '));
+    var actionButton = document.createElement('button');
+    actionButton.type = 'button';
+    actionButton.className = 'admin-notice-action';
+    actionButton.textContent = action.label;
+    actionButton.addEventListener('click', action.onClick);
+    notice.appendChild(actionButton);
+  }
   window.clearTimeout(adminConsoleAviso._timer);
   adminConsoleAviso._timer = window.setTimeout(function() {
     notice.hidden = true;
@@ -230,19 +283,31 @@ async function adminConsoleInicializar(force) {
   }
 
   ADMIN_CONSOLE.loading = true;
+  ADMIN_SESSION_REDIRECTING = false;
   ADMIN_CONSOLE.loadErrors = [];
+  // Never render a refresh with records from a previous session/company.
+  // The current DOM remains visible while the requests are running; these
+  // arrays are consumed only after all settled results are processed below.
+  ADMIN_CONSOLE.companies = [];
+  ADMIN_CONSOLE.users = [];
+  ADMIN_CONSOLE.integrations = [];
+  ADMIN_CONSOLE.syncLogs = [];
+  ADMIN_CONSOLE.persistentAudit = [];
+  ADMIN_CONSOLE.filiais = [];
+  ADMIN_CONSOLE.metricsByCompany = {};
+  ADMIN_CONSOLE.salesCount = 0;
   adminConsoleSetLoading(true);
   var sessionLabel = document.getElementById('admin-session-label');
   if (sessionLabel) sessionLabel.textContent = (SESSION.email || SESSION.nome || 'RESUTE') + ' - super_admin';
 
   try {
-    var companyRequest = adminConsoleFetch('/rest/v1/empresas?select=*&order=nome.asc');
-    var userRequest = adminConsoleFetch('/rest/v1/usuarios?select=*&order=nome.asc');
-    var integrationRequest = adminConsoleFetch('/rest/v1/api_config?select=empresa_id,sistema,api_url,ativo&order=empresa_id.asc');
-    var syncRequest = adminConsoleFetch('/rest/v1/sync_log?select=*&order=ultima_sync.desc.nullslast');
+    var companyRequest = adminConsoleFetchAll('/rest/v1/empresas?select=*&order=nome.asc', 500, 20);
+    var userRequest = adminConsoleFetchAll('/rest/v1/usuarios?select=*&order=nome.asc', 500, 20);
+    var integrationRequest = adminConsoleFetchAll('/rest/v1/api_config?select=empresa_id,sistema,api_url,ativo&order=empresa_id.asc', 500, 20);
+    var syncRequest = adminConsoleFetchAll('/rest/v1/sync_log?select=*&order=ultima_sync.desc.nullslast', 500, 40);
     var auditRequest = adminConsoleFetch('/rest/v1/admin_audit_log?select=id,criado_em,ator_email,acao,entidade,entidade_id,empresa_id,resumo,metadados&order=criado_em.desc&limit=200')
       .catch(function() { return { data: [] }; });
-    var filiaisRequest = adminConsoleFetch('/rest/v1/empresa_filiais?select=empresa_pai_id,empresa_filial_id&ativo=eq.true')
+    var filiaisRequest = adminConsoleFetchAll('/rest/v1/empresa_filiais?select=empresa_pai_id,empresa_filial_id&ativo=eq.true', 500, 20)
       .catch(function() { return { data: [] }; });
 
     var requests = [companyRequest, userRequest, integrationRequest, syncRequest, auditRequest, filiaisRequest];
@@ -252,6 +317,9 @@ async function adminConsoleInicializar(force) {
     results.forEach(function(result, index) {
       if (result.status === 'fulfilled') {
         ADMIN_CONSOLE[targets[index]] = Array.isArray(result.value.data) ? result.value.data : [];
+        if (result.value.truncated) {
+          ADMIN_CONSOLE.loadErrors.push(labels[index] + ': limite de paginação atingido');
+        }
       } else {
         ADMIN_CONSOLE.loadErrors.push(labels[index] + ': ' + (result.reason && result.reason.message ? result.reason.message : result.reason));
       }
@@ -1897,13 +1965,15 @@ function adminConsoleUsuarioModal(user, preEmpresaId) {
       await adminConsoleAtualizar(true);
       adminConsoleTrackActivity('usuario', editing ? 'Usuario atualizado' : 'Usuario criado', payload.email + ' - ' + payload.papel);
       if (!editing && result && result.usuario && payload.papel !== 'super_admin') {
-        var novoId = adminConsoleEscape(result.usuario.id);
-        var novoNome = adminConsoleEscape(result.usuario.nome || payload.email);
+        var novoId = String(result.usuario.id || '');
+        var novoNome = String(result.usuario.nome || payload.email);
         adminConsoleAviso(
-          'Usuario <strong>' + novoNome + '</strong> criado. '
-          + '<button onclick="adminConsoleEntrarComo(\'' + novoId + '\')" class="admin-notice-action">Entrar como ' + novoNome + ' →</button>',
+          'Usuario ' + novoNome + ' criado.',
           'success',
-          true
+          {
+            label: 'Entrar como ' + novoNome,
+            onClick: function() { adminConsoleEntrarComo(novoId); }
+          }
         );
       } else {
         adminConsoleAviso(editing ? 'Usuario atualizado com sucesso.' : 'Usuario criado com sucesso.', 'success');
