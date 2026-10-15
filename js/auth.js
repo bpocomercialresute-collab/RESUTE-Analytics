@@ -1516,7 +1516,14 @@ function _dcAtualizarKpiCard(label, total) {
 }
 
 async function _dcFetchRepresentantesLista(eid) {
-  DC_REP_LISTA = [];
+  // Monta numa lista LOCAL e so grava em DC_REP_LISTA no final, se a
+  // sequencia nao mudou nesse meio tempo -- trocar de empresa rapido
+  // enquanto essa paginacao ainda rodava fazia duas chamadas empilharem
+  // push() na mesma array global ao mesmo tempo (uma limpando o que a
+  // outra tinha acabado de colocar), misturando representante de uma
+  // empresa com o de outra na tabela de Positivacao.
+  var seqNoInicio = DC_LOAD_SEQUENCE;
+  var lista = [];
   var from = 0, pageSize = 1000, pages = 0;
   while (pages < 10) {
     var resp = await fetch(
@@ -1524,21 +1531,27 @@ async function _dcFetchRepresentantesLista(eid) {
       { headers: { 'Range': from + '-' + (from + pageSize - 1) } }
     );
     if (!resp.ok && resp.status !== 206) break;
+    if (seqNoInicio !== DC_LOAD_SEQUENCE) return;
     var batch = await resp.json();
     if (!Array.isArray(batch) || !batch.length) break;
     batch.forEach(function(item) {
       var n = String(item.nome || '').trim().toUpperCase();
-      if (n) DC_REP_LISTA.push(n);
+      if (n) lista.push(n);
     });
     pages++;
     if (batch.length < pageSize) break;
     from += pageSize;
   }
+  if (seqNoInicio !== DC_LOAD_SEQUENCE) return;
+  DC_REP_LISTA = lista;
 }
 
 async function _dcFetchClientesLista(eid) {
-  DC_CLI_LISTA = [];
-  DC_CLI_FONE  = {};
+  // Mesma protecao de corrida que _dcFetchRepresentantesLista: monta local,
+  // so publica em DC_CLI_LISTA/DC_CLI_FONE se a sequencia ainda bater.
+  var seqNoInicio = DC_LOAD_SEQUENCE;
+  var lista = [];
+  var fones = {};
   var from = 0, pageSize = 1000, pages = 0;
   while (pages < 10) {
     var resp = await fetch(
@@ -1546,20 +1559,24 @@ async function _dcFetchClientesLista(eid) {
       { headers: { 'Range': from + '-' + (from + pageSize - 1) } }
     );
     if (!resp.ok && resp.status !== 206) break;
+    if (seqNoInicio !== DC_LOAD_SEQUENCE) return;
     var batch = await resp.json();
     if (!Array.isArray(batch) || !batch.length) break;
     batch.forEach(function(item) {
       var n = String(item.nome || item.razao_social || '').trim().toUpperCase();
       if (n) {
-        DC_CLI_LISTA.push(n);
+        lista.push(n);
         var fone = String(item.telefone || '').trim();
-        if (fone) DC_CLI_FONE[n] = fone;
+        if (fone) fones[n] = fone;
       }
     });
     pages++;
     if (batch.length < pageSize) break;
     from += pageSize;
   }
+  if (seqNoInicio !== DC_LOAD_SEQUENCE) return;
+  DC_CLI_LISTA = lista;
+  DC_CLI_FONE  = fones;
 }
 
 async function _dcFetchCadastroCount(tabela, eid) {
@@ -1623,12 +1640,17 @@ async function _dcCarregarTotaisCadastros(eid) {
   if (cliTotal !== null)  { DC_CLI_CAD_TOTAL = cliTotal;  _dcAtualizarKpiCard('Clientes',        cliTotal); }
   if (prodTotal !== null) { DC_PROD_TOTAL    = prodTotal; _dcAtualizarKpiCard('Produtos',         prodTotal); }
   if (repTotal !== null)  { DC_REP_TOTAL     = repTotal;  _dcAtualizarKpiCard('Representantes',   repTotal); }
+  var seqListas = DC_LOAD_SEQUENCE;
   _dcFetchClientesLista(eid).then(function() {
+    if (seqListas !== DC_LOAD_SEQUENCE) return;
     _dcTabelaTicketCliente();
     dcTabelaInativos();
     _dcTabelaNovosClientes();
   }).catch(function(){});
-  _dcFetchRepresentantesLista(eid).then(function() { _dcTabelaPositivacao(); }).catch(function(){});
+  _dcFetchRepresentantesLista(eid).then(function() {
+    if (seqListas !== DC_LOAD_SEQUENCE) return;
+    _dcTabelaPositivacao();
+  }).catch(function(){});
 }
 
 function dcAplicarVendasCarregadas(vendas) {
