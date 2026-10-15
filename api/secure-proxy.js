@@ -1162,16 +1162,31 @@ async function handleAdminCompanyDelete(res, appUser, payload, env) {
   );
   const companyUsers = await adminActionReadJson(usersResponse);
 
-  // Delete operational tables and config in parallel (errors tolerated)
+  // Delete operational tables and config in parallel (errors tolerated).
+  // Precisa cobrir TODA tabela com FK pra empresas.id sem cascade -- senao
+  // o DELETE final em "empresas" (mais abaixo) falha por violacao de FK
+  // pra qualquer empresa que ja tenha lancamento financeiro/DRE, contrato
+  // de modulo, filial vinculada ou relatorio em cache, travando a exclusao
+  // pra sempre (faltavam fin_lancamentos, fin_dre_lancamentos,
+  // fin_dre_plano_contas, relatorios_cache, empresa_modulos e
+  // empresa_filiais nessa lista).
   const deleteHeaders = { ...adminActionHeaders(env), 'Prefer': 'return=minimal' };
   await Promise.all([
-    ...['vendas', 'clientes_cad', 'produtos', 'representantes', 'grupos'].map(table =>
+    ...['vendas', 'clientes_cad', 'produtos', 'representantes', 'grupos',
+        'fin_lancamentos', 'fin_dre_lancamentos', 'fin_dre_plano_contas',
+        'relatorios_cache', 'empresa_modulos'].map(table =>
       fetch(`${env.supaUrl}/rest/v1/${table}?empresa_id=eq.${encodeURIComponent(companyId)}`,
         { method: 'DELETE', headers: deleteHeaders }).catch(() => null)
     ),
     fetch(`${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(companyId)}`,
       { method: 'DELETE', headers: deleteHeaders }).catch(() => null),
     fetch(`${env.supaUrl}/rest/v1/sync_log?empresa_id=eq.${encodeURIComponent(companyId)}`,
+      { method: 'DELETE', headers: deleteHeaders }).catch(() => null),
+    // empresa_filiais referencia empresas duas vezes (pai e filial) -- a
+    // empresa excluida pode ser qualquer um dos dois lados do vinculo.
+    fetch(`${env.supaUrl}/rest/v1/empresa_filiais?empresa_pai_id=eq.${encodeURIComponent(companyId)}`,
+      { method: 'DELETE', headers: deleteHeaders }).catch(() => null),
+    fetch(`${env.supaUrl}/rest/v1/empresa_filiais?empresa_filial_id=eq.${encodeURIComponent(companyId)}`,
       { method: 'DELETE', headers: deleteHeaders }).catch(() => null)
   ]);
 
