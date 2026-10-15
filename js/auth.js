@@ -2258,6 +2258,12 @@ function dcAbrirRelatorio(tipo) {
     dcStatus('Este relatório não está liberado para esta empresa.');
     return;
   }
+  // Zera filtro/merge/cadastro do Relatorio de Representantes se a empresa
+  // ativa mudou desde a ultima vez que esse relatorio foi aberto -- essas
+  // variaveis (REP_FILTER, REP_MERGE_EMPRESAS, REP_CADASTRO_NOMES, etc) sao
+  // globais e nao eram limpas na troca de empresa, contaminando premiacao
+  // e filtros com dado da empresa anterior.
+  if (typeof repResetarAoTrocarEmpresa === 'function') repResetarAoTrocarEmpresa(DC_ACTIVE_COMPANY);
   // Usa o historico COMPLETO (DC_RAW), nao o recorte filtrado do dashboard
   // (DC_DATA) -- o relatorio de representantes faz seus proprios filtros de
   // periodo/ano, e a premiacao mensal precisa olhar pra tras de verdade pra

@@ -35,6 +35,30 @@ window.REP_MERGE_PAINEL_ABERTO = window.REP_MERGE_PAINEL_ABERTO || false;
 window.REP_CADASTRO_NOMES = window.REP_CADASTRO_NOMES || null;
 window.REP_CADASTRO_CARREGANDO = window.REP_CADASTRO_CARREGANDO || false;
 
+// Empresa cujo estado (filtro/merge/cadastro) esta carregado agora nessas
+// variaveis globais. Nenhuma delas e por-empresa -- sao module-level e
+// nunca eram limpas ao trocar de empresa ativa (ex.: super_admin trocando
+// de preview, ou admin com varias filiais). Resultado: merge de empresas
+// ("Juntar empresas na premiacao"), cache de empresas mescladas, filtro de
+// vendedor/produto/cliente e o cadastro de clientes pra validar reativacao
+// ficavam "grudados" da empresa anterior e contaminavam o relatorio da
+// empresa nova, calado -- sem erro, so numero errado.
+window.REP_EMPRESA_CARREGADA = window.REP_EMPRESA_CARREGADA || '';
+
+function repResetarAoTrocarEmpresa(eid) {
+  eid = String(eid || '');
+  if (!eid || eid === window.REP_EMPRESA_CARREGADA) return;
+  window.REP_EMPRESA_CARREGADA = eid;
+  window.REP_FILTER = { vendedor:'', produto:[], cliente:'', grupo:'', marca:'' };
+  window.REP_MENSAL_FILTER = { ano:'', vendedores:[], ocultarVazios:true };
+  window.REP_MERGE_EMPRESAS = [];
+  window.REP_EMPRESAS_CACHE = {};
+  window.REP_MERGE_PAINEL_ABERTO = false;
+  window.REP_CADASTRO_NOMES = null;
+  window.REP_CADASTRO_CARREGANDO = false;
+  try { localStorage.removeItem('resute_rep_merge_empresas'); } catch (e) {}
+}
+
 async function repPremiacaoCarregarCadastroClientes() {
   if (window.REP_CADASTRO_NOMES !== null || window.REP_CADASTRO_CARREGANDO) return;
   const ids = [];
