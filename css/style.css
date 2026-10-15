@@ -6428,9 +6428,10 @@ body.bpo-admin-mode #view-app #av-home {
 }
 
 body.bpo-admin-mode .cui-sidebar {
-  background: var(--brand-white) !important;
-  border-right: 1px solid rgba(213, 237, 232, 0.98) !important;
-  box-shadow: 8px 0 30px rgba(10, 47, 47, 0.06) !important;
+  background:
+    linear-gradient(180deg, rgba(10, 47, 47, 0.98) 0%, rgba(13, 79, 79, 0.96) 100%) !important;
+  border-right: 1px solid rgba(45, 212, 191, 0.18) !important;
+  box-shadow: 20px 0 38px rgba(10, 47, 47, 0.18) !important;
 }
 
 body.bpo-admin-mode .cui-sidebar::after {
@@ -6440,71 +6441,57 @@ body.bpo-admin-mode .cui-sidebar::after {
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(45, 212, 191, 0.10) 0%, rgba(45, 212, 191, 0) 72%);
+  background: radial-gradient(circle, rgba(45, 212, 191, 0.20) 0%, rgba(45, 212, 191, 0) 72%);
   pointer-events: none;
 }
 
 body.bpo-admin-mode .cui-sidebar-brand,
 body.bpo-admin-mode .cui-sidebar-footer {
-  border-color: rgba(213, 237, 232, 0.98) !important;
+  border-color: rgba(45, 212, 191, 0.16) !important;
 }
 
 body.bpo-admin-mode .cui-brand-name,
 body.bpo-admin-mode .cui-sidebar-user-nome {
-  color: var(--brand-ink) !important;
+  color: #f8fffd !important;
 }
 
 body.bpo-admin-mode .cui-brand-sub,
 body.bpo-admin-mode .cui-sidebar-user-empresa {
-  color: #5a7a74 !important;
+  color: rgba(232, 248, 244, 0.70) !important;
 }
 
 body.bpo-admin-mode .cui-sidebar-user {
-  background: rgba(240, 250, 248, 0.95) !important;
-  border: 1px solid rgba(213, 237, 232, 0.98) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
   border-radius: 18px !important;
 }
 
 body.bpo-admin-mode .cui-sidebar-avatar {
   background: rgba(45, 212, 191, 0.14) !important;
-  color: var(--brand-graphite) !important;
+  color: #b8fff1 !important;
 }
 
 body.bpo-admin-mode .cui-nav-title {
   background: transparent !important;
   border-color: transparent !important;
-  color: var(--brand-muted-blue) !important;
+  color: rgba(227, 247, 242, 0.54) !important;
 }
 
 body.bpo-admin-mode .cui-nav-item {
-  color: var(--brand-graphite) !important;
+  color: rgba(240, 253, 250, 0.74) !important;
   border-radius: 16px !important;
 }
 
 body.bpo-admin-mode .cui-nav-item:hover {
-  background: rgba(20, 116, 111, 0.08) !important;
-  color: var(--brand-ink) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--brand-white) !important;
 }
 
 body.bpo-admin-mode .cui-nav-item.active,
 body.bpo-admin-mode .cui-nav-item.is-active {
-  background: linear-gradient(90deg, rgba(45, 212, 191, 0.16), rgba(45, 212, 191, 0.04)) !important;
-  border: 1px solid rgba(45, 212, 191, 0.24) !important;
-  color: var(--brand-graphite) !important;
-}
-
-body.bpo-admin-mode .cui-sidebar-toggle,
-body.bpo-admin-mode .cui-sidebar-logout {
-  color: #5a7a74 !important;
-}
-
-body.bpo-admin-mode .cui-sidebar-toggle:hover,
-body.bpo-admin-mode .cui-sidebar-logout:hover {
-  color: var(--brand-ink) !important;
-}
-
-body.bpo-admin-mode .cui-nav::-webkit-scrollbar-thumb {
-  background: rgba(20, 116, 111, 0.16) !important;
+  background: linear-gradient(90deg, rgba(45, 212, 191, 0.22), rgba(45, 212, 191, 0.08)) !important;
+  border: 1px solid rgba(45, 212, 191, 0.20) !important;
+  color: #b8fff1 !important;
 }
 
 body.bpo-admin-mode .cui-header {
