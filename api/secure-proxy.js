@@ -909,6 +909,29 @@ async function adminActionReadJson(response) {
   return data;
 }
 
+async function adminActionDeleteResource(url, headers, label, okStatuses) {
+  let response;
+  try {
+    response = await fetch(url, { method: 'DELETE', headers });
+  } catch (error) {
+    throw new Error(`Falha ao remover ${label}: ${error?.message || 'erro de rede'}`);
+  }
+  // 404 e aceitavel quando o proprio chamador marca isso (ex.: usuario que ja
+  // nao existe mais no Supabase Auth, removido fora do fluxo normal) --
+  // mesmo criterio ja usado em handleAdminUserDelete pra exclusao avulsa.
+  if (response.ok || (Array.isArray(okStatuses) && okStatuses.includes(response.status))) return;
+
+  const text = await response.text();
+  let detail = '';
+  try {
+    const payload = text ? JSON.parse(text) : null;
+    detail = payload?.message || payload?.msg || payload?.error_description || payload?.error || '';
+  } catch (error) {
+    detail = text ? text.slice(0, 180) : '';
+  }
+  throw new Error(`Falha ao remover ${label}: HTTP ${response.status}${detail ? ` - ${detail}` : ''}`);
+}
+
 function normalizeAdminUserPayload(payload) {
   const input = payload || {};
   const email = String(input.email || '').trim().toLowerCase();
@@ -1162,7 +1185,9 @@ async function handleAdminCompanyDelete(res, appUser, payload, env) {
   );
   const companyUsers = await adminActionReadJson(usersResponse);
 
-  // Delete operational tables and config in parallel (errors tolerated).
+  // Delete operational tables and config in parallel, but verify every
+  // response before allowing the company delete to continue. Swallowing a
+  // failed DELETE can leave orphaned data while the UI reports success.
   // Precisa cobrir TODA tabela com FK pra empresas.id sem cascade -- senao
   // o DELETE final em "empresas" (mais abaixo) falha por violacao de FK
   // pra qualquer empresa que ja tenha lancamento financeiro/DRE, contrato
@@ -1171,38 +1196,56 @@ async function handleAdminCompanyDelete(res, appUser, payload, env) {
   // fin_dre_plano_contas, relatorios_cache, empresa_modulos e
   // empresa_filiais nessa lista).
   const deleteHeaders = { ...adminActionHeaders(env), 'Prefer': 'return=minimal' };
-  await Promise.all([
+  const deleteRequests = [
     ...['vendas', 'clientes_cad', 'produtos', 'representantes', 'grupos',
         'fin_lancamentos', 'fin_dre_lancamentos', 'fin_dre_plano_contas',
-        'relatorios_cache', 'empresa_modulos'].map(table =>
-      fetch(`${env.supaUrl}/rest/v1/${table}?empresa_id=eq.${encodeURIComponent(companyId)}`,
-        { method: 'DELETE', headers: deleteHeaders }).catch(() => null)
-    ),
-    fetch(`${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(companyId)}`,
-      { method: 'DELETE', headers: deleteHeaders }).catch(() => null),
-    fetch(`${env.supaUrl}/rest/v1/sync_log?empresa_id=eq.${encodeURIComponent(companyId)}`,
-      { method: 'DELETE', headers: deleteHeaders }).catch(() => null),
+        'relatorios_cache', 'empresa_modulos'].map(table => ({
+      label: table,
+      url: `${env.supaUrl}/rest/v1/${table}?empresa_id=eq.${encodeURIComponent(companyId)}`
+    })),
+    {
+      label: 'configuracao da API',
+      url: `${env.supaUrl}/rest/v1/api_config?empresa_id=eq.${encodeURIComponent(companyId)}`
+    },
+    {
+      label: 'historico de sincronizacao',
+      url: `${env.supaUrl}/rest/v1/sync_log?empresa_id=eq.${encodeURIComponent(companyId)}`
+    },
     // empresa_filiais referencia empresas duas vezes (pai e filial) -- a
     // empresa excluida pode ser qualquer um dos dois lados do vinculo.
-    fetch(`${env.supaUrl}/rest/v1/empresa_filiais?empresa_pai_id=eq.${encodeURIComponent(companyId)}`,
-      { method: 'DELETE', headers: deleteHeaders }).catch(() => null),
-    fetch(`${env.supaUrl}/rest/v1/empresa_filiais?empresa_filial_id=eq.${encodeURIComponent(companyId)}`,
-      { method: 'DELETE', headers: deleteHeaders }).catch(() => null)
-  ]);
+    {
+      label: 'vinculos de filiais (empresa pai)',
+      url: `${env.supaUrl}/rest/v1/empresa_filiais?empresa_pai_id=eq.${encodeURIComponent(companyId)}`
+    },
+    {
+      label: 'vinculos de filiais (empresa filial)',
+      url: `${env.supaUrl}/rest/v1/empresa_filiais?empresa_filial_id=eq.${encodeURIComponent(companyId)}`
+    }
+  ];
+  await Promise.all(deleteRequests.map(item =>
+    adminActionDeleteResource(item.url, deleteHeaders, item.label)
+  ));
 
-  // Delete user Auth records in parallel
+  // Delete user Auth records in parallel and verify every response. A failed
+  // Auth delete must never be hidden because it leaves an active login
+  // without a company record in the application.
   if (Array.isArray(companyUsers)) {
     await Promise.all(
       companyUsers.filter(u => u.id).map(u =>
-        fetch(`${env.supaUrl}/auth/v1/admin/users/${encodeURIComponent(u.id)}`,
-          { method: 'DELETE', headers: adminActionHeaders(env) }).catch(() => null)
+        adminActionDeleteResource(
+          `${env.supaUrl}/auth/v1/admin/users/${encodeURIComponent(u.id)}`,
+          adminActionHeaders(env),
+          `usuario Auth ${u.email || u.id}`,
+          [404]
+        )
       )
     );
   }
-  await fetch(
+  await adminActionDeleteResource(
     `${env.supaUrl}/rest/v1/usuarios?empresa_id=eq.${encodeURIComponent(companyId)}`,
-    { method: 'DELETE', headers: { ...adminActionHeaders(env), 'Prefer': 'return=minimal' } }
-  ).catch(() => null);
+    { ...adminActionHeaders(env), 'Prefer': 'return=minimal' },
+    'perfis de usuario da empresa'
+  );
 
   // Delete the company itself
   const deleteResp = await fetch(
