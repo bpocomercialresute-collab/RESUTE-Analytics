@@ -4522,14 +4522,10 @@ async function _adminFetchCadastroTable(candidates) {
   for (var i = 0; i < candidates.length; i += 1) {
     var table = candidates[i];
     try {
-      var resp = await fetch(SUPA_URL + '/rest/v1/' + table + '?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&select=*&limit=100000', {
-        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
-      });
-      if (!resp.ok) {
-        ultimoErro = new Error('HTTP ' + resp.status + ' em ' + table);
-        continue;
-      }
-      var data = await resp.json();
+      var data = await _fetchAll(
+        SUPA_URL + '/rest/v1/' + table + '?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&select=*&order=id.asc',
+        { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
+      );
       var rows = Array.isArray(data) ? data : [];
       if (rows.length) return { table: table, rows: rows };
       if (!primeiraDisponivel) primeiraDisponivel = { table: table, rows: rows };
