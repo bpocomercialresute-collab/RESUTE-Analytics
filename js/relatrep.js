@@ -57,6 +57,13 @@ function repResetarAoTrocarEmpresa(eid) {
   window.REP_CADASTRO_NOMES = null;
   window.REP_CADASTRO_CARREGANDO = false;
   try { localStorage.removeItem('resute_rep_merge_empresas'); } catch (e) {}
+  // Mesmo vazamento vale pro filtro da aba Relatorios (BD Manual) -- REL_FILTER
+  // e global em bd.js e tambem nunca era limpo na troca de empresa.
+  if (typeof window.REL_FILTER !== 'undefined') {
+    window.REL_FILTER = { vendedor:'', produto:[], cliente:'', grupo:'', marca:'' };
+    window.REL_PRODUTO_MULTI_OPEN = false;
+    window.REL_PRODUTO_MULTI_BUSCA = '';
+  }
 }
 
 async function repPremiacaoCarregarCadastroClientes() {
