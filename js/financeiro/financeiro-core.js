@@ -333,8 +333,6 @@ async function finCarregarDadosLegado(empresaId) {
  * secure-proxy (so super_admin pode alterar dado financeiro) — o cliente
  * so ve, nao edita.
  */
-var FIN_RESUMO_LISTENERS_LIGADOS = false;
-
 async function _finBuscarDoSupabase(empresaId, signal) {
   var qs = '?empresa_id=eq.' + encodeURIComponent(empresaId) + '&select=*';
   var headers = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY };
@@ -445,19 +443,22 @@ async function finCarregarDados(empresaId) {
   }
 }
 
-/** Liga uma unica vez: mantem o chip recolhido do mobile sincronizado com
+/** Mantem o chip recolhido do mobile sincronizado com
  *  o filtro de ano/mes do proprio DRE (que ja tem seu handler de recalculo
- *  via DRE.init -> montarFiltros — este listener so atualiza o texto do
- *  chip, nao recalcula nada, entao coexiste sem conflito). */
+ *  via DRE.init -> montarFiltros — os listeners sao marcados no proprio
+ *  elemento para acompanhar remontagens sem duplicar handlers). */
 function _finLigarResumoFiltroDRE() {
-  if (FIN_RESUMO_LISTENERS_LIGADOS) return;
-  FIN_RESUMO_LISTENERS_LIGADOS = true;
   ['fin-filtro-ano', 'fin-filtro-mes'].forEach(function(id) {
     var el = document.getElementById(id);
-    if (el) el.addEventListener('change', finAtualizarResumoFiltroDRE);
+    if (!el || el.dataset.finResumoListener === '1') return;
+    el.addEventListener('change', finAtualizarResumoFiltroDRE);
+    el.dataset.finResumoListener = '1';
   });
   var btn = document.getElementById('fin-btn-atualizar');
-  if (btn) btn.addEventListener('click', finAtualizarResumoFiltroDRE);
+  if (btn && btn.dataset.finResumoListener !== '1') {
+    btn.addEventListener('click', finAtualizarResumoFiltroDRE);
+    btn.dataset.finResumoListener = '1';
+  }
 }
 
 function finAtualizarResumoFiltroDRE() {
