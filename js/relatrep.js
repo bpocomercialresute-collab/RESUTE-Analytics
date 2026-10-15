@@ -2197,7 +2197,13 @@ function repPositiv() {
   const el = document.getElementById('rep-tab-positiv');
   if (!el) return;
 
-  const rows = repFiltrarRowsPremiacao(repDataRows());
+  // Usa repDataRows() direto, NAO repFiltrarRowsPremiacao(): esse filtro so
+  // existe pra respeitar o toggle "Premiacao atual" (3 representantes fixos)
+  // da aba Premiacao -- mas essa aba (Positivacao) nao tem nenhum controle
+  // visivel desse toggle (repToggleHtml() nao inclui esse botao). Aplicar o
+  // filtro aqui fazia os outros vendedores sumirem desta tela, sem nenhuma
+  // explicacao na tela, so por causa de um botao ligado em OUTRA aba.
+  const rows = repDataRows();
   const anos = [...new Set(rows.map(r=>String(r[IDX.ano]||'').trim()).filter(Boolean))].sort();
   const anoAtual = anos[anos.length-1] || String(new Date().getFullYear());
   const vendedores = repGetVendedores();
@@ -2445,7 +2451,9 @@ function repCrescMes() {
   const el = document.getElementById('rep-tab-cresc');
   if (!el) return;
 
-  const rows = repFiltrarRowsPremiacao(repDataRows());
+  // Mesmo motivo do repPositiv(): repFiltrarRowsPremiacao() e so da aba
+  // Premiacao (toggle "Premiacao atual", sem controle visivel aqui).
+  const rows = repDataRows();
   const anos = [...new Set(rows.map(r=>String(r[IDX.ano]||'').trim()).filter(Boolean))].sort();
   const anoAtual = anos[anos.length-1] || String(new Date().getFullYear());
   const MES_IDX_LOCAL = {jan:0,fev:1,mar:2,abr:3,mai:4,jun:5,jul:6,ago:7,set:8,out:9,nov:10,dez:11};
