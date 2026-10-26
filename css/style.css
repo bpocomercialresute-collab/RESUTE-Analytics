@@ -13660,3 +13660,8 @@ html body .cui-sidebar-footer .cui-sidebar-logout:hover {
 /* Mes + datas do painel cliente agrupados como um so "Periodo". Os controles continuam separados (JS le cada um). */
 .dc-periodo-controles { display: inline-flex; align-items: center; gap: 6px; }
 .dc-periodo-rotulo { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--brand-muted-blue); }
+
+/* Celular: barra de abas do relatorio de representantes rola na horizontal em vez de quebrar em varias linhas. */
+@media (max-width: 700px) {
+  #av-rep-area .av-tabs-bar { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
