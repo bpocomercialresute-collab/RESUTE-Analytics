@@ -13564,3 +13564,20 @@ body.bpo-admin-mode .admin-status-badge {
    nao sao editados diretamente, entao o estilo deste elemento novo fica aqui. */
 .fin-salvar-tudo-wrap { display: flex; align-items: center; gap: 10px; margin-right: 16px; }
 .fin-salvar-tudo-wrap .fin-status { margin-left: 0; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Garantia final: texto do menu lateral sempre legivel, sem depender de
+   qual bloco de tema acima ganhou a cascata. Seletor com especificidade
+   maior que qualquer .cui-nav-item isolado no arquivo. */
+html body .cui-sidebar .cui-nav .cui-nav-item {
+  color: #F3F6FB !important;
+  opacity: 1 !important;
+}
+html body .cui-sidebar .cui-nav .cui-nav-title,
+html body .cui-sidebar .cui-brand-sub,
+html body .cui-sidebar .cui-sidebar-user-empresa {
+  color: #CCD6E6 !important;
+  opacity: 1 !important;
+}
+html body .cui-sidebar .cui-nav .cui-nav-item svg {
+  opacity: 1 !important;
+}
