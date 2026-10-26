@@ -488,8 +488,19 @@ function repPremiacaoDataRowsBase() {
   return repPremiacaoRowsBase();
 }
 
+// Cache por referencia do array: repPremiacao() chama isto 3x (direto,
+// via repPremiacaoFiltroHtml e via repPremiacaoPeriodoSelecionado) sempre
+// com o MESMO array baseRows dentro de um unico render — medido ~500ms
+// so nesta funcao pra 30 mil linhas, 3x por render = ~1s so de retrabalho
+// identico. WeakMap invalida sozinho quando o array muda (novo filtro,
+// nova empresa), sem risco de devolver resultado desatualizado.
+const _REP_PREMIACAO_DISPONIVEIS_CACHE = new WeakMap();
+
 function repPremiacaoDisponiveis(rows) {
   const lista = Array.isArray(rows) ? rows : [];
+  if (Array.isArray(rows) && _REP_PREMIACAO_DISPONIVEIS_CACHE.has(rows)) {
+    return _REP_PREMIACAO_DISPONIVEIS_CACHE.get(rows);
+  }
   const semanas = [];
   const meses = [];
   const trimestres = [];
@@ -548,7 +559,9 @@ function repPremiacaoDisponiveis(rows) {
   trimestres.sort((a, b) => a.key < b.key ? 1 : -1);
   semestres.sort((a, b) => a.key < b.key ? 1 : -1);
   anos.sort((a, b) => a.key < b.key ? 1 : -1);
-  return { semanas, meses, trimestres, semestres, anos };
+  const resultado = { semanas, meses, trimestres, semestres, anos };
+  if (Array.isArray(rows)) _REP_PREMIACAO_DISPONIVEIS_CACHE.set(rows, resultado);
+  return resultado;
 }
 
 function repPremiacaoAplicarFiltroPeriodo(rows) {
