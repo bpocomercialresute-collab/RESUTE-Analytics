@@ -931,9 +931,10 @@ function _abrirApp() {
   Object.keys(campos).forEach(function(id){
     var el = document.getElementById(id); if (el) el.textContent = campos[id];
   });
-  // Mostra so o card de usuario do header (topo) - o da sidebar (rodape)
-  // duplicava a mesma informacao (nome + "empresa") em dois cantos da tela.
-  ['header-user'].forEach(function(id){
+  // Mostra so o card de usuario da sidebar (rodape) - tem o botao de sair
+  // junto. O do header (topo) duplicava a mesma informacao sem nenhuma
+  // acao, entao fica oculto.
+  ['sidebar-user'].forEach(function(id){
     var el = document.getElementById(id); if (el) el.style.display = 'flex';
   });
   // Esconde o botão Sincronizar do header (cada empresa tem o seu)
