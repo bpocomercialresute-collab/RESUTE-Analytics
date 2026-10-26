@@ -426,7 +426,7 @@ async function dreAbrir(opts) {
     _dreEsconderCarregando(view);
     console.error('[DRE] Erro ao abrir:', e);
     view.innerHTML = '<div style="padding:40px;text-align:center;font-family:system-ui;color:#b30000">'
-      + 'Nao foi possivel carregar o painel DRE.<br><small>' + (e && e.message ? e.message : '') + '</small>'
+      + 'Não foi possível carregar o painel DRE. Tente atualizar a página; se continuar, avise o administrador.'
       + '</div>';
   }
 }
