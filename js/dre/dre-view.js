@@ -1036,6 +1036,20 @@ function _dreLigarSalvarGrades(empresaId) {
     };
   }
 
+  // Rotulos de "Importar arquivo" sao <label> com input escondido: sem isso nao
+  // recebem foco por teclado nem sao anunciados como botao.
+  document.querySelectorAll('.fin-btn-import-label').forEach(function(lbl) {
+    lbl.setAttribute('tabindex', '0');
+    lbl.setAttribute('role', 'button');
+    lbl.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        var input = lbl.querySelector('input[type="file"]');
+        if (input) input.click();
+      }
+    });
+  });
+
   // ── Baixar modelo de planilha (BD + Plano de Contas) ────────────────────────
   var btnModeloBd = document.getElementById('fin-dre-bd-modelo');
   if (btnModeloBd) btnModeloBd.onclick = _dreBaixarModelo;
