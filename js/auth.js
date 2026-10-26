@@ -1999,7 +1999,7 @@ function dcLoading(show, msg) {
 function dcSetUltimaSync(texto, ok) {
   var badge = document.getElementById('dc-sync-badge');
   var footer = document.getElementById('dc-last-update');
-  var valor = texto || 'Sync pendente';
+  var valor = texto || 'Aguardando dados';
   if (badge) {
     badge.textContent = valor;
     badge.classList.toggle('ok', !!ok);
@@ -2025,7 +2025,7 @@ async function dcCarregarUltimaSync(eid) {
     var data = await r.json();
     var log = Array.isArray(data) ? data[0] : null;
     if (!log || (!log.ultima_sync && !log.ultima_data)) {
-      dcSetUltimaSync('Nenhum sync registrado', false);
+      dcSetUltimaSync('Sem atualização registrada', false);
       return;
     }
     var quando = log.ultima_sync ? new Date(log.ultima_sync) : null;
@@ -2036,7 +2036,7 @@ async function dcCarregarUltimaSync(eid) {
     dcSetUltimaSync(label, String(log.status || '').toLowerCase() !== 'erro');
   } catch (e) {
     console.warn('[dcCarregarUltimaSync]', e);
-    dcSetUltimaSync('Sync nao confirmado', false);
+    dcSetUltimaSync('Atualização não confirmada', false);
   }
 }
 

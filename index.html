@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=ui-tabs-1" />
+  <link rel="stylesheet" href="css/style.css?v=dc-painel-2" />
   <!-- Grade estilo Excel do DRE (js/dre/dre-grid.js) — overlay do console admin, carrega normal (nao e escopada via CSSOM como o dre-painel.css). -->
   <link rel="stylesheet" href="css/dre-grid.css" />
   <link rel="icon" href="assets/resute-brand/SIMBOLO.png" type="image/png" />
@@ -1040,6 +1040,7 @@
         <div id="dc-filtros-grupo" class="dc-filtros-grupo">
         <!-- Filtros -->
         <select id="dc-filtro-ano" class="dc-filtro" onchange="dcFiltroAnoAlterado()"></select>
+        <div class="dc-periodo-controles"><span class="dc-periodo-rotulo">Período</span>
         <select id="dc-filtro-mes" class="dc-filtro" onchange="dcFiltroMesAlterado()">
           <option value="0">Todos os meses</option>
           <option value="1">Janeiro</option><option value="2">Fevereiro</option>
@@ -1050,9 +1051,9 @@
           <option value="11">Novembro</option><option value="12">Dezembro</option>
         </select>
         <input id="dc-filtro-inicio" class="dc-filtro" type="date" onchange="dcFiltroPeriodoAlterado()">
-        <input id="dc-filtro-fim" class="dc-filtro" type="date" onchange="dcFiltroPeriodoAlterado()">
+        <input id="dc-filtro-fim" class="dc-filtro" type="date" onchange="dcFiltroPeriodoAlterado()"></div>
         <div id="dc-loja-selector" class="dc-loja-selector" style="display:none"></div>
-        <span id="dc-sync-badge" class="dc-sync-badge">Sync pendente</span>
+        <span id="dc-sync-badge" class="dc-sync-badge">Aguardando dados</span>
         <button id="dc-btn-atualizar" type="button" onclick="dcSincronizarOuAtualizar()" class="dc-btn-atualizar" style="display:none">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
           <span id="dc-btn-atualizar-label">Atualizar</span>
@@ -1063,8 +1064,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           Voltar ao Admin
         </button>
-        <button onclick="fazerLogout()" class="dc-btn-sair" title="Sair">
+        <button onclick="fazerLogout()" class="dc-btn-sair" title="Sair" aria-label="Sair">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        
+          Sair
         </button>
       </div>
     </header>
@@ -1121,8 +1124,8 @@
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
               <div class="dc-card-title" style="margin-bottom:0">Faturamento por Dia da Semana</div>
               <div style="display:flex;gap:5px;flex-wrap:wrap;">
-                <select id="dc-diasem-ano" class="dc-filtro" onchange="_dcDiaSemFiltroChange()" style="font-size:11px"><option value="">Todos os anos</option></select>
-                <select id="dc-diasem-mes" class="dc-filtro" onchange="_dcDiaSemFiltroChange()" style="font-size:11px">
+                <select id="dc-diasem-ano" class="dc-filtro" onchange="_dcDiaSemFiltroChange()"><option value="">Todos os anos</option></select>
+                <select id="dc-diasem-mes" class="dc-filtro" onchange="_dcDiaSemFiltroChange()">
                   <option value="">Todos os meses</option>
                   <option value="0">Janeiro</option><option value="1">Fevereiro</option>
                   <option value="2">Março</option><option value="3">Abril</option>
@@ -1131,7 +1134,7 @@
                   <option value="8">Setembro</option><option value="9">Outubro</option>
                   <option value="10">Novembro</option><option value="11">Dezembro</option>
                 </select>
-                <select id="dc-diasem-sem" class="dc-filtro" onchange="_dcDiaSemFiltroChange()" style="font-size:11px" disabled>
+                <select id="dc-diasem-sem" class="dc-filtro" onchange="_dcDiaSemFiltroChange()" disabled>
                   <option value="">Todas as semanas</option>
                   <option value="1">1ª semana</option><option value="2">2ª semana</option>
                   <option value="3">3ª semana</option><option value="4">4ª semana</option>
@@ -1186,20 +1189,20 @@
           <div class="dc-card">
             <div class="dc-card-title">Positivação (clientes únicos)</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
-              <select id="dc-positiv-ano" class="dc-filtro" onchange="_dcPositivFiltroChange()" style="font-size:11px"><option value="">Todos os anos</option></select>
-              <select id="dc-positiv-mes" class="dc-filtro" onchange="_dcPositivFiltroChange()" style="font-size:11px">
+              <select id="dc-positiv-ano" class="dc-filtro" onchange="_dcPositivFiltroChange()"><option value="">Todos os anos</option></select>
+              <select id="dc-positiv-mes" class="dc-filtro" onchange="_dcPositivFiltroChange()">
                 <option value="">Todos os meses</option>
                 <option value="0">Janeiro</option><option value="1">Fevereiro</option><option value="2">Março</option>
                 <option value="3">Abril</option><option value="4">Maio</option><option value="5">Junho</option>
                 <option value="6">Julho</option><option value="7">Agosto</option><option value="8">Setembro</option>
                 <option value="9">Outubro</option><option value="10">Novembro</option><option value="11">Dezembro</option>
               </select>
-              <select id="dc-positiv-sem" class="dc-filtro" onchange="_dcTabelaPositivacao()" style="font-size:11px" disabled>
+              <select id="dc-positiv-sem" class="dc-filtro" onchange="_dcTabelaPositivacao()" disabled>
                 <option value="">Todas as semanas</option>
                 <option value="1">1ª semana</option><option value="2">2ª semana</option>
                 <option value="3">3ª semana</option><option value="4">4ª semana</option><option value="5">5ª semana</option>
               </select>
-              <input type="text" id="dc-positiv-busca" placeholder="Buscar rep..." class="dc-filtro" oninput="_dcTabelaPositivacao()" style="font-size:11px;min-width:110px;padding:4px 8px">
+              <input type="text" id="dc-positiv-busca" placeholder="Buscar rep..." class="dc-filtro" oninput="_dcTabelaPositivacao()" style="min-width:110px;padding:4px 8px">
               <label>Ordenar
                 <select id="dc-ordem-positiv" class="dc-filtro" onchange="_dcTabelaPositivacao()">
                   <option value="clientes">Mais clientes</option>
@@ -1278,22 +1281,22 @@
             <div class="dc-card-title">Sem Compra Recente</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label style="display:flex;align-items:center;gap:4px">Sem compra há mais de
-                <input type="number" id="dc-inat-dias" class="dc-filtro" min="0" value="30" placeholder="dias" style="font-size:11px;width:58px;padding:4px 6px"> dias
+                <input type="number" id="dc-inat-dias" class="dc-filtro" min="0" value="30" placeholder="dias" style="width:58px;padding:4px 6px"> dias
               </label>
               <label>Representante
-                <select id="dc-inat-rep" class="dc-filtro" style="font-size:11px;max-width:160px">
+                <select id="dc-inat-rep" class="dc-filtro" style="max-width:160px">
                   <option value="">Todos</option>
                 </select>
               </label>
-              <input type="text" id="dc-inat-busca" placeholder="Buscar cliente..." class="dc-filtro" style="font-size:11px;min-width:130px;padding:4px 8px">
+              <input type="text" id="dc-inat-busca" placeholder="Buscar cliente..." class="dc-filtro" style="min-width:130px;padding:4px 8px">
               <label>Ordenar por dias
-                <select id="dc-inat-ordem" class="dc-filtro" style="font-size:11px">
+                <select id="dc-inat-ordem" class="dc-filtro">
                   <option value="dias_asc">Menor</option>
                   <option value="dias">Maior</option>
                 </select>
               </label>
-              <button onclick="dcTabelaInativos()" class="dc-filtro" style="font-size:11px;padding:4px 12px;cursor:pointer;background:#1C64C0;color:#fff;border:none;border-radius:6px;font-weight:700">Aplicar</button>
-              <button onclick="dcExportarInatExcel()" class="dc-filtro" style="font-size:11px;padding:4px 12px;cursor:pointer;background:#059669;color:#fff;border:none;border-radius:6px;font-weight:700;display:flex;align-items:center;gap:4px">
+              <button onclick="dcTabelaInativos()" class="dc-filtro dc-btn-aplicar">Aplicar</button>
+              <button onclick="dcExportarInatExcel()" class="dc-filtro dc-btn-exportar">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
                 Exportar Excel
               </button>
@@ -1307,20 +1310,20 @@
             <div class="dc-card-title">Clientes no Período</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label style="display:flex;align-items:center;gap:4px">De
-                <input type="date" id="dc-novos-inicio" class="dc-filtro" style="font-size:11px">
+                <input type="date" id="dc-novos-inicio" class="dc-filtro">
               </label>
               <label style="display:flex;align-items:center;gap:4px">Até
-                <input type="date" id="dc-novos-fim" class="dc-filtro" style="font-size:11px">
+                <input type="date" id="dc-novos-fim" class="dc-filtro">
               </label>
-              <input type="text" id="dc-novos-busca" placeholder="Buscar cliente..." class="dc-filtro" style="font-size:11px;min-width:120px;padding:4px 8px">
+              <input type="text" id="dc-novos-busca" placeholder="Buscar cliente..." class="dc-filtro" style="min-width:120px;padding:4px 8px">
               <label>Organizar
-                <select id="dc-ordem-novos" class="dc-filtro" style="font-size:11px">
+                <select id="dc-ordem-novos" class="dc-filtro">
                   <option value="recente">Mais recentes</option>
                   <option value="antigo">Mais antigos</option>
                   <option value="maior">Maior valor</option>
                 </select>
               </label>
-              <button onclick="_dcTabelaNovosClientes()" class="dc-filtro" style="font-size:11px;padding:4px 12px;cursor:pointer;background:#1C64C0;color:#fff;border:none;border-radius:6px;font-weight:700">Aplicar</button>
+              <button onclick="_dcTabelaNovosClientes()" class="dc-filtro dc-btn-aplicar">Aplicar</button>
             </div>
             <div id="dc-tab-novos" class="dc-tabela-wrap"></div>
           </div>
@@ -1328,12 +1331,12 @@
             <div class="dc-card-title">Ticket Médio por Cliente</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label style="display:flex;align-items:center;gap:4px">De
-                <input type="date" id="dc-ticket-inicio" class="dc-filtro" onchange="_dcTabelaTicketCliente()" style="font-size:11px">
+                <input type="date" id="dc-ticket-inicio" class="dc-filtro" onchange="_dcTabelaTicketCliente()">
               </label>
               <label style="display:flex;align-items:center;gap:4px">Até
-                <input type="date" id="dc-ticket-fim" class="dc-filtro" onchange="_dcTabelaTicketCliente()" style="font-size:11px">
+                <input type="date" id="dc-ticket-fim" class="dc-filtro" onchange="_dcTabelaTicketCliente()">
               </label>
-              <input type="text" id="dc-ticket-busca" placeholder="Buscar cliente..." class="dc-filtro" oninput="_dcTabelaTicketCliente()" style="font-size:11px;min-width:130px;padding:4px 8px">
+              <input type="text" id="dc-ticket-busca" placeholder="Buscar cliente..." class="dc-filtro" oninput="_dcTabelaTicketCliente()" style="min-width:130px;padding:4px 8px">
               <label>Ordenar
                 <select id="dc-ordem-ticket" class="dc-filtro" onchange="_dcTabelaTicketCliente()">
                   <option value="ticket">Maior ticket</option>
