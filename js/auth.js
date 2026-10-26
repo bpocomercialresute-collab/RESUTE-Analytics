@@ -1933,8 +1933,10 @@ async function dcCarregarDados(empresa_id_param) {
         'Tempo limite excedido',
         'A empresa possui muitos registros e o carregamento demorou demais. Tente novamente em alguns instantes — os dados podem estar sendo processados.'
       );
+      dcStatus('✗ Tempo limite excedido ao carregar os dados. Tente novamente em alguns instantes.');
+    } else {
+      dcStatus('✗ Não foi possível carregar os dados. Tente novamente; se continuar, avise o administrador.');
     }
-    dcStatus('✗ ' + e.message);
   } finally {
     if (loadSequence === DC_LOAD_SEQUENCE) {
       DC_IS_LOADING = false;
