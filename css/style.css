@@ -13665,3 +13665,5 @@ html body .cui-sidebar-footer .cui-sidebar-logout:hover {
 @media (max-width: 700px) {
   #av-rep-area .av-tabs-bar { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
+
+.dc-filtro-rotulo { font-size: 11px; font-weight: 700; color: #5f748d; letter-spacing: .02em; }

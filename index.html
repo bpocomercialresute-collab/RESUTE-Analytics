@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=rep-states-1" />
+  <link rel="stylesheet" href="css/style.css?v=fin-filtros-2" />
   <!-- Grade estilo Excel do DRE (js/dre/dre-grid.js) — overlay do console admin, carrega normal (nao e escopada via CSSOM como o dre-painel.css). -->
   <link rel="stylesheet" href="css/dre-grid.css" />
   <link rel="icon" href="assets/resute-brand/SIMBOLO.png" type="image/png" />
@@ -1389,7 +1389,9 @@
         <!-- Ano/mes populados e ligados pelo proprio motor do DRE
              (js/dre/dre-engine.js, DRE.init -> montarFiltros). Sem
              onchange inline aqui de proposito, pra nao duplicar handler. -->
+        <label for="fin-filtro-ano" class="dc-filtro-rotulo">Ano</label>
         <select id="fin-filtro-ano" class="dc-filtro"></select>
+        <label for="fin-filtro-mes" class="dc-filtro-rotulo">Mês</label>
         <select id="fin-filtro-mes" class="dc-filtro"></select>
         <button id="fin-btn-atualizar" type="button" class="dc-btn-atualizar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
