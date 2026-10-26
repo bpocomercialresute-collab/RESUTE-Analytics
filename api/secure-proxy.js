@@ -374,6 +374,20 @@ async function getAppUser(sessionToken, supaUrl, anonKey, serviceKey) {
 function assertAuthorized(appUser, targetUrl, method, body) {
   const isWrite = method !== 'GET' && method !== 'HEAD';
 
+  // Bloqueia resource embedding do PostgREST (select=*,outratabela(*)) em toda
+  // rota autorizada abaixo. As checagens de empresa_id aqui so validam a
+  // tabela-alvo da URL; um embed segue relacao de FK pra outra tabela sem
+  // passar por nenhuma dessas checagens. Nenhum codigo vivo do frontend usa
+  // embed atraves deste proxy hoje (so os dois arquivos server-side soltos em
+  // js/login.js e js/empresas.js usavam — removidos por serem duplicatas
+  // mortas de api/login.js, sem equivalente em api/empresas.js), entao
+  // bloquear nao quebra nada e fecha uma rota de leitura nao coberta pelas
+  // checagens de empresa_id especificas de cada tabela abaixo.
+  const selectParam = targetUrl.searchParams.get('select') || '';
+  if (selectParam.indexOf('(') !== -1) {
+    throw new Error('Parametro select com relacionamento (embed) nao e permitido.');
+  }
+
   if (targetUrl.pathname === '/rest/v1/vendas') {
     const empresaIds = [
       ...extractEmpresaIdsFromUrl(targetUrl),
