@@ -360,7 +360,7 @@
           </section>
 
           <section id="admin-section-integrations" class="admin-console-section">
-            <div class="admin-section-intro"><div><span>CONEXOES PROTEGIDAS</span><h2>Integra&ccedil;&otilde;es e APIs</h2><p>As credenciais permanecem na Vercel e nunca s&atilde;o exibidas no navegador.</p></div><div class="admin-inline-actions"><button class="admin-btn-secondary" onclick="adminConsoleNovaIntegracao()">Nova integra&ccedil;&atilde;o</button><button class="admin-btn-secondary" onclick="adminConsoleTestarIntegracao('', this)">Testar conex&atilde;o</button><button class="admin-btn-primary" onclick="abrirAnaliseVendas()">Sincronizar agora</button></div></div>
+            <div class="admin-section-intro"><div><span>CONEXOES PROTEGIDAS</span><h2>Integra&ccedil;&otilde;es e APIs</h2><p>As credenciais ficam protegidas no servidor e nunca s&atilde;o exibidas no navegador.</p></div><div class="admin-inline-actions"><button class="admin-btn-secondary" onclick="adminConsoleNovaIntegracao()">Nova integra&ccedil;&atilde;o</button><button class="admin-btn-secondary" onclick="adminConsoleTestarIntegracao('', this)">Testar conex&atilde;o</button><button class="admin-btn-primary" onclick="abrirAnaliseVendas()">Sincronizar agora</button></div></div>
             <div id="admin-integrations-grid" class="admin-integration-grid"></div>
           </section>
 
@@ -538,7 +538,7 @@
               <select id="admin-audit-type" onchange="adminConsoleRenderAuditoria()"><option value="">Todos os eventos</option><option value="usuario">Usu&aacute;rios</option><option value="empresa">Empresas</option><option value="integracao">Integra&ccedil;&otilde;es</option><option value="sincronizacao">Sincroniza&ccedil;&otilde;es</option></select>
             </div>
             <div id="admin-audit-list" class="admin-audit-list"></div>
-            <article class="admin-panel-card admin-migration-note"><div><span>AUDITORIA PERSISTENTE</span><h2>Estrutura preparada, sem alterar o banco automaticamente</h2><p>O arquivo SQL de auditoria foi documentado separadamente para revis&atilde;o antes de qualquer mudan&ccedil;a no Supabase.</p></div><code>docs/supabase-admin-audit.sql</code></article>
+            <article class="admin-panel-card admin-migration-note"><div><span>AUDITORIA PERSISTENTE</span><h2>Registro somente para consulta</h2><p>Os registros desta tela n&atilde;o podem ser alterados pela interface.</p></div></article>
           </section>
 
           <section id="admin-section-security" class="admin-console-section">
@@ -549,7 +549,7 @@
             </div>
             <article class="admin-panel-card admin-security-checklist">
               <div class="admin-card-heading"><div><span>PROTECAO</span><h2>Controles ativos</h2></div></div>
-              <div class="admin-check-grid"><span>Proxy seguro para opera&ccedil;&otilde;es sens&iacute;veis</span><span>Chaves protegidas no ambiente da Vercel</span><span>Isolamento por empresa</span><span>Sess&atilde;o com expira&ccedil;&atilde;o autom&aacute;tica</span><span>Acesso administrativo restrito por papel</span><span>Segredos omitidos dos logs e da interface</span></div>
+              <div class="admin-check-grid"><span>Proxy seguro para opera&ccedil;&otilde;es sens&iacute;veis</span><span>Chaves protegidas no servidor</span><span>Isolamento por empresa</span><span>Sess&atilde;o com expira&ccedil;&atilde;o autom&aacute;tica</span><span>Acesso administrativo restrito por papel</span><span>Dados sens&iacute;veis nunca aparecem na interface</span></div>
             </article>
             <article class="admin-panel-card admin-security-checklist">
               <div class="admin-card-heading"><div><span>DIAGNOSTICO</span><h2>Alertas de acesso</h2></div></div>
@@ -561,7 +561,7 @@
             <div class="admin-settings-grid">
               <article class="admin-panel-card">
                 <div class="admin-card-heading"><div><span>PLATAFORMA</span><h2>Ambiente RESUTE</h2></div></div>
-                <div class="admin-setting-list"><span>Aplicativo <strong>RESUTE Analytics</strong></span><span>Perfil atual <strong id="admin-settings-role">super_admin</strong></span><span>Ambiente <strong>Vercel Production</strong></span><span>Sess&atilde;o <strong>90 minutos de inatividade</strong></span><span>Status da API <strong id="admin-settings-api">Verificando</strong></span><span>&Uacute;ltima sincroniza&ccedil;&atilde;o <strong id="admin-settings-sync">N&atilde;o registrada</strong></span></div>
+                <div class="admin-setting-list"><span>Aplicativo <strong>RESUTE Analytics</strong></span><span>Perfil atual <strong id="admin-settings-role">super_admin</strong></span><span>Sess&atilde;o <strong>90 minutos de inatividade</strong></span><span>Status da API <strong id="admin-settings-api">Verificando</strong></span><span>&Uacute;ltima sincroniza&ccedil;&atilde;o <strong id="admin-settings-sync">N&atilde;o registrada</strong></span></div>
               </article>
               <article class="admin-panel-card">
                 <div class="admin-card-heading"><div><span>EXIBICAO LOCAL</span><h2>Prefer&ecirc;ncias do painel</h2></div></div>
