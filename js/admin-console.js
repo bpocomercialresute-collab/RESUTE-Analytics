@@ -2179,8 +2179,23 @@ function _adminConsoleSyncSelecionarEmpresa(empresaId) {
     }, 400);
   } else {
     if (panel) panel.style.display = 'none';
-    if (noApi) noApi.style.display = '';
+    if (noApi) { noApi.style.display = ''; noApi.dataset.eid = eid; }
   }
+}
+
+// Empresa sem API selecionada em Sincronizacoes -> vai direto pro BD Manual
+// dela (colar/importar planilha), em vez de mandar o usuario pra "Empresas"
+// pra achar o mesmo destino por outro caminho.
+function admSyncAbrirBDManual() {
+  var noApi = document.getElementById('adm-sync-no-api');
+  var eid = noApi ? noApi.dataset.eid : '';
+  if (!eid || typeof abrirBDManualAdmin !== 'function') return;
+  abrirBDManualAdmin(eid);
+  // abrirBDManualAdmin fixa DC_ADMIN_PREVIEW_VOLTAR = 'comercial' (destino
+  // padrao, vindo de "Empresas"). Sobrescreve logo em seguida — a chamada
+  // acima roda sincrono ate o primeiro await — pra "Voltar" devolver pra
+  // Sincronizacoes, de onde essa tela foi aberta dessa vez.
+  if (typeof DC_ADMIN_PREVIEW_VOLTAR !== 'undefined') DC_ADMIN_PREVIEW_VOLTAR = 'sync';
 }
 
 function adminConsoleAbrirSyncEmpresa(empresaId) {

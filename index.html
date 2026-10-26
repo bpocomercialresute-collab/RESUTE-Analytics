@@ -375,7 +375,11 @@
               <!-- Sem API -->
               <div id="adm-sync-no-api" class="adm-sync-no-api-msg" style="display:none">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                Esta empresa não tem integração via API configurada. Acesse <strong>Integrações &amp; APIs</strong> para configurar.
+                Esta empresa não tem integração via API configurada. Acesse <strong>Integrações &amp; APIs</strong> para configurar, ou alimente os dados manualmente.
+                <button type="button" class="adm-btn adm-btn-api" style="margin-top:14px" onclick="admSyncAbrirBDManual()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+                  Importar planilha / colar dados (BD Manual)
+                </button>
               </div>
 
               <!-- Painel da empresa selecionada -->
