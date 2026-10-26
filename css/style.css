@@ -11081,12 +11081,17 @@ h1, h2, h3, h4,
 .cui-brand-sub,
 .cui-nav-title,
 .cui-sidebar-user-empresa {
-  color: rgba(255,255,255,.80) !important;
+  color: #C9D4E3 !important;
 }
 
 .cui-nav-item {
-  color: rgba(255,255,255,.92) !important;
+  color: #EEF2F8 !important;
   border-radius: 14px !important;
+}
+
+.cui-nav-item svg {
+  stroke: currentColor !important;
+  opacity: 1 !important;
 }
 
 .cui-nav-item.active,
