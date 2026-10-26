@@ -910,17 +910,35 @@ var JSS_MODELO_EXEMPLO = {
   produto: ['1','PR001','Cadeira Giratoria Presidente','Cadeiras','Giratorias','Linha Office','Ativo','Moveis']
 };
 
-function jssBaixarModelo(key){
-  var def = GRID_DEFS[key];
-  if (!def) return;
+// Nome da aba dentro do arquivo .xlsx gerado, igual ao texto do botao na
+// barra de abas (av-tabs-bar) do BD Manual.
+var JSS_MODELO_ABAS = [
+  { key: 'bd',             aba: 'BD' },
+  { key: 'marca',          aba: 'MARCA' },
+  { key: 'clientes',       aba: 'CLIENTES' },
+  { key: 'representantes', aba: 'REPRESENTANTES' },
+  { key: 'grupos',         aba: 'GRUPOS' },
+  { key: 'produto',        aba: 'PRODUTO SERVICO' }
+];
+
+// Um unico .xlsx com uma aba pra cada grade (BD, MARCA, CLIENTES,
+// REPRESENTANTES, GRUPOS, PRODUTO SERVICO) — a importacao continua lendo
+// so a primeira aba de cada arquivo colado, entao esse modelo e so
+// referencia/preenchimento: a pessoa preenche a aba que precisa e importa
+// ela separada (ou copia pra um arquivo novo) na aba correspondente.
+function jssBaixarModelo(){
   if (typeof XLSX === 'undefined') { alert('Biblioteca de planilha não carregou — recarregue a página e tente de novo.'); return; }
-  var headers = def.cols.map(function(c){ return c.t; });
-  var exemplo = JSS_MODELO_EXEMPLO[key] || [];
-  var linhaExemplo = headers.map(function(_, i){ return exemplo[i] !== undefined ? exemplo[i] : ''; });
-  var ws = XLSX.utils.aoa_to_sheet([headers, linhaExemplo]);
   var wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Modelo');
-  XLSX.writeFile(wb, 'modelo-' + key + '.xlsx');
+  JSS_MODELO_ABAS.forEach(function(item){
+    var def = GRID_DEFS[item.key];
+    if (!def) return;
+    var headers = def.cols.map(function(c){ return c.t; });
+    var exemplo = JSS_MODELO_EXEMPLO[item.key] || [];
+    var linhaExemplo = headers.map(function(_, i){ return exemplo[i] !== undefined ? exemplo[i] : ''; });
+    var ws = XLSX.utils.aoa_to_sheet([headers, linhaExemplo]);
+    XLSX.utils.book_append_sheet(wb, ws, item.aba);
+  });
+  XLSX.writeFile(wb, 'modelo-bd-manual.xlsx');
 }
 
 // ── IMPORTAR PLANILHA (arquivo .xlsx/.xls/.csv/.tsv/.txt) ───────────────────
