@@ -11081,11 +11081,11 @@ h1, h2, h3, h4,
 .cui-brand-sub,
 .cui-nav-title,
 .cui-sidebar-user-empresa {
-  color: rgba(255,255,255,.58) !important;
+  color: rgba(255,255,255,.80) !important;
 }
 
 .cui-nav-item {
-  color: rgba(255,255,255,.76) !important;
+  color: rgba(255,255,255,.92) !important;
   border-radius: 14px !important;
 }
 
