@@ -896,6 +896,77 @@ function lgSortFromDrop(key,colIdx,asc){
   document.querySelectorAll('.col-filter-dropdown').forEach(function(d){d.remove();});
 }
 
+// ── IMPORTAR PLANILHA (arquivo .xlsx/.xls/.csv/.tsv/.txt) ───────────────────
+// Abre o seletor de arquivo e, quando escolhido, converte as linhas pro
+// mesmo formato TSV que o paste do Excel ja usa (_paste) — reaproveita 100%
+// da deteccao de cabecalho, preenchimento de colunas e render que o colar
+// manual ja tinha, em vez de criar um segundo caminho de entrada de dados.
+var _JSS_IMPORT_ALVO = null;
+
+function jssEscolherArquivo(key){
+  _JSS_IMPORT_ALVO = key;
+  var input = document.getElementById('jss-import-file');
+  if (input) { input.value = ''; input.click(); }
+}
+
+function _jssImportStatus(key, msg, ok){
+  var el = document.getElementById('jss-status-' + key);
+  if (el) { el.textContent = msg; el.className = 'jss-status-badge' + (ok ? ' jss-status-ok' : ''); }
+}
+
+function jssArquivoSelecionado(file){
+  var key = _JSS_IMPORT_ALVO;
+  if (!file || !key || !GRIDS[key]) return;
+  var nome = String(file.name || '').toLowerCase();
+  var ehTexto = /\.(csv|txt|tsv)$/.test(nome);
+  _jssImportStatus(key, '⏳ Lendo arquivo...');
+
+  if (ehTexto) {
+    var readerTxt = new FileReader();
+    readerTxt.onload = function(e){ _jssImportarLinhasTexto(key, e.target.result || ''); };
+    readerTxt.onerror = function(){ _jssImportStatus(key, '✗ Não foi possível ler o arquivo.'); };
+    readerTxt.readAsText(file, 'UTF-8');
+    return;
+  }
+
+  if (typeof XLSX === 'undefined') {
+    _jssImportStatus(key, '✗ Biblioteca de planilha não carregou — recarregue a página e tente de novo.');
+    return;
+  }
+  var readerBin = new FileReader();
+  readerBin.onload = function(e){
+    try {
+      var wb = XLSX.read(e.target.result, { type: 'array' });
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var linhas = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+      _jssImportarLinhas(key, linhas);
+    } catch (err) {
+      console.error('[JSS] Falha ao ler planilha:', err);
+      _jssImportStatus(key, '✗ Não foi possível ler essa planilha (' + err.message + ').');
+    }
+  };
+  readerBin.onerror = function(){ _jssImportStatus(key, '✗ Não foi possível ler o arquivo.'); };
+  readerBin.readAsArrayBuffer(file);
+}
+
+function _jssImportarLinhasTexto(key, txt){
+  var sep = txt.indexOf('\t') >= 0 ? '\t' : (txt.indexOf(';') >= 0 ? ';' : ',');
+  var linhas = txt.split(/\r?\n/).filter(function(l){ return l.trim(); }).map(function(l){
+    return l.split(sep).map(function(c){ return c.replace(/^"|"$/g,'').replace(/""/g,'"').trim(); });
+  });
+  _jssImportarLinhas(key, linhas);
+}
+
+function _jssImportarLinhas(key, linhas){
+  linhas = (linhas || []).filter(function(r){
+    return r && r.some(function(c){ return String(c == null ? '' : c).trim() !== ''; });
+  });
+  if (!linhas.length) { _jssImportStatus(key, '✗ Arquivo vazio ou formato não reconhecido.'); return; }
+  var tsv = linhas.map(function(r){ return r.join('\t'); }).join('\n');
+  GRIDS[key]._paste(tsv);
+  _jssImportStatus(key, '✓ ' + linhas.length.toLocaleString('pt-BR') + ' linha(s) importada(s) do arquivo.', true);
+}
+
 function jssClearGrid(key){
   if(!GRIDS[key]||!confirm('Limpar todos os dados desta aba?')) return;
   GRIDS[key].allData=[];GRIDS[key].filtered=null;FULL_DATA[key]=[];JSS_FILTERS[key]={};JSS_FILTERS_MODE[key]={};

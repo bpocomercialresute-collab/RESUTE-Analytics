@@ -676,6 +676,7 @@
         </div>
 
         <div id="av-bd-area" style="display:none">
+          <input type="file" id="jss-import-file" accept=".csv,.txt,.tsv,.xls,.xlsx" style="display:none" onchange="jssArquivoSelecionado(this.files && this.files[0])">
           <div class="rel-area-header">
             <button class="voltar-btn" onclick="avGoHome()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar
@@ -717,6 +718,9 @@
               <div class="jss-toolbar">
                 <div class="jss-toolbar-left"><span class="jss-cell-ref" id="jss-ref-bd">A1</span></div>
                 <div class="jss-toolbar-right">
+                  <button class="jss-btn" onclick="jssEscolherArquivo('bd')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Importar planilha
+                  </button>
                   <button class="jss-btn jss-btn-danger" onclick="jssClearGrid('bd')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Limpar
                   </button>
@@ -738,6 +742,9 @@
               <div class="jss-toolbar">
                 <div class="jss-toolbar-left"><span class="jss-cell-ref" id="jss-ref-marca">A1</span></div>
                 <div class="jss-toolbar-right">
+                  <button class="jss-btn" onclick="jssEscolherArquivo('marca')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Importar planilha
+                  </button>
                   <button class="jss-btn jss-btn-danger" onclick="jssClearGrid('marca')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Limpar
                   </button>
@@ -763,6 +770,9 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
                     Atualizar Colunas
                   </button>
+                  <button class="jss-btn" onclick="jssEscolherArquivo('clientes')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Importar planilha
+                  </button>
                   <button class="jss-btn jss-btn-danger" onclick="jssClearGrid('clientes')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Limpar
                   </button>
@@ -784,6 +794,9 @@
               <div class="jss-toolbar">
                 <div class="jss-toolbar-left"><span class="jss-cell-ref" id="jss-ref-representantes">A1</span></div>
                 <div class="jss-toolbar-right">
+                  <button class="jss-btn" onclick="jssEscolherArquivo('representantes')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Importar planilha
+                  </button>
                   <button class="jss-btn jss-btn-danger" onclick="jssClearGrid('representantes')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Limpar
                   </button>
@@ -805,6 +818,9 @@
               <div class="jss-toolbar">
                 <div class="jss-toolbar-left"><span class="jss-cell-ref" id="jss-ref-grupos">A1</span></div>
                 <div class="jss-toolbar-right">
+                  <button class="jss-btn" onclick="jssEscolherArquivo('grupos')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Importar planilha
+                  </button>
                   <button class="jss-btn jss-btn-danger" onclick="jssClearGrid('grupos')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Limpar
                   </button>
@@ -826,6 +842,9 @@
               <div class="jss-toolbar">
                 <div class="jss-toolbar-left"><span class="jss-cell-ref" id="jss-ref-produto">A1</span></div>
                 <div class="jss-toolbar-right">
+                  <button class="jss-btn" onclick="jssEscolherArquivo('produto')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Importar planilha
+                  </button>
                   <button class="jss-btn jss-btn-danger" onclick="jssClearGrid('produto')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Limpar
                   </button>
@@ -1388,6 +1407,8 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Leitura de planilhas .xlsx/.xls pra importacao de arquivo no BD Manual (js/jss.js) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/constants.js"></script>
   <script src="js/state.js"></script>
