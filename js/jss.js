@@ -1003,13 +1003,17 @@ function _jssImportarLinhasTexto(key, txt){
 }
 
 function _jssImportarLinhas(key, linhas){
-  linhas = (linhas || []).filter(function(r){
-    return r && r.some(function(c){ return String(c == null ? '' : c).trim() !== ''; });
-  });
-  if (!linhas.length) { _jssImportStatus(key, '✗ Arquivo vazio ou formato não reconhecido.'); return; }
-  var tsv = linhas.map(function(r){ return r.join('\t'); }).join('\n');
+  var r = resumoImportacao(linhas || [], function(row){ return lgLooksLikeHeader(row.join('\t')); });
+  if (!r.importar) { _jssImportStatus(key, '✗ Arquivo vazio ou formato não reconhecido.'); return; }
+  var msg = r.importar.toLocaleString('pt-BR') + ' linha(s) serão importadas.';
+  var descartes = [];
+  if (r.cabecalho) descartes.push('cabeçalho');
+  if (r.vazias) descartes.push(r.vazias.toLocaleString('pt-BR') + ' vazia(s)');
+  if (descartes.length) msg += '\nDescartadas: ' + descartes.join(' e ') + '.';
+  if (!confirm(msg + '\n\nContinuar?')) { _jssImportStatus(key, 'Importação cancelada.'); return; }
+  var tsv = r.linhas.map(function(row){ return row.join('\t'); }).join('\n');
   GRIDS[key]._paste(tsv);
-  _jssImportStatus(key, '✓ ' + linhas.length.toLocaleString('pt-BR') + ' linha(s) importada(s) do arquivo.', true);
+  _jssImportStatus(key, '✓ ' + r.importar.toLocaleString('pt-BR') + ' linha(s) importada(s) do arquivo.', true);
 }
 
 function jssClearGrid(key){

@@ -1126,17 +1126,22 @@ function _dreLinhasParaGrid(dados, gridKey, statusId) {
   gridKey = gridKey || 'dre_bd';
   statusId = statusId || 'fin-dre-status-bd';
   var grid = GRIDS[gridKey];
-  dados = (dados || []).filter(function(r){ return r && r.some(function(c){ return String(c == null ? '' : c).trim() !== ''; }); });
-  if (!dados.length) { alert('Arquivo vazio ou formato não reconhecido.'); return; }
-  // Remove cabeçalho se a primeira célula não parecer data
-  var primeira = String((dados[0] || [])[0] || '').trim();
-  var temCab = !/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(primeira) && !/^\d{4}-\d{2}-\d{2}/.test(primeira);
-  if (temCab) dados = dados.slice(1);
-  if (!dados.length) { alert('Arquivo só tem cabeçalho, sem linhas de dado.'); return; }
+  // Cabeçalho = primeira célula não parece data
+  var r = resumoImportacao(dados || [], function(row){
+    var primeira = String((row || [])[0] || '').trim();
+    return !/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(primeira) && !/^\d{4}-\d{2}-\d{2}/.test(primeira);
+  });
+  if (!r.importar) { alert('Arquivo vazio ou formato não reconhecido.'); return; }
+  var msg = r.importar.toLocaleString('pt-BR') + ' linha(s) serão importadas.';
+  var descartes = [];
+  if (r.cabecalho) descartes.push('cabeçalho');
+  if (r.vazias) descartes.push(r.vazias.toLocaleString('pt-BR') + ' vazia(s)');
+  if (descartes.length) msg += '\nDescartadas: ' + descartes.join(' e ') + '.';
+  if (!confirm(msg + '\n\nContinuar?')) { _dreStatusGrade(statusId, 'Importação cancelada.', ''); return; }
   // Cola igual ao paste — usa o mesmo mecanismo do LiteGrid
-  var tsv = dados.map(function(r){ return r.join('\t'); }).join('\n');
+  var tsv = r.linhas.map(function(row){ return row.join('\t'); }).join('\n');
   grid._pasteAt(tsv, 0, 0);
-  _dreStatusGrade(statusId, '✓ ' + dados.length + ' linha(s) importada(s) do arquivo.', 'ok');
+  _dreStatusGrade(statusId, '✓ ' + r.importar + ' linha(s) importada(s) do arquivo.', 'ok');
 }
 
 function _dreImportarArquivo(file, gridKey, statusId) {

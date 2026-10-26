@@ -90,6 +90,17 @@ function escapeHtml(s) {
 /** Alias para uso em atributos HTML */
 function escapeAttr(s) { return escapeHtml(s); }
 
+/** Conta o que vai ser colado na importação: cabeçalho e linhas vazias ficam de fora. */
+function resumoImportacao(linhasBrutas, ehCabecalho) {
+  var total = linhasBrutas.length;
+  var linhas = linhasBrutas.filter(function(r){
+    return r && r.some(function(c){ return String(c == null ? '' : c).trim() !== ''; });
+  });
+  var vazias = total - linhas.length;
+  var cabecalho = linhas.length > 0 && ehCabecalho(linhas[0]) ? 1 : 0;
+  return { total: total, vazias: vazias, cabecalho: cabecalho, importar: linhas.length - cabecalho, linhas: linhas.slice(cabecalho) };
+}
+
 /** Mensagem curta pra tela. O detalhe técnico (erro do Supabase/proxy) vai pro console. */
 function mensagemErroUsuario(e, acao) {
   console.error('[' + acao + ']', e);
