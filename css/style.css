@@ -6449,24 +6449,30 @@ body.bpo-admin-mode .cui-sidebar-footer {
   border-color: rgba(213, 237, 232, 0.98) !important;
 }
 
-body.bpo-admin-mode .cui-brand-name,
 body.bpo-admin-mode .cui-sidebar-user-nome {
-  color: var(--brand-ink) !important;
+  color: #F3F6FB !important;
 }
 
-body.bpo-admin-mode .cui-brand-sub,
 body.bpo-admin-mode .cui-sidebar-user-empresa {
-  color: #5a7a74 !important;
+  color: #CCD6E6 !important;
+}
+
+body.bpo-admin-mode .cui-sidebar .cui-brand-name {
+  color: #F3F6FB !important;
+}
+
+body.bpo-admin-mode .cui-sidebar .cui-brand-sub {
+  color: #CCD6E6 !important;
 }
 
 body.bpo-admin-mode .cui-sidebar-user {
-  background: rgba(240, 250, 248, 0.95) !important;
-  border: 1px solid rgba(213, 237, 232, 0.98) !important;
+  background: rgba(45, 212, 191, 0.10) !important;
+  border: 1px solid rgba(45, 212, 191, 0.22) !important;
   border-radius: 18px !important;
 }
 
 body.bpo-admin-mode .cui-sidebar-avatar {
-  background: rgba(45, 212, 191, 0.14) !important;
+  background: rgba(45, 212, 191, 0.22) !important;
   color: var(--brand-graphite) !important;
 }
 
@@ -13580,4 +13586,31 @@ html body .cui-sidebar .cui-sidebar-user-empresa {
 }
 html body .cui-sidebar .cui-nav .cui-nav-item svg {
   opacity: 1 !important;
+}
+
+/* Garantia final (cont.): marca e card de usuario no rodape da sidebar,
+   mesmo criterio acima - card com fundo e texto consistentes com o tema
+   escuro, independente de qual bloco bpo-admin-mode ganhou antes. */
+html body .cui-sidebar .cui-brand-name {
+  color: #F3F6FB !important;
+}
+html body .cui-sidebar-footer .cui-sidebar-user {
+  background: rgba(45, 212, 191, 0.12) !important;
+  border: 1px solid rgba(45, 212, 191, 0.26) !important;
+}
+html body .cui-sidebar-footer .cui-sidebar-avatar {
+  background: rgba(45, 212, 191, 0.24) !important;
+  color: #F3F6FB !important;
+}
+html body .cui-sidebar-footer .cui-sidebar-user-nome {
+  color: #F3F6FB !important;
+}
+html body .cui-sidebar-footer .cui-sidebar-user-empresa {
+  color: #A9D9D0 !important;
+}
+html body .cui-sidebar-footer .cui-sidebar-logout {
+  color: #CCD6E6 !important;
+}
+html body .cui-sidebar-footer .cui-sidebar-logout:hover {
+  color: #F3F6FB !important;
 }
