@@ -167,6 +167,15 @@ document.addEventListener('visibilitychange', function() {
     if (SESSION && SESSION.token) _touchSession();
   }, { passive: true });
 });
+// Logout em outra aba remove a chave no localStorage; esta aba precisa sair
+// tambem, senao continua logada com a sessao que ja foi encerrada.
+window.addEventListener('storage', function(e) {
+  if (e.key !== SESSION_KEY || e.newValue !== null) return;
+  if (SESSION && SESSION.token) {
+    fazerLogout();
+    if (typeof toast === 'function') toast('Sessão encerrada em outra aba.', 'warn', 5000);
+  }
+});
 
 function _touchSession() {
   if (!SESSION || !SESSION.token) return;
