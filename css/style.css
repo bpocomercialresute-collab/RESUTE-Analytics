@@ -13614,3 +13614,30 @@ html body .cui-sidebar-footer .cui-sidebar-logout {
 html body .cui-sidebar-footer .cui-sidebar-logout:hover {
   color: #F3F6FB !important;
 }
+
+/* Abas unificadas (.ui-tab): vence as camadas antigas de .av-tab, .admin-emp-tab,
+   .adm-sync-tab e .fin-tab. Estado ativo e hover ficam aqui, nao nas classes antigas. */
+.ui-tab {
+  padding: 8px 16px !important;
+  border: 1px solid transparent !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: var(--brand-muted-blue) !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: none !important;
+  transition: background 150ms, color 150ms, border-color 150ms;
+}
+.ui-tab:hover {
+  background: rgba(28,100,192,.06) !important;
+  color: var(--brand-ink) !important;
+}
+.ui-tab.active {
+  background: var(--brand-white) !important;
+  border-color: rgba(28,100,192,.24) !important;
+  color: var(--brand-blue) !important;
+  box-shadow: 0 2px 8px rgba(14,20,36,.08) !important;
+}

@@ -4090,7 +4090,7 @@ function _adminRenderAbas(lista) {
     var mods = (e.modulos || []).map(function(slug) {
       return '<span class="emp-tag tag-mod-' + slug + '">' + (slug === 'financeiro' ? 'FIN' : 'COM') + '</span>';
     }).join('');
-    return '<button class="admin-emp-tab" data-id="' + e.empresa_id + '">' + e.nome + tag + mods + '</button>';
+    return '<button class="admin-emp-tab ui-tab" data-id="' + e.empresa_id + '">' + e.nome + tag + mods + '</button>';
   }).join('');
   c.querySelectorAll('.admin-emp-tab').forEach(function(btn) {
     btn.addEventListener('click', function() { adminSelecionarEmpresa(this.dataset.id); });

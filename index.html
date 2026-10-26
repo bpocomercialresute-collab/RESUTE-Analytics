@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=9d93606" />
+  <link rel="stylesheet" href="css/style.css?v=ui-tabs-1" />
   <!-- Grade estilo Excel do DRE (js/dre/dre-grid.js) — overlay do console admin, carrega normal (nao e escopada via CSSOM como o dre-painel.css). -->
   <link rel="stylesheet" href="css/dre-grid.css" />
   <link rel="icon" href="assets/resute-brand/SIMBOLO.png" type="image/png" />
@@ -393,11 +393,11 @@
 
                 <!-- Abas -->
                 <div class="adm-sync-tabs" role="tablist">
-                  <button class="adm-sync-tab active" id="adm-tab-manual-btn" onclick="admSyncAba('manual')" role="tab">
+                  <button class="adm-sync-tab ui-tab active" id="adm-tab-manual-btn" onclick="admSyncAba('manual')" role="tab">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
                     Sincronização manual
                   </button>
-                  <button class="adm-sync-tab" id="adm-tab-auto-btn" onclick="admSyncAba('auto')" role="tab">
+                  <button class="adm-sync-tab ui-tab" id="adm-tab-auto-btn" onclick="admSyncAba('auto')" role="tab">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     Agendamento automático
                   </button>
@@ -702,12 +702,12 @@
             </div>
           </div>
           <div class="av-tabs-bar">
-            <button class="av-tab active" data-target="av-tab-bd">BD</button>
-            <button class="av-tab" data-target="av-tab-marca">MARCA</button>
-            <button class="av-tab" data-target="av-tab-clientes">CLIENTES</button>
-            <button class="av-tab" data-target="av-tab-representantes">REPRESENTANTES</button>
-            <button class="av-tab" data-target="av-tab-grupos">GRUPOS</button>
-            <button class="av-tab" data-target="av-tab-produto">PRODUTO SERVIÇO</button>
+            <button class="av-tab ui-tab active" data-target="av-tab-bd">BD</button>
+            <button class="av-tab ui-tab" data-target="av-tab-marca">MARCA</button>
+            <button class="av-tab ui-tab" data-target="av-tab-clientes">CLIENTES</button>
+            <button class="av-tab ui-tab" data-target="av-tab-representantes">REPRESENTANTES</button>
+            <button class="av-tab ui-tab" data-target="av-tab-grupos">GRUPOS</button>
+            <button class="av-tab ui-tab" data-target="av-tab-produto">PRODUTO SERVIÇO</button>
           </div>
 
           <div id="av-tab-bd" class="av-tab-pane active">
@@ -889,12 +889,12 @@
             </button>
           </div>
           <div class="av-tabs-bar">
-            <button class="av-tab active" data-target="av-rel-cadastro-insights">VISÃO CADASTRAL</button>
-            <button class="av-tab" data-target="av-rel-venda-produto">VENDA POR PRODUTO</button>
-            <button class="av-tab" data-target="av-rel-laudo-grupo">GRUPOS E SUBGRUPOS</button>
-            <button class="av-tab" data-target="av-rel-laudo-ano">GRUPOS POR ANO</button>
-            <button class="av-tab" data-target="av-rel-laudo-ano02">COMPARATIVO ANUAL</button>
-            <button class="av-tab" data-target="av-rel-laudo-marca">POR MARCA</button>
+            <button class="av-tab ui-tab active" data-target="av-rel-cadastro-insights">VISÃO CADASTRAL</button>
+            <button class="av-tab ui-tab" data-target="av-rel-venda-produto">VENDA POR PRODUTO</button>
+            <button class="av-tab ui-tab" data-target="av-rel-laudo-grupo">GRUPOS E SUBGRUPOS</button>
+            <button class="av-tab ui-tab" data-target="av-rel-laudo-ano">GRUPOS POR ANO</button>
+            <button class="av-tab ui-tab" data-target="av-rel-laudo-ano02">COMPARATIVO ANUAL</button>
+            <button class="av-tab ui-tab" data-target="av-rel-laudo-marca">POR MARCA</button>
           </div>
           <div id="av-rel-cadastro-insights" class="av-tab-pane active"></div>
           <div id="av-rel-venda-produto" class="av-tab-pane"></div>
@@ -912,14 +912,14 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar
           </button>
           <div class="av-tabs-bar">
-            <button class="av-tab active" data-area="rep" data-target="rep-tab-mix">MIX SEMANAL</button>
-            <button class="av-tab" data-area="rep" data-target="rep-tab-positiv">VISÃO GERAL</button>
-            <button class="av-tab" data-area="rep" data-target="rep-tab-sem">SEMANAS DO MÊS</button>
-            <button class="av-tab" data-area="rep" data-target="rep-tab-meta">META</button>
-            <button class="av-tab" data-area="rep" data-target="rep-tab-dia">DIAS DA SEMANA</button>
-            <button class="av-tab" data-area="rep" data-target="rep-tab-cresc">CRESCIMENTO</button>
-            <button class="av-tab" data-area="rep" data-target="rep-tab-mensal">MENSAL</button>
-            <button class="av-tab" data-area="rep" data-target="rep-tab-premiacao">PREMIAÇÃO</button>
+            <button class="av-tab ui-tab active" data-area="rep" data-target="rep-tab-mix">MIX SEMANAL</button>
+            <button class="av-tab ui-tab" data-area="rep" data-target="rep-tab-positiv">VISÃO GERAL</button>
+            <button class="av-tab ui-tab" data-area="rep" data-target="rep-tab-sem">SEMANAS DO MÊS</button>
+            <button class="av-tab ui-tab" data-area="rep" data-target="rep-tab-meta">META</button>
+            <button class="av-tab ui-tab" data-area="rep" data-target="rep-tab-dia">DIAS DA SEMANA</button>
+            <button class="av-tab ui-tab" data-area="rep" data-target="rep-tab-cresc">CRESCIMENTO</button>
+            <button class="av-tab ui-tab" data-area="rep" data-target="rep-tab-mensal">MENSAL</button>
+            <button class="av-tab ui-tab" data-area="rep" data-target="rep-tab-premiacao">PREMIAÇÃO</button>
           </div>
           <div id="rep-tab-mix"     class="av-tab-pane active"><div class="av-rel-placeholder"><p>Mix Semanal</p><span>Cole dados no BD e clique em Processar</span></div></div>
           <div id="rep-tab-positiv" class="av-tab-pane"><div class="av-rel-placeholder"><p>Visão Geral</p><span>Carregando…</span></div></div>
@@ -1408,8 +1408,8 @@
     <main class="dc-main fin-main">
       <div class="fin-wrap" style="padding:0">
         <nav class="fin-tabs fin-tabs-cliente">
-          <button class="fin-tab active" type="button" onclick="finAbrirAbaCliente('fin-dre-corpo', this)">DRE</button>
-          <button class="fin-tab" type="button" onclick="finAbrirAbaCliente('fin-laudo-corpo', this)">Laudo Grupo</button>
+          <button class="fin-tab ui-tab active" type="button" onclick="finAbrirAbaCliente('fin-dre-corpo', this)">DRE</button>
+          <button class="fin-tab ui-tab" type="button" onclick="finAbrirAbaCliente('fin-laudo-corpo', this)">Laudo Grupo</button>
         </nav>
         <div id="fin-dre-corpo" class="fin-dre-corpo fin-pane-cliente"></div>
         <div id="fin-laudo-corpo" class="fin-dre-corpo fin-pane-cliente" style="display:none"></div>
