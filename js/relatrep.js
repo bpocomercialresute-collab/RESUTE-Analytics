@@ -841,6 +841,15 @@ function repPremiacaoTabelaRelatorio(titulo, colunas, linhas) {
   </div>`;
 }
 
+// Reativação: cliente comprou antes do início do período e a última compra
+// anterior foi há pelo menos 180 dias. Sem compra anterior = cliente novo.
+function repPremiacaoEhReativacao(datasHistorico, inicioPeriodo) {
+  var anteriores = datasHistorico.filter(function(dt) { return dt < inicioPeriodo; });
+  if (!anteriores.length) return false;
+  var ultima = anteriores.reduce(function(max, dt) { return dt > max ? dt : max; }, anteriores[0]);
+  return Math.floor((inicioPeriodo - ultima) / 86400000) >= 180;
+}
+
 function repPremiacaoRelatorioHtml(rows, baseRows) {
   const campanha = repPremiacaoCampanhaAtual();
   const atuais = repPremiacaoAgruparRepresentantes(rows);
@@ -884,10 +893,7 @@ function repPremiacaoRelatorioHtml(rows, baseRows) {
       const vendedor = String(r[IDX.vendedor] || '').trim() || 'Sem representante';
       if (!cliente) return;
       const key = repPremiacaoNormNome(cliente);
-      const anteriores = (historicoPorNome[key] || []).filter(dt => dt < limites.inicio).sort((a, b) => b - a);
-      if (!anteriores.length) return; // nunca comprou antes do período: cliente novo, não é reativação
-      const diffDias = Math.floor((limites.inicio - anteriores[0]) / 86400000);
-      if (diffDias < 180) return; // última compra há menos de 6 meses: não estava inativo
+      if (!repPremiacaoEhReativacao(historicoPorNome[key] || [], limites.inicio)) return;
       if (!porRep[vendedor]) porRep[vendedor] = { nome: vendedor, clientes: new Map() };
       if (!porRep[vendedor].clientes.has(key)) porRep[vendedor].clientes.set(key, cliente);
     });
