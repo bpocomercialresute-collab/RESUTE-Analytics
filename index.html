@@ -67,11 +67,11 @@
           <div class="lp-form-title">Acessar a plataforma</div>
           <div class="lp-form-sub">Entre com suas credenciais para abrir o painel, acompanhar os relatórios e continuar o trabalho da empresa no mesmo ambiente.</div>
           <div class="lp-field">
-            <label class="lp-label">E-mail</label>
+            <label class="lp-label" for="login-email">E-mail</label>
             <input id="login-email" type="email" class="lp-input" placeholder="nome@empresa.com.br" autocomplete="username" />
           </div>
           <div class="lp-field">
-            <label class="lp-label">Senha</label>
+            <label class="lp-label" for="login-senha">Senha</label>
             <input id="login-senha" type="password" class="lp-input" placeholder="Digite sua senha" autocomplete="current-password" />
           </div>
           <div id="login-erro" class="lp-erro"></div>
@@ -414,11 +414,11 @@
                   <div class="adm-sync-period-row">
                     <label class="adm-ctrl-field">
                       <span>Início</span>
-                      <input id="adm-sync-inicio" type="date" class="adm-input" onchange="_adminObterPeriodoSync()" />
+                      <input id="adm-sync-inicio" aria-label="Data inicial da sincronização" type="date" class="adm-input" onchange="_adminObterPeriodoSync()" />
                     </label>
                     <label class="adm-ctrl-field">
                       <span>Fim</span>
-                      <input id="adm-sync-fim" type="date" class="adm-input" onchange="_adminObterPeriodoSync()" />
+                      <input id="adm-sync-fim" aria-label="Data final da sincronização" type="date" class="adm-input" onchange="_adminObterPeriodoSync()" />
                     </label>
                   </div>
                   <div id="adm-periodo-resumo" class="adm-periodo-resumo"></div>
@@ -957,14 +957,14 @@
 
       <div class="login-form">
         <div class="login-field">
-          <label class="login-label">Email</label>
+          <label class="login-label" for="login-modal-email">Email</label>
           <div class="login-input-wrap">
             <svg class="login-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             <input id="login-modal-email" class="login-input" type="email" placeholder="seu@email.com" />
           </div>
         </div>
         <div class="login-field">
-          <label class="login-label">Senha</label>
+          <label class="login-label" for="login-modal-senha">Senha</label>
           <div class="login-input-wrap">
             <svg class="login-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             <input id="login-modal-senha" class="login-input" type="password" placeholder="••••••••" />
@@ -1049,8 +1049,8 @@
           <option value="9">Setembro</option><option value="10">Outubro</option>
           <option value="11">Novembro</option><option value="12">Dezembro</option>
         </select>
-        <input id="dc-filtro-inicio" class="dc-filtro" type="date" onchange="dcFiltroPeriodoAlterado()">
-        <input id="dc-filtro-fim" class="dc-filtro" type="date" onchange="dcFiltroPeriodoAlterado()"></div>
+        <input id="dc-filtro-inicio" aria-label="Data inicial do período" class="dc-filtro" type="date" onchange="dcFiltroPeriodoAlterado()">
+        <input id="dc-filtro-fim" aria-label="Data final do período" class="dc-filtro" type="date" onchange="dcFiltroPeriodoAlterado()"></div>
         <div id="dc-loja-selector" class="dc-loja-selector" style="display:none"></div>
         <span id="dc-sync-badge" class="dc-sync-badge">Aguardando dados</span>
         <button id="dc-btn-atualizar" type="button" onclick="dcSincronizarOuAtualizar()" class="dc-btn-atualizar" style="display:none">
@@ -1201,7 +1201,7 @@
                 <option value="1">1ª semana</option><option value="2">2ª semana</option>
                 <option value="3">3ª semana</option><option value="4">4ª semana</option><option value="5">5ª semana</option>
               </select>
-              <input type="text" id="dc-positiv-busca" placeholder="Buscar rep..." class="dc-filtro" oninput="_dcTabelaPositivacao()" style="min-width:110px;padding:4px 8px">
+              <input type="text" id="dc-positiv-busca" aria-label="Buscar representante" placeholder="Buscar rep..." class="dc-filtro" oninput="_dcTabelaPositivacao()" style="min-width:110px;padding:4px 8px">
               <label>Ordenar
                 <select id="dc-ordem-positiv" class="dc-filtro" onchange="_dcTabelaPositivacao()">
                   <option value="clientes">Mais clientes</option>
@@ -1280,14 +1280,14 @@
             <div class="dc-card-title">Sem Compra Recente</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label style="display:flex;align-items:center;gap:4px">Sem compra há mais de
-                <input type="number" id="dc-inat-dias" class="dc-filtro" min="0" value="30" placeholder="dias" style="width:58px;padding:4px 6px"> dias
+                <input type="number" id="dc-inat-dias" aria-label="Dias sem compra" class="dc-filtro" min="0" value="30" placeholder="dias" style="width:58px;padding:4px 6px"> dias
               </label>
               <label>Representante
                 <select id="dc-inat-rep" class="dc-filtro" style="max-width:160px">
                   <option value="">Todos</option>
                 </select>
               </label>
-              <input type="text" id="dc-inat-busca" placeholder="Buscar cliente..." class="dc-filtro" style="min-width:130px;padding:4px 8px">
+              <input type="text" id="dc-inat-busca" aria-label="Buscar cliente inativo" placeholder="Buscar cliente..." class="dc-filtro" style="min-width:130px;padding:4px 8px">
               <label>Ordenar por dias
                 <select id="dc-inat-ordem" class="dc-filtro">
                   <option value="dias_asc">Menor</option>
@@ -1309,12 +1309,12 @@
             <div class="dc-card-title">Clientes no Período</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label style="display:flex;align-items:center;gap:4px">De
-                <input type="date" id="dc-novos-inicio" class="dc-filtro">
+                <input type="date" id="dc-novos-inicio" aria-label="Data inicial dos clientes novos" class="dc-filtro">
               </label>
               <label style="display:flex;align-items:center;gap:4px">Até
-                <input type="date" id="dc-novos-fim" class="dc-filtro">
+                <input type="date" id="dc-novos-fim" aria-label="Data final dos clientes novos" class="dc-filtro">
               </label>
-              <input type="text" id="dc-novos-busca" placeholder="Buscar cliente..." class="dc-filtro" style="min-width:120px;padding:4px 8px">
+              <input type="text" id="dc-novos-busca" aria-label="Buscar cliente novo" placeholder="Buscar cliente..." class="dc-filtro" style="min-width:120px;padding:4px 8px">
               <label>Organizar
                 <select id="dc-ordem-novos" class="dc-filtro">
                   <option value="recente">Mais recentes</option>
@@ -1330,12 +1330,12 @@
             <div class="dc-card-title">Ticket Médio por Cliente</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label style="display:flex;align-items:center;gap:4px">De
-                <input type="date" id="dc-ticket-inicio" class="dc-filtro" onchange="_dcTabelaTicketCliente()">
+                <input type="date" id="dc-ticket-inicio" aria-label="Data inicial do ticket médio" class="dc-filtro" onchange="_dcTabelaTicketCliente()">
               </label>
               <label style="display:flex;align-items:center;gap:4px">Até
-                <input type="date" id="dc-ticket-fim" class="dc-filtro" onchange="_dcTabelaTicketCliente()">
+                <input type="date" id="dc-ticket-fim" aria-label="Data final do ticket médio" class="dc-filtro" onchange="_dcTabelaTicketCliente()">
               </label>
-              <input type="text" id="dc-ticket-busca" placeholder="Buscar cliente..." class="dc-filtro" oninput="_dcTabelaTicketCliente()" style="min-width:130px;padding:4px 8px">
+              <input type="text" id="dc-ticket-busca" aria-label="Buscar cliente no ticket médio" placeholder="Buscar cliente..." class="dc-filtro" oninput="_dcTabelaTicketCliente()" style="min-width:130px;padding:4px 8px">
               <label>Ordenar
                 <select id="dc-ordem-ticket" class="dc-filtro" onchange="_dcTabelaTicketCliente()">
                   <option value="ticket">Maior ticket</option>
