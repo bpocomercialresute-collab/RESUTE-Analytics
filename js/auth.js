@@ -3973,7 +3973,7 @@ function _adminOwnerDefinirResumo(countId, statusId, ctaId, count, readyText) {
   var countEl = document.getElementById(countId);
   var statusEl = document.getElementById(statusId);
   var ctaEl = ctaId ? document.getElementById(ctaId) : null;
-  if (countEl) countEl.textContent = n.toLocaleString('pt-BR');
+  if (countEl) { countEl.textContent = n.toLocaleString('pt-BR'); countEl.classList.remove('is-loading'); }
   if (statusEl) statusEl.textContent = n > 0 ? readyText : 'Nenhum dado cadastrado ainda';
   if (ctaEl) ctaEl.hidden = n > 0;
 }
@@ -4021,7 +4021,7 @@ async function adminOwnerAtualizarResumo() {
   var btn = document.getElementById('admin-owner-refresh-btn');
   if (btn) btn.disabled = true;
   ['admin-owner-commercial-count', 'admin-owner-plan-count', 'admin-owner-financial-count'].forEach(function(id) {
-    var el = document.getElementById(id); if (el) el.textContent = '…';
+    var el = document.getElementById(id); if (el) { el.textContent = '…'; el.classList.add('is-loading'); }
   });
   ['admin-owner-commercial-status', 'admin-owner-plan-status', 'admin-owner-financial-status'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.textContent = 'Consultando banco';
@@ -4042,7 +4042,7 @@ async function adminOwnerAtualizarResumo() {
   } catch (e) {
     if (EMPRESA_ATIVA && EMPRESA_ATIVA.empresa_id === eid) {
       ['admin-owner-commercial-count', 'admin-owner-plan-count', 'admin-owner-financial-count'].forEach(function(id) {
-        var el = document.getElementById(id); if (el) el.textContent = '--';
+        var el = document.getElementById(id); if (el) { el.textContent = '--'; el.classList.remove('is-loading'); }
       });
       ['admin-owner-commercial-status', 'admin-owner-plan-status', 'admin-owner-financial-status'].forEach(function(id) {
         var el = document.getElementById(id); if (el) el.textContent = 'Status indisponível';

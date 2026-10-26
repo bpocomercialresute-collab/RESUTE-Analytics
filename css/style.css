@@ -13667,3 +13667,11 @@ html body .cui-sidebar-footer .cui-sidebar-logout:hover {
 }
 
 .dc-filtro-rotulo { font-size: 11px; font-weight: 700; color: #5f748d; letter-spacing: .02em; }
+
+.admin-owner-summary-card strong.is-loading {
+  width: 72px; min-height: 26px; color: transparent !important; border-radius: 8px;
+  background: linear-gradient(90deg, #eef3f8 25%, #dfe8f1 50%, #eef3f8 75%);
+  background-size: 200% 100%; animation: adminOwnerShimmer 1.4s ease-in-out infinite;
+}
+@keyframes adminOwnerShimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .admin-owner-summary-card strong.is-loading { animation: none; } }
