@@ -1085,35 +1085,68 @@ function _dreExportarCSV() {
   setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
 }
 
-// ── IMPORT ARQUIVO CSV/TSV ────────────────────────────────────────────────────
+// ── IMPORT ARQUIVO CSV/TSV/XLSX ───────────────────────────────────────────────
+// Ate aqui so lia o arquivo como texto (readAsText) mesmo quando a extensao
+// era .xlsx/.xls — um binario real (zip) lido como texto vira lixo. Agora
+// detecta a extensao: .xlsx/.xls usa SheetJS (XLSX.read) de verdade, .csv/
+// .txt/.tsv continua lendo como texto igual antes.
+
+function _dreLinhasParaGrid(dados) {
+  var grid = GRIDS['dre_bd'];
+  dados = (dados || []).filter(function(r){ return r && r.some(function(c){ return String(c == null ? '' : c).trim() !== ''; }); });
+  if (!dados.length) { alert('Arquivo vazio ou formato não reconhecido.'); return; }
+  // Remove cabeçalho se a primeira célula não parecer data
+  var primeira = String((dados[0] || [])[0] || '').trim();
+  var temCab = !/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(primeira) && !/^\d{4}-\d{2}-\d{2}/.test(primeira);
+  if (temCab) dados = dados.slice(1);
+  if (!dados.length) { alert('Arquivo só tem cabeçalho, sem linhas de dado.'); return; }
+  // Cola igual ao paste — usa o mesmo mecanismo do LiteGrid
+  var tsv = dados.map(function(r){ return r.join('\t'); }).join('\n');
+  grid._pasteAt(tsv, 0, 0);
+  _dreStatusGrade('fin-dre-status-bd', '✓ ' + dados.length + ' linha(s) importada(s) do arquivo.', 'ok');
+}
 
 function _dreImportarArquivo(file) {
   if (!file) return;
   var grid = GRIDS['dre_bd'];
   if (!grid) { alert('Aba BD não está inicializada.'); return; }
 
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var txt = e.target.result || '';
-    // Detecta separador: tab, ponto-e-vírgula, vírgula
-    var sep = txt.indexOf('\t') >= 0 ? '\t' : (txt.indexOf(';') >= 0 ? ';' : ',');
-    var linhas = txt.split(/\r?\n/);
-    // Remove cabeçalho se primeira célula não parecer data
-    var primeira = (linhas[0] || '').split(sep)[0].trim();
-    var temCab = !/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(primeira) && !/^\d{4}-\d{2}-\d{2}/.test(primeira);
-    if (temCab) linhas = linhas.slice(1);
-    var dados = linhas
-      .filter(function(l){ return l.trim(); })
-      .map(function(l){
-        return l.split(sep).map(function(c){ return c.replace(/^"|"$/g,'').replace(/""/g,'"').trim(); });
-      });
-    if (!dados.length) { alert('Arquivo vazio ou formato não reconhecido.'); return; }
-    // Cola igual ao paste — usa o mesmo mecanismo do LiteGrid
-    var tsv = dados.map(function(r){ return r.join('\t'); }).join('\n');
-    grid._pasteAt(tsv, 0, 0);
-    _dreStatusGrade('fin-dre-status-bd', '✓ ' + dados.length + ' linha(s) importada(s) do arquivo.', 'ok');
+  var nome = String(file.name || '').toLowerCase();
+  var ehBinario = /\.(xlsx|xls)$/.test(nome);
+
+  if (!ehBinario) {
+    var readerTxt = new FileReader();
+    readerTxt.onload = function(e) {
+      var txt = e.target.result || '';
+      // Detecta separador: tab, ponto-e-vírgula, vírgula
+      var sep = txt.indexOf('\t') >= 0 ? '\t' : (txt.indexOf(';') >= 0 ? ';' : ',');
+      var dados = txt.split(/\r?\n/)
+        .filter(function(l){ return l.trim(); })
+        .map(function(l){
+          return l.split(sep).map(function(c){ return c.replace(/^"|"$/g,'').replace(/""/g,'"').trim(); });
+        });
+      _dreLinhasParaGrid(dados);
+    };
+    readerTxt.onerror = function(){ alert('Não foi possível ler o arquivo.'); };
+    readerTxt.readAsText(file, 'UTF-8');
+    return;
+  }
+
+  if (typeof XLSX === 'undefined') { alert('Biblioteca de planilha não carregou — recarregue a página e tente de novo.'); return; }
+  var readerBin = new FileReader();
+  readerBin.onload = function(e) {
+    try {
+      var wb = XLSX.read(e.target.result, { type: 'array' });
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var dados = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+      _dreLinhasParaGrid(dados);
+    } catch (err) {
+      console.error('[DRE] Falha ao ler planilha:', err);
+      alert('Não foi possível ler essa planilha (' + err.message + ').');
+    }
   };
-  reader.readAsText(file, 'UTF-8');
+  readerBin.onerror = function(){ alert('Não foi possível ler o arquivo.'); };
+  readerBin.readAsArrayBuffer(file);
 }
 
 // ── GRADES LITEGRID (abas BD e Plano de Contas) ───────────────────────────────
