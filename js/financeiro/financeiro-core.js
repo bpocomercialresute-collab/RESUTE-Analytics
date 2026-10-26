@@ -195,7 +195,7 @@ async function _finBuscarDoSupabase(empresaId, signal) {
 
 async function _finAplicarDadosCarregados(plano, lancamentos) {
   if (typeof _dreInjetarCSS === 'function') await _dreInjetarCSS();
-  if (typeof DRE === 'undefined') throw new Error('Motor do DRE (js/dre/dre-engine.js) nao carregou.');
+  if (typeof DRE === 'undefined') throw new Error('Motor do DRE (js/dre/dre-engine.js) não carregou.');
 
   DRE.init({
     plano: plano,
@@ -226,7 +226,7 @@ async function _finAplicarDadosCarregados(plano, lancamentos) {
  * edicao em andamento, entao pode re-renderizar se os dados mudaram.
  */
 async function finCarregarDados(empresaId) {
-  if (!empresaId) { finStatus('Empresa nao configurada.'); return; }
+  if (!empresaId) { finStatus('Empresa não configurada.'); return; }
 
   var sequencia = ++FIN_LOAD_SEQUENCE;
   FIN_ACTIVE_COMPANY = empresaId;

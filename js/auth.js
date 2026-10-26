@@ -1155,7 +1155,7 @@ async function carregarDadosDoSupabase(empresa_id) {
       { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
     );
     if (!Array.isArray(vendas) || !vendas.length) {
-      dcLimparPainelVazio('Nenhum dado disponivel ainda', 'Sincronize a API no painel admin ou confirme se a empresa esta configurada para exibir API.');
+      dcLimparPainelVazio('Nenhum dado disponível ainda', 'Sincronize a API no painel admin ou confirme se a empresa esta configurada para exibir API.');
       dcLoading(false);
       _setStatus('⚠ Sem dados no banco. Clique Sincronizar.', '');
       return;
@@ -1858,7 +1858,7 @@ async function dcCarregarDados(empresa_id_param) {
     // 3. Cache miss — busca tudo do banco (sem overlay)
     dcMostrarEsqueleto();
     dcStatus('⏳ Buscando dados...');
-    dcSetUltimaSync('Conferindo ultima sincronizacao...', false);
+    dcSetUltimaSync('Conferindo última sincronização...', false);
 
     // Busca origem e última sync em paralelo (eram sequenciais, agora economiza ~500ms)
     var preflight = await dcComTimeout(
@@ -1893,7 +1893,7 @@ async function dcCarregarDados(empresa_id_param) {
     if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
 
     if (!Array.isArray(vendas) || !vendas.length) {
-      dcLimparPainelVazio('Nenhum dado disponivel ainda', 'Sincronize a API no painel admin ou confirme se a empresa esta configurada para exibir API.');
+      dcLimparPainelVazio('Nenhum dado disponível ainda', 'Sincronize a API no painel admin ou confirme se a empresa esta configurada para exibir API.');
       dcStatus('⚠ Nenhum dado disponível ainda.');
       return;
     }
@@ -2020,7 +2020,7 @@ function dcSetUltimaSync(texto, ok) {
 
 async function dcCarregarUltimaSync(eid) {
   if (!eid) {
-    dcSetUltimaSync('Empresa nao selecionada', false);
+    dcSetUltimaSync('Empresa não selecionada', false);
     return;
   }
   if (SESSION && SESSION.papel === 'cliente') {
@@ -2291,7 +2291,7 @@ function dcAbrirRelatorio(tipo) {
     return;
   }
 
-  dcLoading(true, 'Montando relatorio selecionado...');
+  dcLoading(true, 'Montando relatório selecionado...');
   try {
     dcPrepararDadosRelatorios(rows);
 
@@ -2326,7 +2326,7 @@ function dcAbrirRelatorio(tipo) {
     if (typeof avShowRel === 'function') avShowRel(tipo);
   } catch (e) {
     console.error('[relatorio cliente]', e);
-    dcStatus('Erro ao abrir o relatorio: ' + (e && e.message ? e.message : e));
+    dcStatus('Erro ao abrir o relatório: ' + (e && e.message ? e.message : e));
     var dashFallback = document.getElementById('view-dash-cliente');
     if (dashFallback) dashFallback.style.display = 'flex';
   } finally {
@@ -3936,7 +3936,7 @@ async function adminInicializar() {
   var subtituloEl = document.getElementById('av-subtitulo');
   if (somenteUmaEmpresa && lista[0]) {
     if (tituloEl) tituloEl.textContent = lista[0].nome || 'Meus dados';
-    if (subtituloEl) subtituloEl.textContent = 'Cole seus dados comerciais e acompanhe os relatorios da sua empresa.';
+    if (subtituloEl) subtituloEl.textContent = 'Cole seus dados comerciais e acompanhe os relatórios da sua empresa.';
     if (ehAdminEmpresa) _adminOwnerPreencherEmpresa(lista[0]);
   } else {
     if (tituloEl) tituloEl.textContent = 'Análise de Vendas';
@@ -4891,11 +4891,11 @@ async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
         var bloqueado403 = _vsAllAttemptsStatus(found.attempts, 403);
         var ausente404 = _vsAllAttemptsStatus(found.attempts, 404);
         var mensagemErro = !codigoEmpresaVisual
-          ? 'Codigo da empresa Visual Saef nao configurado. Cadastros bloqueados.'
+          ? 'Código da empresa Visual Saef não configurado. Cadastros bloqueados.'
           : (bloqueado403
             ? ('API bloqueou o endpoint ' + endpointPrincipal + ' (HTTP 403).')
             : (ausente404
-              ? ('Endpoint ' + endpointPrincipal + ' nao encontrado na API (HTTP 404).')
+              ? ('Endpoint ' + endpointPrincipal + ' não encontrado na API (HTTP 404).')
               : (_vsResumoTentativas(found.attempts) || 'Nenhum endpoint confirmou dados neste ambiente.')));
         summary[job.key] = {
           ok: false,

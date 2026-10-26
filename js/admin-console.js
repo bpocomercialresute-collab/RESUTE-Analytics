@@ -27,7 +27,7 @@ var ADMIN_SESSION_REDIRECTING = false;
 
 var ADMIN_SECTION_META = {
   overview: {
-    title: 'Visao geral',
+    title: 'Visão geral',
     subtitle: 'Controle centralizado de empresas, acessos, integracoes e sincronizacoes.'
   },
   companies: {
@@ -39,31 +39,31 @@ var ADMIN_SECTION_META = {
     subtitle: 'Contratos, planos e acessos do produto financeiro.'
   },
   modules: {
-    title: 'Modulos e contratos',
+    title: 'Módulos e contratos',
     subtitle: 'Defina quais modulos cada empresa contratou. Desativar bloqueia o acesso sem apagar dados.'
   },
   users: {
-    title: 'Usuarios e acessos',
+    title: 'Usuários e acessos',
     subtitle: 'Crie acessos, vincule empresas e controle o nivel de permissao.'
   },
   integrations: {
-    title: 'Integracoes e APIs',
+    title: 'Integrações e APIs',
     subtitle: 'Acompanhe conexoes sem expor chaves, tokens ou segredos no navegador.'
   },
   sync: {
-    title: 'Sincronizacoes e registros',
-    subtitle: 'Consulte o historico operacional e abra a central de sincronizacao.'
+    title: 'Sincronizações e registros',
+    subtitle: 'Consulte o historico operacional e abra a central de sincronização.'
   },
   audit: {
     title: 'Registros e auditoria',
     subtitle: 'Acompanhe eventos administrativos e sincronizacoes sem expor dados sensiveis.'
   },
   security: {
-    title: 'Seguranca e permissoes',
+    title: 'Segurança e permissoes',
     subtitle: 'Visualize as responsabilidades e os limites de cada nivel de acesso.'
   },
   settings: {
-    title: 'Configuracoes',
+    title: 'Configurações',
     subtitle: 'Consulte o ambiente e ajuste preferencias locais da central BPO.'
   }
 };
@@ -78,7 +78,7 @@ function adminConsoleEscape(value) {
 }
 
 function adminConsoleDate(value, includeTime) {
-  if (!value) return 'Nao registrado';
+  if (!value) return 'Não registrado';
   var date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
   return date.toLocaleString('pt-BR', includeTime
@@ -123,7 +123,7 @@ function adminConsoleSetLoading(loading) {
     view.classList.toggle('is-loading', !!loading);
     view.setAttribute('aria-busy', loading ? 'true' : 'false');
   }
-  if (status) status.textContent = loading ? 'Atualizando painel' : 'Sessao protegida';
+  if (status) status.textContent = loading ? 'Atualizando painel' : 'Sessão protegida';
   document.querySelectorAll('#view-admin-console [data-admin-refresh]').forEach(function(button) {
     button.disabled = !!loading;
   });
@@ -141,7 +141,7 @@ async function adminConsoleFetch(path, options) {
   var response = await adminConsoleWithTimeout(
     fetch(SUPA_URL + path, options || {}),
     12000,
-    'O Supabase nao respondeu dentro do tempo esperado.'
+    'O Supabase não respondeu dentro do tempo esperado.'
   );
   var text = await response.text();
   var payload = null;
@@ -252,7 +252,7 @@ function adminConsoleCompanyName(companyId) {
   var company = ADMIN_CONSOLE.companies.find(function(item) {
     return String(item.id || item.empresa_id) === String(companyId || '');
   });
-  return company ? company.nome : (companyId ? 'Empresa nao localizada' : 'RESUTE');
+  return company ? company.nome : (companyId ? 'Empresa não localizada' : 'RESUTE');
 }
 
 
@@ -521,7 +521,7 @@ function adminConsoleRenderResumo() {
   if (settingsApi) settingsApi.textContent = activeIntegrations ? 'Configurada' : 'Pendente';
   if (settingsSync) settingsSync.textContent = latest
     ? adminConsoleDate(latest.ultima_sync || latest.ultima_data, true)
-    : 'Nao registrada';
+    : 'Não registrada';
 
   var health = document.getElementById('admin-health-list');
   if (!health) return;
@@ -534,11 +534,11 @@ function adminConsoleRenderResumo() {
       type: activeCompanies ? 'ok' : 'warn'
     },
     {
-      label: 'Ultima sincronizacao dos clientes',
+      label: 'Última sincronização dos clientes',
       detail: latest && adminConsoleSyncDateValue(latest)
         ? adminConsoleDate(latest.ultima_sync || latest.atualizado_em || latest.criado_em || latest.ultima_data, true)
           + ' - ' + adminConsoleCompanyName(latest.empresa_id)
-        : 'Ainda nao registrada',
+        : 'Ainda não registrada',
       type: latest && adminConsoleSyncState(latest).type === 'ok' ? 'ok' : 'warn'
     },
     {
@@ -547,7 +547,7 @@ function adminConsoleRenderResumo() {
       type: inactiveUsers ? 'warn' : 'ok'
     },
     {
-      label: 'Integracoes dos clientes',
+      label: 'Integrações dos clientes',
       detail: disconnected
         ? disconnected + ' empresa(s) com API aguardando configuracao'
         : activeIntegrations + ' conexao(oes) administrativa(s) ativa(s)',
@@ -569,7 +569,7 @@ function adminConsoleOperationalActivities() {
     var state = adminConsoleSyncState(item);
     return {
       type: 'sincronizacao',
-      title: 'Sincronizacao ' + state.label.toLowerCase(),
+      title: 'Sincronização ' + state.label.toLowerCase(),
       detail: adminConsoleCompanyName(item.empresa_id) + ' - acompanhamento operacional',
       at: item.ultima_sync || item.atualizado_em || item.criado_em || item.ultima_data,
       actor: 'Sistema'
@@ -584,7 +584,7 @@ function adminConsoleRenderAtividades() {
     .sort(function(a, b) { return new Date(b.at || 0) - new Date(a.at || 0); })
     .slice(0, 6);
   if (!items.length) {
-    container.innerHTML = adminConsoleEmpty('Nenhuma atividade administrativa ou sincronizacao registrada.');
+    container.innerHTML = adminConsoleEmpty('Nenhuma atividade administrativa ou sincronização registrada.');
     return;
   }
   container.innerHTML = items.map(function(item) {
@@ -644,7 +644,7 @@ function adminConsoleRenderEmpresas(list) {
     var latestSync = adminConsoleLatestSync(id);
     var syncState = latestSync
       ? adminConsoleSyncState(latestSync)
-      : { label: 'Nao registrada', type: 'neutral' };
+      : { label: 'Não registrada', type: 'neutral' };
     var origin = String(company.exibir_origem || 'manual').toLowerCase() === 'api' ? 'API' : 'Manual';
     return '<article class="admin-company-card">'
       + '<div class="admin-company-top"><div class="admin-company-monogram">'
@@ -664,7 +664,7 @@ function adminConsoleRenderEmpresas(list) {
       + (integration
         ? '<button onclick="adminConsoleEditarIntegracao(\'' + adminConsoleEscape(id) + '\')">Config. API</button>'
         : '<button onclick="adminConsoleNovaIntegracao(\'' + adminConsoleEscape(id) + '\')">Conectar API</button>')
-      + '<button onclick="adminConsoleFiltrarPorEmpresa(\'' + adminConsoleEscape(id) + '\')">Usuarios</button>'
+      + '<button onclick="adminConsoleFiltrarPorEmpresa(\'' + adminConsoleEscape(id) + '\')">Usuários</button>'
       + '<button onclick="adminConsoleGerenciarFiliais(\'' + adminConsoleEscape(id) + '\')">Grupo</button>'
       + '<button class="admin-company-danger" onclick="adminConsoleArquivarEmpresa(\'' + adminConsoleEscape(id) + '\')">Arquivar</button>'
       + '<button class="admin-company-delete" onclick="adminConsoleExcluirEmpresa(\'' + adminConsoleEscape(id) + '\')">Excluir</button>'
@@ -753,7 +753,7 @@ function adminConsoleSyncState(item) {
   if (status.indexOf('sincron') >= 0 || status.indexOf('process') >= 0) {
     return { label: item.status || 'Sincronizando', type: 'featured', filter: 'sincronizando' };
   }
-  return { label: item && item.status ? item.status : 'Nao informado', type: 'neutral', filter: '' };
+  return { label: item && item.status ? item.status : 'Não informado', type: 'neutral', filter: '' };
 }
 
 function adminConsoleIntegrationStatus(api) {
@@ -821,7 +821,7 @@ function adminConsoleFiltrarSync() {
   var body = document.getElementById('admin-sync-body');
   if (!body) return;
   if (!list.length) {
-    body.innerHTML = '<tr><td colspan="7">' + adminConsoleEmpty('Nenhum registro de sincronizacao localizado.') + '</td></tr>';
+    body.innerHTML = '<tr><td colspan="7">' + adminConsoleEmpty('Nenhum registro de sincronização localizado.') + '</td></tr>';
     return;
   }
   body.innerHTML = list.map(function(item, index) {
@@ -857,9 +857,9 @@ function adminConsoleDetalharSync(index) {
   if (!item) return;
   var html = '<div class="admin-detail-grid">'
     + '<span>Empresa<strong>' + adminConsoleEscape(adminConsoleCompanyName(item.empresa_id)) + '</strong></span>'
-    + '<span>Status<strong>' + adminConsoleEscape(item.status || 'Nao informado') + '</strong></span>'
+    + '<span>Status<strong>' + adminConsoleEscape(item.status || 'Não informado') + '</strong></span>'
     + '<span>Executada em<strong>' + adminConsoleEscape(adminConsoleDate(item.ultima_sync, true)) + '</strong></span>'
-    + '<span>Periodo final<strong>' + adminConsoleEscape(adminConsoleDate(item.ultima_data, false)) + '</strong></span>'
+    + '<span>Período final<strong>' + adminConsoleEscape(adminConsoleDate(item.ultima_data, false)) + '</strong></span>'
     + '<span>Registros<strong>' + adminConsoleNumber(item.total_registros) + '</strong></span>'
     + '<span>Tipo<strong>Vendas e cadastros</strong></span>'
     + ((item.mensagem || item.erro) ? '<span class="admin-field-full">Mensagem<strong>' + adminConsoleEscape(adminConsoleSafeText(item.mensagem || item.erro, 500)) + '</strong></span>' : '')
@@ -940,8 +940,8 @@ function adminConsoleLimparFiltroAuditoria() {
 // o navegador nunca escreve direto em empresa_modulos.
 
 var ADMIN_MODULOS = [
-  { slug: 'comercial',  nome: 'Comercial',  descricao: 'Relatorios de vendas, produtos e representantes.' },
-  { slug: 'financeiro', nome: 'Financeiro', descricao: 'Relatorios financeiros (modulo em construcao).' }
+  { slug: 'comercial',  nome: 'Comercial',  descricao: 'Relatórios de vendas, produtos e representantes.' },
+  { slug: 'financeiro', nome: 'Financeiro', descricao: 'Relatórios financeiros (modulo em construcao).' }
 ];
 
 async function adminConsoleCarregarModulos(force) {
@@ -1018,7 +1018,7 @@ function adminConsoleRenderModulos() {
         ? adminConsoleBadge('Contratado', 'success')
         : (contrato && contrato.ativo === true
             ? adminConsoleBadge('Expirado', 'warn')
-            : adminConsoleBadge('Nao contratado', 'neutral'));
+            : adminConsoleBadge('Não contratado', 'neutral'));
 
       return '<div class="admin-module-row">'
         + '<div class="admin-module-info"><strong>' + adminConsoleEscape(mod.nome) + '</strong>'
@@ -1114,10 +1114,10 @@ async function adminConsoleAlternarModulo(companyId, modulo, ativar) {
     });
     adminConsoleTrackActivity(
       'administracao',
-      'Modulo ' + (ativar ? 'ativado' : 'desativado'),
+      'Módulo ' + (ativar ? 'ativado' : 'desativado'),
       modulo + ' - ' + empresaNome
     );
-    adminConsoleAviso('Modulo ' + modulo + ' ' + (ativar ? 'ativado' : 'desativado') + ' para ' + empresaNome + '.', 'success');
+    adminConsoleAviso('Módulo ' + modulo + ' ' + (ativar ? 'ativado' : 'desativado') + ' para ' + empresaNome + '.', 'success');
     await adminConsoleCarregarModulos(true);
   } catch (e) {
     adminConsoleAviso('Falha ao atualizar o modulo: ' + e.message, 'error');
@@ -1270,12 +1270,12 @@ function adminConsoleRenderSeguranca() {
   });
   var items = [
     {
-      label: 'Usuarios inativos',
+      label: 'Usuários inativos',
       detail: inactive.length ? inactive.length + ' acesso(s) bloqueado(s)' : 'Nenhum usuario inativo',
       type: inactive.length ? 'warn' : 'ok'
     },
     {
-      label: 'Usuarios sem empresa',
+      label: 'Usuários sem empresa',
       detail: withoutCompany.length ? withoutCompany.length + ' cadastro(s) precisam de revisao' : 'Todos os perfis empresariais estao vinculados',
       type: withoutCompany.length ? 'warn' : 'ok'
     },
@@ -1467,21 +1467,21 @@ async function adminConsoleExcluirEmpresa(companyId) {
   var confirmed = window.confirm(
     'EXCLUIR PERMANENTEMENTE "' + (company.nome || companyId) + '"?\n\n'
     + 'Isso apaga a empresa, todos os usuarios, integracao, sincronizacoes e dados operacionais do banco de dados.\n\n'
-    + 'Esta acao NAO pode ser desfeita.'
+    + 'Esta ação NAO pode ser desfeita.'
   );
   if (!confirmed) return;
   var confirmNome = window.prompt(
     'Digite o nome da empresa para confirmar a exclusao:\n\n"' + (company.nome || companyId) + '"'
   );
   if (!confirmNome || confirmNome.trim() !== (company.nome || '').trim()) {
-    adminConsoleAviso('Nome nao confere. Exclusao cancelada.', 'error');
+    adminConsoleAviso('Nome não confere. Exclusao cancelada.', 'error');
     return;
   }
   try {
     await adminConsoleAction('admin-company-delete', { id: companyId });
-    adminConsoleTrackActivity('empresa', 'Empresa excluida', company.nome || companyId);
+    adminConsoleTrackActivity('empresa', 'Empresa excluída', company.nome || companyId);
     await adminConsoleAtualizar(true);
-    adminConsoleAviso('Empresa e todos os dados vinculados foram excluidos.', 'success');
+    adminConsoleAviso('Empresa e todos os dados vinculados foram excluídos.', 'success');
   } catch (error) {
     adminConsoleAviso('Falha ao excluir empresa: ' + error.message, 'error');
   }
@@ -1536,7 +1536,7 @@ function adminConsoleLogoParaDataUrl(file) {
       canvas.getContext('2d').drawImage(img, 0, 0, cw, ch);
       resolve(canvas.toDataURL('image/png'));
     };
-    img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('Nao foi possivel ler essa imagem.')); };
+    img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('Não foi possível ler essa imagem.')); };
     img.src = url;
   });
 }
@@ -1676,7 +1676,7 @@ async function adminConsoleAdicionarFilial(empresaPaiId) {
   });
 
   if (!options.length) {
-    adminConsoleAviso('Nao ha outras empresas disponiveis para adicionar ao grupo.', 'warn');
+    adminConsoleAviso('Não há outras empresas disponíveis para adicionar ao grupo.', 'warn');
     return;
   }
 
@@ -1740,7 +1740,7 @@ async function adminConsoleRemoverFilial(filialRowId, empresaPaiId) {
       adminConsoleFiltrarEmpresas();
     }
 
-    adminConsoleAviso('Empresa removida do grupo. Ja aparece no painel de empresas.', 'success');
+    adminConsoleAviso('Empresa removida do grupo. Já aparece no painel de empresas.', 'success');
     adminConsoleGerenciarFiliais(empresaPaiId);
   } catch (e) {
     adminConsoleAviso('Erro ao remover: ' + e.message, 'error');
@@ -1770,17 +1770,17 @@ function adminConsoleEditarUsuario(userId) {
 
 async function adminConsoleExcluirUsuario(userId) {
   var user = ADMIN_CONSOLE.users.find(function(item) { return String(item.id) === String(userId); });
-  if (!user) { adminConsoleAviso('Usuario nao encontrado.', 'error'); return; }
+  if (!user) { adminConsoleAviso('Usuário não encontrado.', 'error'); return; }
   var confirmed = window.confirm(
     'Excluir permanentemente ' + (user.nome || user.email || 'este usuario')
-    + '?\n\nEsta acao nao pode ser desfeita. O acesso sera removido do banco de dados.'
+    + '?\n\nEsta ação não pode ser desfeita. O acesso será removido do banco de dados.'
   );
   if (!confirmed) return;
   try {
     await adminConsoleAction('admin-user-delete', { id: userId });
-    adminConsoleTrackActivity('usuario', 'Usuario excluido', (user.nome || user.email) + ' - ' + user.papel);
+    adminConsoleTrackActivity('usuario', 'Usuário excluído', (user.nome || user.email) + ' - ' + user.papel);
     await adminConsoleAtualizar(true);
-    adminConsoleAviso('Usuario excluido com sucesso.', 'success');
+    adminConsoleAviso('Usuário excluído com sucesso.', 'success');
   } catch (error) {
     adminConsoleAviso('Falha ao excluir usuario: ' + error.message, 'error');
   }
@@ -1788,9 +1788,9 @@ async function adminConsoleExcluirUsuario(userId) {
 
 function adminConsoleEntrarComo(userId) {
   var user = ADMIN_CONSOLE.users.find(function(item) { return String(item.id) === String(userId); });
-  if (!user) { adminConsoleAviso('Usuario nao encontrado.', 'error'); return; }
-  if (user.ativo === false) { adminConsoleAviso('Este usuario esta inativo.', 'error'); return; }
-  if (!user.empresa_id) { adminConsoleAviso('Este usuario nao esta vinculado a uma empresa.', 'error'); return; }
+  if (!user) { adminConsoleAviso('Usuário não encontrado.', 'error'); return; }
+  if (user.ativo === false) { adminConsoleAviso('Este usuário esta inativo.', 'error'); return; }
+  if (!user.empresa_id) { adminConsoleAviso('Este usuário não esta vinculado a uma empresa.', 'error'); return; }
   if (user.papel === 'admin') {
     // Usa a operacao existente que sincroniza EMPRESAS_ADMIN e abre view-app
     adminConsoleAbrirOperacao(user.empresa_id, 'users');
@@ -1815,7 +1815,7 @@ function adminConsoleEntrarComo(userId) {
     }
     if (typeof _abrirDashCliente === 'function') _abrirDashCliente(user.empresa_id);
   } else {
-    adminConsoleAviso('Nao e possivel entrar como ' + (user.papel || 'este papel') + '.', 'error');
+    adminConsoleAviso('Não é possível entrar como ' + (user.papel || 'este papel') + '.', 'error');
   }
 }
 
@@ -1831,10 +1831,10 @@ function adminConsoleUsuarioModal(user, preEmpresaId) {
     + (!preEmpresaId || (user && user.papel === 'super_admin')
         ? '<option value="super_admin"' + (user && user.papel === 'super_admin' ? ' selected' : '') + '>Gerente geral — acesso a todas as empresas</option>'
         : '')
-    + '</select><small class="admin-field-note">' + (preEmpresaId ? 'Gerente geral nao pode ser vinculado a uma empresa especifica.' : 'Gerente geral nao precisa de empresa — acessa tudo.') + '</small></label>'
+    + '</select><small class="admin-field-note">' + (preEmpresaId ? 'Gerente geral não pode ser vinculado a uma empresa especifica.' : 'Gerente geral não precisa de empresa — acessa tudo.') + '</small></label>'
     + '<label class="admin-field"><span>Empresa vinculada</span><select name="empresa_id">' + adminConsoleCompanyOptions(empresaValue, true) + '</select><small class="admin-field-note">Obrigatoria para cliente e admin.</small></label>'
     + '<label class="admin-field"><span>' + (editing ? 'Nova senha (opcional)' : 'Senha temporaria') + '</span><input name="password" type="password" ' + (editing ? '' : 'required') + ' minlength="8" autocomplete="new-password"></label>'
-    + '<label class="admin-field admin-field-switch"><input name="ativo" type="checkbox"' + (!user || user.ativo !== false ? ' checked' : '') + '><span>Usuario ativo</span></label>'
+    + '<label class="admin-field admin-field-switch"><input name="ativo" type="checkbox"' + (!user || user.ativo !== false ? ' checked' : '') + '><span>Usuário ativo</span></label>'
     + (editing ? '<label class="admin-field admin-field-switch admin-field-full"><input name="confirmacao" type="checkbox" required><span>Confirmo a revisao do papel, empresa e status deste acesso</span></label>' : '')
     + '</div><div class="admin-form-help">A senha deve ter pelo menos 8 caracteres. Segredos nunca sao exibidos depois de salvos.</div>'
     + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Cancelar</button><button class="admin-btn-primary" type="submit">' + (editing ? 'Salvar alteracoes' : 'Criar usuario') + '</button></div>';
@@ -1858,12 +1858,12 @@ function adminConsoleUsuarioModal(user, preEmpresaId) {
       var result = await adminConsoleAction(editing ? 'admin-user-update' : 'admin-user-create', payload);
       adminConsoleFecharModal();
       await adminConsoleAtualizar(true);
-      adminConsoleTrackActivity('usuario', editing ? 'Usuario atualizado' : 'Usuario criado', payload.email + ' - ' + payload.papel);
+      adminConsoleTrackActivity('usuario', editing ? 'Usuário atualizado' : 'Usuário criado', payload.email + ' - ' + payload.papel);
       if (!editing && result && result.usuario && payload.papel !== 'super_admin') {
         var novoId = String(result.usuario.id || '');
         var novoNome = String(result.usuario.nome || payload.email);
         adminConsoleAviso(
-          'Usuario ' + novoNome + ' criado.',
+          'Usuário ' + novoNome + ' criado.',
           'success',
           {
             label: 'Entrar como ' + novoNome,
@@ -1871,7 +1871,7 @@ function adminConsoleUsuarioModal(user, preEmpresaId) {
           }
         );
       } else {
-        adminConsoleAviso(editing ? 'Usuario atualizado com sucesso.' : 'Usuario criado com sucesso.', 'success');
+        adminConsoleAviso(editing ? 'Usuário atualizado com sucesso.' : 'Usuário criado com sucesso.', 'success');
       }
     } catch (error) {
       adminConsoleAviso('Falha ao salvar usuario: ' + error.message, 'error');
@@ -1918,8 +1918,8 @@ function adminConsoleIntegracaoModal(api, companyId) {
     + '<label class="admin-field"><span>Client ID / Usuário</span><input name="api_user" type="text" autocomplete="off" placeholder="' + (editing ? 'Deixe em branco para manter' : 'Client ID da API') + '" value="' + adminConsoleEscape(api && api.api_user || '') + '"></label>'
     + '<label class="admin-field"><span>Client Secret / Senha</span><input name="api_pass" type="password" autocomplete="new-password" placeholder="' + (editing ? 'Deixe em branco para manter' : 'Client Secret da API') + '"></label>'
     + '<label class="admin-field"><span>API Key (opcional)</span><input name="api_key" type="password" autocomplete="new-password" placeholder="' + (editing ? 'Deixe em branco para manter' : 'Chave de API (se aplicavel)') + '"></label>'
-    + '<label class="admin-field admin-field-switch"><input name="ativo" type="checkbox"' + (!api || api.ativo !== false ? ' checked' : '') + '><span>Integracao ativa</span></label>'
-    + '</div>' + (editing ? '<div class="admin-form-help">Campos de senha em branco = manter valor atual. Client ID preenchido e visivel pois nao e secreto.</div>' : '')
+    + '<label class="admin-field admin-field-switch"><input name="ativo" type="checkbox"' + (!api || api.ativo !== false ? ' checked' : '') + '><span>Integração ativa</span></label>'
+    + '</div>' + (editing ? '<div class="admin-form-help">Campos de senha em branco = manter valor atual. Client ID preenchido e visivel pois não e secreto.</div>' : '')
     + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Cancelar</button><button class="admin-btn-primary" type="submit">' + (editing ? 'Salvar configuracao' : 'Criar integracao') + '</button></div>';
   adminConsoleAbrirModal('INTEGRACOES', editing ? 'Editar integracao' : 'Nova integracao', html, async function(data, form) {
     var button = form.querySelector('[type="submit"]');
@@ -1958,8 +1958,8 @@ function adminConsoleIntegracaoModal(api, companyId) {
       });
       adminConsoleFecharModal();
       await adminConsoleAtualizar(true);
-      adminConsoleTrackActivity('integracao', editing ? 'Integracao atualizada' : 'Integracao criada', adminConsoleCompanyName(targetCompany) + ' - ' + payload.sistema);
-      adminConsoleAviso(editing ? 'Integracao atualizada com sucesso.' : 'Integracao criada com sucesso.', 'success');
+      adminConsoleTrackActivity('integracao', editing ? 'Integração atualizada' : 'Integração criada', adminConsoleCompanyName(targetCompany) + ' - ' + payload.sistema);
+      adminConsoleAviso(editing ? 'Integração atualizada com sucesso.' : 'Integração criada com sucesso.', 'success');
     } catch (error) {
       adminConsoleAviso('Falha ao atualizar integracao: ' + error.message, 'error');
       if (button) button.disabled = false;
@@ -2121,12 +2121,12 @@ async function adminConsoleDispararSyncEmpresa(empresaId) {
   var empresa = (ADMIN_CONSOLE.companies || []).find(function(c){
     return String(c.id || c.empresa_id) === String(eid);
   });
-  if (!empresa) { adminConsoleAviso('Empresa nao encontrada no cache. Atualize a pagina.', 'error'); return; }
+  if (!empresa) { adminConsoleAviso('Empresa não encontrada no cache. Atualize a pagina.', 'error'); return; }
 
   var origem = String(empresa.exibir_origem || 'manual').toLowerCase();
-  if (origem !== 'api') { adminConsoleAviso('Esta empresa nao tem API configurada (origem: ' + origem + ').', 'error'); return; }
+  if (origem !== 'api') { adminConsoleAviso('Esta empresa não tem API configurada (origem: ' + origem + ').', 'error'); return; }
 
-  if (typeof EMPRESA_ATIVA === 'undefined') { adminConsoleAviso('Abra o painel de sincronizacao primeiro.', 'error'); return; }
+  if (typeof EMPRESA_ATIVA === 'undefined') { adminConsoleAviso('Abra o painel de sincronização primeiro.', 'error'); return; }
 
   var integration = (ADMIN_CONSOLE.integrations || []).find(function(a){
     return String(a.empresa_id) === String(eid) && a.ativo !== false;
@@ -2143,7 +2143,7 @@ async function adminConsoleDispararSyncEmpresa(empresaId) {
   };
 
   if (typeof adminSincronizar !== 'function') {
-    adminConsoleAviso('Funcao de sync nao disponivel. Abra o painel de sincronizacao primeiro.', 'error');
+    adminConsoleAviso('Função de sync não disponível. Abra o painel de sincronização primeiro.', 'error');
     return;
   }
 

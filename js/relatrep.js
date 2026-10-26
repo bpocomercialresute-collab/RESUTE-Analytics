@@ -1380,7 +1380,7 @@ function repRoletaHtml() {
         </article>
         <article class="premio-roleta-highlight-card">
           <span>Representante</span>
-          <strong id="rep-roleta-ganhador-text">${repEsc(estado.ganhador || 'nao definido')}</strong>
+          <strong id="rep-roleta-ganhador-text">${repEsc(estado.ganhador || 'não definido')}</strong>
         </article>
         <article class="premio-roleta-highlight-card">
           <span>Itens ativos</span>

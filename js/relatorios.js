@@ -12,9 +12,9 @@ function _activePaneId(areaSelector) {
 }
 
 function _exportAreaInfo(tipo) {
-  if (tipo === 'representantes') return { areaId: 'av-rep-area', titulo: 'Relatorio de Representantes' };
+  if (tipo === 'representantes') return { areaId: 'av-rep-area', titulo: 'Relatório de Representantes' };
   if (tipo === 'bd') return { areaId: 'av-bd-area', titulo: 'BD e Cadastros' };
-  return { areaId: 'av-rel-area', titulo: 'Relatorio de Produtos' };
+  return { areaId: 'av-rel-area', titulo: 'Relatório de Produtos' };
 }
 
 function _exportPane(tipo) {
@@ -27,7 +27,7 @@ function _exportPane(tipo) {
 function _exportNomeArquivo(tipo, formato) {
   var info = _exportAreaInfo(tipo);
   var data = new Date().toISOString().slice(0, 10);
-  return info.titulo.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + data + '.' + formato;
+  return info.titulo.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + data + '.' + formato;
 }
 
 function _downloadBlob(blob, nome) {
@@ -115,7 +115,7 @@ function _gerarPdfTexto(linhas) {
     });
   });
   if (atual.length) paginas.push(atual);
-  if (!paginas.length) paginas.push(['Relatorio sem conteudo.']);
+  if (!paginas.length) paginas.push(['Relatório sem conteudo.']);
 
   var objetos = [''];
   objetos.push('<< /Type /Catalog /Pages 2 0 R >>');
@@ -254,7 +254,7 @@ async function _exportarPdfVisual(pane, titulo, nomeArquivo) {
 async function exportarRelatorioAtual(tipo, formato) {
   var alvo = _exportPane(tipo);
   if (!alvo.pane) {
-    alert('Nenhum relatorio ativo para exportar.');
+    alert('Nenhum relatório ativo para exportar.');
     return;
   }
   var titulo = alvo.info.titulo;
@@ -278,7 +278,7 @@ async function exportarRelatorioAtual(tipo, formato) {
     await _exportarPdfVisual(alvo.pane, titulo, _exportNomeArquivo(tipo, 'pdf'));
   } catch (err) {
     console.error(err);
-    alert('Nao foi possivel exportar este relatorio. Tente novamente.');
+    alert('Não foi possível exportar este relatório. Tente novamente.');
   }
 }
 
