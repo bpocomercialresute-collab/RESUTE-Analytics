@@ -90,6 +90,12 @@ function escapeHtml(s) {
 /** Alias para uso em atributos HTML */
 function escapeAttr(s) { return escapeHtml(s); }
 
+/** Mensagem curta pra tela. O detalhe técnico (erro do Supabase/proxy) vai pro console. */
+function mensagemErroUsuario(e, acao) {
+  console.error('[' + acao + ']', e);
+  return acao + '. Tente novamente; se continuar, avise o administrador.';
+}
+
 /** Exibe uma notificação toast temporária */
 function toast(msg, type = 'info', duration = 3500) {
   const t = document.createElement('div');

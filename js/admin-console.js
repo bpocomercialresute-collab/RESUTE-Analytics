@@ -341,7 +341,7 @@ async function adminConsoleInicializar(force) {
     return true;
   } catch (error) {
     console.error('[ADMIN CONSOLE]', error);
-    adminConsoleAviso('Nao foi possivel carregar o painel: ' + error.message, 'error');
+    adminConsoleAviso(mensagemErroUsuario(error, 'Não foi possível carregar o painel'), 'error');
     return false;
   } finally {
     ADMIN_CONSOLE.loading = false;
@@ -957,8 +957,7 @@ async function adminConsoleCarregarModulos(force) {
   } catch (e) {
     ADMIN_CONSOLE.modules = [];
     ADMIN_CONSOLE.modulesLoaded = false;
-    adminConsoleAviso('Nao foi possivel carregar os contratos de modulo: ' + e.message
-      + ' Rode docs/supabase-modulos.sql no Supabase.', 'warn');
+    adminConsoleAviso(mensagemErroUsuario(e, 'Não foi possível carregar os contratos de módulo'), 'warn');
   }
   adminConsoleRenderModulos();
   adminConsoleRenderFinanceiro();

@@ -173,7 +173,7 @@ async function repMergeEmpresasCarregarDados(empresa_id, nome) {
     window.REP_EMPRESAS_CACHE[empresa_id] = { nome: nome, rows: rows };
   } catch(e) {
     console.error('Erro ao carregar empresa para merge:', e);
-    alert('Não foi possível carregar os dados de ' + nome + ': ' + e.message);
+    alert(mensagemErroUsuario(e, 'Não foi possível carregar os dados de ' + nome));
   }
   repPremiacao();
 }

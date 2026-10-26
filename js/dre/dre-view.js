@@ -1004,7 +1004,7 @@ function _dreLigarSalvarGrades(empresaId) {
         _dreStatusGrade('fin-dre-status-bd', '✓ BD apagado.', 'ok');
       } catch (e) {
         console.error('[DRE] Falha ao limpar BD:', e);
-        alert('Falha ao limpar BD:\n' + e.message);
+        alert(mensagemErroUsuario(e, 'Falha ao limpar BD'));
         _dreStatusGrade('fin-dre-status-bd', 'Falha: ' + e.message, 'erro');
       }
     };
@@ -1072,7 +1072,7 @@ function _dreLigarSalvarGrades(empresaId) {
         _dreStatusGrade('fin-dre-status-plano', '✓ Plano apagado.', 'ok');
       } catch (e) {
         console.error('[DRE] Falha ao limpar Plano:', e);
-        alert('Falha ao limpar Plano de Contas:\n' + e.message);
+        alert(mensagemErroUsuario(e, 'Falha ao limpar Plano de Contas'));
         _dreStatusGrade('fin-dre-status-plano', 'Falha: ' + e.message, 'erro');
       }
     };
@@ -1177,7 +1177,7 @@ function _dreImportarArquivo(file, gridKey, statusId) {
       _dreLinhasParaGrid(dados, gridKey, statusId);
     } catch (err) {
       console.error('[DRE] Falha ao ler planilha:', err);
-      alert('Não foi possível ler essa planilha (' + err.message + ').');
+      alert(mensagemErroUsuario(err, 'Não foi possível ler essa planilha'));
     }
   };
   readerBin.onerror = function(){ alert('Não foi possível ler o arquivo.'); };

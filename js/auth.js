@@ -1044,7 +1044,7 @@ async function _carregarEmpresasComAPI() {
     }
   } catch(e) {
     console.error(e);
-    _setStatus('✗ ' + e.message, 'erro');
+    _setStatus('✗ ' + mensagemErroUsuario(e, 'Não foi possível carregar os dados'), 'erro');
   }
 }
 
@@ -1113,7 +1113,7 @@ async function sincronizarAPI() {
 
   } catch(e) {
     console.error(e);
-    _setStatus('✗ ' + e.message, 'erro');
+    _setStatus('✗ ' + mensagemErroUsuario(e, 'Não foi possível sincronizar'), 'erro');
     try {
       var _agora = new Date();
       await fetch(SUPA_URL + '/rest/v1/sync_log', {
@@ -1199,7 +1199,7 @@ async function carregarDadosDoSupabase(empresa_id) {
     }
   } catch(e) {
     console.error(e);
-    _setStatus('✗ ' + e.message, 'erro');
+    _setStatus('✗ ' + mensagemErroUsuario(e, 'Não foi possível abrir o relatório'), 'erro');
   }
 }
 
@@ -1388,7 +1388,7 @@ async function dcSincronizarOuAtualizar() {
       if (eid) { DC_ACTIVE_COMPANY = ''; await dcCarregarDados(eid); }
     }
   } catch(e) {
-    dcStatus('✗ ' + e.message);
+    dcStatus('✗ ' + mensagemErroUsuario(e, 'Não foi possível atualizar os dados'));
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -5119,7 +5119,7 @@ async function _dcCarregarTodas() {
     dcStatus('OK ' + allVendas.length.toLocaleString('pt-BR') + ' registros (todas as empresas)', true);
   } catch (e) {
     if (e.name === 'AbortError' || (sig && sig.aborted)) return;
-    dcStatus('✗ Erro ao carregar: ' + e.message);
+    dcStatus('✗ ' + mensagemErroUsuario(e, 'Não foi possível carregar os registros'));
   } finally {
     if (seq === DC_LOAD_SEQUENCE) {
       DC_IS_LOADING = false;
