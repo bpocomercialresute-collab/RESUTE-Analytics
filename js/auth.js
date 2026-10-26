@@ -4115,15 +4115,22 @@ async function adminSelecionarEmpresa(id) {
   _adminSyncAtualizarSelect(id);
   _adminAutoSyncCarregarConfig(id);
 
-  // Carrega origem configurada e contagens
-  await _adminCarregarOrigemEmpresa(id);
-  await _adminAtualizarContagens();
-  await _adminPreencherPeriodoSync(id);
-
-  // Carrega dados existentes
+  // _adminCarregarOrigemEmpresa/_adminAtualizarContagens/_adminPreencherPeriodoSync
+  // e _adminCarregar nao dependem um do resultado do outro (cada um le/escreve
+  // seu proprio pedaco de estado e DOM) - so corriam em sequencia, uma espera
+  // atras da outra, sem necessidade. Promise.all espera o mais lento dos 4
+  // (normalmente _adminCarregar, que pagina todas as vendas da empresa) em vez
+  // da soma de todos. _adminCarregarCadastrosApiSalvos fica de fora porque lê
+  // BD_DATA.rows, que só existe depois que _adminCarregar termina.
+  //
   // A grade editavel e exclusivamente manual. Misturar registros da API aqui
   // fazia o proximo salvamento copiar a base sincronizada para origem=manual.
-  await _adminCarregar(id, 'manual');
+  await Promise.all([
+    _adminCarregarOrigemEmpresa(id),
+    _adminAtualizarContagens(),
+    _adminPreencherPeriodoSync(id),
+    _adminCarregar(id, 'manual')
+  ]);
   await _adminCarregarCadastrosApiSalvos();
   if (SESSION && SESSION.papel === 'admin') await adminOwnerAtualizarResumo();
 }
@@ -4795,8 +4802,12 @@ async function _adminCarregarCadastrosApiSalvos() {
     }
   };
 
-  for (var i = 0; i < jobs.length; i += 1) {
-    var job = jobs[i];
+  // Os 3 jobs buscam tabelas diferentes (clientes/produtos/representantes),
+  // cada um escrevendo só na sua propria chave de summary - nao ha nenhuma
+  // dependencia entre eles, entao rodar em sequencia so soma 3 idas e voltas
+  // de rede uma atras da outra sem motivo. Promise.all espera o tempo do
+  // mais lento, nao a soma dos 3.
+  await Promise.all(jobs.map(async function(job) {
     try {
       var foundTable = await _adminFetchCadastroTable(job.tables);
       var data = foundTable.rows;
@@ -4819,7 +4830,7 @@ async function _adminCarregarCadastrosApiSalvos() {
         message: 'Tabela ainda não disponível ou sem acesso neste ambiente.'
       };
     }
-  }
+  }));
 
   _adminAplicarCadastrosApiNaInterface(summary);
   _adminRenderApiModules(summary);
