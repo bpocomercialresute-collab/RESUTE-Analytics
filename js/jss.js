@@ -896,6 +896,33 @@ function lgSortFromDrop(key,colIdx,asc){
   document.querySelectorAll('.col-filter-dropdown').forEach(function(d){d.remove();});
 }
 
+// ── MODELO DE PLANILHA (download) ────────────────────────────────────────────
+// Linha de exemplo so pras colunas que o usuario realmente preenche — as
+// marcadas auto:true no GRID_DEFS (ANO, MES, GRUPO, dias sem compra etc.)
+// sao calculadas sozinhas ao clicar "Processar e salvar", nao fazem parte
+// do que precisa vir preenchido na planilha.
+var JSS_MODELO_EXEMPLO = {
+  bd: ['1','10234','Cadeira Giratoria Presidente','2','15/01/2026','16/01/2026','1500,00','Joao Silva','Varremaster','Comercial ABC Ltda'],
+  marca: ['1','MK01','Marca Exemplo'],
+  clientes: ['1','CLI001','Comercial ABC Ltda','PJ','12345678000190','01310000','Sao Paulo','SP','Centro','11999990000','contato@abc.com.br','ABC Moveis','Joao Silva','Zona Sul'],
+  representantes: ['1','REP01','Joao Silva','Interno','Joao S.','11999990000','5','joao@resute.com.br','','Moveis'],
+  grupos: ['1','G01','Cadeiras','Mobiliario'],
+  produto: ['1','PR001','Cadeira Giratoria Presidente','Cadeiras','Giratorias','Linha Office','Ativo','Moveis']
+};
+
+function jssBaixarModelo(key){
+  var def = GRID_DEFS[key];
+  if (!def) return;
+  if (typeof XLSX === 'undefined') { alert('Biblioteca de planilha não carregou — recarregue a página e tente de novo.'); return; }
+  var headers = def.cols.map(function(c){ return c.t; });
+  var exemplo = JSS_MODELO_EXEMPLO[key] || [];
+  var linhaExemplo = headers.map(function(_, i){ return exemplo[i] !== undefined ? exemplo[i] : ''; });
+  var ws = XLSX.utils.aoa_to_sheet([headers, linhaExemplo]);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Modelo');
+  XLSX.writeFile(wb, 'modelo-' + key + '.xlsx');
+}
+
 // ── IMPORTAR PLANILHA (arquivo .xlsx/.xls/.csv/.tsv/.txt) ───────────────────
 // Abre o seletor de arquivo e, quando escolhido, converte as linhas pro
 // mesmo formato TSV que o paste do Excel ja usa (_paste) — reaproveita 100%
