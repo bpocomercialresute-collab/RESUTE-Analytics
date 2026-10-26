@@ -1324,58 +1324,6 @@ const DRE = (() => {
     estado.charts[id] = new Chart(el, cfg);
   }
 
-  function renderGraficos(res) {
-    const slots = estado.slots;
-    const multiAno = estado.anoInicio !== null && estado.anoInicio !== estado.anoFim;
-    const lbl = slots.map(sl => multiAno ? MESES[sl.mes] + '/' + String(sl.ano).slice(2) : MESES[sl.mes]);
-    const cut = arr => arr.slice(0, slots.length);
-
-    grafico('fin-dre-chart-resultado', {
-      type: 'bar',
-      data: { labels: lbl, datasets: [
-        { label:'Receita líquida', data: cut(res.serie.receitaLiquida), backgroundColor:'#002060' },
-        { label:'Lucro líquido',   data: cut(res.serie.lucroLiquido),   backgroundColor:'#00B050' }
-      ]},
-      options: { responsive:true, maintainAspectRatio:false }
-    });
-
-    const grupos = Object.keys(SE_POR_GRUPO)
-      .filter(g => seDoGrupo(g) === 'S')
-      .map(g => ({ nome:g, total: totalGrupo(g).total }))
-      .filter(g => g.total > 0)
-      .sort((a,b) => b.total - a.total);
-
-    grafico('fin-dre-chart-grupos', {
-      type: 'bar',
-      data: { labels: grupos.map(g => g.nome),
-              datasets: [{ label:'Total', data: grupos.map(g => g.total),
-                           backgroundColor:'#FF0000' }]},
-      options: { indexAxis:'y', responsive:true, maintainAspectRatio:false,
-                 plugins:{ legend:{ display:false }}}
-    });
-
-    const a = analiseFVDI();
-    grafico('fin-dre-chart-fv', {
-      type: 'doughnut',
-      data: { labels:['Fixo','Variável','Não marcado'],
-              datasets:[{ data:[a.fv.F, a.fv.V, a.fv['-']],
-                          backgroundColor:['#002060','#00B050','#c3cad6'] }]},
-      options: { responsive:true, maintainAspectRatio:false }
-    });
-
-    const base = res.serie.receitaLiquida;
-    const pct = arr => arr.map((v,i) => base[i] ? (v/base[i])*100 : 0);
-    grafico('fin-dre-chart-margem', {
-      type: 'line',
-      data: { labels: lbl, datasets: [
-        { label:'Margem bruta %',   data: cut(pct(res.serie.lucroBruto)),   borderColor:'#002060', tension:.3 },
-        { label:'Margem EBITDA %',  data: cut(pct(res.serie.ebitda)),       borderColor:'#00B050', tension:.3 },
-        { label:'Margem líquida %', data: cut(pct(res.serie.lucroLiquido)), borderColor:'#FF0000', tension:.3 }
-      ]},
-      options: { responsive:true, maintainAspectRatio:false }
-    });
-  }
-
   /* ---------- 15b. LAUDO GRUPO — reproducao do LAUDO_GRUPO.xlsx ----------
      Grupo fixo (o cliente confirmou: "o laudo e de custo"). Mesmo pivot do
      arquivo original: em vez de 12 meses em coluna pra 1 ano, sao os ANOS
@@ -1678,7 +1626,6 @@ const DRE = (() => {
     renderBDDRE();
     renderLancamentos();
     renderFVDI();
-    renderGraficos(res);
     renderLaudoGrupo();
 
     if (st) {
