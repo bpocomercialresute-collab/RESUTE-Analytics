@@ -516,7 +516,7 @@ function lgLooksLikeHeader(line) {
     ID: 1, COD: 1, CODIGO: 1, CONTA: 1, PRODUTO: 1, VALOR: 1,
     GRUPO: 1, CLIENTE: 1, CLIENTES: 1, VENDEDOR: 1, REPRESENTANTE: 1,
     DT_CAIXA: 1, DT_VENC: 1, DT_PAG: 1, F_V: 1, D_I: 1,
-    PEDIDO: 1, TIPO: 1, MES: 1, ANO: 1
+    PEDIDO: 1, TIPO: 1, MES: 1, ANO: 1, MARCA: 1
   };
   var cells = String(line || '').split('\t').map(function(cell) {
     return cell.trim().toUpperCase().replace(/\s+/g, '_');
