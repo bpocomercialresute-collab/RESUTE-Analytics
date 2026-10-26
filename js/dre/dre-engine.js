@@ -731,7 +731,13 @@ const DRE = (() => {
 
     for (const l of (estado.bd || [])) {
       if (l.entraRelatorio && porGrupo.has(l.grupo)) {
-        porGrupo.set(l.grupo, porGrupo.get(l.grupo) + num(l.valor));
+        // valorAssinado, nao num(l.valor) cru — grupo orfao sem s_e conhecido
+        // cai no default 'S' (seDoGrupo), mesma regra de despesa-digitada-
+        // positiva do resto do motor. Sem isso, uma despesa num grupo orfao
+        // somava positiva no aviso "Grupo(s) nao reconhecido(s)", mostrando
+        // um valor com sinal trocado em relacao a como ela apareceria se o
+        // grupo fosse valido.
+        porGrupo.set(l.grupo, porGrupo.get(l.grupo) + valorAssinado(l));
       }
     }
     return {
@@ -1799,7 +1805,7 @@ const DRE = (() => {
   }
 
   return { init, recalcular, estado, MESES, SE_POR_GRUPO, ESTRUTURA,
-           montarBDDRE, calcularResultado, analiseFVDI, totalGrupo,
+           montarBDDRE, calcularResultado, analiseFVDI, totalGrupo, _dreGruposOrfaos,
            registrosPlanoParaSalvar, registrosBDParaSalvar, renderLancamentos,
            laudoGrupoDados, laudoMoMGrupo, renderLaudoGrupo, selecionarGrupoLaudo };
 })();

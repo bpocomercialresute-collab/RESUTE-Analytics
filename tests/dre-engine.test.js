@@ -61,6 +61,29 @@ test('DRE usa data de vencimento e mantém data de caixa apenas como dado auxili
   assert.equal(fevereiro, -100);
 });
 
+test('DRE soma despesa de grupo órfão com sinal negativo no aviso de "grupo não reconhecido"', () => {
+  DRE.estado.plano = [
+    { cod: 'ORF01', conta: 'Conta de grupo inexistente', grupo: 'GRUPO QUE NAO EXISTE', fv: '', di: '' }
+  ];
+  DRE.estado.lancamentos = [lancamento('Conta de grupo inexistente', 300)];
+  DRE.estado.ano = 2026;
+  DRE.estado.anoInicio = 2026;
+  DRE.estado.anoFim = 2026;
+  DRE.estado.mesInicio = 0;
+  DRE.estado.mesFim = 11;
+  DRE.estado.cnpj = 1;
+  DRE.estado.slots = [];
+  DRE.montarBDDRE();
+
+  const orfaos = DRE._dreGruposOrfaos();
+
+  assert.deepEqual(orfaos.nomes, ['GRUPO QUE NAO EXISTE']);
+  // Grupo orfao cai no default 'S' (despesa) de seDoGrupo — 300 digitado
+  // positivo (habito humano comum) tem que somar negativo no aviso, igual
+  // qualquer outra despesa do motor, nao positivo.
+  assert.equal(orfaos.total, -300);
+});
+
 test('DRE exclui do relatório lançamento sem vencimento ou sem valor', () => {
   prepararEstado([
     lancamento('Venda de produtos', 500),
