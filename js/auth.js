@@ -5380,6 +5380,7 @@ async function _adminProcessarManualExec() {
   // nenhuma tabela — "Cadastros de produtos no comercial nao estao
   // salvando". Mesmo botao "Processar e salvar" (nao cria botao novo):
   // qualquer uma dessas grades que tiver dado tambem grava na tabela real.
+  _adminSetStatus('⏳ Salvando cadastros (clientes, produtos, representantes)...');
   var resumoCadastros = await _adminSalvarCadastrosManuais(eid);
   if (resumoCadastros.length) {
     var elStatus = document.getElementById('admin-sync-status');
