@@ -1085,7 +1085,7 @@ function _dreExportarCSV() {
     rows = GRIDS['dre_bddre'].getData();
     nome = 'DRE_BDDRE';
   } else {
-    alert('Selecione uma aba (BD, Plano ou BD_DRE) para exportar.');
+    alert('Selecione uma aba (BD, Plano ou Matriz) para exportar.');
     return;
   }
 
