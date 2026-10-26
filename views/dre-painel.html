@@ -62,6 +62,10 @@
         Importar arquivo
         <input type="file" id="fin-dre-bd-importar" accept=".csv,.txt,.tsv,.xls,.xlsx" style="display:none">
       </label>
+      <button type="button" id="fin-dre-bd-modelo" class="fin-btn-secundario" title="Baixar modelo de planilha (BD e Plano de Contas)">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Baixar modelo
+      </button>
       <button type="button" id="fin-dre-bd-limpar" class="fin-btn-perigo">Limpar BD</button>
       <span id="fin-dre-status-bd" class="fin-status"></span>
     </div>
@@ -98,6 +102,15 @@
     </div>
     <div class="fin-grid-acoes">
       <button type="button" id="fin-dre-salvar-plano" class="fin-btn-primario">Salvar no banco</button>
+      <label class="fin-btn-secundario fin-btn-import-label" title="Importar CSV ou Excel colado">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Importar arquivo
+        <input type="file" id="fin-dre-plano-importar" accept=".csv,.txt,.tsv,.xls,.xlsx" style="display:none">
+      </label>
+      <button type="button" id="fin-dre-plano-modelo" class="fin-btn-secundario" title="Baixar modelo de planilha (BD e Plano de Contas)">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Baixar modelo
+      </button>
       <button type="button" id="fin-dre-plano-limpar" class="fin-btn-perigo">Limpar Plano</button>
       <span id="fin-dre-status-plano" class="fin-status"></span>
     </div>

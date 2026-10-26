@@ -1019,11 +1019,28 @@ function _dreLigarSalvarGrades(empresaId) {
   if (inputImportar) {
     inputImportar.onchange = function() {
       if (inputImportar.files && inputImportar.files[0]) {
-        _dreImportarArquivo(inputImportar.files[0]);
+        _dreImportarArquivo(inputImportar.files[0], 'dre_bd', 'fin-dre-status-bd');
         inputImportar.value = '';
       }
     };
   }
+
+  // ── Importar arquivo na aba Plano de Contas ─────────────────────────────────
+  var inputImportarPlano = document.getElementById('fin-dre-plano-importar');
+  if (inputImportarPlano) {
+    inputImportarPlano.onchange = function() {
+      if (inputImportarPlano.files && inputImportarPlano.files[0]) {
+        _dreImportarArquivo(inputImportarPlano.files[0], 'dre_plano', 'fin-dre-status-plano');
+        inputImportarPlano.value = '';
+      }
+    };
+  }
+
+  // ── Baixar modelo de planilha (BD + Plano de Contas) ────────────────────────
+  var btnModeloBd = document.getElementById('fin-dre-bd-modelo');
+  if (btnModeloBd) btnModeloBd.onclick = _dreBaixarModelo;
+  var btnModeloPlano = document.getElementById('fin-dre-plano-modelo');
+  if (btnModeloPlano) btnModeloPlano.onclick = _dreBaixarModelo;
 
   // ── Botão Limpar Plano ───────────────────────────────────────────────────────
   var btnLimparPlano = document.getElementById('fin-dre-plano-limpar');
@@ -1091,8 +1108,10 @@ function _dreExportarCSV() {
 // detecta a extensao: .xlsx/.xls usa SheetJS (XLSX.read) de verdade, .csv/
 // .txt/.tsv continua lendo como texto igual antes.
 
-function _dreLinhasParaGrid(dados) {
-  var grid = GRIDS['dre_bd'];
+function _dreLinhasParaGrid(dados, gridKey, statusId) {
+  gridKey = gridKey || 'dre_bd';
+  statusId = statusId || 'fin-dre-status-bd';
+  var grid = GRIDS[gridKey];
   dados = (dados || []).filter(function(r){ return r && r.some(function(c){ return String(c == null ? '' : c).trim() !== ''; }); });
   if (!dados.length) { alert('Arquivo vazio ou formato não reconhecido.'); return; }
   // Remove cabeçalho se a primeira célula não parecer data
@@ -1103,13 +1122,15 @@ function _dreLinhasParaGrid(dados) {
   // Cola igual ao paste — usa o mesmo mecanismo do LiteGrid
   var tsv = dados.map(function(r){ return r.join('\t'); }).join('\n');
   grid._pasteAt(tsv, 0, 0);
-  _dreStatusGrade('fin-dre-status-bd', '✓ ' + dados.length + ' linha(s) importada(s) do arquivo.', 'ok');
+  _dreStatusGrade(statusId, '✓ ' + dados.length + ' linha(s) importada(s) do arquivo.', 'ok');
 }
 
-function _dreImportarArquivo(file) {
+function _dreImportarArquivo(file, gridKey, statusId) {
   if (!file) return;
-  var grid = GRIDS['dre_bd'];
-  if (!grid) { alert('Aba BD não está inicializada.'); return; }
+  gridKey = gridKey || 'dre_bd';
+  statusId = statusId || 'fin-dre-status-bd';
+  var grid = GRIDS[gridKey];
+  if (!grid) { alert('Aba não está inicializada.'); return; }
 
   var nome = String(file.name || '').toLowerCase();
   var ehBinario = /\.(xlsx|xls)$/.test(nome);
@@ -1125,7 +1146,7 @@ function _dreImportarArquivo(file) {
         .map(function(l){
           return l.split(sep).map(function(c){ return c.replace(/^"|"$/g,'').replace(/""/g,'"').trim(); });
         });
-      _dreLinhasParaGrid(dados);
+      _dreLinhasParaGrid(dados, gridKey, statusId);
     };
     readerTxt.onerror = function(){ alert('Não foi possível ler o arquivo.'); };
     readerTxt.readAsText(file, 'UTF-8');
@@ -1139,7 +1160,7 @@ function _dreImportarArquivo(file) {
       var wb = XLSX.read(e.target.result, { type: 'array' });
       var ws = wb.Sheets[wb.SheetNames[0]];
       var dados = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
-      _dreLinhasParaGrid(dados);
+      _dreLinhasParaGrid(dados, gridKey, statusId);
     } catch (err) {
       console.error('[DRE] Falha ao ler planilha:', err);
       alert('Não foi possível ler essa planilha (' + err.message + ').');
@@ -1147,6 +1168,49 @@ function _dreImportarArquivo(file) {
   };
   readerBin.onerror = function(){ alert('Não foi possível ler o arquivo.'); };
   readerBin.readAsArrayBuffer(file);
+}
+
+// ── MODELO DE PLANILHA (download) ────────────────────────────────────────────
+// Exemplo indexado pelo NOME da coluna (nao pela posicao) — ao contrario do
+// BD Manual (js/jss.js), aqui as colunas calculadas automaticamente (auto:
+// true) ficam no MEIO da lista (S_E..ULTIMO_DIA_DO_MES), nao soo no final,
+// entao um array por posicao desalinharia CNPJ_2/safra/CICLO que vem depois.
+var DRE_MODELO_EXEMPLO = {
+  dre_bd: {
+    '#': '1', DT_CAIXA: '15/01/2026', DT_VENC: '15/01/2026', DT_PAG: '15/01/2026',
+    CONTA: 'Venda de produtos', TIPO: 'E', VALOR: '1500,00', TOT_PAGO: '1500,00',
+    'FORNECEDOR CLIENTE': 'Comercial ABC Ltda', N_DOC: 'NF-0001', BANCO: 'Banco X',
+    FORMA: 'PIX', PARCELA: '1', TOT_PARCELAS: '1', OBS: '', CNPJ: '12345678000190',
+    'DT CUSTORIA': '', 'Histórico': 'Venda de produtos em janeiro',
+    CNPJ_2: '', safra: '', CICLO: ''
+  },
+  dre_plano: {
+    '#': '1', COD: '1.1', CONTA: 'Venda de produtos', GRUPO: 'RECEITA OPERACIONAL', F_V: 'V', D_I: 'D'
+  }
+};
+
+function _dreModeloLinha(def, exemplo) {
+  return def.cols.map(function(c){
+    if (c.auto) return '';
+    var v = exemplo[c.t];
+    return v === undefined ? '' : v;
+  });
+}
+
+function _dreBaixarModelo() {
+  if (typeof XLSX === 'undefined') { alert('Biblioteca de planilha não carregou — recarregue a página e tente de novo.'); return; }
+  var defBd = GRID_DEFS['dre_bd'];
+  var defPlano = GRID_DEFS['dre_plano'];
+  if (!defBd || !defPlano) { alert('Abra a aba BD ou Plano de Contas pelo menos uma vez antes de baixar o modelo.'); return; }
+  var wb = XLSX.utils.book_new();
+  [['BD', defBd, DRE_MODELO_EXEMPLO.dre_bd], ['PLANO DE CONTAS', defPlano, DRE_MODELO_EXEMPLO.dre_plano]].forEach(function(item){
+    var aba = item[0], def = item[1], exemplo = item[2];
+    var headers = def.cols.map(function(c){ return c.t; });
+    var linha = _dreModeloLinha(def, exemplo);
+    var ws = XLSX.utils.aoa_to_sheet([headers, linha]);
+    XLSX.utils.book_append_sheet(wb, ws, aba);
+  });
+  XLSX.writeFile(wb, 'modelo-dre.xlsx');
 }
 
 // ── GRADES LITEGRID (abas BD e Plano de Contas) ───────────────────────────────
