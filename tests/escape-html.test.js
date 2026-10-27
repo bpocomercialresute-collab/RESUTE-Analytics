@@ -40,3 +40,9 @@ test('escapeHtml impede quebrar atributo com aspas (onclick)', () => {
 test('escapeHtml converte numero para texto sem alterar', () => {
   assert.equal(context.escapeHtml(42), '42');
 });
+
+test('escapeHtml trata null e undefined como texto vazio, nao como "null"', () => {
+  assert.equal(context.escapeHtml(null), '');
+  assert.equal(context.escapeHtml(undefined), '');
+  assert.equal(context.escapeHtml(0), '0');
+});
