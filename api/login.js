@@ -100,8 +100,14 @@ function loginLimpar(chave) {
   LOGIN_FALHAS.delete(chave);
 }
 
+// x-vercel-forwarded-for e definido pela propria Vercel com o IP do cliente
+// (docs: request headers). x-forwarded-for so entra como fallback, porque
+// pode ser sobrescrito se houver outro proxy na frente.
 function ipCliente(req) {
-  const xff = req.headers && req.headers['x-forwarded-for'];
+  const h = (req.headers || {});
+  const vercel = h['x-vercel-forwarded-for'];
+  if (vercel) return String(vercel).split(',')[0].trim();
+  const xff = h['x-forwarded-for'];
   const primeiro = xff ? String(xff).split(',')[0].trim() : '';
   return primeiro || (req.socket && req.socket.remoteAddress) || 'desconhecido';
 }
