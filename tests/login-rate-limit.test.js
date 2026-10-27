@@ -8,10 +8,11 @@ const root = path.resolve(__dirname, '..');
 
 function loadLogin() {
   const src = fs.readFileSync(path.join(root, 'api/login.js'), 'utf8')
+    .replace(/^import .*$/m, '')
     .replace(/^export default /m, '');
-  const context = { URL, URLSearchParams, Map, Set, JSON, Date, console, process: { env: {} } };
+  const context = { URL, URLSearchParams, Map, Set, JSON, Date, console, process: { env: {} }, createHash: require('node:crypto').createHash };
   vm.createContext(context);
-  vm.runInContext(src + '\n;globalThis.__login = { loginChave, loginBloqueado, loginRegistrarFalha, loginLimpar, LOGIN_MAX_FALHAS, LOGIN_JANELA_MS, LOGIN_BLOQUEIO_MS };', context);
+  vm.runInContext(src + '\n;globalThis.__login = { loginChave, loginBloqueado, loginRegistrarFalha, loginLimpar, loginIdentificador, LOGIN_MAX_FALHAS, LOGIN_JANELA_MS, LOGIN_BLOQUEIO_MS };', context);
   return context.__login;
 }
 
@@ -57,4 +58,12 @@ test('login: sucesso zera as falhas', () => {
 test('login: chave separa email e IP, e ignora caixa do email', () => {
   assert.equal(L.loginChave('A@X.com', '1.1.1.1'), L.loginChave('a@x.com', '1.1.1.1'));
   assert.notEqual(L.loginChave('a@x.com', '1.1.1.1'), L.loginChave('a@x.com', '2.2.2.2'));
+});
+
+test('login: identificador de log nao expoe o email e e estavel', () => {
+  const id = L.loginIdentificador('Fulano@Empresa.com');
+  assert.equal(id.length, 8);
+  assert.equal(id, L.loginIdentificador('fulano@empresa.com'));
+  assert.equal(id.includes('fulano'), false);
+  assert.notEqual(id, L.loginIdentificador('outro@empresa.com'));
 });

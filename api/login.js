@@ -1,3 +1,10 @@
+import { createHash } from 'node:crypto';
+
+// Identificador nao reversivel do usuario para logs (nao expoe o email).
+function loginIdentificador(email) {
+  return createHash('sha256').update(String(email || '').toLowerCase()).digest('hex').slice(0, 8);
+}
+
 function parseBody(body) {
   if (!body) return {};
   if (typeof body === 'string') {
@@ -174,18 +181,18 @@ export default async function handler(req, res) {
     const MSG_ACESSO_NEGADO = 'Acesso nao autorizado. Verifique suas credenciais ou contate o administrador.';
 
     if (!user) {
-      console.warn('[LOGIN] Auth OK mas sem registro em usuarios:', emailNormalizado);
+      console.warn('[LOGIN] Auth OK mas sem registro em usuarios, id=' + loginIdentificador(emailNormalizado));
       return res.status(401).json({ erro: MSG_ACESSO_NEGADO });
     }
 
     if (user.ativo === false) {
-      console.warn('[LOGIN] Usuario inativo tentou login:', emailNormalizado);
+      console.warn('[LOGIN] Usuario inativo tentou login, id=' + loginIdentificador(emailNormalizado));
       return res.status(401).json({ erro: MSG_ACESSO_NEGADO });
     }
 
     var empresaRelacion = Array.isArray(user.empresas) ? (user.empresas[0] || {}) : (user.empresas || {});
     if (user.papel !== 'super_admin' && empresaRelacion.ativo === false) {
-      console.warn('[LOGIN] Empresa inativa para usuario:', emailNormalizado);
+      console.warn('[LOGIN] Empresa inativa para usuario, id=' + loginIdentificador(emailNormalizado));
       return res.status(401).json({ erro: MSG_ACESSO_NEGADO });
     }
 
@@ -228,7 +235,7 @@ export default async function handler(req, res) {
         modulos = ['comercial'];
       } else if (!contratados.length) {
         // Ha contrato cadastrado, mas nenhum modulo vigente.
-        console.warn('[LOGIN] Empresa sem modulo vigente:', emailNormalizado);
+        console.warn('[LOGIN] Empresa sem modulo vigente, id=' + loginIdentificador(emailNormalizado));
         return res.status(401).json({ erro: MSG_ACESSO_NEGADO });
       } else {
         modulos = contratados;
