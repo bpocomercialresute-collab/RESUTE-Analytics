@@ -1989,9 +1989,13 @@ async function dcCarregarDados(empresa_id_param) {
     if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
     dcMostrarEsqueleto();
     dcStatus('⏳ Abrindo painel...');
+    // Mesmo problema do IndexedDB: sem limite de tempo, uma falha de rede que
+    // nem chega a rejeitar (so nunca resolve) travava aqui tambem, antes de
+    // chegar na busca completa do banco.
     var snapshotRapido = window.ReportCache
-      ? await window.ReportCache.getLatest(eid, 'dashboard_cliente', null)
+      ? await dcComTimeout(window.ReportCache.getLatest(eid, 'dashboard_cliente', null), 6000, 'snapshot lento').catch(function() { return null; })
       : null;
+    _dcMedir('snapshot conferido (' + (snapshotRapido && snapshotRapido.dados && Array.isArray(snapshotRapido.dados.vendas) ? snapshotRapido.dados.vendas.length : 0) + ' linhas)');
     if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
     if (snapshotRapido && snapshotRapido.dados && Array.isArray(snapshotRapido.dados.vendas) && snapshotRapido.dados.vendas.length) {
       var _supaVendas = snapshotRapido.dados.vendas;
