@@ -1669,9 +1669,30 @@ function _dcIdbAvisar(tipo, e) {
   console.warn('[dashboard cache] IndexedDB falhou (' + tipo + '):', e);
 }
 
+// Navegador que trava a abertura (extensao/politica bloqueando IndexedDB)
+// trava do mesmo jeito TODA vez — nao adianta tentar de novo a cada abertura
+// do painel, so soma ~2,5s de espera morta sempre. Lembra em localStorage
+// (que ja sabemos que funciona, a sessao vive la) por 24h, pra tentar nao
+// mais de 1x por dia e, se o motivo do bloqueio sumir, voltar sozinho.
+var _DC_IDB_BLOQUEIO_KEY = 'resute_dc_idb_bloqueado_em';
+var _DC_IDB_BLOQUEIO_TTL_MS = 24 * 60 * 60 * 1000;
+function _dcIdbSabidamenteBloqueado() {
+  try {
+    var em = parseInt(localStorage.getItem(_DC_IDB_BLOQUEIO_KEY) || '', 10);
+    return isFinite(em) && (Date.now() - em) < _DC_IDB_BLOQUEIO_TTL_MS;
+  } catch (e) { return false; }
+}
+function _dcIdbMarcarBloqueado() {
+  try { localStorage.setItem(_DC_IDB_BLOQUEIO_KEY, String(Date.now())); } catch (e) {}
+}
+function _dcIdbLimparMarcaDeBloqueio() {
+  try { localStorage.removeItem(_DC_IDB_BLOQUEIO_KEY); } catch (e) {}
+}
+
 function _dcIdbOpen() {
   return new Promise(function(resolve) {
     if (typeof indexedDB === 'undefined') { _dcIdbAvisar('indisponivel'); resolve(null); return; }
+    if (_dcIdbSabidamenteBloqueado()) { resolve(null); return; }
     // Se um navegador/extensao interceptar indexedDB.open e nunca chamar
     // onsuccess/onerror/onblocked, essa promise ficava presa pra sempre — e
     // dcCarregarDados travava com ela, sem nenhum log, sem nenhum erro, com
@@ -1685,13 +1706,13 @@ function _dcIdbOpen() {
       if (motivo) _dcIdbAvisar(motivo);
       resolve(valor);
     };
-    setTimeout(function() { resolverUmaVez(null, 'open-travou'); }, 2500);
+    setTimeout(function() { _dcIdbMarcarBloqueado(); resolverUmaVez(null, 'open-travou'); }, 2500);
     try {
       var req = indexedDB.open(_DC_IDB_NAME, 1);
       req.onupgradeneeded = function(e) {
         try { e.target.result.createObjectStore(_DC_IDB_STORE); } catch (_e) {}
       };
-      req.onsuccess = function(e) { resolverUmaVez(e.target.result); };
+      req.onsuccess = function(e) { _dcIdbLimparMarcaDeBloqueio(); resolverUmaVez(e.target.result); };
       req.onerror = function(e) { resolverUmaVez(null, null); _dcIdbAvisar('open', e && e.target && e.target.error); };
       req.onblocked = function() { _dcIdbAvisar('open-bloqueado'); };
     } catch (e) { resolverUmaVez(null, null); _dcIdbAvisar('open-excecao', e); }
