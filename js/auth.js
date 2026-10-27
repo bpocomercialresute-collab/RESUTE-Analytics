@@ -1780,13 +1780,21 @@ async function dcCarregarDados(empresa_id_param) {
   DC_IS_LOADING = true;
 
   var _dcLsKey = 'resute_dc_cache_' + eid;
+  var _dcT0 = performance.now();
+  var _dcMedir = function(etapa) {
+    console.info('[dashboard] ' + etapa + ': ' + Math.round(performance.now() - _dcT0) + ' ms');
+  };
+  dcMostrarEsqueleto();
+  dcStatus('⏳ Abrindo painel...');
 
   try {
     // 1. IndexedDB — leitura local ~10ms, sem limite de tamanho
     var _idbData = await _dcIdbGet(_dcLsKey);
+    _dcMedir('cache local lido (' + (_idbData && Array.isArray(_idbData.vendas) ? _idbData.vendas.length : 0) + ' linhas)');
     if (_idbData && Array.isArray(_idbData.vendas) && _idbData.vendas.length) {
       if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
       dcAplicarVendasCarregadas(_idbData.vendas);
+      _dcMedir('render a partir do cache local');
       if ((DC_DATA || []).length) {
         dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
       }
@@ -1850,6 +1858,7 @@ async function dcCarregarDados(empresa_id_param) {
       'O carregamento dos registros demorou mais de 3 minutos.'
     );
 
+    _dcMedir('banco lido (' + (Array.isArray(vendas) ? vendas.length : 0) + ' linhas)');
     if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
 
     if (!Array.isArray(vendas) || !vendas.length) {
