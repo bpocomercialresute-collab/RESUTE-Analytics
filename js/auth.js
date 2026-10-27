@@ -1382,69 +1382,77 @@ function cliAba(btn, id) {
 // PAGINAÇÃO — busca TODOS os registros do Supabase em lotes de 1000
 // =============================================================================
 async function _fetchAll(baseUrl, headers, signal) {
-  var all = [];
-  var from = 0;
   var pageSize = 1000;
-  var tentativas = 0;
   var maxPaginas = 200; // limite de segurança: 200k registros
-  var esperas = 0;
-  var maxEsperas = 3;   // repetições após 429 antes de desistir
+  var concorrencia = 4; // paginas buscadas em paralelo (antes era uma por vez)
+  var maxEsperas = 3;   // repeticoes por pagina apos 429 antes de desistir
 
-  while (tentativas < maxPaginas) {
-    var fetchOpts = {
-      headers: Object.assign({}, headers, {
-        'Range': from + '-' + (from + pageSize - 1),
-        'Range-Unit': 'items'
-      })
-    };
-    if (signal) fetchOpts.signal = signal;
+  async function buscarPagina(indice) {
+    var from = indice * pageSize;
+    var esperas = 0;
+    while (true) {
+      var fetchOpts = {
+        headers: Object.assign({}, headers, {
+          'Range': from + '-' + (from + pageSize - 1),
+          'Range-Unit': 'items'
+        })
+      };
+      if (signal) fetchOpts.signal = signal;
+      var r = await fetch(baseUrl, fetchOpts);
 
-    var r = await fetch(baseUrl, fetchOpts);
-
-    // 429 = rate limit do secure-proxy. Carregar 50k+ registros gasta dezenas
-    // de requisições; se o usuário recarregar o painel duas vezes no mesmo
-    // minuto, o teto estoura no meio da paginação. Espera e repete a mesma
-    // página em vez de devolver dado pela metade.
-    if (r.status === 429) {
-      if (esperas >= maxEsperas) {
-        throw new Error('O servidor limitou as requisições. Aguarde 1 minuto e atualize a página.');
+      // 429 = rate limit do secure-proxy: espera e repete a mesma pagina.
+      if (r.status === 429) {
+        if (esperas >= maxEsperas) {
+          throw new Error('O servidor limitou as requisições. Aguarde 1 minuto e atualize a página.');
+        }
+        esperas++;
+        var segundos = parseInt(r.headers.get('retry-after') || '0', 10) || (5 * esperas);
+        console.warn('[fetchAll] 429 na página ' + indice + ' — repetindo em ' + segundos + 's');
+        if (typeof dcStatus === 'function') {
+          dcStatus('⏳ Limite de requisições atingido. Retomando em ' + segundos + 's...');
+        }
+        await new Promise(function(resolve) { setTimeout(resolve, segundos * 1000); });
+        continue;
       }
-      esperas++;
-      var segundos = parseInt(r.headers.get('retry-after') || '0', 10) || (5 * esperas);
-      console.warn('[fetchAll] 429 na página ' + tentativas + ' — repetindo em ' + segundos + 's');
-      if (typeof dcStatus === 'function') {
-        dcStatus('⏳ Limite de requisições atingido. Retomando em ' + segundos + 's...');
+
+      if (!r.ok && r.status !== 206) {
+        console.error('[fetchAll] Erro HTTP', r.status, 'na página', indice);
+        throw new Error('Falha ao carregar os registros (HTTP ' + r.status + ')');
       }
-      await new Promise(function(resolve) { setTimeout(resolve, segundos * 1000); });
-      continue; // repete a MESMA página, sem avançar o offset
+      var batch = await r.json();
+      return Array.isArray(batch) ? batch : [];
     }
-
-    if (!r.ok && r.status !== 206) {
-      // Antes isto era um `break` silencioso: o painel mostrava os registros
-      // já baixados como se fossem o total, ou nada, sem explicar o motivo.
-      console.error('[fetchAll] Erro HTTP', r.status, 'na página', tentativas);
-      throw new Error('Falha ao carregar os registros (HTTP ' + r.status + ')'
-        + (all.length ? ' após ' + all.length.toLocaleString('pt-BR') + ' registros.' : '.'));
-    }
-
-    var batch = await r.json();
-    if (!Array.isArray(batch) || !batch.length) break;
-
-    all = all.concat(batch);
-    tentativas++;
-
-    // Se veio menos que pageSize, chegou ao fim
-    if (batch.length < pageSize) break;
-    from += pageSize;
   }
 
-  if (tentativas >= maxPaginas) {
-    console.warn('[fetchAll] Limite de ' + maxPaginas + ' páginas atingido (' + all.length + ' registros). Empresa pode ter mais de 200k registros — dados parciais.');
+  var paginas = [];
+  var chegouAoFim = false;
+  for (var inicio = 0; !chegouAoFim && inicio < maxPaginas; inicio += concorrencia) {
+    var indices = [];
+    for (var i = inicio; i < Math.min(inicio + concorrencia, maxPaginas); i++) indices.push(i);
+    var resultados = await Promise.allSettled(indices.map(buscarPagina));
+    for (var j = 0; j < resultados.length; j++) {
+      if (resultados[j].status === 'rejected') {
+        var jaBaixados = 0;
+        paginas.forEach(function(p) { jaBaixados += p.length; });
+        var msgFalha = String(resultados[j].reason && resultados[j].reason.message || 'Falha ao carregar os registros');
+        throw new Error(msgFalha + (jaBaixados ? ' após ' + jaBaixados.toLocaleString('pt-BR') + ' registros.' : '.'));
+      }
+      paginas.push(resultados[j].value);
+      if (resultados[j].value.length < pageSize) { chegouAoFim = true; break; }
+    }
+  }
+
+  if (!chegouAoFim) {
+    console.warn('[fetchAll] Limite de ' + maxPaginas + ' páginas atingido. Empresa pode ter mais de 200k registros — dados parciais.');
     if (typeof toast === 'function') {
       toast('⚠ Carregamento parcial: mais de 200k registros. Entre em contato com o suporte.', 'warn', 8000);
     }
   }
 
+  var all = [];
+  for (var k = 0; k < paginas.length; k++) {
+    for (var m = 0; m < paginas[k].length; m++) all.push(paginas[k][m]);
+  }
   return all;
 }
 

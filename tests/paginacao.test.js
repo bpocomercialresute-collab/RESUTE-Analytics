@@ -115,7 +115,11 @@ test('_fetchAll: pagina com Range ate o fim e devolve tudo', async () => {
   });
   const linhas = await _fetchAll('/rest/v1/vendas', {});
   assert.equal(linhas.length, 2500);
-  assert.deepEqual(srv.pedidos, ['0-999', '1000-1999', '2000-2999']);
+  // Lote de 4 paginas em paralelo: a pagina 3000-3999 pode ser pedida antes de
+  // se saber que a 2000-2999 era a ultima. Custa uma requisicao extra, nunca
+  // mais que o tamanho do lote, e nao entra no resultado.
+  assert.deepEqual(srv.pedidos.slice(0, 3), ['0-999', '1000-1999', '2000-2999']);
+  assert.ok(srv.pedidos.length <= 4, 'nao deve pedir alem do tamanho do lote');
 });
 
 test('_fetchAll: HTTP de erro vira excecao com contagem parcial', async () => {
