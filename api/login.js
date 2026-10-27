@@ -57,6 +57,48 @@ function setCorsHeaders(req, res) {
   res.setHeader('Vary', 'Origin');
 }
 
+// Limite de tentativas por email+IP, em memoria: vale por instancia da Vercel,
+// igual ao rate limit do secure-proxy. Nao e global.
+const LOGIN_FALHAS = new Map();
+const LOGIN_MAX_FALHAS = 5;
+const LOGIN_JANELA_MS = 15 * 60 * 1000;
+const LOGIN_BLOQUEIO_MS = 15 * 60 * 1000;
+
+function loginChave(email, ip) {
+  return String(email || '').toLowerCase() + '|' + ip;
+}
+
+function loginBloqueado(chave, now = Date.now()) {
+  const e = LOGIN_FALHAS.get(chave);
+  if (!e || !e.bloqueadoAte) return false;
+  if (now < e.bloqueadoAte) return true;
+  LOGIN_FALHAS.delete(chave);
+  return false;
+}
+
+function loginRegistrarFalha(chave, now = Date.now()) {
+  let e = LOGIN_FALHAS.get(chave);
+  if (!e || now - e.inicio > LOGIN_JANELA_MS) e = { inicio: now, falhas: 0, bloqueadoAte: 0 };
+  e.falhas += 1;
+  if (e.falhas >= LOGIN_MAX_FALHAS) e.bloqueadoAte = now + LOGIN_BLOQUEIO_MS;
+  LOGIN_FALHAS.set(chave, e);
+  if (LOGIN_FALHAS.size > 5000) {
+    for (const [k, v] of LOGIN_FALHAS.entries()) {
+      if (now - v.inicio > LOGIN_JANELA_MS && (!v.bloqueadoAte || now >= v.bloqueadoAte)) LOGIN_FALHAS.delete(k);
+    }
+  }
+}
+
+function loginLimpar(chave) {
+  LOGIN_FALHAS.delete(chave);
+}
+
+function ipCliente(req) {
+  const xff = req.headers && req.headers['x-forwarded-for'];
+  const primeiro = xff ? String(xff).split(',')[0].trim() : '';
+  return primeiro || (req.socket && req.socket.remoteAddress) || 'desconhecido';
+}
+
 export default async function handler(req, res) {
   setCorsHeaders(req, res);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -80,6 +122,11 @@ export default async function handler(req, res) {
     return res.status(500).json({ erro: 'Variaveis do Supabase nao configuradas na Vercel.' });
   }
 
+  const chaveLogin = loginChave(email, ipCliente(req));
+  if (loginBloqueado(chaveLogin)) {
+    return res.status(429).json({ erro: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.' });
+  }
+
   try {
     const authResp = await fetch(`${supaUrl}/auth/v1/token?grant_type=password`, {
       method: 'POST',
@@ -93,8 +140,10 @@ export default async function handler(req, res) {
     const authData = await authResp.json();
     if (!authResp.ok || !authData.access_token) {
       // Não expor error_description do Supabase — pode conter PII ou detalhes internos
+      loginRegistrarFalha(chaveLogin);
       return res.status(401).json({ erro: 'Email ou senha incorretos.' });
     }
+    loginLimpar(chaveLogin);
 
     const emailNormalizado = String(email).toLowerCase();
     const userResp = await fetch(
