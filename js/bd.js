@@ -804,7 +804,7 @@ function bdUpdateCadastroInsights() {
       .sort((a,b) => b[1] - a[1])
       .slice(0, max)
       .map(function(entry, idx) {
-        return `<tr><td>${idx + 1}</td><td>${(entry[0]||'').toUpperCase()}</td><td class="num">${fmtMetricaFull(entry[1])}</td></tr>`;
+        return `<tr><td>${idx + 1}</td><td>${relEsc((entry[0]||'').toUpperCase())}</td><td class="num">${fmtMetricaFull(entry[1])}</td></tr>`;
       }).join('');
   }
 
@@ -924,7 +924,7 @@ function bdUpdateVendaProduto() {
     const pct    = totalGeral > 0 ? ((d.total/totalGeral)*100).toFixed(1) : '0.0';
     const nomeProduto = (d.label || p || '').toUpperCase();
     html += `<tr>
-      <td><span class="rel-prod-name">${nomeProduto}</span></td><td>${(d.grupo || 'Sem grupo').toUpperCase()}</td><td>${d.marca || '—'}</td>
+      <td><span class="rel-prod-name">${relEsc(nomeProduto)}</span></td><td>${relEsc((d.grupo || 'Sem grupo').toUpperCase())}</td><td>${relEsc(d.marca || '—')}</td>
       ${d.meses.map(v=>`<td>${fmtMetrica(v)}</td>`).join('')}
       <td>${fmtMetrica(media)}</td>
       <td><strong>${fmtMetricaFull(d.total)}</strong></td>
@@ -1003,21 +1003,21 @@ function bdUpdateLaudoGrupo() {
           <label>TIPO</label>
           <select onchange="lgSetFiltro('tipo',this.value)">
             <option value="">Todos</option>
-            ${tipos.map(t=>`<option value="${t}" ${window.LG.tipo===t?'selected':''}>${t}</option>`).join('')}
+            ${tipos.map(t=>`<option value="${relEsc(t)}" ${window.LG.tipo===t?'selected':''}>${relEsc(t)}</option>`).join('')}
           </select>
         </div>
         <div class="laudo-filtro-item">
           <label>SUBGRUPO</label>
           <select onchange="lgSetFiltro('subgrupo',this.value)">
             <option value="">Todos</option>
-            ${subgrupos.map(s=>`<option value="${s}" ${window.LG.subgrupo===s?'selected':''}>${s}</option>`).join('')}
+            ${subgrupos.map(s=>`<option value="${relEsc(s)}" ${window.LG.subgrupo===s?'selected':''}>${relEsc(s)}</option>`).join('')}
           </select>
         </div>
         <div class="laudo-filtro-item">
           <label>GRUPO</label>
           <select onchange="lgSetFiltro('grupo',this.value)">
             <option value="">Todos os Grupos</option>
-            ${grupos.map(s=>`<option value="${s}" ${window.LG.grupo===s?'selected':''}>${s}</option>`).join('')}
+            ${grupos.map(s=>`<option value="${relEsc(s)}" ${window.LG.grupo===s?'selected':''}>${relEsc(s)}</option>`).join('')}
           </select>
         </div>
         <button class="jss-btn" style="align-self:flex-end;height:34px" onclick="window.LG.tipo='';window.LG.grupo='';window.LG.subgrupo='';bdUpdateLaudoGrupo()">
@@ -1031,7 +1031,7 @@ function bdUpdateLaudoGrupo() {
     <div class="laudo-doc" style="gap:14px;padding:16px">
       <div class="laudo-doc-head" style="padding-bottom:10px">
         <div>
-          <div class="laudo-titulo-rel" style="font-size:18px">LAUDO — ${titulo}</div>
+          <div class="laudo-titulo-rel" style="font-size:18px">LAUDO — ${relEsc(titulo)}</div>
           <div class="laudo-sub">${new Date().toLocaleDateString('pt-BR')} · ${rows.length.toLocaleString('pt-BR')} registros · ${RELATORIO_MODO.toUpperCase()}</div>
         </div>
       </div>
@@ -1213,7 +1213,7 @@ function bdUpdateLaudoMarca() {
     const tot = meses.reduce((s,v)=>s+v,0);
     const pct = totalGeral>0?((tot/totalGeral)*100).toFixed(1):'0.0';
     html += `<tr>
-      <td>${(m||'').toUpperCase()}</td>
+      <td>${relEsc((m||'').toUpperCase())}</td>
       ${meses.map(v=>`<td>${fmtMetrica(v)}</td>`).join('')}
       <td><strong>${fmtMetricaFull(tot)}</strong></td>
       <td>${pct}%</td>
@@ -1282,7 +1282,7 @@ function bdUpdateLaudoGruposAno() {
     const totGr = anos.reduce((s,a) => s + pivot[gr][a].reduce((s2,v)=>s2+v,0), 0);
     if (totGr === 0) return;
     html += `<tr>
-      <td style="font-weight:600;color:#0A2F2F;min-width:140px">${(gr||'').toUpperCase()}</td>
+      <td style="font-weight:600;color:#0A2F2F;min-width:140px">${relEsc((gr||'').toUpperCase())}</td>
       ${anos.map(a => {
         const meses = pivot[gr][a];
         const tot   = meses.reduce((s,v)=>s+v,0);
@@ -1361,7 +1361,7 @@ function bdUpdateLaudoGruposAno02() {
     const cor = dif>=0?'#059669':'#DC2626';
     const arrow = dif>=0?'▲':'▼';
     html += `<tr>
-      <td>${(gr||'').toUpperCase()}</td>
+      <td>${relEsc((gr||'').toUpperCase())}</td>
       <td>${fmtMetrica(v1)}</td>
       <td>${fmtMetrica(v2)}</td>
       <td style="color:${cor}">${fmtMetrica(Math.abs(dif))}</td>
