@@ -2014,8 +2014,8 @@ async function dcCarregarUltimaSync(eid) {
 function dcLimparPainelVazio(titulo, detalhe) {
   var kEl = document.getElementById('dc-kpis');
   var html = '<div class="dc-empty-panel">'
-    + '<strong>' + (titulo || 'Nenhum dado encontrado') + '</strong>'
-    + '<span>' + (detalhe || 'Selecione outro periodo ou sincronize a API no painel admin.') + '</span>'
+    + '<strong>' + escapeHtml(titulo || 'Nenhum dado encontrado') + '</strong>'
+    + '<span>' + escapeHtml(detalhe || 'Selecione outro periodo ou sincronize a API no painel admin.') + '</span>'
     + '</div>';
   if (kEl) kEl.innerHTML = html;
   ['dc-chart-evolucao','dc-chart-trimestre','dc-chart-ano','dc-chart-diasem','dc-chart-produtos','dc-chart-prodqtd','dc-chart-grupos'].forEach(function(id) {
@@ -2953,12 +2953,12 @@ function dcAtualizarLegendaEvolucao(chart) {
 
   legend.innerHTML = chart.data.datasets.map(function(ds, i) {
     var ativo = chart.isDatasetVisible ? chart.isDatasetVisible(i) : !chart.getDatasetMeta(i).hidden;
-    var cor = String(ds.borderColor || '#1C64C0');
+    var cor = escapeHtml(String(ds.borderColor || '#1C64C0'));
     return '<button type="button" class="dc-chart-year-toggle' + (ativo ? '' : ' is-off') + '"'
       + ' data-index="' + i + '" style="--dc-year-color:' + cor + '">'
       + '<span class="dc-year-check"></span>'
       + '<span class="dc-year-line"></span>'
-      + '<strong>' + String(ds.label || '') + '</strong>'
+      + '<strong>' + escapeHtml(String(ds.label || '')) + '</strong>'
       + '</button>';
   }).join('');
 
@@ -5570,7 +5570,7 @@ function _syncLog(msg, type) {
     line.innerHTML =
       '<span class="adm-log-time">' + ts + '</span>' +
       '<span class="adm-log-icon">' + (icons[t] || '•') + '</span>' +
-      '<span class="adm-log-msg">' + String(msg).replace(/</g,'&lt;') + '</span>';
+      '<span class="adm-log-msg">' + escapeHtml(String(msg)) + '</span>';
     body.appendChild(line);
     body.scrollTop = body.scrollHeight;
   }
