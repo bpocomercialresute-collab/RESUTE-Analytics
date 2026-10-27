@@ -1658,16 +1658,29 @@ async function dcTentarSnapshotCliente(eid, origem) {
 var _DC_IDB_NAME = 'resute_dc';
 var _DC_IDB_STORE = 'cache';
 
+// Toda falha aqui era engolida em silencio (resolve null/undefined sem log
+// nenhum) — se o IndexedDB estiver bloqueado (config do navegador, extensao,
+// cota, contexto restrito), o cache nunca funciona e nao sobra nenhum sinal
+// disso em lugar nenhum. Loga uma vez por tipo de falha pra isso aparecer.
+var _DC_IDB_AVISOS = {};
+function _dcIdbAvisar(tipo, e) {
+  if (_DC_IDB_AVISOS[tipo]) return;
+  _DC_IDB_AVISOS[tipo] = true;
+  console.warn('[dashboard cache] IndexedDB falhou (' + tipo + '):', e);
+}
+
 function _dcIdbOpen() {
   return new Promise(function(resolve) {
+    if (typeof indexedDB === 'undefined') { _dcIdbAvisar('indisponivel'); resolve(null); return; }
     try {
       var req = indexedDB.open(_DC_IDB_NAME, 1);
       req.onupgradeneeded = function(e) {
         try { e.target.result.createObjectStore(_DC_IDB_STORE); } catch (_e) {}
       };
       req.onsuccess = function(e) { resolve(e.target.result); };
-      req.onerror = function() { resolve(null); };
-    } catch (e) { resolve(null); }
+      req.onerror = function(e) { _dcIdbAvisar('open', e && e.target && e.target.error); resolve(null); };
+      req.onblocked = function() { _dcIdbAvisar('open-bloqueado'); };
+    } catch (e) { _dcIdbAvisar('open-excecao', e); resolve(null); }
   });
 }
 
@@ -1679,8 +1692,8 @@ async function _dcIdbGet(key) {
       var tx = db.transaction(_DC_IDB_STORE, 'readonly');
       var req = tx.objectStore(_DC_IDB_STORE).get(key);
       req.onsuccess = function() { resolve(req.result || null); };
-      req.onerror = function() { resolve(null); };
-    } catch (e) { resolve(null); }
+      req.onerror = function(e) { _dcIdbAvisar('get', e && e.target && e.target.error); resolve(null); };
+    } catch (e) { _dcIdbAvisar('get-excecao', e); resolve(null); }
   });
 }
 
@@ -1692,8 +1705,8 @@ async function _dcIdbSet(key, value) {
       var tx = db.transaction(_DC_IDB_STORE, 'readwrite');
       tx.objectStore(_DC_IDB_STORE).put(value, key);
       tx.oncomplete = function() { resolve(); };
-      tx.onerror = function() { resolve(); };
-    } catch (e) { resolve(); }
+      tx.onerror = function(e) { _dcIdbAvisar('set', e && e.target && e.target.error); resolve(); };
+    } catch (e) { _dcIdbAvisar('set-excecao', e); resolve(); }
   });
 }
 
