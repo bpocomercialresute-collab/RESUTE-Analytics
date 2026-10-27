@@ -23,7 +23,6 @@ var ADMIN_CONSOLE = {
   loadErrors: []
 };
 
-var ADMIN_SESSION_REDIRECTING = false;
 
 var ADMIN_SECTION_META = {
   overview: {
@@ -185,13 +184,7 @@ async function adminConsoleFetchAll(path, pageSize, maxPages) {
 }
 
 function adminConsoleHandleExpiredSession() {
-  if (ADMIN_SESSION_REDIRECTING) return;
-  ADMIN_SESSION_REDIRECTING = true;
-  window.setTimeout(function() {
-    if (typeof fazerLogout === 'function') fazerLogout();
-    var error = document.getElementById('login-erro');
-    if (error) error.textContent = 'Sua sessao expirou. Entre novamente para continuar.';
-  }, 0);
+  _tratarSessaoExpirada();
 }
 
 async function adminConsoleAction(action, payload) {
@@ -283,7 +276,6 @@ async function adminConsoleInicializar(force) {
   }
 
   ADMIN_CONSOLE.loading = true;
-  ADMIN_SESSION_REDIRECTING = false;
   ADMIN_CONSOLE.loadErrors = [];
   // Never render a refresh with records from a previous session/company.
   // The current DOM remains visible while the requests are running; these

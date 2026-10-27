@@ -100,6 +100,22 @@ async function _fetchApiDirect(apiUrl, path, token, extraHeaders) {
   });
 }
 
+function _erroEhSessaoExpirada(status, body) {
+  return status === 401 && !!body && /sess[aã]o inv[aá]lida/i.test(String(body.erro || ''));
+}
+
+var _SESSAO_EXPIRADA_TRATANDO = false;
+
+function _tratarSessaoExpirada() {
+  if (_SESSAO_EXPIRADA_TRATANDO) return;
+  _SESSAO_EXPIRADA_TRATANDO = true;
+  window.setTimeout(function() {
+    if (typeof fazerLogout === 'function') fazerLogout();
+    var error = document.getElementById('login-erro');
+    if (error) error.textContent = 'Sua sessão expirou. Entre novamente.';
+  }, 0);
+}
+
 window.fetch = function(input, init) {
   var url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
   var opts = init || {};
@@ -134,7 +150,13 @@ window.fetch = function(input, init) {
       })
     };
     if (opts.signal) proxyOpts.signal = opts.signal;
-    return NATIVE_FETCH('/api/secure-proxy', proxyOpts);
+    return NATIVE_FETCH('/api/secure-proxy', proxyOpts).then(function(resp) {
+      if (resp.status !== 401 || !SESSION) return resp;
+      return resp.clone().json().then(function(body) {
+        if (_erroEhSessaoExpirada(resp.status, body)) _tratarSessaoExpirada();
+        return resp;
+      }, function() { return resp; });
+    });
   }
 
   return NATIVE_FETCH(input, init);
@@ -902,6 +924,7 @@ function fazerLogout() {
 }
 
 function _abrirApp() {
+  _SESSAO_EXPIRADA_TRATANDO = false;
   _touchSession();
   if (typeof _atualizarCardFinanceiroFerramentas === 'function') _atualizarCardFinanceiroFerramentas();
   if (typeof dreFechar === 'function') dreFechar();
