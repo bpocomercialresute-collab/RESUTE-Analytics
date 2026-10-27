@@ -3910,7 +3910,6 @@ async function adminInicializar() {
   }
 
   _adminRenderAbas(lista);
-  _adminRenderSyncEmpresaSelect();
   var autoId = (SESSION && SESSION.empresa_id && lista.find(function(e) { return e.empresa_id === SESSION.empresa_id; }))
     ? SESSION.empresa_id
     : (lista[0] && lista[0].empresa_id);
@@ -4088,8 +4087,7 @@ async function adminSelecionarEmpresa(id) {
   // carregamentos abaixo (se um deles travar, o resumo nao fica preso em "...").
   if (SESSION && SESSION.papel === 'admin') adminOwnerAtualizarResumo();
 
-  // Atualiza select de empresa no painel de sync e carrega config de auto-sync
-  _adminSyncAtualizarSelect(id);
+  // Carrega config de auto-sync da empresa selecionada
   _adminAutoSyncCarregarConfig(id);
 
   // _adminCarregarOrigemEmpresa/_adminAtualizarContagens/_adminPreencherPeriodoSync
@@ -4179,39 +4177,6 @@ function _adminAutoSyncCarregarConfig(empresaId) {
       if (statusEl) statusEl.style.display = 'none';
     }
   } catch(e) {}
-}
-
-function _adminRenderSyncEmpresaSelect() {
-  var sel = document.getElementById('adm-sync-empresa-select');
-  var wrap = document.getElementById('adm-sync-empresa-wrap');
-  if (!sel || !wrap) return;
-
-  // Admin console context: usa ADMIN_CONSOLE.companies (todas as empresas)
-  if (typeof ADMIN_CONSOLE !== 'undefined' && ADMIN_CONSOLE.companies && ADMIN_CONSOLE.companies.length) {
-    var all = ADMIN_CONSOLE.companies.filter(function(c) { return c.ativo !== false; });
-    wrap.style.display = '';
-    sel.innerHTML = all.map(function(c) {
-      var id = c.id || c.empresa_id;
-      var hasApi = String(c.exibir_origem || '').toLowerCase() === 'api';
-      return '<option value="' + id + '">' + (c.nome || id) + (hasApi ? '' : ' ·') + '</option>';
-    }).join('');
-    if (EMPRESA_ATIVA && EMPRESA_ATIVA.empresa_id) sel.value = EMPRESA_ATIVA.empresa_id;
-    return;
-  }
-
-  // Contexto view-app: usa EMPRESAS_ADMIN (só APIs)
-  var apis = (EMPRESAS_ADMIN || []).filter(function(e) { return e.tem_api; });
-  if (apis.length <= 1) { wrap.style.display = 'none'; return; }
-  wrap.style.display = '';
-  sel.innerHTML = apis.map(function(e) {
-    return '<option value="' + e.empresa_id + '">' + (e.nome || e.empresa_id) + '</option>';
-  }).join('');
-  if (EMPRESA_ATIVA) sel.value = EMPRESA_ATIVA.empresa_id;
-}
-
-function _adminSyncAtualizarSelect(empresaId) {
-  var sel = document.getElementById('adm-sync-empresa-select');
-  if (sel && empresaId) sel.value = empresaId;
 }
 
 function admSyncAba(aba) {
