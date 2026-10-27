@@ -1290,8 +1290,8 @@ function _abrirDashCliente(empresaIdPreview) {
     // Renderiza botões de loja
     if (sel) {
       sel.innerHTML = ids.map(function(id) {
-        return '<button class="dc-loja-btn" data-id="' + id + '">'
-             + (LOJA_NOMES[id] || id.slice(0, 8))
+        return '<button class="dc-loja-btn" data-id="' + escapeHtml(id) + '">'
+             + escapeHtml(LOJA_NOMES[id] || id.slice(0, 8))
              + '</button>';
       }).join('');
       sel.style.display = 'flex';
@@ -4066,7 +4066,7 @@ function _adminRenderAbas(lista) {
     var mods = (e.modulos || []).map(function(slug) {
       return '<span class="emp-tag tag-mod-' + slug + '">' + (slug === 'financeiro' ? 'FIN' : 'COM') + '</span>';
     }).join('');
-    return '<button class="admin-emp-tab ui-tab" data-id="' + e.empresa_id + '">' + e.nome + tag + mods + '</button>';
+    return '<button class="admin-emp-tab ui-tab" data-id="' + escapeHtml(e.empresa_id) + '">' + escapeHtml(e.nome) + tag + mods + '</button>';
   }).join('');
   c.querySelectorAll('.admin-emp-tab').forEach(function(btn) {
     btn.addEventListener('click', function() { adminSelecionarEmpresa(this.dataset.id); });
@@ -4946,9 +4946,9 @@ function _montarSeletorLojas() {
   var sel = document.getElementById('dc-loja-selector');
   if (!sel) return;
   var itensHtml = ids.map(function(id) {
-    return '<button class="dc-loja-btn" data-id="' + id + '">' + (LOJA_NOMES[id] || id.slice(0, 8)) + '</button>';
+    return '<button class="dc-loja-btn" data-id="' + escapeHtml(id) + '">' + escapeHtml(LOJA_NOMES[id] || id.slice(0, 8)) + '</button>';
   }).join('');
-  _dcMontarDropdownLojas(sel, itensHtml, LOJA_NOMES[ids[0]] || ids[0].slice(0, 8));
+  _dcMontarDropdownLojas(sel, itensHtml, escapeHtml(LOJA_NOMES[ids[0]] || ids[0].slice(0, 8)));
   // Seleciona a primeira por padrão
   dcSelecionarLoja(ids[0]);
 }

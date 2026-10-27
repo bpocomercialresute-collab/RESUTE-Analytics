@@ -836,7 +836,7 @@ function lgShowFilter(key,colIdx,anchor){
   drop.innerHTML=
     '<div class="cfd-header"><span>'+label+'</span><button class="cfd-clear" onclick="lgClearFilter(\''+key+'\','+colIdx+')">✕ Limpar</button></div>'
     +'<div class="cfd-sort-row"><button class="cfd-sort-btn" onclick="lgSortFromDrop(\''+key+'\','+colIdx+',true)">▲ Menor → Maior</button><button class="cfd-sort-btn" onclick="lgSortFromDrop(\''+key+'\','+colIdx+',false)">▼ Maior → Menor</button></div>'
-    +'<div class="cfd-search-row"><input class="cfd-search-input" id="'+srchId+'" placeholder="Pesquisar…" value="'+searchVal.replace(/"/g,'&quot;')+'" autocomplete="off"><button class="cfd-apply cfd-srch-btn" onclick="lgApplySearch(\''+key+'\','+colIdx+',this)">Filtrar</button></div>'
+    +'<div class="cfd-search-row"><input class="cfd-search-input" id="'+srchId+'" placeholder="Pesquisar…" value="'+lgEsc(searchVal)+'" autocomplete="off"><button class="cfd-apply cfd-srch-btn" onclick="lgApplySearch(\''+key+'\','+colIdx+',this)">Filtrar</button></div>'
     +'<div class="cfd-list" id="'+listId+'"><label class="cfd-item cfd-item-all"><input type="checkbox" id="'+allId+'" '+(allChecked?'checked':'')+' onchange="lgToggleAll(\''+key+'\','+colIdx+',this)"><span>(Selecionar tudo)</span></label>'+items+'</div>'
     +'<div class="cfd-footer"><button class="cfd-apply" onclick="lgApplyFilter(\''+key+'\','+colIdx+',this)">Aplicar</button></div>';
   // Mantém o dropdown dentro do contexto visual do DRE para que o tema claro
