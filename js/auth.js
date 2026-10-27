@@ -3463,6 +3463,11 @@ function _dcTabelaTicketCliente() {
   el.innerHTML = h + '</tbody></table>';
 }
 
+// Largura da barra de ranking em %. Zero ou negativo nao gera barra (evita NaN%).
+function dcLarguraBarra(valor, max) {
+  return max > 0 ? Math.max(0, valor) / max * 100 : 0;
+}
+
 function _dcTabela(id, campo, rows, fatTotal, label) {
   // So faz sentido contar clientes/ticket medio POR representante — pra
   // Cliente/Estado/Cidade essas colunas nao agregam nada (1 cliente = 1
@@ -3487,7 +3492,8 @@ function _dcTabela(id, campo, rows, fatTotal, label) {
     });
   dcOrdenarItensRelatorio(lista, id);
   lista = lista.slice(0, 12);
-  var max = lista.length ? lista[0].fat : 1;
+  // Referencia da barra = maior valor da lista, nao o primeiro (a lista pode estar ordenada por nome).
+  var max = lista.reduce(function(m, e) { return e.fat > m ? e.fat : m; }, 0);
   var listaTotal = lista.reduce(function(s, e) { return s + e.fat; }, 0) || 1;
   var html = '<table class="dc-tabela"><thead><tr>'
     + '<th class="dc-th-sort" onclick="dcSortCol(this)">#<span class="dc-sort-icon"></span></th>'
@@ -3500,7 +3506,7 @@ function _dcTabela(id, campo, rows, fatTotal, label) {
     + '</tr></thead><tbody>';
   lista.forEach(function(item, idx) {
     var pct = item.fat / listaTotal * 100;
-    var bar = item.fat / max * 100;
+    var bar = dcLarguraBarra(item.fat, max);
     html += '<tr><td class="pos">' + (idx + 1) + '</td><td>' + escapeHtml(item.nome) + '</td><td class="num">' + item.pedidos + '</td>'
       + (comClientes ? '<td class="num">' + item.clientes + '</td>' : '')
       + (comClientes ? '<td class="num">' + dcMoedaLimpa(item.ticket) + '</td>' : '')

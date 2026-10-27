@@ -127,3 +127,19 @@ test('variacao da premiacao: calcula subida e queda sobre o anterior', () => {
   assert.equal(Math.round(relrep.repPremiacaoVariacaoInfo(150, 100).valor), 50);
   assert.equal(Math.round(relrep.repPremiacaoVariacaoInfo(80, 100).valor), -20);
 });
+
+const barra = loadFromFile('js/auth.js', ['dcLarguraBarra']).dcLarguraBarra;
+
+test('barra de ranking: maximo zero nao gera NaN', () => {
+  assert.equal(barra(0, 0), 0);
+  assert.equal(barra(5, -10), 0);
+});
+
+test('barra de ranking: valor igual ao maximo ocupa 100%, menor fica proporcional', () => {
+  assert.equal(barra(500, 500), 100);
+  assert.equal(barra(250, 500), 50);
+});
+
+test('barra de ranking: valor negativo nao gera barra negativa', () => {
+  assert.equal(barra(-30, 100), 0);
+});
