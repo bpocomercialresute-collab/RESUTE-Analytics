@@ -1,3 +1,16 @@
+// Logo da empresa e salva como data URL (ver adminConsoleLogoParaDataUrl): so
+// aceita PNG/JPEG/WEBP em base64, com teto de tamanho, pra nao virar um
+// campo de texto livre no banco.
+const LOGO_DATA_URL_RE = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
+const LOGO_MAX_CHARS = 400 * 1024;
+
+function validarLogoUrl(valor) {
+  if (valor === null || valor === undefined) return true;
+  if (typeof valor !== 'string') return false;
+  if (valor.length > LOGO_MAX_CHARS) return false;
+  return LOGO_DATA_URL_RE.test(valor);
+}
+
 function _getAllowedOrigins() {
   return process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
@@ -421,6 +434,15 @@ function assertAuthorized(appUser, targetUrl, method, body) {
   }
 
   if (targetUrl.pathname === '/rest/v1/empresas') {
+    if (isWrite) {
+      let bodyLogo = null;
+      try { bodyLogo = body ? JSON.parse(body) : null; } catch (e) { bodyLogo = null; }
+      if (bodyLogo && typeof bodyLogo === 'object' && !Array.isArray(bodyLogo)
+          && Object.prototype.hasOwnProperty.call(bodyLogo, 'logo_url')
+          && !validarLogoUrl(bodyLogo.logo_url)) {
+        throw new Error('Logo invalida: envie PNG, JPG ou WEBP de ate 400 KB.');
+      }
+    }
     // Clientes/admin podem ler dados da propria empresa; admin da empresa pode
     // trocar SO o campo exibir_origem (nao pode renomear empresa, mudar slug,
     // ativar/desativar - isso continua so super_admin).
