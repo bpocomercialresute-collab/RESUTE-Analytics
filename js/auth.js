@@ -1347,14 +1347,17 @@ async function dcSincronizarOuAtualizar() {
         EMPRESA_ATIVA = empresa;
         await adminSincronizar();
         DC_ACTIVE_COMPANY = '';
+        await _dcIdbDelete('resute_dc_cache_' + empresa.empresa_id);
         await dcCarregarDados(empresa.empresa_id);
       } else {
         DC_ACTIVE_COMPANY = '';
+        await _dcIdbDelete('resute_dc_cache_' + empresa.empresa_id);
         await dcCarregarDados(empresa.empresa_id);
       }
     } else {
       var eid = SESSION && SESSION.empresa_id;
-      if (eid) { DC_ACTIVE_COMPANY = ''; await dcCarregarDados(eid); }
+      // "Atualizar" e o jeito do usuario forcar dados novos: ignora o cache local.
+      if (eid) { DC_ACTIVE_COMPANY = ''; await _dcIdbDelete('resute_dc_cache_' + eid); await dcCarregarDados(eid); }
     }
   } catch(e) {
     dcStatus('✗ ' + mensagemErroUsuario(e, 'Não foi possível atualizar os dados'));
@@ -1767,6 +1770,119 @@ async function dcSalvarSnapshotCliente(eid, origem, vendas, periodoInicio, perio
   });
 }
 
+// ── Cache local das vendas baixadas do banco ─────────────────────────────────
+// Empresa com mais de ~10k vendas nunca consegue gravar snapshot (o corpo passa
+// do limite de 4,5 MB do proxy), e o IndexedDB so era gravado a partir do
+// snapshot. Resultado medido: PLASTRIO tem 62.729 vendas, VM Treino 26.237,
+// VILLATO 14.620; toda abertura baixava o historico bruto inteiro (~30 MB em ~63
+// chamadas ao proxy). Agora a carga do banco tambem fica no IndexedDB.
+//
+// Guarda as linhas BRUTAS (as mesmas que a primeira abertura renderiza): o
+// formato enxuto do snapshot perde colunas que o dashboard usa como alternativa
+// (grupo_pai, subgrupo, classes), entao a tela poderia mudar entre a primeira
+// abertura e as seguintes.
+//
+// Frescor: a abertura mostra o cache na hora e confere uma assinatura barata no
+// banco (total de linhas + criado_em mais recente, uma requisicao de 1 linha).
+// Se mudou, baixa de novo em segundo plano e troca. A coluna id e uuid, entao
+// nao serve de assinatura; criado_em muda a cada insercao do sync e do
+// salvamento manual. Limite conhecido: edicao no lugar de uma linha existente
+// nao muda a assinatura; por isso o cache vence em 12 h e o botao Atualizar
+// ignora o cache.
+var DC_CACHE_BANCO_ATIVO = true;
+var DC_CACHE_BANCO_TTL_MS = 12 * 60 * 60 * 1000;
+var DC_CACHE_BANCO_ESPERA_MS = 1500;
+
+function _dcUrlVendas(eid, origem) {
+  return SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + encodeURIComponent(eid) +
+    '&origem=eq.' + encodeURIComponent(origem) + '&select=*&order=dt_saida.asc,id.asc';
+}
+
+// Assinatura a partir das proprias linhas baixadas (nunca de uma consulta
+// feita depois: um sync entre a carga e a consulta ficaria registrado como
+// visto sem ter sido baixado). null = sem criado_em, nao da pra cachear.
+function _dcAssinaturaLocal(vendas) {
+  if (!Array.isArray(vendas) || !vendas.length) return null;
+  var maxTs = -Infinity;
+  var maxTxt = null;
+  for (var i = 0; i < vendas.length; i++) {
+    var txt = vendas[i] && vendas[i].criado_em;
+    if (!txt) continue;
+    var ts = Date.parse(txt);
+    if (isNaN(ts)) continue;
+    if (ts > maxTs) { maxTs = ts; maxTxt = txt; }
+  }
+  return maxTxt ? vendas.length + '|' + maxTxt : null;
+}
+
+// Mesma assinatura, vinda do banco: 1 linha (a mais recente) + total pelo
+// cabecalho Content-Range. null = nao deu pra conferir.
+async function _dcAssinaturaBanco(eid, origem, signal) {
+  try {
+    var opts = {
+      headers: {
+        'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY,
+        'Prefer': 'count=exact', 'Range': '0-0', 'Range-Unit': 'items'
+      }
+    };
+    if (signal) opts.signal = signal;
+    var r = await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + encodeURIComponent(eid) +
+      '&origem=eq.' + encodeURIComponent(origem) + '&select=criado_em&order=criado_em.desc.nullslast', opts);
+    if (!r.ok && r.status !== 206) return null;
+    var faixa = r.headers && r.headers.get ? (r.headers.get('content-range') || '') : '';
+    var total = parseInt(faixa.split('/')[1], 10);
+    if (!isFinite(total)) return null;
+    var linhas = await r.json();
+    var criado = Array.isArray(linhas) && linhas[0] ? linhas[0].criado_em : null;
+    return criado ? total + '|' + criado : null;
+  } catch (e) {
+    if (e && e.name === 'AbortError') throw e;
+    return null;
+  }
+}
+
+function _dcCacheBancoVencido(entrada) {
+  if (!entrada || entrada.fonte !== 'banco') return false;
+  if (!DC_CACHE_BANCO_ATIVO) return true;
+  return !(typeof entrada.salvo_em === 'number') || (Date.now() - entrada.salvo_em) > DC_CACHE_BANCO_TTL_MS;
+}
+
+// O clone estruturado de dezenas de milhares de linhas custa centenas de ms na
+// thread principal; adia para depois da primeira pintura.
+function _dcGuardarCacheBanco(lsKey, origem, vendas) {
+  if (!DC_CACHE_BANCO_ATIVO) return;
+  var assinatura = _dcAssinaturaLocal(vendas);
+  if (!assinatura) return;
+  setTimeout(function() {
+    _dcIdbSet(lsKey, {
+      fonte: 'banco', origem: origem, assinatura: assinatura,
+      gerado_em: new Date().toISOString(), salvo_em: Date.now(), vendas: vendas
+    });
+  }, DC_CACHE_BANCO_ESPERA_MS);
+}
+
+async function _dcRevalidarCacheBanco(eid, lsKey, entrada, loadSequence, signal) {
+  try {
+    var atual = await _dcAssinaturaBanco(eid, entrada.origem, signal);
+    if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
+    if (!atual || atual === entrada.assinatura) return;
+    dcStatus('⏳ Há dados novos — atualizando...');
+    var vendas = await _fetchAll(_dcUrlVendas(eid, entrada.origem), { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }, signal);
+    if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
+    if (!Array.isArray(vendas) || !vendas.length) return;
+    _dcGuardarCacheBanco(lsKey, entrada.origem, vendas);
+    DC_RAW = [];
+    DC_DATA = [];
+    dcAplicarVendasCarregadas(vendas);
+    if ((DC_DATA || []).length) {
+      dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros atualizados', true);
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+    console.warn('[dashboard] conferencia do cache local falhou:', e);
+  }
+}
+
 async function _dcAtualizarCacheBackground(eid, lsKey, localGeradoEm, loadSequence) {
   try {
     var snap = window.ReportCache
@@ -1826,7 +1942,7 @@ async function dcCarregarDados(empresa_id_param) {
     // 1. IndexedDB — leitura local ~10ms, sem limite de tamanho
     var _idbData = await _dcIdbGet(_dcLsKey);
     _dcMedir('cache local lido (' + (_idbData && Array.isArray(_idbData.vendas) ? _idbData.vendas.length : 0) + ' linhas)');
-    if (_idbData && Array.isArray(_idbData.vendas) && _idbData.vendas.length) {
+    if (_idbData && Array.isArray(_idbData.vendas) && _idbData.vendas.length && !_dcCacheBancoVencido(_idbData)) {
       if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
       dcAplicarVendasCarregadas(_idbData.vendas);
       _dcMedir('render a partir do cache local');
@@ -1834,7 +1950,11 @@ async function dcCarregarDados(empresa_id_param) {
         dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
       }
       dcCarregarUltimaSync(eid).catch(function() {});
-      _dcAtualizarCacheBackground(eid, _dcLsKey, _idbData.gerado_em || '', loadSequence);
+      if (_idbData.fonte === 'banco') {
+        _dcRevalidarCacheBanco(eid, _dcLsKey, _idbData, loadSequence, currentSignal);
+      } else {
+        _dcAtualizarCacheBackground(eid, _dcLsKey, _idbData.gerado_em || '', loadSequence);
+      }
       return;
     }
 
@@ -1885,7 +2005,7 @@ async function dcCarregarDados(empresa_id_param) {
     dcStatus('⏳ Carregando dados...');
     var vendas = await dcComTimeout(
       _fetchAll(
-        SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + encodeURIComponent(eid) + '&origem=eq.' + encodeURIComponent(exibir) + '&select=*&order=dt_saida.asc,id.asc',
+        _dcUrlVendas(eid, exibir),
         { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY },
         currentSignal
       ),
@@ -1920,6 +2040,7 @@ async function dcCarregarDados(empresa_id_param) {
     dcDefinirPeriodoInicial(vendas);
 
     dcAplicarFiltro();
+    _dcGuardarCacheBanco(_dcLsKey, exibir, vendas);
     dcSalvarSnapshotCliente(eid, exibir, vendas).catch(function(e) {
       console.warn('[ReportCache] Snapshot do cliente nao foi salvo:', e);
     });
