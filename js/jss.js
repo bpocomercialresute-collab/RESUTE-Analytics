@@ -195,7 +195,12 @@ LiteGrid.prototype._build = function() {
     if (e.target === inp) return;
     e.preventDefault();
     var txt = e.clipboardData ? e.clipboardData.getData('text/plain') : '';
-    if (txt.trim()) self._paste(txt);
+    if (!txt.trim()) return;
+    var atuais = self.getData().length;
+    var novas = lgParseTSV(txt);
+    if (novas.length && lgLooksLikeHeader(novas[0].join('\t'))) novas = novas.slice(1);
+    if (atuais && !confirm(avisoSubstituicaoGrade(atuais, novas.length) + '\n\nContinuar?')) return;
+    self._paste(txt);
   });
 
   this.container.addEventListener('copy', function(e) {
@@ -1010,6 +1015,8 @@ function _jssImportarLinhas(key, linhas){
   if (r.cabecalho) descartes.push('cabeçalho');
   if (r.vazias) descartes.push(r.vazias.toLocaleString('pt-BR') + ' vazia(s)');
   if (descartes.length) msg += '\nDescartadas: ' + descartes.join(' e ') + '.';
+  var aviso = avisoSubstituicaoGrade(GRIDS[key] ? GRIDS[key].getData().length : 0, r.importar);
+  if (aviso) msg += '\n' + aviso;
   if (!confirm(msg + '\n\nContinuar?')) { _jssImportStatus(key, 'Importação cancelada.'); return; }
   var tsv = r.linhas.map(function(row){ return row.join('\t'); }).join('\n');
   GRIDS[key]._paste(tsv);

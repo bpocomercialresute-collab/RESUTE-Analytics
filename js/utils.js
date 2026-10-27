@@ -101,6 +101,12 @@ function resumoImportacao(linhasBrutas, ehCabecalho) {
   return { total: total, vazias: vazias, cabecalho: cabecalho, importar: linhas.length - cabecalho, linhas: linhas.slice(cabecalho) };
 }
 
+/** Aviso antes de colar que substitui a grade inteira. Vazio quando não há o que substituir. */
+function avisoSubstituicaoGrade(linhasAtuais, linhasNovas) {
+  if (!linhasAtuais) return '';
+  return 'Isso vai substituir as ' + linhasAtuais.toLocaleString('pt-BR') + ' linha(s) atuais por ' + linhasNovas.toLocaleString('pt-BR') + '.';
+}
+
 /** Mensagem curta pra tela. O detalhe técnico (erro do Supabase/proxy) vai pro console. */
 function mensagemErroUsuario(e, acao) {
   console.error('[' + acao + ']', e);
