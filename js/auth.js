@@ -1923,7 +1923,23 @@ async function dcCarregarDados(empresa_id_param) {
 }
 
 // ── FILTRO DE PERÍODO ─────────────────────────────────────────────────────────
+// Cada linha de venda passa por dcDataValor ~10x num unico render (filtro,
+// graficos e tabelas). Parsear (regex + new Date) toda vez custava ~0,5 s em 60k
+// linhas. O resultado fica guardado por linha e so vale enquanto data, ano e mes
+// da linha forem os mesmos. O Date devolvido e compartilhado: nenhum chamador o
+// altera (so le getFullYear/getMonth/getTime e compara).
+var _DC_DATA_CACHE = new WeakMap();
 function dcDataValor(v) {
+  if (!v || typeof v !== 'object') return _dcDataValorCalcular(v);
+  var raw = v.dt_saida || v.dt_emissao;
+  var hit = _DC_DATA_CACHE.get(v);
+  if (hit && hit.raw === raw && hit.ano === v.ano && hit.mes === v.mes) return hit.data;
+  var data = _dcDataValorCalcular(v);
+  _DC_DATA_CACHE.set(v, { raw: raw, ano: v.ano, mes: v.mes, data: data });
+  return data;
+}
+
+function _dcDataValorCalcular(v) {
   var raw = v && (v.dt_saida || v.dt_emissao);
   if (raw) {
     var texto = String(raw).trim();
@@ -2045,16 +2061,22 @@ function dcLimparPainelVazio(titulo, detalhe) {
 }
 
 function dcDefinirPeriodoInicial(rows) {
-  var datas = (rows || []).map(dcDataValor).filter(Boolean).sort(function(a, b) { return a - b; });
-  if (!datas.length) return;
   var hoje = new Date();
   var alvoAno = hoje.getFullYear();
   var alvoMes = hoje.getMonth() + 1;
-  var existeMesAtual = datas.some(function(d) {
-    return d.getFullYear() === alvoAno && d.getMonth() + 1 === alvoMes;
-  });
+  // Uma passada so (antes: map + filter + sort de todas as datas so para achar
+  // a maior e saber se existe venda no mes atual).
+  var existeMesAtual = false;
+  var ultima = null;
+  var lista = rows || [];
+  for (var i = 0; i < lista.length; i++) {
+    var d = dcDataValor(lista[i]);
+    if (!d) continue;
+    if (!ultima || d > ultima) ultima = d;
+    if (!existeMesAtual && d.getFullYear() === alvoAno && d.getMonth() + 1 === alvoMes) existeMesAtual = true;
+  }
+  if (!ultima) return;
   if (!existeMesAtual) {
-    var ultima = datas[datas.length - 1];
     alvoAno = ultima.getFullYear();
     alvoMes = ultima.getMonth() + 1;
   }
