@@ -105,6 +105,28 @@ const VISUAL_LOGIN_TOKEN_CACHE = new Map();
 const VISUAL_AUTH_CACHE = new Map();
 const CACHE_MAX_SIZE = 200;
 
+// Baldes por grupo (sync e admin), mais restritos que o limite geral.
+// Em memoria, por instancia da Vercel, igual ao limite geral.
+const RATE_GRUPO_MAP = new Map();
+const RATE_GRUPO_WINDOW_MS = 60 * 1000;
+
+function checkRateLimitGrupo(grupo, key, max, now = Date.now()) {
+  const k = grupo + '|' + key;
+  const entry = RATE_GRUPO_MAP.get(k) || { count: 0, windowStart: now };
+  if (now - entry.windowStart > RATE_GRUPO_WINDOW_MS) {
+    entry.count = 0;
+    entry.windowStart = now;
+  }
+  entry.count++;
+  RATE_GRUPO_MAP.set(k, entry);
+  if (RATE_GRUPO_MAP.size > 2000) {
+    for (const [kk, v] of RATE_GRUPO_MAP.entries()) {
+      if (now - v.windowStart > RATE_GRUPO_WINDOW_MS) RATE_GRUPO_MAP.delete(kk);
+    }
+  }
+  return entry.count <= max;
+}
+
 const RATE_LIMIT_MAP = new Map();
 const RATE_LIMIT_MAX = 120;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -1660,6 +1682,9 @@ export default async function handler(req, res) {
 
   const { action, payload, url, method, headers, body, empresa_id } = req.body || {};
   if (action) {
+    if (!checkRateLimitGrupo('admin', rateLimitKey, 60)) {
+      return res.status(429).json({ erro: 'Muitas acoes administrativas. Aguarde um minuto.' });
+    }
     try {
       return await handleAdminAction(req, res, String(action), payload, env);
     } catch (e) {
@@ -1668,6 +1693,12 @@ export default async function handler(req, res) {
     }
   }
   if (!url) return res.status(400).json({ erro: 'URL obrigatoria.' });
+
+  let pathSolicitado = null;
+  try { pathSolicitado = new URL(url).pathname; } catch (e) { pathSolicitado = null; }
+  if (pathSolicitado === '/functions/v1/sync-visual-saef' && !checkRateLimitGrupo('sync', rateLimitKey, 20)) {
+    return res.status(429).json({ erro: 'Muitas sincronizacoes seguidas. Aguarde um minuto.' });
+  }
 
   const incomingHeaders = normalizeHeaders(headers);
   const httpMethod = String(method || 'GET').toUpperCase();
