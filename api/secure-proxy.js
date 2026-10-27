@@ -4,11 +4,23 @@
 const LOGO_DATA_URL_RE = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
 const LOGO_MAX_CHARS = 400 * 1024;
 
+// Confere a assinatura real dos bytes (nao so o prefixo declarado).
+function logoAssinaturaOk(tipo, bytes) {
+  if (tipo === 'png') return bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47;
+  if (tipo === 'jpeg') return bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF;
+  if (tipo === 'webp') return bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+    && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+  return false;
+}
+
 function validarLogoUrl(valor) {
   if (valor === null || valor === undefined) return true;
   if (typeof valor !== 'string') return false;
   if (valor.length > LOGO_MAX_CHARS) return false;
-  return LOGO_DATA_URL_RE.test(valor);
+  const m = LOGO_DATA_URL_RE.exec(valor);
+  if (!m) return false;
+  const bytes = Buffer.from(valor.slice(valor.indexOf(',') + 1, valor.indexOf(',') + 17), 'base64');
+  return logoAssinaturaOk(m[1], bytes);
 }
 
 function _getAllowedOrigins() {
