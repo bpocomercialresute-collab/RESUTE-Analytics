@@ -1629,7 +1629,8 @@ export default async function handler(req, res) {
     try {
       return await handleAdminAction(req, res, String(action), payload, env);
     } catch (e) {
-      return res.status(400).json({ erro: e.message });
+      console.error('[admin-action]', String(action), e && e.message);
+      return res.status(400).json({ erro: 'Nao foi possivel concluir a acao. Confira os dados e tente novamente.' });
     }
   }
   if (!url) return res.status(400).json({ erro: 'URL obrigatoria.' });
