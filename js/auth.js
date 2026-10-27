@@ -4064,7 +4064,7 @@ function _adminRenderAbas(lista) {
   c.innerHTML = items.map(function(e) {
     var tag = e.tem_api ? '<span class="emp-tag tag-api">API</span>' : '<span class="emp-tag tag-manual">Manual</span>';
     var mods = (e.modulos || []).map(function(slug) {
-      return '<span class="emp-tag tag-mod-' + slug + '">' + (slug === 'financeiro' ? 'FIN' : 'COM') + '</span>';
+      return '<span class="emp-tag tag-mod-' + escapeHtml(slug) + '">' + (slug === 'financeiro' ? 'FIN' : 'COM') + '</span>';
     }).join('');
     return '<button class="admin-emp-tab ui-tab" data-id="' + escapeHtml(e.empresa_id) + '">' + escapeHtml(e.nome) + tag + mods + '</button>';
   }).join('');
@@ -4717,8 +4717,8 @@ function _adminRenderApiModules(summary) {
       +     '<span class="adm-module-badge ' + badgeClass + '">' + badge + '</span>'
       +   '</div>'
       +   '<div class="adm-module-count">' + count + '</div>'
-      +   '<div class="adm-module-meta">' + meta + '</div>'
-      +   '<div class="adm-module-endpoint">' + endpoint + '</div>'
+      +   '<div class="adm-module-meta">' + escapeHtml(meta) + '</div>'
+      +   '<div class="adm-module-endpoint">' + escapeHtml(endpoint) + '</div>'
       + '</div>';
   }).join('');
 }
