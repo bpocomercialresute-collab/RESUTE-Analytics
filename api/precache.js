@@ -77,7 +77,7 @@ export default async function handler(req, res) {
         return res.status(200).json({
           ok: false,
           total_registros: 0,
-          aviso: 'Execute o SQL em docs/supabase-gerar-cache-dashboard.sql no Supabase para habilitar o cache.'
+          aviso: 'A função gerar_cache_dashboard não existe no banco. Crie essa função no SQL do Supabase (ou peça à equipe técnica) e tente de novo.'
         });
       }
       return res.status(500).json({ erro: `Falha na RPC: HTTP ${rpcResp.status} — ${rpcText.slice(0, 200)}` });
