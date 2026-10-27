@@ -69,12 +69,6 @@ const fmtValor = v => {
 /** Formata número inteiro com separador de milhar */
 const fmtInt = v => new Intl.NumberFormat('pt-BR').format(v || 0);
 
-/** Exibe ou oculta o loader global */
-function showLoader(show, msg) {
-  $('loader').style.display = show ? 'flex' : 'none';
-  if (msg) $('loaderMsg').textContent = msg;
-}
-
 /** Normaliza string: maiúsculo, sem acento, trim */
 function normalizeKey(s) {
   return String(s || '').toUpperCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -86,9 +80,6 @@ function escapeHtml(s) {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
 }
-
-/** Alias para uso em atributos HTML */
-function escapeAttr(s) { return escapeHtml(s); }
 
 /** Conta o que vai ser colado na importação: cabeçalho e linhas vazias ficam de fora. */
 function resumoImportacao(linhasBrutas, ehCabecalho) {

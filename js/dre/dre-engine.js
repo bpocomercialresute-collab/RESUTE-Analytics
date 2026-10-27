@@ -706,14 +706,6 @@ const DRE = (() => {
     </div>`;
   }
 
-  function _dreOrfas() {
-    const orfas = (estado.lancamentos || []).filter(l => {
-      const planoIdx = new Map(estado.plano.map(c => [c.conta.trim().toLowerCase(), true]));
-      return !planoIdx.has((l.conta || '').trim().toLowerCase());
-    }).length;
-    return orfas;
-  }
-
   /* Grupos do Plano de Contas que a conta bate certinho (não é #N/A), mas cujo
      nome de GRUPO não existe em SE_POR_GRUPO/ESTRUTURA. Isso é bem mais
      perigoso que conta órfã: o valor entra no BD_DRE normalmente (aparece na
@@ -968,15 +960,6 @@ const DRE = (() => {
     const alvo = norm(valor);
     if (!alvo) return null;
     return Object.keys(SE_POR_GRUPO).find(g => g.toLowerCase() === alvo) || null;
-  }
-
-  function indexarPlanoPorNome() {
-    const idx = new Map();
-    for (const c of estado.plano) {
-      const k = norm(c.conta);
-      if (k && !idx.has(k)) idx.set(k, c);
-    }
-    return idx;
   }
 
   // Auditoria conservadora: IDs repetidos são duplicidade objetiva; linhas

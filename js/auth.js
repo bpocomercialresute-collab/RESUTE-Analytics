@@ -1016,69 +1016,6 @@ function _aplicarPermissoes() {
   }
 }
 
-// ── CARREGA EMPRESAS COM API ─────────────────────────────────────────────────
-async function _carregarEmpresasComAPI() {
-  _setStatus('⏳ Carregando empresas...', '');
-  try {
-    var eR = await fetch(SUPA_URL + '/rest/v1/empresas?select=*&ativo=eq.true', {
-      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
-    });
-    var empresas = await eR.json();
-
-    var aR = await fetch(SUPA_URL + '/rest/v1/api_config?select=empresa_id,sistema,api_url&ativo=eq.true', {
-      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SVC_KEY }
-    });
-    var apiConfigs = await aR.json();
-
-    EMPRESAS = (empresas || []).map(function(emp) {
-      var api = (apiConfigs || []).find(function(a){ return a.empresa_id === emp.id; });
-      var origem = String(emp.exibir_origem || 'manual').toLowerCase();
-      var temApi = !!api && origem === 'api';
-      if (!temApi) return null;
-      return Object.assign({}, emp, {
-        empresa_id: emp.id || emp.empresa_id,
-        nome: emp.nome,
-        slug: emp.slug,
-        sistema: api.sistema || 'api',
-        api_url: api.api_url || ''
-      });
-    }).filter(Boolean);
-
-    // Cliente: filtra só a empresa dele
-    var lista = EMPRESAS;
-    if (SESSION.papel !== 'super_admin' && SESSION.empresa_id) {
-      lista = EMPRESAS.filter(function(e){ return e.empresa_id === SESSION.empresa_id; });
-    }
-
-    var sel = document.getElementById('sync-empresa-select');
-
-    if (!lista.length) {
-      if (sel) sel.style.display = 'none';
-      _setStatus('⚠ Sem empresa com API configurada.', '');
-      return;
-    }
-
-    if (sel) {
-      if (lista.length === 1) {
-        sel.style.display = 'none';
-        sel.innerHTML = '<option value="'+lista[0].empresa_id+'">'+lista[0].nome+'</option>';
-        sel.value = lista[0].empresa_id;
-        _setStatus('✓ ' + lista[0].nome + ' — clique Sincronizar', 'ok');
-        await carregarDadosDoSupabase(lista[0].empresa_id);
-      } else {
-        sel.style.display = 'block';
-        sel.innerHTML = '<option value="">— Selecione a empresa —</option>';
-        lista.forEach(function(e) {
-          sel.innerHTML += '<option value="'+e.empresa_id+'">'+e.nome+'</option>';
-        });
-        sel.onchange = function() { if (sel.value) carregarDadosDoSupabase(sel.value); };
-      }
-    }
-  } catch(e) {
-    console.error(e);
-    _setStatus('✗ ' + mensagemErroUsuario(e, 'Não foi possível carregar os dados'), 'erro');
-  }
-}
 
 // ── SINCRONIZAR API ───────────────────────────────────────────────────────────
 async function sincronizarAPI() {

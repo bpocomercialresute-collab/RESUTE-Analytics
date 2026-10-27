@@ -1070,8 +1070,6 @@ function jssEnsureInit(){
   });
 }
 
-function jssInit(){ jssCreateGrid('bd'); }
-
 var TAB_MAP={'av-tab-bd':'bd','av-tab-marca':'marca','av-tab-clientes':'clientes','av-tab-representantes':'representantes','av-tab-grupos':'grupos','av-tab-produto':'produto'};
 document.addEventListener('click',function(e){
   var tab=e.target.closest('.av-tab[data-target]');
