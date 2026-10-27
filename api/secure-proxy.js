@@ -349,7 +349,27 @@ async function getVisualLoginToken(env, clientId, clientSecret, baseUrl) {
   return value;
 }
 
+// Cada pagina de dados passa por getAppUser (2 idas ao Supabase). Carregar uma
+// empresa grande sao dezenas de paginas, entao o resultado fica em memoria por
+// 60s por token. Trade-off: desativar um usuario so vale depois de ate 60s.
+const APP_USER_CACHE = new Map();
+const APP_USER_CACHE_TTL_MS = 60 * 1000;
+const APP_USER_CACHE_MAX = 500;
+
 async function getAppUser(sessionToken, supaUrl, anonKey, serviceKey) {
+  const chave = String(sessionToken || '');
+  const agora = Date.now();
+  const hit = chave ? APP_USER_CACHE.get(chave) : null;
+  if (hit && agora - hit.em < APP_USER_CACHE_TTL_MS) return hit.user;
+  const user = await _buscarAppUser(sessionToken, supaUrl, anonKey, serviceKey);
+  if (user && chave) {
+    if (APP_USER_CACHE.size >= APP_USER_CACHE_MAX) APP_USER_CACHE.clear();
+    APP_USER_CACHE.set(chave, { user, em: agora });
+  }
+  return user;
+}
+
+async function _buscarAppUser(sessionToken, supaUrl, anonKey, serviceKey) {
   const authResp = await fetch(`${supaUrl}/auth/v1/user`, {
     headers: {
       'apikey': anonKey,
