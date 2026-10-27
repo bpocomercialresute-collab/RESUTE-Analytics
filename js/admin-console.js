@@ -76,6 +76,11 @@ function adminConsoleEscape(value) {
     .replace(/'/g, '&#39;');
 }
 
+// Argumento de onclick: JSON dentro de atributo, nunca aspas simples no codigo JS.
+function adminConsoleJsArg(value) {
+  return adminConsoleEscape(JSON.stringify(String(value == null ? '' : value)));
+}
+
 function adminConsoleDate(value, includeTime) {
   if (!value) return 'Não registrado';
   var date = new Date(value);
@@ -651,15 +656,15 @@ function adminConsoleRenderEmpresas(list) {
       + '<span>' + (integration && integration.ativo !== false ? 'Conectada' : 'Pendente') + '</span>'
       + '</div>'
       + '<div class="admin-company-actions">'
-      + '<button class="admin-company-primary" onclick="adminConsoleAbrirOperacao(\'' + adminConsoleEscape(id) + '\')">Abrir operacao</button>'
-      + '<button onclick="adminConsoleEditarEmpresa(\'' + adminConsoleEscape(id) + '\')">Editar</button>'
+      + '<button class="admin-company-primary" onclick="adminConsoleAbrirOperacao(' + adminConsoleJsArg(id) + ')">Abrir operacao</button>'
+      + '<button onclick="adminConsoleEditarEmpresa(' + adminConsoleJsArg(id) + ')">Editar</button>'
       + (integration
-        ? '<button onclick="adminConsoleEditarIntegracao(\'' + adminConsoleEscape(id) + '\')">Config. API</button>'
-        : '<button onclick="adminConsoleNovaIntegracao(\'' + adminConsoleEscape(id) + '\')">Conectar API</button>')
-      + '<button onclick="adminConsoleFiltrarPorEmpresa(\'' + adminConsoleEscape(id) + '\')">Usuários</button>'
-      + '<button onclick="adminConsoleGerenciarFiliais(\'' + adminConsoleEscape(id) + '\')">Grupo</button>'
-      + '<button class="admin-company-danger" onclick="adminConsoleArquivarEmpresa(\'' + adminConsoleEscape(id) + '\')">Arquivar</button>'
-      + '<button class="admin-company-delete" onclick="adminConsoleExcluirEmpresa(\'' + adminConsoleEscape(id) + '\')">Excluir</button>'
+        ? '<button onclick="adminConsoleEditarIntegracao(' + adminConsoleJsArg(id) + ')">Config. API</button>'
+        : '<button onclick="adminConsoleNovaIntegracao(' + adminConsoleJsArg(id) + ')">Conectar API</button>')
+      + '<button onclick="adminConsoleFiltrarPorEmpresa(' + adminConsoleJsArg(id) + ')">Usuários</button>'
+      + '<button onclick="adminConsoleGerenciarFiliais(' + adminConsoleJsArg(id) + ')">Grupo</button>'
+      + '<button class="admin-company-danger" onclick="adminConsoleArquivarEmpresa(' + adminConsoleJsArg(id) + ')">Arquivar</button>'
+      + '<button class="admin-company-delete" onclick="adminConsoleExcluirEmpresa(' + adminConsoleJsArg(id) + ')">Excluir</button>'
       + '</div>'
       + '</article>';
   }).join('');
@@ -789,8 +794,8 @@ function adminConsoleRenderIntegracoes() {
           if (!rows) rows = '<span>Nenhuma configuracao registrada</span>';
           return '<div class="admin-integration-info">' + rows + '</div>';
         })()
-      + '<div class="admin-company-actions"><button onclick="adminConsoleEditarIntegracao(\'' + adminConsoleEscape(api.empresa_id) + '\')">Editar configuracao</button>'
-      + '<button onclick="adminConsoleTestarIntegracao(\'' + adminConsoleEscape(api.empresa_id) + '\', this)">Testar conexao</button></div></article>';
+      + '<div class="admin-company-actions"><button onclick="adminConsoleEditarIntegracao(' + adminConsoleJsArg(api.empresa_id) + ')">Editar configuracao</button>'
+      + '<button onclick="adminConsoleTestarIntegracao(' + adminConsoleJsArg(api.empresa_id) + ', this)">Testar conexao</button></div></article>';
   }).join('');
 }
 
@@ -858,7 +863,7 @@ function adminConsoleDetalharSync(index) {
     + '<span class="admin-field-full" id="admin-sync-cobertura">Cobertura de dados<strong>Verificando...</strong></span>'
     + '</div>'
     + '<div class="admin-form-help">O sync_log registra o estado consolidado por empresa. Nenhum token ou segredo e exibido.</div>'
-    + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Fechar</button><button class="admin-btn-primary" type="button" onclick="adminConsoleFecharModal(); adminConsoleAbrirSyncEmpresa(\'' + adminConsoleEscape(String(item.empresa_id || '')) + '\')">Abrir painel de sync</button></div>';
+    + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Fechar</button><button class="admin-btn-primary" type="button" onclick="adminConsoleFecharModal(); adminConsoleAbrirSyncEmpresa(' + adminConsoleJsArg(String(item.empresa_id || '')) + ')">Abrir painel de sync</button></div>';
   adminConsoleAbrirModal('SINCRONIZACAO', 'Detalhes do registro', html, function() {});
 
   var empresaId = String(item.empresa_id || '');
@@ -1020,7 +1025,7 @@ function adminConsoleRenderModulos() {
         + '<input type="date" value="' + adminConsoleEscape(expira) + '"'
         + ' data-module-expira="' + adminConsoleEscape(id) + '|' + mod.slug + '"></label>'
         + '<button type="button" class="' + (vigente ? 'admin-btn-secondary' : 'admin-btn-primary') + '"'
-        + ' onclick="adminConsoleAlternarModulo(\'' + adminConsoleEscape(id) + '\', \'' + mod.slug + '\', ' + (!vigente) + ')">'
+        + ' onclick="adminConsoleAlternarModulo(' + adminConsoleJsArg(id) + ', ' + adminConsoleJsArg(mod.slug) + ', ' + (!vigente) + ')">'
         + (vigente ? 'Desativar' : 'Ativar') + '</button>'
         + '</div>';
     }).join('');
@@ -1061,21 +1066,21 @@ function adminConsoleRenderModulos() {
       +   '<select data-fin-plano="' + adminConsoleEscape(id) + '">' + opcoesPlano + '</select>'
       +   '<label class="admin-module-expira">Expira em'
       +   '<input type="date" value="' + adminConsoleEscape(expiraFinanceiro) + '" data-fin-expira="' + adminConsoleEscape(id) + '"></label>'
-      +   '<button type="button" class="admin-btn-primary" onclick="adminConsoleAplicarPlano(\'' + adminConsoleEscape(id) + '\')">Aplicar</button>'
+      +   '<button type="button" class="admin-btn-primary" onclick="adminConsoleAplicarPlano(' + adminConsoleJsArg(id) + ')">Aplicar</button>'
       + '</div>'
       + '<div class="admin-module-row">'
       +   '<div class="admin-module-info"><strong>Dados do DRE</strong>'
       +   '<small>' + adminConsoleEscape(
               typeof dreAdminResumoTexto === 'function' ? dreAdminResumoTexto(id) : ''
             ) + '</small></div>'
-      +   '<button type="button" class="admin-btn-secondary" onclick="dreAbrirDoAdmin(\'' + adminConsoleEscape(id) + '\')">Abrir DRE</button>'
+      +   '<button type="button" class="admin-btn-secondary" onclick="dreAbrirDoAdmin(' + adminConsoleJsArg(id) + ')">Abrir DRE</button>'
       + '</div>'
       + '<div class="admin-module-row admin-fin-acessos">'
       +   '<div class="admin-module-info"><strong>Acessos (' + usuarios.length + ')</strong>'
       +   '<small>Login de cliente. O super_admin gerencia tudo por aqui.</small></div>'
-      +   '<button type="button" class="admin-btn-secondary" onclick="adminConsoleNovoUsuarioPara(\'' + adminConsoleEscape(id) + '\')">Adicionar acesso</button>'
+      +   '<button type="button" class="admin-btn-secondary" onclick="adminConsoleNovoUsuarioPara(' + adminConsoleJsArg(id) + ')">Adicionar acesso</button>'
       +   (temFinanceiro
-            ? '<button type="button" class="admin-btn-secondary" onclick="adminConsoleAbrirFinanceiroEmpresa(\'' + adminConsoleEscape(id) + '\', \'modules\')">Ver painel do cliente</button>'
+            ? '<button type="button" class="admin-btn-secondary" onclick="adminConsoleAbrirFinanceiroEmpresa(' + adminConsoleJsArg(id) + ', \'modules\')">Ver painel do cliente</button>'
             : '')
       + '</div>'
       + listaUsuarios
@@ -1188,7 +1193,7 @@ function adminConsoleRenderFinanceiro() {
       +   '<small>' + adminConsoleEscape(
               typeof dreAdminResumoTexto === 'function' ? dreAdminResumoTexto(id) : ''
             ) + '</small></div>'
-      +   '<button type="button" class="admin-btn-primary" onclick="dreAbrirDoAdmin(\'' + adminConsoleEscape(id) + '\')">Abrir painel DRE</button>'
+      +   '<button type="button" class="admin-btn-primary" onclick="dreAbrirDoAdmin(' + adminConsoleJsArg(id) + ')">Abrir painel DRE</button>'
       + '</div>'
       + '</article>';
   }).join('');
@@ -1632,8 +1637,8 @@ async function adminConsoleGerenciarFiliais(empresaId) {
       ? (integracao.ativo !== false ? '<span style="color:#16a34a">&#10003; ' + adminConsoleEscape(integracao.sistema || 'API') + '</span>' : '<span style="color:#d97706">Inativa</span>')
       : '<span style="color:#9ca3af">Sem API</span>';
     var apiFn = integracao
-      ? 'adminConsoleEditarIntegracao(\'' + adminConsoleEscape(fid) + '\')'
-      : 'adminConsoleNovaIntegracao(\'' + adminConsoleEscape(fid) + '\')';
+      ? 'adminConsoleEditarIntegracao(' + adminConsoleJsArg(fid) + ')'
+      : 'adminConsoleNovaIntegracao(' + adminConsoleJsArg(fid) + ')';
     var apiBtnLabel = integracao ? 'Config. API' : 'Conectar API';
     return '<tr style="border-bottom:1px solid #f3f4f6">'
       + '<td style="padding:7px 8px;font-weight:500">' + nomeEmpresa + '</td>'
@@ -1641,7 +1646,7 @@ async function adminConsoleGerenciarFiliais(empresaId) {
       + '<td style="padding:7px 8px;font-size:12px">' + apiLabel + '</td>'
       + '<td style="padding:7px 8px;white-space:nowrap">'
         + '<button type="button" style="margin-right:6px;font-size:12px;cursor:pointer" onclick="' + apiFn + '">' + apiBtnLabel + '</button>'
-        + '<button type="button" style="color:#ef4444;background:none;border:none;cursor:pointer;font-size:12px" onclick="adminConsoleRemoverFilial(\'' + adminConsoleEscape(f.id) + '\',\'' + adminConsoleEscape(empresaId) + '\')">Remover</button>'
+        + '<button type="button" style="color:#ef4444;background:none;border:none;cursor:pointer;font-size:12px" onclick="adminConsoleRemoverFilial(' + adminConsoleJsArg(f.id) + ',' + adminConsoleJsArg(empresaId) + ')">Remover</button>'
       + '</td>'
       + '</tr>';
   }).join('');
@@ -1650,7 +1655,7 @@ async function adminConsoleGerenciarFiliais(empresaId) {
     + (filiais.length
       ? '<div style="overflow-x:auto;margin-bottom:16px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:2px solid #e5e7eb"><th style="text-align:left;padding:6px 8px;font-weight:600">Empresa</th><th style="text-align:left;padding:6px 8px;font-weight:600">Exibir como</th><th style="text-align:left;padding:6px 8px;font-weight:600">API</th><th></th></tr></thead><tbody>' + filList + '</tbody></table></div>'
       : '<p style="color:#9ca3af;font-size:13px;font-style:italic;margin-bottom:16px">Nenhuma empresa filial cadastrada. Adicione empresas ao grupo para o cliente poder alternar entre elas.</p>')
-    + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleAdicionarFilial(\'' + adminConsoleEscape(empresaId) + '\')">+ Adicionar empresa</button><button type="button" onclick="adminConsoleFecharModal()">Fechar</button></div>';
+    + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleAdicionarFilial(' + adminConsoleJsArg(empresaId) + ')">+ Adicionar empresa</button><button type="button" onclick="adminConsoleFecharModal()">Fechar</button></div>';
 
   adminConsoleAbrirModal('EMPRESAS', 'Grupo — ' + adminConsoleEscape(company.nome), html, function() {});
 }
@@ -2000,7 +2005,7 @@ function _adminConsoleSyncPopularEmpresas() {
     var id = String(c.id || c.empresa_id || '');
     var hasApi = String(c.exibir_origem || '').toLowerCase() === 'api';
     return '<button class="adm-sync-empresa-btn' + (hasApi ? ' tem-api' : '') + '" '
-      + 'onclick="_adminConsoleSyncSelecionarEmpresa(\'' + adminConsoleEscape(id) + '\')" '
+      + 'onclick="_adminConsoleSyncSelecionarEmpresa(' + adminConsoleJsArg(id) + ')" '
       + 'data-empresa-id="' + adminConsoleEscape(id) + '">'
       + '<span class="adm-sync-btn-nome">' + adminConsoleEscape(c.nome || id) + '</span>'
       + (hasApi
