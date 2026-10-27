@@ -1672,15 +1672,29 @@ function _dcIdbAvisar(tipo, e) {
 function _dcIdbOpen() {
   return new Promise(function(resolve) {
     if (typeof indexedDB === 'undefined') { _dcIdbAvisar('indisponivel'); resolve(null); return; }
+    // Se um navegador/extensao interceptar indexedDB.open e nunca chamar
+    // onsuccess/onerror/onblocked, essa promise ficava presa pra sempre — e
+    // dcCarregarDados travava com ela, sem nenhum log, sem nenhum erro, com
+    // o painel vazio pra sempre (sintoma relatado: nada depois de "auth.js
+    // carregado" no console). 2,5s e generoso pra uma abertura local; se
+    // estourar, segue sem cache em vez de travar.
+    var resolvido = false;
+    var resolverUmaVez = function(valor, motivo) {
+      if (resolvido) return;
+      resolvido = true;
+      if (motivo) _dcIdbAvisar(motivo);
+      resolve(valor);
+    };
+    setTimeout(function() { resolverUmaVez(null, 'open-travou'); }, 2500);
     try {
       var req = indexedDB.open(_DC_IDB_NAME, 1);
       req.onupgradeneeded = function(e) {
         try { e.target.result.createObjectStore(_DC_IDB_STORE); } catch (_e) {}
       };
-      req.onsuccess = function(e) { resolve(e.target.result); };
-      req.onerror = function(e) { _dcIdbAvisar('open', e && e.target && e.target.error); resolve(null); };
+      req.onsuccess = function(e) { resolverUmaVez(e.target.result); };
+      req.onerror = function(e) { resolverUmaVez(null, null); _dcIdbAvisar('open', e && e.target && e.target.error); };
       req.onblocked = function() { _dcIdbAvisar('open-bloqueado'); };
-    } catch (e) { _dcIdbAvisar('open-excecao', e); resolve(null); }
+    } catch (e) { resolverUmaVez(null, null); _dcIdbAvisar('open-excecao', e); }
   });
 }
 
