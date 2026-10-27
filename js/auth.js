@@ -1783,9 +1783,7 @@ async function dcCarregarDados(empresa_id_param) {
 
   try {
     // 1. IndexedDB — leitura local ~10ms, sem limite de tamanho
-    // Sem limite de tempo, um IndexedDB que nao responde deixava o painel
-    // parado para sempre, sem erro e com o badge no texto padrao.
-    var _idbData = await dcComTimeout(_dcIdbGet(_dcLsKey), 4000, 'cache local lento').catch(function() { return null; });
+    var _idbData = await _dcIdbGet(_dcLsKey);
     if (_idbData && Array.isArray(_idbData.vendas) && _idbData.vendas.length) {
       if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
       dcAplicarVendasCarregadas(_idbData.vendas);
@@ -1802,7 +1800,7 @@ async function dcCarregarDados(empresa_id_param) {
     dcMostrarEsqueleto();
     dcStatus('⏳ Abrindo painel...');
     var snapshotRapido = window.ReportCache
-      ? await dcComTimeout(window.ReportCache.getLatest(eid, 'dashboard_cliente', null), 8000, 'snapshot lento').catch(function() { return null; })
+      ? await window.ReportCache.getLatest(eid, 'dashboard_cliente', null)
       : null;
     if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
     if (snapshotRapido && snapshotRapido.dados && Array.isArray(snapshotRapido.dados.vendas) && snapshotRapido.dados.vendas.length) {
