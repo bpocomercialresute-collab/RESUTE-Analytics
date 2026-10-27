@@ -2014,18 +2014,30 @@ async function dcCarregarDados(empresa_id_param) {
     // nem chega a rejeitar (so nunca resolve) travava aqui tambem, antes de
     // chegar na busca completa do banco.
     var snapshotRapido = window.ReportCache
-      ? await dcComTimeout(window.ReportCache.getLatest(eid, 'dashboard_cliente', null), 6000, 'snapshot lento').catch(function() { return null; })
+      ? await dcComTimeout(window.ReportCache.getLatest(eid, 'dashboard_cliente', null), 25000, 'snapshot lento').catch(function() { return null; })
       : null;
     _dcMedir('snapshot conferido (' + (snapshotRapido && snapshotRapido.dados && Array.isArray(snapshotRapido.dados.vendas) ? snapshotRapido.dados.vendas.length : 0) + ' linhas)');
     if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
     if (snapshotRapido && snapshotRapido.dados && Array.isArray(snapshotRapido.dados.vendas) && snapshotRapido.dados.vendas.length) {
       var _supaVendas = snapshotRapido.dados.vendas;
       var _supaEm = snapshotRapido.dados.gerado_em || new Date().toISOString();
-      _dcIdbSet(_dcLsKey, { gerado_em: _supaEm, vendas: _supaVendas });
+      var _supaOrigem = snapshotRapido.dados.origem || 'manual';
+      // Empresa grande demais pra salvar snapshot (_dcSnapshotCabe) nunca
+      // gera um novo — esse aqui pode ser de dias atras e, sem isso, ficava
+      // congelado pra sempre: a unica checagem de frescor existente
+      // comparava snapshot contra o PROPRIO snapshot (nunca muda, sempre
+      // "igual"). Trata como o cache do banco: guarda com assinatura e
+      // confere contra a tabela de verdade agora mesmo, em segundo plano.
+      var _supaAssinatura = _dcAssinaturaLocal(_supaVendas);
+      var _supaEntrada = { fonte: 'banco', origem: _supaOrigem, assinatura: _supaAssinatura, gerado_em: _supaEm, salvo_em: Date.now(), vendas: _supaVendas };
+      _dcIdbSet(_dcLsKey, _supaEntrada);
       dcAplicarVendasCarregadas(_supaVendas);
       dcCarregarUltimaSync(eid).catch(function() {});
       if ((DC_DATA || []).length) {
         dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
+      }
+      if (_supaAssinatura) {
+        _dcRevalidarCacheBanco(eid, _dcLsKey, _supaEntrada, loadSequence, currentSignal);
       }
       return;
     }
