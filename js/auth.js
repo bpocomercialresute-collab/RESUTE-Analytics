@@ -1720,8 +1720,35 @@ function _dcSlimVenda(v) {
   return out;
 }
 
+// O snapshot vai pelo proxy (funcao serverless da Vercel), que recusa corpo
+// acima de ~4,5 MB com 413 FUNCTION_PAYLOAD_TOO_LARGE (confirmado no proxy
+// real com um corpo de 6 MB). Alem do corpo, o proxy recebe um envelope que o
+// deixa ~17% maior. Empresa com mais de ~10k vendas estourava isso sempre: o
+// navegador montava e tentava subir 13 a 27 MB (163 a 513 ms de thread
+// principal em 30k a 60k linhas) para receber 413. Estima o tamanho por
+// amostra, sem montar nada, e nem tenta quando nao cabe.
+var _DC_SNAPSHOT_MAX_ENVELOPE_BYTES = 4000000;
+var _DC_SNAPSHOT_FATOR_ENVELOPE = 1.17;
+
+function _dcSnapshotCabe(vendas) {
+  if (!Array.isArray(vendas) || !vendas.length) return true;
+  var n = vendas.length;
+  var amostra = Math.min(n, 300);
+  var passo = n / amostra;
+  var bytes = 0;
+  for (var i = 0; i < amostra; i++) {
+    bytes += JSON.stringify(_dcSlimVenda(vendas[Math.floor(i * passo)])).length + 1;
+  }
+  var estimado = (bytes / amostra) * n * _DC_SNAPSHOT_FATOR_ENVELOPE + 1000;
+  return estimado <= _DC_SNAPSHOT_MAX_ENVELOPE_BYTES;
+}
+
 async function dcSalvarSnapshotCliente(eid, origem, vendas, periodoInicio, periodoFim) {
   if (!window.ReportCache || !eid || !Array.isArray(vendas) || !vendas.length) return false;
+  if (!_dcSnapshotCabe(vendas)) {
+    console.info('[snapshot] nao salvo: ' + vendas.length.toLocaleString('pt-BR') + ' linhas passam do limite de corpo do proxy');
+    return false;
+  }
   var slim = vendas.map(_dcSlimVenda);
   return window.ReportCache.save({
     empresa_id: eid,
