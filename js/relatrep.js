@@ -274,10 +274,10 @@ function repPremiacaoEmpresasMergeHtml() {
         const safeId = e.empresa_id.replace(/[^a-z0-9]/gi, '_');
         const infoHtml = carregada
           ? `<span class="rep-merge-info">${nRows.toLocaleString('pt-BR')} registros</span>`
-          : `<button id="rep-merge-load-${repEsc(safeId)}" class="rep-merge-load-btn" onclick="repMergeEmpresasCarregarDados('${repEsc(e.empresa_id)}','${repEsc(e.nome)}')">Carregar dados</button>`;
+          : `<button id="rep-merge-load-${repEsc(safeId)}" class="rep-merge-load-btn" onclick="repMergeEmpresasCarregarDados(${repEsc(JSON.stringify(e.empresa_id))},${repEsc(JSON.stringify(e.nome))})">Carregar dados</button>`;
         return `<div class="rep-merge-item ${sel ? 'sel' : ''}">
           <label class="rep-merge-check">
-            <input type="checkbox" ${sel ? 'checked' : ''} ${!carregada ? 'disabled title="Carregue os dados primeiro"' : ''} onchange="repMergeEmpresasToggle('${repEsc(e.empresa_id)}')">
+            <input type="checkbox" ${sel ? 'checked' : ''} ${!carregada ? 'disabled title="Carregue os dados primeiro"' : ''} onchange="repMergeEmpresasToggle(${repEsc(JSON.stringify(e.empresa_id))})">
             <span class="rep-merge-dot"></span>
             <span class="rep-merge-nome">${repEsc(e.nome)}</span>
           </label>
