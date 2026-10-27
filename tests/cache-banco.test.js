@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { criarContexto, criarServidor, gerarLinhas, esperar, impressao } = require('./helpers/dashboard-vm.js');
+const { criarContexto, criarServidor, gerarLinhas, esperar, impressao, renderOcioso } = require('./helpers/dashboard-vm.js');
 
 const CHAVE = 'resute_dc_cache_EMP1';
 
@@ -9,6 +9,8 @@ async function abrir(servidor, armazem, opcoes) {
   const { ctx, elementos } = criarContexto({ servidor, armazem });
   if (opcoes && opcoes.antes) opcoes.antes(ctx);
   await ctx.dcCarregarDados('EMP1');
+  // `rapido`: devolve logo apos o render do cache, antes da conferencia em segundo plano terminar.
+  if (!(opcoes && opcoes.rapido)) await renderOcioso(ctx);
   return { ctx, elementos };
 }
 
@@ -54,7 +56,7 @@ test('dado novo no banco: mostra o cache na hora, depois baixa de novo e troca',
   const novas = gerarLinhas(30, '2026-10-20T10:00:00Z').map((l, i) => Object.assign(l, { id: 'novo-' + i, id_externo: 'novo_' + i }));
   servidor.linhas = servidor.linhas.concat(novas);
 
-  const b = await abrir(servidor, armazem);
+  const b = await abrir(servidor, armazem, { rapido: true });
   assert.equal(b.ctx.DC_RAW.length, 1200, 'primeiro mostra o que estava no cache');
   await esperar(() => b.ctx.DC_RAW.length === 1230);
   assert.equal(b.ctx.DC_RAW.length, 1230);
@@ -69,11 +71,16 @@ test('mesmo total mas lote novo (salvamento manual troca tudo): assinatura muda 
   await esperar(() => armazem.has(CHAVE));
 
   servidor.linhas = gerarLinhas(900, '2026-10-25T09:00:00Z');
-  const b = await abrir(servidor, armazem);
   const antes = servidor.paginas;
+  // A conferencia de frescor so roda numa abertura que le o cache (o primeiro
+  // open, acima, gravou o cache so depois de terminar — nao ha varredura em
+  // segundo plano so de pagina aberta). `rapido` retorna logo apos mostrar o
+  // cache, antes da conferencia terminar, pra observar a troca abaixo.
+  const b = await abrir(servidor, armazem, { rapido: true });
   await esperar(() => servidor.paginas > antes);
   await esperar(() => armazem.get(CHAVE).assinatura.endsWith(servidor.maxCriado()));
   assert.ok(armazem.get(CHAVE).assinatura.endsWith(servidor.maxCriado()));
+  await esperar(() => b.ctx.DC_RAW.length === 900);
   assert.equal(b.ctx.DC_RAW.length, 900);
 });
 

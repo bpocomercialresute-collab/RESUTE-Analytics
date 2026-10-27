@@ -167,4 +167,9 @@ function impressao(elementos) {
     .map(([k, el]) => k + '|' + el.value + '|' + el.textContent + '|' + el.innerHTML).join('\n');
 }
 
-module.exports = { criarContexto, criarServidor, gerarLinhas, esperar, impressao };
+// As tabelas do dashboard sao montadas em passos adiados (DC_RENDER_PENDENTES); espera terminarem.
+function renderOcioso(ctx, ms) {
+  return esperar(() => ctx.DC_RENDER_PENDENTES === 0, ms || 5000);
+}
+
+module.exports = { criarContexto, criarServidor, gerarLinhas, esperar, impressao, renderOcioso };

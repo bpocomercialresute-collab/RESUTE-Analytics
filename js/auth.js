@@ -2918,6 +2918,8 @@ function dcMostrarEsqueleto() {
 
 // ── RENDERIZA TUDO ────────────────────────────────────────────────────────────
 function dcRenderizar() {
+  var renderSeq = ++DC_RENDER_SEQ;
+  DC_RENDER_PENDENTES = 0;
   var rows = Array.isArray(DC_DATA) ? DC_DATA : DC_RAW;
   dcAtualizarPeriodoLabel(rows || []);
   if (!rows || !rows.length) {
@@ -2976,19 +2978,56 @@ function dcRenderizar() {
   dcRenderGraficoSeguro('Grupos', function(){ _dcChartGrupo(rows); });
 
   // ── Tabelas ──
-  dcAtualizarFiltroUfCidade(rows);
-  _dcTabela('dc-tab-reps',     'vendedor', rows, fat, 'Representante');
-  _dcTabelaPositivacao();
-  _dcTabela('dc-tab-ufs',      'uf',       rows, fat, 'Estado');
-  _dcTabela('dc-tab-cidades',  'cidade',   dcFiltrarCidadesPorUf(rows), fat, 'Cidade');
-  _dcTabela('dc-tab-cli',      'cliente',  rows, fat, 'Cliente');
-  _dcTabelaInativos(rows);
-  _dcTabelaNovosClientes(rows);
-  _dcTabelaTicketCliente();
+  // Sao a parte mais pesada do render (cerca de 1,6 s dos 2,4 s medidos em 60k
+  // linhas). KPIs e graficos ja estao prontos: devolve o controle ao navegador
+  // para pintar e monta as tabelas em passos separados. Um novo render invalida
+  // os passos que ficaram pendentes (filtro trocado, dados atualizados).
+  _dcRodarPassos([
+    ['Representantes', function() {
+      dcAtualizarFiltroUfCidade(rows);
+      _dcTabela('dc-tab-reps', 'vendedor', rows, fat, 'Representante');
+    }],
+    ['Positivação',    function() { _dcTabelaPositivacao(); }],
+    ['Estados',        function() { _dcTabela('dc-tab-ufs', 'uf', rows, fat, 'Estado'); }],
+    ['Cidades',        function() { _dcTabela('dc-tab-cidades', 'cidade', dcFiltrarCidadesPorUf(rows), fat, 'Cidade'); }],
+    ['Clientes',       function() { _dcTabela('dc-tab-cli', 'cliente', rows, fat, 'Cliente'); }],
+    ['Inativos',       function() { _dcTabelaInativos(rows); }],
+    ['Novos clientes', function() { _dcTabelaNovosClientes(rows); }],
+    ['Ticket médio',   function() { _dcTabelaTicketCliente(); }],
+    ['Última atualização', function() {
+      var lu = document.getElementById('dc-last-update');
+      if (lu && !lu.textContent) lu.textContent = 'Dados renderizados em ' + new Date().toLocaleString('pt-BR');
+    }]
+  ], renderSeq);
+}
 
-  // ── Última atualização ──
-  var lu = document.getElementById('dc-last-update');
-  if (lu && !lu.textContent) lu.textContent = 'Dados renderizados em ' + new Date().toLocaleString('pt-BR');
+// Passos de render adiados. DC_RENDER_PENDENTES conta os que ainda nao rodaram
+// (zera quando termina ou quando um render mais novo cancela).
+var DC_RENDER_SEQ = 0;
+var DC_RENDER_PENDENTES = 0;
+
+function _dcRodarPassos(passos, seq) {
+  var i = 0;
+  DC_RENDER_PENDENTES = passos.length;
+  function proximo() {
+    if (seq !== DC_RENDER_SEQ) return;
+    if (i >= passos.length) { DC_RENDER_PENDENTES = 0; return; }
+    var passo = passos[i++];
+    try {
+      passo[1]();
+    } catch (e) {
+      console.error('[dashboard tabela]', passo[0], e);
+      dcStatus('Erro ao renderizar ' + passo[0] + ': ' + (e && e.message ? e.message : e));
+    }
+    DC_RENDER_PENDENTES = passos.length - i;
+    setTimeout(proximo, 0);
+  }
+  // rAF + timeout: espera o navegador pintar KPIs e graficos antes do 1o passo.
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(function() { setTimeout(proximo, 0); });
+  } else {
+    setTimeout(proximo, 0);
+  }
 }
 
 // Novos gráficos
