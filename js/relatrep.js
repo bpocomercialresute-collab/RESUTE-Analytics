@@ -303,10 +303,13 @@ function repToggleModo(m) {
   repUpdateAll();
 }
 
+function repQtd(v) {
+  return typeof parseSmartNumber === 'function' ? parseSmartNumber(v) : (parseFloat(v || 0) || 0);
+}
 function repVal(row) {
   if (!window.IDX) return 0;
   return REP_MODO === 'qtd'
-    ? (parseFloat(row[IDX.qtd]||0) || 0)
+    ? (repQtd(row[IDX.qtd]))
     : (typeof parseSmartNumber === 'function' ? parseSmartNumber(row[IDX.valor]) : (Number(row[IDX.valor]) || 0));
 }
 function repFmt(v) {
@@ -749,7 +752,7 @@ function repPremiacaoResumoHtml(rows) {
     const vend = String(r[IDX.vendedor] || '').trim() || 'Sem representante';
     if (!reps[vend]) reps[vend] = { fat: 0, qtd: 0, pedidos: new Set(), clientes: new Set(), produtos: new Set() };
     reps[vend].fat += (typeof parseSmartNumber === 'function' ? parseSmartNumber(r[IDX.valor]) : (Number(r[IDX.valor]) || 0));
-    reps[vend].qtd += parseFloat(r[IDX.qtd] || 0) || 0;
+    reps[vend].qtd += repQtd(r[IDX.qtd]);
     reps[vend].pedidos.add(repPedidoChave(r));
     if (r[IDX.cliente]) reps[vend].clientes.add(String(r[IDX.cliente]).trim());
     if (r[IDX.produto]) reps[vend].produtos.add(String(r[IDX.produto]).trim());
@@ -784,7 +787,7 @@ function repPremiacaoAgruparRepresentantes(rows) {
     const nome = String(r[IDX.vendedor] || '').trim() || 'Sem representante';
     if (!mapa[nome]) mapa[nome] = { nome, fat: 0, qtd: 0, pedidos: new Set(), clientes: new Set(), produtos: new Set() };
     mapa[nome].fat += (typeof parseSmartNumber === 'function' ? parseSmartNumber(r[IDX.valor]) : (Number(r[IDX.valor]) || 0));
-    mapa[nome].qtd += parseFloat(r[IDX.qtd] || 0) || 0;
+    mapa[nome].qtd += repQtd(r[IDX.qtd]);
     mapa[nome].pedidos.add(repPedidoChave(r));
     if (r[IDX.cliente]) mapa[nome].clientes.add(String(r[IDX.cliente]).trim());
     if (r[IDX.produto]) mapa[nome].produtos.add(String(r[IDX.produto]).trim());
@@ -1031,7 +1034,7 @@ function repPremiacaoCompetidores(rows) {
     if (!mapa[vend]) mapa[vend] = { nome: vend, fat: 0, qtd: 0, pedidos: new Set(), clientes: new Set(), produtos: new Set(), dias: new Set() };
     const dtStr = String(r[IDX.saida] || r[IDX.emissao] || '').trim();
     mapa[vend].fat += (typeof parseSmartNumber === 'function' ? parseSmartNumber(r[IDX.valor]) : (Number(r[IDX.valor]) || 0));
-    mapa[vend].qtd += parseFloat(r[IDX.qtd] || 0) || 0;
+    mapa[vend].qtd += repQtd(r[IDX.qtd]);
     mapa[vend].pedidos.add(repPedidoChave(r));
     if (r[IDX.cliente]) mapa[vend].clientes.add(String(r[IDX.cliente]).trim());
     if (r[IDX.produto]) mapa[vend].produtos.add(String(r[IDX.produto]).trim());
@@ -2640,7 +2643,7 @@ function repPremiacao() {
     if (!reps[vend]) reps[vend] = { nome: vend, fat:0, qtd:0, pedidos:new Set(), clientes:new Set(), produtos:new Set(), dias:new Set() };
     const dtStr = String(r[IDX.saida]||r[IDX.emissao]||'').trim();
     reps[vend].fat += (typeof parseSmartNumber === 'function' ? parseSmartNumber(r[IDX.valor]) : (Number(r[IDX.valor]) || 0));
-    reps[vend].qtd += parseFloat(r[IDX.qtd]||0) || 0;
+    reps[vend].qtd += repQtd(r[IDX.qtd]);
     reps[vend].pedidos.add(repPedidoChave(r));
     if (r[IDX.cliente]) reps[vend].clientes.add(String(r[IDX.cliente]).trim());
     if (r[IDX.produto]) reps[vend].produtos.add(String(r[IDX.produto]).trim());
@@ -2706,7 +2709,7 @@ function repPremiacao() {
       const vend = String(r[IDX.vendedor]||'').trim() || 'Sem representante';
       if (!mapa[vend]) mapa[vend] = { nome:vend, fat:0, qtd:0, pedidos:new Set(), clientes:new Set(), produtos:new Set() };
       mapa[vend].fat += (typeof parseSmartNumber === 'function' ? parseSmartNumber(r[IDX.valor]) : (Number(r[IDX.valor]) || 0));
-      mapa[vend].qtd += parseFloat(r[IDX.qtd]||0) || 0;
+      mapa[vend].qtd += repQtd(r[IDX.qtd]);
       mapa[vend].pedidos.add(repPedidoChave(r));
       if (r[IDX.cliente]) mapa[vend].clientes.add(String(r[IDX.cliente]).trim());
       if (r[IDX.produto]) mapa[vend].produtos.add(String(r[IDX.produto]).trim());
@@ -2975,7 +2978,7 @@ function repPremiacaoCrescimentoDados(rows) {
     if (!alvo) return;
     const item = alvo.meses[dt.getMonth()];
     item.fat += (typeof parseSmartNumber === 'function' ? parseSmartNumber(r[IDX.valor]) : (Number(r[IDX.valor]) || 0));
-    item.qtd += parseFloat(r[IDX.qtd] || 0) || 0;
+    item.qtd += repQtd(r[IDX.qtd]);
     item.pedidos.add(repPedidoChave(r));
     if (r[IDX.cliente]) item.clientes.add(String(r[IDX.cliente]).trim());
   });
