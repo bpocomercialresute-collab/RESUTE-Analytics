@@ -5723,8 +5723,17 @@ function _adminMapRepresentantesManual(linhas, eid) {
 async function adminLimparOrigem(origem) {
   if (!EMPRESA_ATIVA) return;
   var label = origem === 'api' ? 'dados da API' : 'dados manuais';
-  if (!confirm('Apagar TODOS os ' + label + ' de ' + EMPRESA_ATIVA.nome + '?')) return;
-  if (!confirm('Confirme: Apagar ' + label + ' de ' + EMPRESA_ATIVA.nome + '?')) return;
+  var nomeEmpresa = EMPRESA_ATIVA.nome || '';
+  var confirmado = confirm(
+    'APAGAR PERMANENTEMENTE todos os ' + label + ' de "' + nomeEmpresa + '"?\n\n'
+    + 'Essa ação NAO pode ser desfeita.'
+  );
+  if (!confirmado) return;
+  var confirmNome = prompt('Digite o nome da empresa para confirmar:\n\n"' + nomeEmpresa + '"');
+  if (!confirmNome || confirmNome.trim() !== nomeEmpresa.trim()) {
+    _adminSetStatus('✗ Nome não confere. Operação cancelada.');
+    return;
+  }
   _adminSetStatus('⏳ Apagando ' + label + '...');
   try {
     var r = await fetch(SUPA_URL + '/rest/v1/vendas?empresa_id=eq.' + EMPRESA_ATIVA.empresa_id + '&origem=eq.' + origem, {
