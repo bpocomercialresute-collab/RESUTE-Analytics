@@ -82,6 +82,7 @@ const ALLOWED_SUPABASE_PATHS = [
   '/rest/v1/empresa_modulos',
   '/rest/v1/empresa_filiais',
   '/rest/v1/metas',
+  '/rest/v1/error_log',
   '/functions/v1/sync-visual-saef'
 ];
 
@@ -562,6 +563,18 @@ function assertAuthorized(appUser, targetUrl, method, body) {
     }
     if (isWrite) {
       throw new Error('Registros de auditoria nao podem ser alterados pelo navegador.');
+    }
+    return;
+  }
+
+  if (targetUrl.pathname === '/rest/v1/error_log') {
+    // Escrita nunca vem do navegador -- api/log-error.js e os pontos de
+    // _logErroServidor gravam direto com service role, sem passar por aqui.
+    if (appUser.papel !== 'super_admin') {
+      throw new Error('Apenas super_admin pode acessar esta rota.');
+    }
+    if (isWrite) {
+      throw new Error('error_log nao pode ser alterado pelo navegador.');
     }
     return;
   }
@@ -1787,6 +1800,31 @@ export default async function handler(req, res) {
     return await proxyExternalGeneric(req, res, targetUrl, httpMethod, incomingHeaders, body, empresa_id || null, env);
   } catch (e) {
     console.error('[proxy] Erro interno:', e.message);
+    _logErroServidor(env, e, { rota: 'secure-proxy', url: String(url || '').slice(0, 300) });
     return res.status(500).json({ erro: 'Erro interno no servidor.' });
   }
+}
+
+// Grava em error_log pra dar visibilidade de erro de producao sem depender
+// de ninguem olhar os logs da Vercel. Fire-and-forget: uma falha aqui nunca
+// pode virar outro erro pro usuario que ja estava vendo um erro.
+function _logErroServidor(env, erro, contexto) {
+  if (!env || !env.supaUrl || !env.serviceKey) return;
+  try {
+    fetch(`${env.supaUrl}/rest/v1/error_log`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': env.serviceKey,
+        'Authorization': `Bearer ${env.serviceKey}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        origem: 'servidor',
+        mensagem: String((erro && erro.message) || erro || 'Erro desconhecido').slice(0, 2000),
+        stack: erro && erro.stack ? String(erro.stack).slice(0, 4000) : null,
+        contexto: contexto || null
+      })
+    }).catch(function() {});
+  } catch (e) { /* nunca deixa o log de erro quebrar a resposta real */ }
 }

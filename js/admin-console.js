@@ -12,6 +12,7 @@ var ADMIN_CONSOLE = {
   integrations: [],
   syncLogs: [],
   persistentAudit: [],
+  errorLog: [], // [{id, criado_em, origem, mensagem, url, empresa_id, user_email}] — ver error_log no Supabase
   filiais: [], // [{empresa_pai_id, empresa_filial_id}] — filiadas ficam fora do grid principal
   metricsByCompany: {},
   salesCount: 0,
@@ -306,11 +307,13 @@ async function adminConsoleInicializar(force) {
       .catch(function() { return { data: [] }; });
     var filiaisRequest = adminConsoleFetchAll('/rest/v1/empresa_filiais?select=empresa_pai_id,empresa_filial_id&ativo=eq.true', 500, 20)
       .catch(function() { return { data: [] }; });
+    var errorLogRequest = adminConsoleFetch('/rest/v1/error_log?select=id,criado_em,origem,mensagem,url,empresa_id,user_email&order=criado_em.desc&limit=200')
+      .catch(function() { return { data: [] }; });
 
-    var requests = [companyRequest, userRequest, integrationRequest, syncRequest, auditRequest, filiaisRequest];
-    var labels = ['empresas', 'usuarios', 'integracoes', 'sincronizacoes', 'auditoria', 'filiais'];
+    var requests = [companyRequest, userRequest, integrationRequest, syncRequest, auditRequest, filiaisRequest, errorLogRequest];
+    var labels = ['empresas', 'usuarios', 'integracoes', 'sincronizacoes', 'auditoria', 'filiais', 'erros'];
     var results = await Promise.allSettled(requests);
-    var targets = ['companies', 'users', 'integrations', 'syncLogs', 'persistentAudit', 'filiais'];
+    var targets = ['companies', 'users', 'integrations', 'syncLogs', 'persistentAudit', 'filiais', 'errorLog'];
     results.forEach(function(result, index) {
       if (result.status === 'fulfilled') {
         ADMIN_CONSOLE[targets[index]] = Array.isArray(result.value.data) ? result.value.data : [];
@@ -897,7 +900,19 @@ function adminConsoleAuditItems() {
       actor: item.ator_email || 'super_admin'
     };
   });
-  return ADMIN_CONSOLE.activities.concat(persistent, adminConsoleOperationalActivities())
+  var erros = (ADMIN_CONSOLE.errorLog || []).map(function(item) {
+    var empresa = item.empresa_id
+      ? (ADMIN_CONSOLE.companies.find(function(c) { return String(c.id || c.empresa_id) === String(item.empresa_id); }) || {}).nome
+      : '';
+    return {
+      type: 'erro',
+      title: (item.origem === 'servidor' ? 'Erro no servidor' : 'Erro no navegador') + (empresa ? ' — ' + empresa : ''),
+      detail: String(item.mensagem || '').slice(0, 300) + (item.url ? ' (' + item.url + ')' : ''),
+      at: item.criado_em,
+      actor: item.user_email || 'Sistema'
+    };
+  });
+  return ADMIN_CONSOLE.activities.concat(persistent, erros, adminConsoleOperationalActivities())
     .sort(function(a, b) { return new Date(b.at || 0) - new Date(a.at || 0); });
 }
 

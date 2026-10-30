@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
+  <script src="js/error-log.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <title>RESUTE Analytics</title>
   <meta name="description" content="RESUTE Analytics - Painel executivo de vendas, representantes e produtos da Varremaster." />
@@ -535,7 +536,7 @@
             <div class="admin-section-intro"><div><span>RASTREABILIDADE</span><h2>Registros e auditoria</h2><p>Eventos da sess&atilde;o atual e registros operacionais existentes no Supabase, sem credenciais ou tokens.</p></div><button class="admin-btn-secondary" onclick="adminConsoleLimparFiltroAuditoria()">Limpar filtros</button></div>
             <div class="admin-section-toolbar">
               <div class="admin-search-wrap"><input id="admin-audit-search" type="search" placeholder="Buscar evento, empresa ou respons&aacute;vel..." oninput="adminConsoleRenderAuditoria()"></div>
-              <select id="admin-audit-type" onchange="adminConsoleRenderAuditoria()"><option value="">Todos os eventos</option><option value="usuario">Usu&aacute;rios</option><option value="empresa">Empresas</option><option value="integracao">Integra&ccedil;&otilde;es</option><option value="sincronizacao">Sincroniza&ccedil;&otilde;es</option></select>
+              <select id="admin-audit-type" onchange="adminConsoleRenderAuditoria()"><option value="">Todos os eventos</option><option value="usuario">Usu&aacute;rios</option><option value="empresa">Empresas</option><option value="integracao">Integra&ccedil;&otilde;es</option><option value="sincronizacao">Sincroniza&ccedil;&otilde;es</option><option value="erro">Erros</option></select>
             </div>
             <div id="admin-audit-list" class="admin-audit-list"></div>
             <article class="admin-panel-card admin-migration-note"><div><span>AUDITORIA PERSISTENTE</span><h2>Registro somente para consulta</h2><p>Os registros desta tela n&atilde;o podem ser alterados pela interface.</p></div></article>

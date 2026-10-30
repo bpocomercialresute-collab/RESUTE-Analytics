@@ -53,6 +53,13 @@ test('autorizacao: rota fora da lista e negada', () => {
   assert.throws(() => P.assertAuthorized(superAdmin, url('/rest/v1/tabela_qualquer'), 'GET', null), /Rota nao permitida/);
 });
 
+test('autorizacao error_log: so super_admin le, ninguem escreve pelo navegador', () => {
+  assert.doesNotThrow(() => P.assertAuthorized(superAdmin, url('/rest/v1/error_log'), 'GET', null));
+  assert.throws(() => P.assertAuthorized(admin, url('/rest/v1/error_log'), 'GET', null), /Apenas super_admin/);
+  assert.throws(() => P.assertAuthorized(cliente, url('/rest/v1/error_log'), 'GET', null), /Apenas super_admin/);
+  assert.throws(() => P.assertAuthorized(superAdmin, url('/rest/v1/error_log'), 'POST', '[]'), /nao pode ser alterado/);
+});
+
 test('autorizacao metas: cliente le a propria empresa, nao escreve', () => {
   assert.doesNotThrow(() => P.assertAuthorized(cliente, url('/rest/v1/metas?empresa_id=eq.A'), 'GET', null));
   assert.throws(() => P.assertAuthorized(cliente, url('/rest/v1/metas?empresa_id=eq.A'), 'POST', '[{"empresa_id":"A"}]'), /Apenas super_admin ou admin/);
