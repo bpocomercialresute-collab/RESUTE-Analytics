@@ -230,10 +230,13 @@ async function _dreCarregarDados(empresaId) {
   // gravado pelo salvar na ordem em que a planilha foi colada, id desempata.
   var plano, lancamentos;
   try {
-    var resultados = await Promise.all([
+    // Mesmo problema ja corrigido 3 vezes no lado comercial: sem limite de
+    // tempo, uma falha de rede que nunca chega a rejeitar (so nunca resolve)
+    // deixava a tela de carregamento do DRE presa pra sempre.
+    var resultados = await dcComTimeout(Promise.all([
       _fetchAll(SUPA_URL + '/rest/v1/fin_dre_plano_contas' + qs + '&order=criado_em.asc,id.asc', headers),
       _fetchAll(SUPA_URL + '/rest/v1/fin_dre_lancamentos' + qs + '&order=criado_em.asc,id.asc', headers)
-    ]);
+    ]), 180000, 'O carregamento dos dados do DRE demorou mais de 3 minutos.');
     plano = resultados[0];
     lancamentos = resultados[1];
   } catch (e) {
@@ -991,7 +994,13 @@ function _dreLigarSalvarGrades(empresaId) {
   var btnLimparBD = document.getElementById('fin-dre-bd-limpar');
   if (btnLimparBD) {
     btnLimparBD.onclick = async function() {
-      if (!window.confirm('Apagar TODOS os lançamentos desta empresa no banco?\nEsta ação não pode ser desfeita.')) return;
+      var nomeEmpresaBD = _dreNomeEmpresa();
+      if (!window.confirm('APAGAR PERMANENTEMENTE todos os lançamentos de "' + nomeEmpresaBD + '" no banco?\n\nEsta ação NAO pode ser desfeita.')) return;
+      var confirmNomeBD = window.prompt('Digite o nome da empresa para confirmar:\n\n"' + nomeEmpresaBD + '"');
+      if (!confirmNomeBD || confirmNomeBD.trim() !== nomeEmpresaBD.trim()) {
+        _dreStatusGrade('fin-dre-status-bd', '✗ Nome não confere. Operação cancelada.', 'erro');
+        return;
+      }
       _dreStatusGrade('fin-dre-status-bd', 'Limpando...', '');
       try {
         await _dreApagarTudo('fin_dre_lancamentos', empresaId);
@@ -1059,7 +1068,13 @@ function _dreLigarSalvarGrades(empresaId) {
   var btnLimparPlano = document.getElementById('fin-dre-plano-limpar');
   if (btnLimparPlano) {
     btnLimparPlano.onclick = async function() {
-      if (!window.confirm('Apagar TODO o Plano de Contas desta empresa no banco?\nEsta ação não pode ser desfeita.')) return;
+      var nomeEmpresaPlano = _dreNomeEmpresa();
+      if (!window.confirm('APAGAR PERMANENTEMENTE o Plano de Contas de "' + nomeEmpresaPlano + '" no banco?\n\nEsta ação NAO pode ser desfeita.')) return;
+      var confirmNomePlano = window.prompt('Digite o nome da empresa para confirmar:\n\n"' + nomeEmpresaPlano + '"');
+      if (!confirmNomePlano || confirmNomePlano.trim() !== nomeEmpresaPlano.trim()) {
+        _dreStatusGrade('fin-dre-status-plano', '✗ Nome não confere. Operação cancelada.', 'erro');
+        return;
+      }
       _dreStatusGrade('fin-dre-status-plano', 'Limpando...', '');
       try {
         await _dreApagarTudo('fin_dre_plano_contas', empresaId);
