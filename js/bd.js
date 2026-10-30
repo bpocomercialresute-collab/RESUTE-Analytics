@@ -885,7 +885,7 @@ function bdUpdateVendaProduto() {
 
   const rows = relRows();
   if (!rows.length) {
-    pane.innerHTML = `<div class="rel-header-bar">${toggleBtnHtml()}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
+    pane.innerHTML = `<div class="rel-header-bar">${toggleBtnHtml(null, true)}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
     return;
   }
   const modoAgrupado = window.REL_VENDA_PRODUTO_MODO === 'agrupado';
@@ -1065,7 +1065,7 @@ function bdUpdateLaudoGrupo() {
 
   pane.innerHTML = `
     <div class="rel-header-bar">
-      ${toggleBtnHtml(['grupo'])}
+      ${toggleBtnHtml(['grupo'], true)}
       <div class="laudo-filtros">
         <div class="laudo-filtro-item">
           <label>TIPO</label>
@@ -1251,7 +1251,7 @@ function bdUpdateLaudoMarca() {
   if (!window.BD_DATA.rows.length) return;
   const rows = relRows();
   if (!rows.length) {
-    pane.innerHTML = `<div class="rel-header-bar">${toggleBtnHtml()}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
+    pane.innerHTML = `<div class="rel-header-bar">${toggleBtnHtml(null, true)}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
     return;
   }
   const anos = [...new Set(rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
@@ -1271,7 +1271,7 @@ function bdUpdateLaudoMarca() {
 
   const lista = [...pivot.entries()].sort((a,b)=>b[1].reduce((s,v)=>s+v,0)-a[1].reduce((s,v)=>s+v,0));
   let html = `<div class="rel-header-bar">
-      ${toggleBtnHtml()}
+      ${toggleBtnHtml(null, true)}
       <div class="rel-title">LAUDO POR MARCA — ${anoAtual}</div>
     </div>
     <div class="av-table-wrap" style="border-top:none"><table class="av-table">
@@ -1299,7 +1299,7 @@ function bdUpdateLaudoGruposAno() {
 
   const rows = relRows();
   if (!rows.length) {
-    pane.innerHTML = `<div class="rel-header-bar">${toggleBtnHtml()}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
+    pane.innerHTML = `<div class="rel-header-bar">${toggleBtnHtml(null, true)}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
     return;
   }
   const anos   = [...new Set(rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
@@ -1328,10 +1328,11 @@ function bdUpdateLaudoGruposAno() {
   const totGeral = Object.values(totAno).reduce((s,v)=>s+v,0);
 
   const CORES = ['#1C64C0','#2DD4BF','#059669','#D97706','#7C3AED','#475569'];
+  const tituloAnos = anos.length === 1 ? anos[0] : 'TODOS OS ANOS';
 
   let html = `<div class="rel-header-bar">
-    ${toggleBtnHtml()}
-    <div class="rel-title">LAUDO GRUPOS POR ANO — TODOS OS ANOS</div>
+    ${toggleBtnHtml(null, true)}
+    <div class="rel-title">LAUDO GRUPOS POR ANO — ${tituloAnos}</div>
   </div>
   <div class="av-table-wrap" style="border-top:none">
   <table class="av-table">
@@ -1394,12 +1395,13 @@ function bdUpdateLaudoGruposAno02() {
 
   const rows = relRows();
   if (!rows.length) {
-    pane.innerHTML = `<div class="rel-header-bar">${toggleBtnHtml()}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
+    pane.innerHTML = `<div class="rel-header-bar">${toggleBtnHtml(null, true)}<div class="rel-title">Sem dados para os filtros selecionados</div></div>`;
     return;
   }
   const anos = [...new Set(rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
-  if (anos.length < 2) { 
-    pane.innerHTML = '<div class="av-rel-placeholder"><p>Comparativo entre 2 anos</p><span>São necessários dados de pelo menos 2 anos diferentes</span></div>';
+  if (anos.length < 2) {
+    const dica = window.REL_FILTER.ano ? ' — tire o filtro de Ano acima pra comparar' : '';
+    pane.innerHTML = `<div class="rel-header-bar">${toggleBtnHtml(null, true)}<div class="rel-title">Comparativo entre 2 anos</div></div><div class="av-rel-placeholder"><p>Comparativo entre 2 anos</p><span>São necessários dados de pelo menos 2 anos diferentes${dica}</span></div>`;
     return;
   }
   const ano1 = anos[anos.length-2];
@@ -1415,7 +1417,7 @@ function bdUpdateLaudoGruposAno02() {
 
   const grupos = [...pivot.keys()].sort();
   let html = `<div class="rel-header-bar">
-      ${toggleBtnHtml()}
+      ${toggleBtnHtml(null, true)}
       <div class="rel-title">COMPARATIVO ${ano1} × ${ano2}</div>
     </div>
     <div class="av-table-wrap" style="border-top:none"><table class="av-table">
