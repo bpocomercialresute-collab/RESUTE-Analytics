@@ -32,7 +32,8 @@ MES_NOME.forEach((m,i) => { MES_IDX[m]=i; MES_IDX[String(i+1).padStart(2,'0')]=i
 
 // ── ESTADO DO FILTRO DO LAUDO_GRUPO ──────────────────────────────────────────
 window.LG = { tipo:'', grupo:'', subgrupo:'' };
-window.REL_FILTER = window.REL_FILTER || { vendedor:'', produto:[], cliente:'', grupo:'', marca:'' };
+window.REL_FILTER = window.REL_FILTER || { vendedor:'', produto:[], cliente:'', grupo:'', marca:'', ano:'' };
+window.REL_VP_SORT = window.REL_VP_SORT || { col: 'total', dir: 'desc' };
 window.REL_VENDA_PRODUTO_MODO = window.REL_VENDA_PRODUTO_MODO || 'detalhado';
 
 // Estado do dropdown de multi-seleção de produtos (mantido fora do REL_FILTER
@@ -75,6 +76,7 @@ function relRows() {
     if (f.cliente && g(r,'cliente') !== f.cliente) return false;
     if (f.grupo && (g(r,'grupo') || g(r,'grupoProd')) !== f.grupo) return false;
     if (f.marca && g(r,'marca') !== f.marca) return false;
+    if (f.ano && g(r,'ano') !== f.ano) return false;
     return true;
   });
 }
@@ -86,6 +88,7 @@ function relUnique(campo) {
     if (campo === 'cliente') return g(r,'cliente');
     if (campo === 'grupo') return g(r,'grupo') || g(r,'grupoProd');
     if (campo === 'marca') return g(r,'marca');
+    if (campo === 'ano') return g(r,'ano');
     return '';
   }).filter(Boolean);
   return [...new Set(vals)].sort((a,b)=>a.localeCompare(b));
@@ -97,7 +100,7 @@ function relSetFiltro(campo, valor) {
 }
 
 function relLimparFiltros() {
-  window.REL_FILTER = { vendedor:'', produto:[], cliente:'', grupo:'', marca:'' };
+  window.REL_FILTER = { vendedor:'', produto:[], cliente:'', grupo:'', marca:'', ano:'' };
   window.REL_PRODUTO_MULTI_OPEN = false;
   window.REL_PRODUTO_MULTI_BUSCA = '';
   relRenderAtual();
@@ -165,9 +168,26 @@ function relToggleProdutoItemPendente(valor, checked) {
   if (contagem) contagem.textContent = arr.length + ' marcado(s)';
 }
 
+// Produtos disponíveis pro dropdown: só os que aparecem com os OUTROS filtros
+// ativos (vendedor/cliente/grupo/marca/ano), senão "Marcar todos" marca
+// produto que nem existe na seleção filtrada em cima.
+function relProdutosDisponiveisFiltro() {
+  const f = window.REL_FILTER || {};
+  const rows = relBaseRows().filter(r => {
+    if (f.vendedor && g(r,'vendedor') !== f.vendedor) return false;
+    if (f.cliente && g(r,'cliente') !== f.cliente) return false;
+    if (f.grupo && (g(r,'grupo') || g(r,'grupoProd')) !== f.grupo) return false;
+    if (f.marca && g(r,'marca') !== f.marca) return false;
+    if (f.ano && g(r,'ano') !== f.ano) return false;
+    return true;
+  });
+  const vals = rows.map(r => g(r,'produto')).filter(Boolean);
+  return [...new Set(vals)].sort((a,b)=>a.localeCompare(b));
+}
+
 function relProdutoOpcoesVisiveis() {
   const busca = (window.REL_PRODUTO_MULTI_BUSCA || '').toLowerCase();
-  const todos = relUnique('produto');
+  const todos = relProdutosDisponiveisFiltro();
   return busca ? todos.filter(v => v.toLowerCase().includes(busca)) : todos;
 }
 
@@ -236,12 +256,13 @@ document.addEventListener('click', function(e) {
   }
 });
 
-function relFiltroHtml(ocultarCampos) {
+function relFiltroHtml(ocultarCampos, mostrarAno) {
   const ocultar = new Set(ocultarCampos || []);
   const filtrados = relRows().length;
   const total = relBaseRows().length;
   return `<div class="rep-filterbar">
     <div class="rep-filter-grid rel-filter-grid">
+      ${mostrarAno ? relFiltroSelect('ano','Ano') : ''}
       ${ocultar.has('vendedor') ? '' : relFiltroSelect('vendedor','Vendedor')}
       ${ocultar.has('produto') ? '' : relFiltroProdutoMulti()}
       ${ocultar.has('cliente') ? '' : relFiltroSelect('cliente','Cliente')}
@@ -709,13 +730,13 @@ function bdUpdateProdutoServico() {
 
 // ── RELATÓRIOS ────────────────────────────────────────────────────────────────
 // ── BOTÃO TOGGLE QTD/VALOR (HTML reutilizável) ───────────────────────────────
-function toggleBtnHtml(ocultarCampos) {
+function toggleBtnHtml(ocultarCampos, mostrarAno) {
   return `<div class="rep-report-tools">
     <div class="rel-toggle">
       <button class="rel-toggle-btn ${window.RELATORIO_MODO==='valor'?'active':''}" onclick="toggleModo('valor')">VALOR</button>
       <button class="rel-toggle-btn ${window.RELATORIO_MODO==='qtd'?'active':''}" onclick="toggleModo('qtd')">QTD</button>
     </div>
-    ${relFiltroHtml(ocultarCampos)}
+    ${relFiltroHtml(ocultarCampos, mostrarAno)}
   </div>`;
 }
 
@@ -723,6 +744,26 @@ function toggleBtnHtml(ocultarCampos) {
 function relShareCell(valor, total) {
   const pct = total > 0 ? (valor / total) * 100 : 0;
   return `${pct.toFixed(1)}%`;
+}
+
+function relVendaProdutoOrdenar(col) {
+  const atual = window.REL_VP_SORT || { col: 'total', dir: 'desc' };
+  if (atual.col === col) {
+    window.REL_VP_SORT = { col: col, dir: atual.dir === 'desc' ? 'asc' : 'desc' };
+  } else {
+    window.REL_VP_SORT = { col: col, dir: col === 'produto' ? 'asc' : 'desc' };
+  }
+  bdUpdateVendaProduto();
+}
+
+function relVpSortIcon(col) {
+  const sort = window.REL_VP_SORT || { col: 'total', dir: 'desc' };
+  if (sort.col !== col) return '';
+  return sort.dir === 'asc' ? ' ▲' : ' ▼';
+}
+
+function relVpSortTh(col, label) {
+  return `<th class="rel-th-sort" onclick="relVendaProdutoOrdenar('${col}')">${label}${relVpSortIcon(col)}</th>`;
 }
 
 function relToggleVendaProduto(modo) {
@@ -868,10 +909,9 @@ function bdUpdateVendaProduto() {
     totalGeral += v;
   });
 
-  const lista = [...pivot.entries()].sort((a,b)=>b[1].total-a[1].total);
+  const lista = [...pivot.entries()];
   const totMes = Array(12).fill(0);
   lista.forEach(([,d]) => d.meses.forEach((v,i)=>totMes[i]+=v));
-  const maxCell = Math.max(1, ...lista.flatMap(([,d]) => d.meses), ...totMes);
   const totalProdutos = lista.length;
   const ticketMedioProduto = totalProdutos ? totalGeral / totalProdutos : 0;
 
@@ -881,8 +921,36 @@ function bdUpdateVendaProduto() {
     return ((v - totMes[i-1]) / totMes[i-1]) * 100;
   });
 
+  // Registros com média já calculada, prontos pra ordenar por qualquer coluna.
+  const registros = lista.map(([p,d]) => {
+    const ativos = d.meses.filter(v=>v>0);
+    const media  = ativos.length ? ativos.reduce((s,v)=>s+v,0)/ativos.length : 0;
+    return { p, d, media };
+  });
+
+  const sort = window.REL_VP_SORT || { col: 'total', dir: 'desc' };
+  registros.sort((a,b) => {
+    let va, vb;
+    if (sort.col === 'produto') {
+      va = (a.d.label || a.p || '').toUpperCase();
+      vb = (b.d.label || b.p || '').toUpperCase();
+      const cmp = va.localeCompare(vb);
+      return sort.dir === 'asc' ? cmp : -cmp;
+    }
+    const mMes = /^m(\d+)$/.exec(sort.col);
+    if (mMes) {
+      const i = parseInt(mMes[1], 10);
+      va = a.d.meses[i]; vb = b.d.meses[i];
+    } else if (sort.col === 'media') {
+      va = a.media; vb = b.media;
+    } else {
+      va = a.d.total; vb = b.d.total; // total e % seguem a mesma ordem
+    }
+    return sort.dir === 'asc' ? va - vb : vb - va;
+  });
+
   let html = `<div class="rel-header-bar">
-      ${toggleBtnHtml()}
+      ${toggleBtnHtml(null, true)}
       <div class="rel-title">VENDA POR PRODUTO - ${tituloPeriodo}</div>
     </div>
     ${relVendaProdutoTabs()}
@@ -895,14 +963,14 @@ function bdUpdateVendaProduto() {
     <div class="av-table-wrap" style="border-top:none"><table class="av-table">
     <thead>
       <tr class="rel-subtotal-row">
-        <td colspan="3">SUBTOTAL MENSAL</td>
+        <td>SUBTOTAL MENSAL</td>
         ${totMes.map(v=>`<td>${fmtMetrica(v)}</td>`).join('')}
-        <td></td>
+        <td>${fmtMetrica(ticketMedioProduto)}</td>
         <td><strong>${fmtMetricaFull(totalGeral)}</strong></td>
         <td></td>
       </tr>
       <tr class="rel-evol-row">
-        <td colspan="3">EVOLUÇÃO MENSAL</td>
+        <td>EVOLUÇÃO MENSAL</td>
         ${evol.map(e=>{
           if (e===null) return '<td></td>';
           const cls = e>=0?'up':'down';
@@ -912,19 +980,19 @@ function bdUpdateVendaProduto() {
         <td colspan="3"></td>
       </tr>
       <tr>
-        <th>PRODUTO</th><th>GRUPO</th><th>MARCA</th>
-        ${MESES_LABEL.map(m=>`<th>${m}</th>`).join('')}
-        <th>MEDIA</th><th>TOT</th><th>%</th>
+        ${relVpSortTh('produto','PRODUTO')}
+        ${MESES_LABEL.map((m,i)=>relVpSortTh('m'+i, m)).join('')}
+        ${relVpSortTh('media','MEDIA')}
+        ${relVpSortTh('total','TOT')}
+        ${relVpSortTh('pct','%')}
       </tr>
     </thead><tbody>`;
 
-  lista.forEach(([p,d]) => {
-    const ativos = d.meses.filter(v=>v>0);
-    const media  = ativos.length ? ativos.reduce((s,v)=>s+v,0)/ativos.length : 0;
-    const pct    = totalGeral > 0 ? ((d.total/totalGeral)*100).toFixed(1) : '0.0';
+  registros.forEach(function(reg) {
+    const d = reg.d, p = reg.p, media = reg.media;
     const nomeProduto = (d.label || p || '').toUpperCase();
     html += `<tr>
-      <td><span class="rel-prod-name">${relEsc(nomeProduto)}</span></td><td>${relEsc((d.grupo || 'Sem grupo').toUpperCase())}</td><td>${relEsc(d.marca || '—')}</td>
+      <td><span class="rel-prod-name">${relEsc(nomeProduto)}</span></td>
       ${d.meses.map(v=>`<td>${fmtMetrica(v)}</td>`).join('')}
       <td>${fmtMetrica(media)}</td>
       <td><strong>${fmtMetricaFull(d.total)}</strong></td>

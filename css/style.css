@@ -874,6 +874,13 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   border-bottom: 1px solid rgba(96,165,250,.16);
   white-space: nowrap;
 }
+.rel-th-sort {
+  cursor: pointer;
+  user-select: none;
+}
+.rel-th-sort:hover {
+  color: #cfe0f5;
+}
 .av-table td,
 .rep-tbl td {
   padding: 9px 12px;
