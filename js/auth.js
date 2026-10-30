@@ -1778,7 +1778,10 @@ function _dcSlimVenda(v) {
 // navegador montava e tentava subir 13 a 27 MB (163 a 513 ms de thread
 // principal em 30k a 60k linhas) para receber 413. Estima o tamanho por
 // amostra, sem montar nada, e nem tenta quando nao cabe.
-var _DC_SNAPSHOT_MAX_ENVELOPE_BYTES = 4000000;
+// Limite real do corpo aceito pelo proxy: api/secure-proxy.js, checagem de
+// contentLength, hoje 2 * 1024 * 1024 (2 MB). Fica bem abaixo disso (nao
+// "quase no limite") porque o calculo aqui e so uma estimativa por amostra.
+var _DC_SNAPSHOT_MAX_ENVELOPE_BYTES = 1700000;
 var _DC_SNAPSHOT_FATOR_ENVELOPE = 1.17;
 
 function _dcSnapshotCabe(vendas) {
