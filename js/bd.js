@@ -245,6 +245,103 @@ function relFiltroMultiField(campo, label) {
     + '</div>';
 }
 
+// ── PRESETS DE FILTRO SALVOS ────────────────────────────────────────────────
+// Salva a combinação atual de REL_FILTER com um nome, pra reaplicar com um
+// clique depois em vez de remontar os filtros toda vez. Guardado no
+// localStorage do navegador, por empresa (cada empresa ativa tem sua própria
+// lista — presets de uma não aparecem nem fazem sentido pra outra).
+window.REL_PRESETS_OPEN = window.REL_PRESETS_OPEN || false;
+
+function relPresetsChave() {
+  var eid = (typeof EMPRESA_ATIVA !== 'undefined' && EMPRESA_ATIVA && EMPRESA_ATIVA.empresa_id) || 'geral';
+  return 'resute_rel_presets_' + eid;
+}
+
+function relPresetsCarregar() {
+  try {
+    var lista = JSON.parse(localStorage.getItem(relPresetsChave()) || '[]');
+    return Array.isArray(lista) ? lista : [];
+  } catch (e) { return []; }
+}
+
+function relPresetsGravarLista(lista) {
+  try { localStorage.setItem(relPresetsChave(), JSON.stringify(lista)); } catch (e) {}
+}
+
+function relPresetsAbrir(ev) {
+  if (ev) ev.stopPropagation();
+  window.REL_PRESETS_OPEN = true;
+  relRenderAtual();
+}
+
+function relPresetsFechar() {
+  window.REL_PRESETS_OPEN = false;
+  relRenderAtual();
+}
+
+function relPresetsSalvarAtual() {
+  var nome = prompt('Nome pra esse filtro:');
+  if (!nome) return;
+  nome = nome.trim();
+  if (!nome) return;
+  var filtroAtual = {};
+  window.REL_MULTI_CAMPOS.forEach(function(campo) { filtroAtual[campo] = relSelecionados(campo).slice(); });
+  var lista = relPresetsCarregar();
+  var i = lista.findIndex(function(p) { return p.nome.toLowerCase() === nome.toLowerCase(); });
+  var registro = { nome: nome, filtro: filtroAtual, salvo_em: Date.now() };
+  if (i >= 0) lista[i] = registro; else lista.push(registro);
+  relPresetsGravarLista(lista);
+  relRenderAtual();
+}
+
+function relPresetsAplicar(nome) {
+  var preset = relPresetsCarregar().find(function(p) { return p.nome === nome; });
+  if (!preset) return;
+  var novo = {};
+  window.REL_MULTI_CAMPOS.forEach(function(campo) { novo[campo] = ((preset.filtro || {})[campo] || []).slice(); });
+  window.REL_FILTER = novo;
+  window.REL_MULTI_STATE = {};
+  window.REL_PRESETS_OPEN = false;
+  relRenderAtual();
+}
+
+function relPresetsApagar(nome, ev) {
+  if (ev) ev.stopPropagation();
+  if (!confirm('Apagar o filtro salvo "' + nome + '"?')) return;
+  relPresetsGravarLista(relPresetsCarregar().filter(function(p) { return p.nome !== nome; }));
+  relRenderAtual();
+}
+
+function relPresetsPainelHtml() {
+  var lista = relPresetsCarregar();
+  var itens = lista.map(function(p) {
+    return '<div class="rel-preset-item">'
+      + '<button type="button" class="rel-preset-aplicar" data-nome="' + relEsc(p.nome) + '" onclick="relPresetsAplicar(this.dataset.nome)">' + relEsc(p.nome) + '</button>'
+      + '<button type="button" class="rel-preset-apagar" data-nome="' + relEsc(p.nome) + '" title="Apagar" onclick="relPresetsApagar(this.dataset.nome, event)">✕</button>'
+      + '</div>';
+  }).join('') || '<div class="rel-multi-empty">Nenhum filtro salvo ainda</div>';
+
+  return '<div class="rel-multi-panel rel-presets-panel" id="rel-presets-panel">'
+    +   '<div class="rel-multi-lista">' + itens + '</div>'
+    +   '<div class="rel-multi-actions">'
+    +     '<button type="button" onclick="relPresetsSalvarAtual()">Salvar filtro atual...</button>'
+    +   '</div>'
+    + '</div>';
+}
+
+function relFiltroPresetsField() {
+  return '<div class="rep-filter-field rel-multi-field">'
+    + '<span>Filtros salvos</span>'
+    + '<div class="rel-multi-wrap rel-presets-wrap">'
+    +   '<button type="button" class="rel-multi-btn" onclick="relPresetsAbrir(event)">'
+    +     '<span class="rel-multi-btn-label">Presets</span>'
+    +     '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>'
+    +   '</button>'
+    +   (window.REL_PRESETS_OPEN ? relPresetsPainelHtml() : '')
+    + '</div>'
+    + '</div>';
+}
+
 document.addEventListener('click', function(e) {
   window.REL_MULTI_CAMPOS.forEach(function(campo) {
     const st = relMultiState(campo);
@@ -252,6 +349,9 @@ document.addEventListener('click', function(e) {
       relFecharMultiDropdown(campo);
     }
   });
+  if (window.REL_PRESETS_OPEN && !e.target.closest('.rel-presets-wrap')) {
+    relPresetsFechar();
+  }
 });
 
 function relFiltroHtml(ocultarCampos, mostrarAno) {
@@ -260,6 +360,7 @@ function relFiltroHtml(ocultarCampos, mostrarAno) {
   const total = relBaseRows().length;
   return `<div class="rep-filterbar">
     <div class="rep-filter-grid rel-filter-grid">
+      ${relFiltroPresetsField()}
       ${mostrarAno ? relFiltroMultiField('ano','Ano') : ''}
       ${ocultar.has('vendedor') ? '' : relFiltroMultiField('vendedor','Vendedor')}
       ${ocultar.has('produto') ? '' : relFiltroMultiField('produto','Produto')}
