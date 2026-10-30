@@ -665,6 +665,29 @@ function bdUpdateRepresentantes() {
   const repData = grd.getData().filter(r=>r&&r[2]&&r[2]!=='');
   if (!repData.length) return;
 
+  // Indice vendedor|data -> contagem, montado numa unica passada pela base
+  // inteira. Antes, pra cada representante x cada uma das 7 datas, filtrava
+  // TODA a base de novo (window.BD_DATA.rows.filter(...)) -- O(representantes
+  // x 7 x linhas), lento com base grande. Replica a mesma regra de antes:
+  // linha conta pra uma data se SAIDA bate OU EMISSAO bate (as duas, se
+  // forem datas diferentes e as duas estiverem entre as 7 datas).
+  const datasSet = new Set(datas);
+  const contagem = {};
+  window.BD_DATA.rows.forEach(br => {
+    const vend = g(br,'vendedor');
+    if (!vend) return;
+    const saida = g(br,'saida');
+    const emissao = g(br,'emissao');
+    if (saida && datasSet.has(saida)) {
+      const chave = vend + '|' + saida;
+      contagem[chave] = (contagem[chave] || 0) + 1;
+    }
+    if (emissao && emissao !== saida && datasSet.has(emissao)) {
+      const chave = vend + '|' + emissao;
+      contagem[chave] = (contagem[chave] || 0) + 1;
+    }
+  });
+
   const newData = repData.map(r => {
     const nome = String(r[2]||'').trim();
     const newRow = [...r];
@@ -672,9 +695,7 @@ function bdUpdateRepresentantes() {
     while (newRow.length < 18) newRow.push('');
     let totMix = 0;
     datas.forEach((dt, i) => {
-      const count = window.BD_DATA.rows.filter(br =>
-        (g(br,'vendedor')===nome) && (g(br,'saida')===dt || g(br,'emissao')===dt)
-      ).length;
+      const count = contagem[nome + '|' + dt] || 0;
       newRow[10+i] = count > 0 ? String(count) : '';
       totMix += count;
     });
@@ -809,14 +830,33 @@ function bdUpdateProdutoServico() {
   const datas = [...new Set(window.BD_DATA.rows.map(r=>g(r,'saida')||g(r,'emissao')).filter(Boolean))]
     .filter(d=>parseDate(d)).sort((a,b)=>parseDate(a)-parseDate(b)).slice(-7);
 
+  // Mesma otimizacao de bdUpdateRepresentantes: indice produto|data -> soma
+  // de qtd, numa unica passada, em vez de filtrar a base inteira pra cada
+  // produto x cada uma das 7 datas (O(produtos x 7 x linhas)).
+  const datasSet = new Set(datas);
+  const somaQtd = {};
+  window.BD_DATA.rows.forEach(br => {
+    const prod = g(br,'produto');
+    if (!prod) return;
+    const qtd = parseFloat(g(br,'qtd')) || 1;
+    const saida = g(br,'saida');
+    const emissao = g(br,'emissao');
+    if (saida && datasSet.has(saida)) {
+      const chave = prod + '|' + saida;
+      somaQtd[chave] = (somaQtd[chave] || 0) + qtd;
+    }
+    if (emissao && emissao !== saida && datasSet.has(emissao)) {
+      const chave = prod + '|' + emissao;
+      somaQtd[chave] = (somaQtd[chave] || 0) + qtd;
+    }
+  });
+
   const newData = prodData.map(r => {
     const desc = String(r[2]||'').trim();
     const newRow = [...r];
     let tot = 0;
     datas.forEach((dt, i) => {
-      const count = window.BD_DATA.rows.filter(br =>
-        (g(br,'produto')===desc) && (g(br,'saida')===dt || g(br,'emissao')===dt)
-      ).reduce((s,br) => s + (parseFloat(g(br,'qtd'))||1), 0);
+      const count = somaQtd[desc + '|' + dt] || 0;
       while (newRow.length < 8+i+1) newRow.push('');
       newRow[8+i] = count > 0 ? String(count) : '';
       tot += count;
