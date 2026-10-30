@@ -1950,6 +1950,16 @@ async function _dcRevalidarCacheBanco(eid, lsKey, entrada, loadSequence, signal)
     if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
     if (!Array.isArray(vendas) || !vendas.length) return;
     _dcGuardarCacheBanco(lsKey, entrada.origem, vendas);
+    // Essa revalidacao so atualizava o IndexedDB LOCAL -- o snapshot
+    // compartilhado no Supabase (lido por qualquer outro navegador/sessao
+    // dessa empresa) nunca era atualizado de novo depois do primeiro save,
+    // porque esse era o UNICO outro lugar que chamava dcSalvarSnapshotCliente.
+    // Resultado: uma vez que existisse QUALQUER snapshot (mesmo stale), ele
+    // ficava congelado pra sempre pra todo mundo, mesmo com o fetch completo
+    // rodando aqui a cada vez que a assinatura mudasse.
+    dcSalvarSnapshotCliente(eid, entrada.origem, vendas).catch(function(e) {
+      console.warn('[ReportCache] Snapshot do cliente nao foi atualizado:', e);
+    });
     DC_RAW = [];
     DC_DATA = [];
     dcAplicarVendasCarregadas(vendas);
