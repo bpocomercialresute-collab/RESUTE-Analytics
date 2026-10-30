@@ -3381,7 +3381,11 @@ function dcChartEvolucao(rows) {
     porAnoMes[ano][m] = (porAnoMes[ano][m] || 0) + dcValorLinha(r);
   });
   var anos = Object.keys(porAnoMes).sort();
-  var cores = ['#1C64C0','#E53935','#F9A825','#2E7D32','#7B1FA2','#0E1424','#FF6F00','#00838F'];
+  // Paleta categorica validada (skill dataviz): mantem o azul da marca na
+  // posicao 1, as demais trocadas por nao passarem no validador (amarelo e
+  // teal/preto originais ficavam sem contraste/croma suficiente no fundo
+  // claro do dashboard do cliente).
+  var cores = ['#1C64C0','#eb6834','#1baf7a','#eda100','#e87ba4','#008300','#6250d6','#e34948'];
   var datasets = anos.map(function(ano, i) {
     var d = [];
     for (var m = 1; m <= 12; m++) d.push(porAnoMes[ano][m] || 0);

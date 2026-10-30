@@ -1177,7 +1177,9 @@ function bdUpdateLaudoGrupo() {
   }
 
   const titulo = window.LG.grupo || 'TODOS OS GRUPOS';
-  const CORES  = ['#1C64C0','#2DD4BF','#059669','#D97706','#7C3AED','#475569'];
+  // Paleta categorica validada (skill dataviz): teal e slate originais
+  // nao passavam no contraste/croma contra o fundo branco desta tela.
+  const CORES  = ['#1C64C0','#eb6834','#1baf7a','#eda100','#e87ba4','#008300'];
   const anosColors = Object.fromEntries(anos.map((a,i)=>[a, CORES[i%CORES.length]]));
 
   // Pivot mês × ano
@@ -1467,7 +1469,7 @@ function bdUpdateLaudoGruposAno() {
   anos.forEach(a => { totAno[a] = grupos.reduce((s,gr) => s + pivot[gr][a].reduce((s2,v)=>s2+v,0), 0); });
   const totGeral = Object.values(totAno).reduce((s,v)=>s+v,0);
 
-  const CORES = ['#1C64C0','#2DD4BF','#059669','#D97706','#7C3AED','#475569'];
+  const CORES = ['#1C64C0','#eb6834','#1baf7a','#eda100','#e87ba4','#008300'];
   const tituloAnos = anos.length === 1 ? anos[0] : 'TODOS OS ANOS';
 
   let html = `<div class="rel-header-bar">
