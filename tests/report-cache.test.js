@@ -168,6 +168,34 @@ test('ReportCache: partes incompletas (faltando uma) nao devolve dado parcial, d
   assert.equal(lido, null);
 });
 
+test('ReportCache: getLatestRapido so le o primeiro pedaco, marca parcial=true e avisa o total de partes', async () => {
+  const servidor = criarServidor();
+  const RC = carregar(servidor);
+  await RC.saveChunked(
+    { empresa_id: 'E1', tipo: 'dashboard_cliente', origem: 'api', total_registros: 5, gerado_em: 'agora' },
+    [[{ id: 1 }, { id: 2 }], [{ id: 3 }], [{ id: 4 }, { id: 5 }]]
+  );
+
+  const antesDasChamadas = servidor.linhas.length;
+  const rapido = await RC.getLatestRapido('E1', 'dashboard_cliente', RC.cacheKey('api'));
+  assert.deepEqual(JSON.parse(JSON.stringify(rapido.dados.vendas)), [{ id: 1 }, { id: 2 }]);
+  assert.equal(rapido.dados.parcial, true);
+  assert.equal(rapido.dados.partes_total, 3);
+  assert.equal(rapido.dados.total_registros, 5, 'total_registros e o total completo, mesmo so lendo 1 pedaco');
+  assert.equal(servidor.linhas.length, antesDasChamadas, 'leitura nao deveria criar/alterar linha nenhuma');
+});
+
+test('ReportCache: getLatestRapido num snapshot sem divisao devolve completo direto, sem parcial', async () => {
+  const RC = carregar(criarServidor());
+  await RC.save({
+    empresa_id: 'E1', tipo: 'dashboard_cliente', cache_key: RC.cacheKey('api'), origem: 'api',
+    total_registros: 2, dados: { vendas: [{ id: 1 }, { id: 2 }], gerado_em: 'agora' }
+  });
+  const rapido = await RC.getLatestRapido('E1', 'dashboard_cliente', RC.cacheKey('api'));
+  assert.deepEqual(JSON.parse(JSON.stringify(rapido.dados.vendas)), [{ id: 1 }, { id: 2 }]);
+  assert.equal(rapido.dados.parcial, undefined);
+});
+
 test('ReportCache: empresas diferentes nunca se misturam (mesmo tipo/origem)', async () => {
   const servidor = criarServidor();
   const RC = carregar(servidor);

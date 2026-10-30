@@ -1759,9 +1759,15 @@ async function _dcIdbDelete(key) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// criado_em precisa estar aqui: e o campo que _dcAssinaturaLocal usa pra
+// saber se o snapshot esta desatualizado (ver mais abaixo). Sem ele, todo
+// snapshot lido do Supabase gerava assinatura null pra sempre -- a
+// revalidacao em segundo plano (que compara contra a tabela de verdade e
+// salva um snapshot novo se mudou) nunca disparava pra dado vindo do
+// snapshot, so pro cache local vindo do fetch completo.
 var _DC_SLIM_FIELDS = ['id_externo','num_pedido','produto','qtd','dt_emissao','dt_saida',
   'valor','vendedor','industria','cliente','grupo','grupo_produto','marca','familia',
-  'uf','cidade','ano','mes'];
+  'uf','cidade','ano','mes','criado_em'];
 
 function _dcSlimVenda(v) {
   var out = {};
@@ -1802,20 +1808,31 @@ function _dcSnapshotCabe(vendas) {
 // conseguir salvar snapshot em pedacos (ReportCache.saveChunked). Mesma
 // estimativa por amostra de _dcSnapshotCabe, so que calculando quantas
 // linhas cabem por pedaco em vez de so dizer sim/nao pro total.
+//
+// Ordena do mais recente pro mais antigo ANTES de dividir, de proposito:
+// o pedaco 0 fica com o periodo mais recente. ReportCache.getLatestRapido
+// le so esse primeiro pedaco pra pintar a tela rapido, sem esperar os
+// outros -- empresa grande (tipo 62 mil linhas) nao precisa transferir tudo
+// de uma vez so pra mostrar o painel.
 function _dcDividirSlimEmPedacos(slim) {
   var n = slim.length;
   if (!n) return [];
+  var ordenado = slim.slice().sort(function(a, b) {
+    var da = a.dt_saida || a.dt_emissao || '';
+    var db = b.dt_saida || b.dt_emissao || '';
+    return da < db ? 1 : (da > db ? -1 : 0);
+  });
   var amostra = Math.min(n, 300);
   var passo = n / amostra;
   var bytes = 0;
   for (var i = 0; i < amostra; i++) {
-    bytes += JSON.stringify(slim[Math.floor(i * passo)]).length + 1;
+    bytes += JSON.stringify(ordenado[Math.floor(i * passo)]).length + 1;
   }
   var bytesPorLinha = (bytes / amostra) * _DC_SNAPSHOT_FATOR_ENVELOPE;
   var linhasPorPedaco = Math.max(1, Math.floor(_DC_SNAPSHOT_MAX_ENVELOPE_BYTES / Math.max(1, bytesPorLinha)));
   var pedacos = [];
   for (var offset = 0; offset < n; offset += linhasPorPedaco) {
-    pedacos.push(slim.slice(offset, offset + linhasPorPedaco));
+    pedacos.push(ordenado.slice(offset, offset + linhasPorPedaco));
   }
   return pedacos;
 }
@@ -1972,6 +1989,39 @@ async function _dcRevalidarCacheBanco(eid, lsKey, entrada, loadSequence, signal)
   }
 }
 
+// Completa em segundo plano um snapshot que foi lido PARCIAL (so o periodo
+// mais recente, via ReportCache.getLatestRapido -- ver dcCarregarDados).
+// Busca o snapshot inteiro, aplica, e so entao confere frescor contra a
+// tabela de verdade (a assinatura precisa do total completo de linhas pra
+// bater com o que _dcAssinaturaBanco calcula, nao faz sentido comparar com
+// so um pedaco).
+async function _dcCompletarSnapshotParcial(eid, lsKey, origem, geradoEmParcial, loadSequence, signal) {
+  try {
+    var completo = window.ReportCache
+      ? await window.ReportCache.getLatest(eid, 'dashboard_cliente', window.ReportCache.cacheKey(origem))
+      : null;
+    if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
+    if (!completo || !completo.dados || !Array.isArray(completo.dados.vendas) || !completo.dados.vendas.length) return;
+    var vendas = completo.dados.vendas;
+    var geradoEm = completo.dados.gerado_em || geradoEmParcial;
+    var assinatura = _dcAssinaturaLocal(vendas);
+    var entrada = { fonte: 'banco', origem: origem, assinatura: assinatura, gerado_em: geradoEm, salvo_em: Date.now(), vendas: vendas };
+    _dcIdbSet(lsKey, entrada);
+    DC_RAW = [];
+    DC_DATA = [];
+    dcAplicarVendasCarregadas(vendas);
+    if ((DC_DATA || []).length) {
+      dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
+    }
+    if (assinatura) {
+      _dcRevalidarCacheBanco(eid, lsKey, entrada, loadSequence, signal);
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+    console.warn('[dashboard] completar snapshot parcial falhou:', e);
+  }
+}
+
 async function _dcAtualizarCacheBackground(eid, lsKey, localGeradoEm, loadSequence) {
   try {
     var snap = window.ReportCache
@@ -2054,8 +2104,13 @@ async function dcCarregarDados(empresa_id_param) {
     // Mesmo problema do IndexedDB: sem limite de tempo, uma falha de rede que
     // nem chega a rejeitar (so nunca resolve) travava aqui tambem, antes de
     // chegar na busca completa do banco.
+    // getLatestRapido: pra snapshot dividido em pedacos (empresa grande), le
+    // SO o periodo mais recente (1 pedaco) em vez de remontar tudo -- pinta
+    // a tela rapido, completa o historico mais antigo depois, em segundo
+    // plano (_dcCompletarSnapshotParcial). Snapshot que nao foi dividido
+    // (coube numa linha so) ja vem completo mesmo, sem diferenca de antes.
     var snapshotRapido = window.ReportCache
-      ? await dcComTimeout(window.ReportCache.getLatest(eid, 'dashboard_cliente', null), 25000, 'snapshot lento').catch(function() { return null; })
+      ? await dcComTimeout(window.ReportCache.getLatestRapido(eid, 'dashboard_cliente', null), 25000, 'snapshot lento').catch(function() { return null; })
       : null;
     _dcMedir('snapshot conferido (' + (snapshotRapido && snapshotRapido.dados && Array.isArray(snapshotRapido.dados.vendas) ? snapshotRapido.dados.vendas.length : 0) + ' linhas)');
     if (loadSequence !== DC_LOAD_SEQUENCE || eid !== DC_ACTIVE_COMPANY) return;
@@ -2063,23 +2118,30 @@ async function dcCarregarDados(empresa_id_param) {
       var _supaVendas = snapshotRapido.dados.vendas;
       var _supaEm = snapshotRapido.dados.gerado_em || new Date().toISOString();
       var _supaOrigem = snapshotRapido.dados.origem || 'manual';
-      // Mesmo com snapshot sempre atualizavel agora (inclusive em pedacos,
-      // pra empresa grande), sempre existe uma janela entre o ultimo save e
-      // agora em que a tabela pode ter mudado. A unica checagem de frescor
-      // antiga comparava snapshot contra o PROPRIO snapshot (nunca muda,
-      // sempre "igual") -- trata como o cache do banco: guarda com
-      // assinatura e confere contra a tabela de verdade agora mesmo, em
-      // segundo plano.
-      var _supaAssinatura = _dcAssinaturaLocal(_supaVendas);
-      var _supaEntrada = { fonte: 'banco', origem: _supaOrigem, assinatura: _supaAssinatura, gerado_em: _supaEm, salvo_em: Date.now(), vendas: _supaVendas };
-      _dcIdbSet(_dcLsKey, _supaEntrada);
+      var _supaParcial = !!snapshotRapido.dados.parcial;
+
       dcAplicarVendasCarregadas(_supaVendas);
       dcCarregarUltimaSync(eid).catch(function() {});
       if ((DC_DATA || []).length) {
-        dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual', true);
+        dcStatus('OK ' + DC_DATA.length.toLocaleString('pt-BR') + ' registros no recorte atual' + (_supaParcial ? ' (completando histórico...)' : ''), true);
       }
-      if (_supaAssinatura) {
-        _dcRevalidarCacheBanco(eid, _dcLsKey, _supaEntrada, loadSequence, currentSignal);
+
+      if (_supaParcial) {
+        _dcCompletarSnapshotParcial(eid, _dcLsKey, _supaOrigem, _supaEm, loadSequence, currentSignal);
+      } else {
+        // Mesmo com snapshot sempre atualizavel agora (inclusive em pedacos,
+        // pra empresa grande), sempre existe uma janela entre o ultimo save e
+        // agora em que a tabela pode ter mudado. A unica checagem de frescor
+        // antiga comparava snapshot contra o PROPRIO snapshot (nunca muda,
+        // sempre "igual") -- trata como o cache do banco: guarda com
+        // assinatura e confere contra a tabela de verdade agora mesmo, em
+        // segundo plano.
+        var _supaAssinatura = _dcAssinaturaLocal(_supaVendas);
+        var _supaEntrada = { fonte: 'banco', origem: _supaOrigem, assinatura: _supaAssinatura, gerado_em: _supaEm, salvo_em: Date.now(), vendas: _supaVendas };
+        _dcIdbSet(_dcLsKey, _supaEntrada);
+        if (_supaAssinatura) {
+          _dcRevalidarCacheBanco(eid, _dcLsKey, _supaEntrada, loadSequence, currentSignal);
+        }
       }
       return;
     }

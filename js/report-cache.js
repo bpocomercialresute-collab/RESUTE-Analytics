@@ -49,15 +49,13 @@
     return 'latest:' + String(origem || 'manual').toLowerCase();
   }
 
-  async function getLatest(empresaId, tipo, key) {
+  async function buscarLinha(empresaId, tipo, key) {
     if (!empresaId || !tipo || !supaUrl()) return null;
     var url = supaUrl() + '/rest/v1/' + TABLE +
       '?empresa_id=eq.' + encodeURIComponent(empresaId) +
       '&tipo=eq.' + encodeURIComponent(tipo) +
       (key ? '&cache_key=eq.' + encodeURIComponent(key) : '') +
       '&select=*&order=atualizado_em.desc&limit=1';
-
-    var row;
     try {
       var resp = await fetch(url, { headers: headers() });
       var text = await readText(resp);
@@ -66,19 +64,24 @@
         throw new Error('Snapshot indisponivel: HTTP ' + resp.status + ' - ' + text.slice(0, 180));
       }
       var rows = safeParse(text, []);
-      row = Array.isArray(rows) && rows.length ? rows[0] : null;
+      return Array.isArray(rows) && rows.length ? rows[0] : null;
     } catch (e) {
-      console.warn('[ReportCache:getLatest]', e);
+      console.warn('[ReportCache:buscarLinha]', e);
       return null;
     }
+  }
+
+  async function getLatest(empresaId, tipo, key) {
+    var row = await buscarLinha(empresaId, tipo, key);
 
     // Snapshot normal (coube numa linha so, ou linha antiga de antes dessa
     // mudanca): devolve direto, igual sempre foi.
     if (!row || !row.dados || !row.dados.manifesto) return row;
 
     // Manifesto: empresa grande demais pra uma linha, dividido em partes.
-    // Busca e remonta antes de devolver -- quem chamou getLatest nunca
-    // precisa saber que isso existe.
+    // Busca e remonta TODAS antes de devolver -- quem chamou getLatest nunca
+    // precisa saber que isso existe. Pra um primeiro paint rapido sem
+    // esperar tudo, ver getLatestRapido.
     var vendas = await getPartes(empresaId, row.tipo + PARTE_SUFIXO_TIPO, row.cache_key, row.dados.partes || 0);
     if (!vendas) return null; // partes incompletas/corrompidas: nao devolve dado parcial sem avisar
     return Object.assign({}, row, {
@@ -87,6 +90,33 @@
         origem: row.dados.origem,
         total_registros: row.dados.total_registros,
         gerado_em: row.dados.gerado_em
+      }
+    });
+  }
+
+  // Mesma coisa que getLatest, mas pra manifesto dividido em partes so le a
+  // PRIMEIRA parte (que guarda o periodo mais recente, ver
+  // _dcDividirSlimEmPedacos em auth.js) em vez de todas. Empresa grande nao
+  // precisa esperar transferir o historico inteiro so pra pintar a tela --
+  // `dados.parcial: true` e `dados.partes_total` avisam quem chamou que tem
+  // mais dado disponivel, pra completar depois com getLatest (sem pressa,
+  // em segundo plano). Snapshot que nao foi dividido (coube numa linha so)
+  // ja vem completo mesmo, `parcial` nem aparece.
+  async function getLatestRapido(empresaId, tipo, key) {
+    var row = await buscarLinha(empresaId, tipo, key);
+    if (!row || !row.dados || !row.dados.manifesto) return row;
+
+    var partesTotal = row.dados.partes || 0;
+    var primeira = await getPartes(empresaId, row.tipo + PARTE_SUFIXO_TIPO, row.cache_key, Math.min(1, partesTotal));
+    if (!primeira) return null;
+    return Object.assign({}, row, {
+      dados: {
+        vendas: primeira,
+        origem: row.dados.origem,
+        total_registros: row.dados.total_registros,
+        gerado_em: row.dados.gerado_em,
+        parcial: partesTotal > 1,
+        partes_total: partesTotal
       }
     });
   }
@@ -222,6 +252,7 @@
     VERSION: VERSION,
     cacheKey: cacheKey,
     getLatest: getLatest,
+    getLatestRapido: getLatestRapido,
     save: save,
     saveChunked: saveChunked,
     clearEmpresa: clearEmpresa

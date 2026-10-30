@@ -135,3 +135,27 @@ test('snapshot: lista vazia ou invalida nao quebra', () => {
   assert.equal(ctx._dcSnapshotCabe([]), true);
   assert.equal(ctx._dcSnapshotCabe(null), true);
 });
+
+test('_dcSlimVenda: preserva criado_em -- sem isso a assinatura de frescor do snapshot da sempre null', () => {
+  const ctx = carregar({ window: {} });
+  const slim = ctx._dcSlimVenda({ id: 1, valor: 100, criado_em: '2026-10-26T20:18:23.308763+00:00' });
+  assert.equal(slim.criado_em, '2026-10-26T20:18:23.308763+00:00');
+});
+
+test('_dcDividirSlimEmPedacos: pedaco 0 fica com o periodo mais recente (getLatestRapido conta com isso)', () => {
+  const ctx = carregar({ window: {} });
+  // linhas de 5 dias diferentes, fora de ordem, uma por "pedaco" (forcado
+  // via um valor gigante pra simular campo pesado e cair 1 por pedaco).
+  const slim = [
+    { dt_saida: '2026-01-10', pesado: 'x'.repeat(600000) },
+    { dt_saida: '2026-01-12', pesado: 'x'.repeat(600000) },
+    { dt_saida: '2026-01-08', pesado: 'x'.repeat(600000) },
+    { dt_saida: '2026-01-11', pesado: 'x'.repeat(600000) },
+    { dt_saida: '2026-01-09', pesado: 'x'.repeat(600000) }
+  ];
+  const pedacos = ctx._dcDividirSlimEmPedacos(slim);
+  assert.ok(pedacos.length > 1, 'linhas pesadas o bastante deveriam cair em mais de um pedaco');
+  const datasEmOrdem = pedacos.map((p) => p[0].dt_saida);
+  const ordenadoDesc = datasEmOrdem.slice().sort().reverse();
+  assert.deepEqual(datasEmOrdem, ordenadoDesc, 'pedaco 0 deveria ter a data mais recente, depois decrescendo');
+});
