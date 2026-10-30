@@ -147,6 +147,13 @@ function checkRateLimitGrupo(grupo, key, max, now = Date.now()) {
   return entry.count <= max;
 }
 
+// Contagem em memoria de processo -- mitigacao por instancia, nao uma
+// garantia global. Em serverless (Vercel), cada instancia fria tem sua
+// propria RATE_LIMIT_MAP: se o trafego escalar pra N instancias, o limite
+// real efetivo pode chegar a N x RATE_LIMIT_MAX pra uma mesma chave. Pra
+// virar garantia de verdade precisaria de um contador compartilhado (ex:
+// tabela no Supabase ou um KV), o que custa uma escrita extra por
+// requisicao -- avaliar so se abuso de API virar problema real.
 const RATE_LIMIT_MAP = new Map();
 const RATE_LIMIT_MAX = 120;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
