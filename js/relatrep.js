@@ -2588,16 +2588,73 @@ function repMeta() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// REP_DIA — Produtividade diária (semana a semana, dia a dia)
+// REP_DIA — Produtividade diária: em qual dia da semana cada representante
+// mais atende (pedidos distintos por dia, agregado no periodo filtrado
+// inteiro). Diferente do REP_MIX, que mostra faturamento semana a semana --
+// aqui e atividade (pedidos), agregada por dia da semana, pra responder
+// "esse representante rende mais em que dia?". Antes essa aba so clonava o
+// REP_MIX e trocava o titulo, mostrando exatamente os mesmos numeros com um
+// nome enganoso.
 // ════════════════════════════════════════════════════════════════════════
 function repDia() {
-  // Semelhante ao REP_MIX mas por dia individual
-  repMix();
-  const src = document.getElementById('rep-tab-mix');
-  const dst = document.getElementById('rep-tab-dia');
-  if (src && dst) {
-    dst.innerHTML = src.innerHTML.replace('MIX DE PRODUTOS POR DIA DA SEMANA', 'PRODUTIVIDADE DIÁRIA POR REPRESENTANTE');
-  }
+  const el = document.getElementById('rep-tab-dia');
+  if (!el) return;
+
+  const DIA_LABEL_FULL = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+  const vendedores = repGetVendedores();
+
+  // Pedido distinto (nao linha de venda) por vendedor x dia da semana --
+  // produtividade e sobre atendimento, nao sobre quantas linhas o pedido tem.
+  const pedidosPorDia = {};
+  vendedores.forEach(v => { pedidosPorDia[v] = Array.from({length:7}, () => new Set()); });
+
+  repDataRows().forEach(r => {
+    const dtStr = String(r[IDX.saida]||r[IDX.emissao]||'').trim();
+    const dt = repParseDate(dtStr);
+    const vend = String(r[IDX.vendedor]||'').trim();
+    if (!dt || !vend || !pedidosPorDia[vend]) return;
+    const pedido = String(r[IDX.pedido]||'').trim() || (String(r[IDX.cliente]||'').trim() + '|' + dtStr);
+    pedidosPorDia[vend][dt.getDay()].add(pedido);
+  });
+
+  const contagem = {};
+  vendedores.forEach(v => { contagem[v] = pedidosPorDia[v].map(s => s.size); });
+  const maxDia = Math.max(1, ...vendedores.flatMap(v => contagem[v]));
+
+  let html = `<div class="rel-header-bar">
+    ${repToggleHtml()}
+    <div class="rel-title">PRODUTIVIDADE DIÁRIA POR REPRESENTANTE</div>
+  </div><div class="rep-scroll-area"><table class="rep-tbl"><thead>
+    <tr class="rep-th-semana">
+      <td>REPRESENTANTE</td>
+      ${DIA_LABEL_FULL.map(d=>`<td>${d}</td>`).join('')}
+      <td>MAIS PRODUTIVO</td><td>TOTAL PEDIDOS</td>
+    </tr>
+  </thead><tbody>`;
+
+  const totalGeral = Array(7).fill(0);
+  vendedores.forEach(vend => {
+    const dias7 = contagem[vend];
+    const tot = dias7.reduce((s,v)=>s+v,0);
+    if (tot === 0) return;
+    dias7.forEach((v,i) => totalGeral[i]+=v);
+    const melhorIdx = dias7.indexOf(Math.max(...dias7));
+    const melhorDia = dias7[melhorIdx] > 0 ? DIA_LABEL_FULL[melhorIdx] : '—';
+    html += `<tr>
+      <td class="rep-lbl">${vend.toUpperCase()}</td>
+      ${dias7.map(v=>`<td>${repMiniCell(v, maxDia)}</td>`).join('')}
+      <td>${melhorDia}</td>
+      <td class="rep-total-cell">${fmtInt(tot)}</td>
+    </tr>`;
+  });
+
+  html += `<tr class="rep-row-total">
+    <td>TOTAL GERAL</td>
+    ${totalGeral.map(v=>`<td>${repMiniCell(v, Math.max(1, ...totalGeral))}</td>`).join('')}
+    <td colspan="2"></td>
+  </tr></tbody></table></div>`;
+
+  el.innerHTML = html;
 }
 
 // ════════════════════════════════════════════════════════════════════════
