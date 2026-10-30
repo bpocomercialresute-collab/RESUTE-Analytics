@@ -123,7 +123,7 @@ window.fetch = function(input, init) {
   if (url === SUPA_URL + '/auth/v1/token?grant_type=password') {
     return NATIVE_FETCH('/api/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: opts.body
     });
   }
@@ -829,7 +829,7 @@ async function fazerLogin() {
     // Login via proxy seguro (/api/login) — chaves ficam no servidor
     var r = await NATIVE_FETCH('/api/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({ email: email, password: senha })
     });
     var d = await r.json();
@@ -6251,7 +6251,7 @@ adminSincronizar = async function() {
       var pcTimer = setTimeout(function() { pcController.abort(); }, 120000);
       var pcResp = await NATIVE_FETCH('/api/precache', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-session-token': SESSION ? SESSION.token : '' },
+        headers: { 'Content-Type': 'application/json', 'x-session-token': SESSION ? SESSION.token : '', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({ empresa_id: EMPRESA_ATIVA.empresa_id }),
         signal: pcController.signal
       });

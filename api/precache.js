@@ -20,14 +20,39 @@ async function getAppUser(sessionToken, supaUrl, anonKey, serviceKey) {
   return Array.isArray(users) && users.length ? users[0] : null;
 }
 
-function setCorsHeaders(req, res) {
-  const allowed = process.env.ALLOWED_ORIGINS
+// Mesma logica de api/secure-proxy.js (mantenha em sincronia). Fallback
+// "mesma origem" quando ALLOWED_ORIGINS nao esta configurado, em vez de
+// refletir qualquer Origin de volta.
+function _getAllowedOrigins() {
+  return process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
     : [];
+}
+
+function _origemBateComHost(req) {
   const origin = req.headers.origin || '';
-  const corsOrigin = allowed.length === 0 ? origin : (allowed.includes(origin) ? origin : '');
+  const host = req.headers.host || '';
+  if (!origin || !host) return false;
+  return origin === 'https://' + host || origin === 'http://' + host;
+}
+
+function setCorsHeaders(req, res) {
+  const allowed = _getAllowedOrigins();
+  const origin = req.headers.origin || '';
+  const corsOrigin = allowed.length
+    ? (allowed.includes(origin) ? origin : '')
+    : (_origemBateComHost(req) ? origin : '');
   if (corsOrigin) res.setHeader('Access-Control-Allow-Origin', corsOrigin);
   res.setHeader('Vary', 'Origin');
+}
+
+function isOriginAllowed(req) {
+  const allowed = _getAllowedOrigins();
+  if (allowed.length) {
+    const origin = req.headers.origin || '';
+    return allowed.includes(origin);
+  }
+  return _origemBateComHost(req);
 }
 
 export const config = { maxDuration: 60 };
@@ -35,9 +60,17 @@ export const config = { maxDuration: 60 };
 export default async function handler(req, res) {
   setCorsHeaders(req, res);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-session-token');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-session-token, X-Requested-With');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Metodo nao permitido' });
+
+  if (!isOriginAllowed(req)) {
+    return res.status(403).json({ erro: 'Origem nao autorizada.' });
+  }
+  const xrw = req.headers['x-requested-with'] || '';
+  if (xrw.toLowerCase() !== 'xmlhttprequest') {
+    return res.status(403).json({ erro: 'Requisicao nao autorizada.' });
+  }
 
   const supaUrl = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;

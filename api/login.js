@@ -54,14 +54,43 @@ async function buscarModulosEmpresa(supaUrl, serviceKey, empresaId) {
   }
 }
 
-function setCorsHeaders(req, res) {
-  const allowed = process.env.ALLOWED_ORIGINS
+// Mesma logica de api/secure-proxy.js (mantenha as duas em sincronia --
+// Vercel nao permite import compartilhado aqui sem complicar o teste que
+// carrega este arquivo como script isolado). Quando ALLOWED_ORIGINS nao
+// esta configurado, o fallback e "mesma origem" (Origin bate com o Host da
+// requisicao) em vez de refletir qualquer Origin de volta -- esse endpoint
+// lida com senha e emite token de sessao, entao o CORS aberto por omissao
+// que existia antes era mais grave aqui do que em qualquer outra rota.
+function _getAllowedOrigins() {
+  return process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
     : [];
+}
+
+function _origemBateComHost(req) {
   const origin = req.headers.origin || '';
-  const corsOrigin = allowed.length === 0 ? origin : (allowed.includes(origin) ? origin : '');
+  const host = req.headers.host || '';
+  if (!origin || !host) return false;
+  return origin === 'https://' + host || origin === 'http://' + host;
+}
+
+function setCorsHeaders(req, res) {
+  const allowed = _getAllowedOrigins();
+  const origin = req.headers.origin || '';
+  const corsOrigin = allowed.length
+    ? (allowed.includes(origin) ? origin : '')
+    : (_origemBateComHost(req) ? origin : '');
   if (corsOrigin) res.setHeader('Access-Control-Allow-Origin', corsOrigin);
   res.setHeader('Vary', 'Origin');
+}
+
+function isOriginAllowed(req) {
+  const allowed = _getAllowedOrigins();
+  if (allowed.length) {
+    const origin = req.headers.origin || '';
+    return allowed.includes(origin);
+  }
+  return _origemBateComHost(req);
 }
 
 // Limite de tentativas por email+IP, em memoria: vale por instancia da Vercel,
@@ -109,10 +138,18 @@ function ipCliente(req) {
 export default async function handler(req, res) {
   setCorsHeaders(req, res);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Requested-With');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Metodo nao permitido' });
+
+  if (!isOriginAllowed(req)) {
+    return res.status(403).json({ erro: 'Origem nao autorizada.' });
+  }
+  const xrw = req.headers['x-requested-with'] || '';
+  if (xrw.toLowerCase() !== 'xmlhttprequest') {
+    return res.status(403).json({ erro: 'Requisicao nao autorizada.' });
+  }
 
   const payload = parseBody(req.body);
   const email = typeof payload.email === 'string' ? payload.email.trim() : payload.email;
