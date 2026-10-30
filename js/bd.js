@@ -606,7 +606,8 @@ function relRenderTab(tabId) {
     'av-rel-laudo-grupo': bdUpdateLaudoGrupo,
     'av-rel-laudo-ano': bdUpdateLaudoGruposAno,
     'av-rel-laudo-ano02': bdUpdateLaudoGruposAno02,
-    'av-rel-laudo-marca': bdUpdateLaudoMarca
+    'av-rel-laudo-marca': bdUpdateLaudoMarca,
+    'av-rel-alertas': bdUpdateAlertas
   };
   if (map[tabId]) {
     try { map[tabId](); } catch (e) { console.warn(tabId, e); }
@@ -1539,4 +1540,134 @@ function bdUpdateLaudoGruposAno02() {
   });
   html += '</tbody></table></div>';
   pane.innerHTML = html;
+}
+
+// ── ALERTAS ───────────────────────────────────────────────────────────────────
+// Painel que avisa sozinho em vez de depender do usuario abrir cada aba pra
+// descobrir: clientes que pararam de comprar e produtos com queda relevante.
+// Sempre sobre os dados JA FILTRADOS (mesmo filtro compartilhado das outras
+// abas), pra poder, por exemplo, olhar alertas so de um vendedor.
+
+var REL_ALERTA_DIAS_CLIENTE_PARADO = 60;
+var REL_ALERTA_QUEDA_PRODUTO_PCT = 0.3;
+
+// Cliente "parou de comprar": tem pelo menos 2 compras no historico (nao e
+// so um cliente novo/esporadico) e a ultima foi ha REL_ALERTA_DIAS_CLIENTE_PARADO
+// dias ou mais.
+function relAlertasClientesParados(rows) {
+  var porCliente = new Map();
+  rows.forEach(function(r) {
+    var cli = g(r,'cliente');
+    var dtStr = g(r,'saida') || g(r,'emissao');
+    if (!cli || !dtStr) return;
+    var dt = parseDate(dtStr);
+    if (!dt) return;
+    if (!porCliente.has(cli)) porCliente.set(cli, []);
+    porCliente.get(cli).push(dt);
+  });
+  var hoje = new Date();
+  var alertas = [];
+  porCliente.forEach(function(datas, cliente) {
+    if (datas.length < 2) return;
+    datas.sort(function(a, b) { return a - b; });
+    var ultima = datas[datas.length - 1];
+    var dias = Math.floor((hoje - ultima) / 86400000);
+    if (dias >= REL_ALERTA_DIAS_CLIENTE_PARADO) {
+      alertas.push({ cliente: cliente, ultima: ultima, dias: dias, totalCompras: datas.length });
+    }
+  });
+  alertas.sort(function(a, b) { return b.dias - a.dias; });
+  return alertas;
+}
+
+// "Queda relevante": no periodo (ano+mes) mais recente que existe nos dados
+// filtrados, o produto vendeu REL_ALERTA_QUEDA_PRODUTO_PCT (30%) ou mais
+// abaixo da propria media nos periodos anteriores. So entram produtos com
+// media anterior acima de um piso minimo (15% da media geral por produto),
+// pra nao alertar sobre produto residual que sempre vendeu quase nada.
+function relAlertasProdutosQueda(rows) {
+  var porProduto = new Map();
+  var periodosGlobais = new Set();
+  var somaGeral = 0;
+  var produtosDistintos = new Set();
+  rows.forEach(function(r) {
+    var p = g(r, 'produto');
+    var mi = MES_IDX[g(r, 'mes').toLowerCase()];
+    var ano = parseInt(g(r, 'ano'), 10);
+    var v = metrica(r);
+    if (!p || mi === undefined || mi < 0 || !isFinite(ano)) return;
+    var periodo = ano * 100 + mi;
+    if (!porProduto.has(p)) porProduto.set(p, new Map());
+    var mapa = porProduto.get(p);
+    mapa.set(periodo, (mapa.get(periodo) || 0) + v);
+    periodosGlobais.add(periodo);
+    somaGeral += v;
+    produtosDistintos.add(p);
+  });
+  var periodosOrdenados = Array.from(periodosGlobais).sort(function(a, b) { return b - a; });
+  if (periodosOrdenados.length < 2 || !produtosDistintos.size) return [];
+  var ultimoPeriodo = periodosOrdenados[0];
+  var pisoRuido = (somaGeral / produtosDistintos.size) * 0.15;
+
+  var alertas = [];
+  porProduto.forEach(function(mapa, produto) {
+    var anteriores = Array.from(mapa.keys()).filter(function(p) { return p !== ultimoPeriodo; });
+    if (!anteriores.length) return;
+    var atual = mapa.get(ultimoPeriodo) || 0;
+    var somaAnteriores = anteriores.reduce(function(s, p) { return s + mapa.get(p); }, 0);
+    var mediaAnterior = somaAnteriores / anteriores.length;
+    if (mediaAnterior < pisoRuido) return;
+    var quedaPct = (mediaAnterior - atual) / mediaAnterior;
+    if (quedaPct >= REL_ALERTA_QUEDA_PRODUTO_PCT) {
+      alertas.push({ produto: produto, atual: atual, mediaAnterior: mediaAnterior, quedaPct: quedaPct });
+    }
+  });
+  alertas.sort(function(a, b) { return b.quedaPct - a.quedaPct; });
+  return alertas;
+}
+
+function bdUpdateAlertas() {
+  var pane = document.getElementById('av-rel-alertas');
+  if (!pane) return;
+  if (!window.BD_DATA.rows.length) return;
+
+  var rows = relRows();
+  if (!rows.length) {
+    pane.innerHTML = '<div class="rel-header-bar">' + toggleBtnHtml(null, true) + '<div class="rel-title">Sem dados para os filtros selecionados</div></div>';
+    return;
+  }
+
+  var clientesParados = relAlertasClientesParados(rows);
+  var produtosQueda = relAlertasProdutosQueda(rows);
+
+  var linhasClientes = clientesParados.slice(0, 30).map(function(a) {
+    return '<tr><td>' + relEsc((a.cliente || '').toUpperCase()) + '</td>'
+      + '<td>' + a.ultima.toLocaleDateString('pt-BR') + '</td>'
+      + '<td>' + a.dias.toLocaleString('pt-BR') + '</td>'
+      + '<td>' + a.totalCompras.toLocaleString('pt-BR') + '</td></tr>';
+  }).join('') || '<tr><td colspan="4" style="text-align:center;color:#7d91af">Nenhum cliente parado encontrado — bom sinal.</td></tr>';
+
+  var linhasProdutos = produtosQueda.slice(0, 30).map(function(a) {
+    return '<tr><td>' + relEsc((a.produto || '').toUpperCase()) + '</td>'
+      + '<td>' + fmtMetricaFull(a.mediaAnterior) + '</td>'
+      + '<td>' + fmtMetricaFull(a.atual) + '</td>'
+      + '<td><span class="rel-trend down">▼ ' + (a.quedaPct * 100).toFixed(0) + '%</span></td></tr>';
+  }).join('') || '<tr><td colspan="4" style="text-align:center;color:#7d91af">Nenhuma queda relevante encontrada.</td></tr>';
+
+  pane.innerHTML = '<div class="rel-header-bar">' + toggleBtnHtml(null, true)
+    + '<div class="rel-title">ALERTAS</div></div>'
+    + '<div class="rel-kpi-strip">'
+    +   '<div class="rel-kpi-card"><span>Clientes parados</span><strong>' + clientesParados.length.toLocaleString('pt-BR') + '</strong></div>'
+    +   '<div class="rel-kpi-card"><span>Produtos em queda</span><strong>' + produtosQueda.length.toLocaleString('pt-BR') + '</strong></div>'
+    + '</div>'
+    + '<div class="laudo-section-title" style="margin:16px 16px 8px">Clientes que pararam de comprar (' + REL_ALERTA_DIAS_CLIENTE_PARADO + '+ dias, com histórico de 2+ compras)</div>'
+    + '<div class="av-table-wrap" style="border-top:none"><table class="av-table">'
+    +   '<thead><tr><th>CLIENTE</th><th>ÚLTIMA COMPRA</th><th>DIAS SEM COMPRAR</th><th>TOTAL DE COMPRAS</th></tr></thead>'
+    +   '<tbody>' + linhasClientes + '</tbody>'
+    + '</table></div>'
+    + '<div class="laudo-section-title" style="margin:20px 16px 8px">Produtos com queda relevante (' + Math.round(REL_ALERTA_QUEDA_PRODUTO_PCT * 100) + '%+ abaixo da própria média anterior)</div>'
+    + '<div class="av-table-wrap" style="border-top:none"><table class="av-table">'
+    +   '<thead><tr><th>PRODUTO</th><th>MÉDIA ANTERIOR</th><th>ÚLTIMO PERÍODO</th><th>QUEDA</th></tr></thead>'
+    +   '<tbody>' + linhasProdutos + '</tbody>'
+    + '</table></div>';
 }

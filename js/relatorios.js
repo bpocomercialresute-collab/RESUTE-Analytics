@@ -525,7 +525,7 @@ function avShowRel(tipo) {
       + '<p>Nenhum dado carregado</p>'
       + '<span>Clique em <b>Sincronizar</b> para buscar os dados da API, ou acesse <b>BD e Cadastros</b> e cole manualmente.</span>'
       + '</div>';
-    ['av-rel-cadastro-insights','av-rel-venda-produto','av-rel-laudo-grupo','av-rel-laudo-ano','av-rel-laudo-ano02','av-rel-laudo-marca'].forEach(function(id){
+    ['av-rel-cadastro-insights','av-rel-venda-produto','av-rel-laudo-grupo','av-rel-laudo-ano','av-rel-laudo-ano02','av-rel-laudo-marca','av-rel-alertas'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.innerHTML = msg;
     });
