@@ -7,7 +7,6 @@
 //   views/dre-painel.html   — bloco do painel
 //   css/dre-painel.css      — estilos
 //   js/dre/dre-engine.js    — motor (expoe o objeto global DRE)
-// Copias identicas ficam em docs/ferramenta/ como referencia da entrega.
 //
 // Tres problemas de encaixe sao resolvidos aqui, e so aqui:
 //

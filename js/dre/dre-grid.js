@@ -6,7 +6,7 @@
 // Usado pelo console admin (js/dre/dre-admin.js) para editar Plano de Contas
 // e Lançamentos com comportamento de planilha: célula clicável, colar/copiar
 // do Excel, navegação por teclado, ordenar, filtrar, desfazer, validação
-// inline e totais no rodapé — ver docs/ferramenta/modelo/PROMPT_DRE_RESUTE.md.
+// inline e totais no rodapé.
 //
 // Escopo assumido para manter colar/copiar sem ambiguidade: COLAR só funciona
 // sem ordenação nem filtro ativos (a grid pede pra limpar antes). Com a view
