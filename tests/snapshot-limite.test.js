@@ -46,6 +46,7 @@ function carregar(extra) {
   vm.runInContext(extrairVar(source, '_DC_SNAPSHOT_MAX_ENVELOPE_BYTES'), ctx);
   vm.runInContext(extrairVar(source, '_DC_SNAPSHOT_FATOR_ENVELOPE'), ctx);
   vm.runInContext(extrair(source, '_dcSnapshotCabe'), ctx);
+  vm.runInContext(extrair(source, '_dcDividirSlimEmPedacos'), ctx);
   vm.runInContext(extrair(source, 'dcSalvarSnapshotCliente'), ctx);
   return ctx;
 }
@@ -77,13 +78,32 @@ test('snapshot: lista pequena cabe e continua sendo salva', async () => {
   assert.equal(chamadas, 1);
 });
 
-test('snapshot: lista grande NAO e enviada (o proxy responderia 413) e nada pesado e montado', async () => {
-  let chamadas = 0;
-  const ctx = carregar({ window: { ReportCache: { cacheKey: () => 'k', save: async () => { chamadas += 1; return true; } } } });
+test('snapshot: lista grande demais pra uma linha e dividida em pedacos, cada um dentro do limite real do proxy', async () => {
+  let baseRecebida = null;
+  let pedacosRecebidos = null;
+  const ctx = carregar({
+    window: {
+      ReportCache: {
+        cacheKey: () => 'k',
+        save: async () => true,
+        saveChunked: async (base, pedacos) => { baseRecebida = base; pedacosRecebidos = pedacos; return true; }
+      }
+    }
+  });
   const lista = vendas(30000);
   assert.equal(ctx._dcSnapshotCabe(lista), false);
-  assert.equal(await ctx.dcSalvarSnapshotCliente('e1', 'api', lista), false);
-  assert.equal(chamadas, 0, 'nao deve nem chamar o save');
+  assert.equal(await ctx.dcSalvarSnapshotCliente('e1', 'api', lista), true);
+  assert.ok(pedacosRecebidos && pedacosRecebidos.length > 1, 'deveria dividir em mais de um pedaco');
+
+  pedacosRecebidos.forEach((pedaco) => {
+    const corpo = JSON.stringify({ empresa_id: 'x', tipo: 'dashboard_cliente_parte', dados: { vendas: pedaco } });
+    const bytes = Buffer.byteLength(JSON.stringify({ url: 'https://x/rest/v1/relatorios_cache', method: 'POST', headers: {}, body: corpo }));
+    assert.ok(bytes < LIMITE_PROXY_REAL, `pedaco de ${pedaco.length} linhas (${bytes} bytes) excede o limite real de ${LIMITE_PROXY_REAL}`);
+  });
+
+  const totalReconstruido = pedacosRecebidos.reduce((s, p) => s + p.length, 0);
+  assert.equal(totalReconstruido, lista.length, 'juntando os pedacos tem que bater com o total original');
+  assert.equal(baseRecebida.total_registros, lista.length);
 });
 
 test('snapshot: a estimativa por amostra concorda com o tamanho real do envelope (margem de 15%)', () => {

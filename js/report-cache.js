@@ -3,6 +3,11 @@
 
   var TABLE = 'relatorios_cache';
   var VERSION = 'dashboard-v1';
+  // Sufixo de tipo pras partes de um snapshot dividido em pedacos (empresa
+  // grande demais pra caber numa linha so). Um tipo DIFERENTE do snapshot
+  // principal -- nunca aparece pra quem le "o mais recente, de qualquer
+  // cache_key" (getLatest com key=null), que so enxerga o manifesto.
+  var PARTE_SUFIXO_TIPO = '_parte';
 
   function supaUrl() {
     return (typeof SUPA_URL !== 'undefined' && SUPA_URL) ? SUPA_URL : '';
@@ -52,6 +57,7 @@
       (key ? '&cache_key=eq.' + encodeURIComponent(key) : '') +
       '&select=*&order=atualizado_em.desc&limit=1';
 
+    var row;
     try {
       var resp = await fetch(url, { headers: headers() });
       var text = await readText(resp);
@@ -60,9 +66,57 @@
         throw new Error('Snapshot indisponivel: HTTP ' + resp.status + ' - ' + text.slice(0, 180));
       }
       var rows = safeParse(text, []);
-      return Array.isArray(rows) && rows.length ? rows[0] : null;
+      row = Array.isArray(rows) && rows.length ? rows[0] : null;
     } catch (e) {
       console.warn('[ReportCache:getLatest]', e);
+      return null;
+    }
+
+    // Snapshot normal (coube numa linha so, ou linha antiga de antes dessa
+    // mudanca): devolve direto, igual sempre foi.
+    if (!row || !row.dados || !row.dados.manifesto) return row;
+
+    // Manifesto: empresa grande demais pra uma linha, dividido em partes.
+    // Busca e remonta antes de devolver -- quem chamou getLatest nunca
+    // precisa saber que isso existe.
+    var vendas = await getPartes(empresaId, row.tipo + PARTE_SUFIXO_TIPO, row.cache_key, row.dados.partes || 0);
+    if (!vendas) return null; // partes incompletas/corrompidas: nao devolve dado parcial sem avisar
+    return Object.assign({}, row, {
+      dados: {
+        vendas: vendas,
+        origem: row.dados.origem,
+        total_registros: row.dados.total_registros,
+        gerado_em: row.dados.gerado_em
+      }
+    });
+  }
+
+  async function getPartes(empresaId, tipoParte, cacheKeyBase, totalPartes) {
+    if (!totalPartes) return [];
+    var chaves = [];
+    for (var i = 0; i < totalPartes; i++) chaves.push(cacheKeyBase + ':p' + i);
+    var url = supaUrl() + '/rest/v1/' + TABLE +
+      '?empresa_id=eq.' + encodeURIComponent(empresaId) +
+      '&tipo=eq.' + encodeURIComponent(tipoParte) +
+      '&cache_key=in.(' + chaves.map(encodeURIComponent).join(',') + ')' +
+      '&select=cache_key,dados';
+    try {
+      var resp = await fetch(url, { headers: headers() });
+      var text = await readText(resp);
+      if (!resp.ok) return null;
+      var rows = safeParse(text, []);
+      if (!Array.isArray(rows) || rows.length !== totalPartes) return null;
+      var porChave = {};
+      rows.forEach(function(r) { porChave[r.cache_key] = r; });
+      var vendas = [];
+      for (var i = 0; i < totalPartes; i++) {
+        var r = porChave[cacheKeyBase + ':p' + i];
+        if (!r || !r.dados || !Array.isArray(r.dados.vendas)) return null;
+        vendas = vendas.concat(r.dados.vendas);
+      }
+      return vendas;
+    } catch (e) {
+      console.warn('[ReportCache:getPartes]', e);
       return null;
     }
   }
@@ -93,6 +147,58 @@
     }
   }
 
+  // Salva um snapshot grande demais pra uma linha so, dividido em pedacos ja
+  // prontos (cada um dentro do limite de corpo do proxy -- quem chama decide
+  // o tamanho de cada pedaco, aqui so persiste). Salva as partes primeiro e
+  // SO escreve o manifesto depois de todas confirmadas: se uma parte falhar
+  // no meio, o snapshot anterior (ainda com seu proprio manifesto antigo)
+  // continua valido, em vez de apontar pra partes incompletas.
+  async function saveChunked(base, pedacos) {
+    if (!base || !base.empresa_id || !base.tipo || !supaUrl() || !Array.isArray(pedacos) || !pedacos.length) return false;
+    var key = cacheKey(base.origem);
+    var tipoParte = base.tipo + PARTE_SUFIXO_TIPO;
+    var geradoEm = base.gerado_em || new Date().toISOString();
+
+    for (var i = 0; i < pedacos.length; i++) {
+      var ok = await save({
+        empresa_id: base.empresa_id,
+        tipo: tipoParte,
+        cache_key: key + ':p' + i,
+        origem: base.origem,
+        periodo_inicio: base.periodo_inicio,
+        periodo_fim: base.periodo_fim,
+        total_registros: pedacos[i].length,
+        dados: { vendas: pedacos[i], parte: i, partes: pedacos.length, origem: base.origem, gerado_em: geradoEm }
+      });
+      if (!ok) return false;
+    }
+
+    // Limpa partes orfas de uma geracao anterior com MAIS pedacos do que a
+    // atual (empresa diminuiu, ou o tamanho do pedaco mudou) -- senao uma
+    // parte antiga sobrando ficaria la, nunca lida mas nunca apagada.
+    try {
+      var chavesAtuais = pedacos.map(function(_, i) { return encodeURIComponent(key + ':p' + i); }).join(',');
+      await fetch(
+        supaUrl() + '/rest/v1/' + TABLE +
+          '?empresa_id=eq.' + encodeURIComponent(base.empresa_id) +
+          '&tipo=eq.' + encodeURIComponent(tipoParte) +
+          '&cache_key=not.in.(' + chavesAtuais + ')',
+        { method: 'DELETE', headers: headers({ 'Prefer': 'return=minimal' }) }
+      );
+    } catch (e) { console.warn('[ReportCache:saveChunked] limpeza de partes antigas falhou', e); }
+
+    return save({
+      empresa_id: base.empresa_id,
+      tipo: base.tipo,
+      cache_key: key,
+      origem: base.origem,
+      periodo_inicio: base.periodo_inicio,
+      periodo_fim: base.periodo_fim,
+      total_registros: base.total_registros,
+      dados: { manifesto: true, partes: pedacos.length, origem: base.origem, total_registros: base.total_registros, gerado_em: geradoEm }
+    });
+  }
+
   async function clearEmpresa(empresaId) {
     if (!empresaId || !supaUrl()) return false;
     try {
@@ -117,6 +223,7 @@
     cacheKey: cacheKey,
     getLatest: getLatest,
     save: save,
+    saveChunked: saveChunked,
     clearEmpresa: clearEmpresa
   };
 })();

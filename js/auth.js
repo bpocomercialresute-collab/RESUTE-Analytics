@@ -1797,28 +1797,56 @@ function _dcSnapshotCabe(vendas) {
   return estimado <= _DC_SNAPSHOT_MAX_ENVELOPE_BYTES;
 }
 
+// Divide linhas ja enxutas (_dcSlimVenda) em pedacos que cabem cada um
+// dentro do limite do proxy, pra empresa grande demais pra uma linha so
+// conseguir salvar snapshot em pedacos (ReportCache.saveChunked). Mesma
+// estimativa por amostra de _dcSnapshotCabe, so que calculando quantas
+// linhas cabem por pedaco em vez de so dizer sim/nao pro total.
+function _dcDividirSlimEmPedacos(slim) {
+  var n = slim.length;
+  if (!n) return [];
+  var amostra = Math.min(n, 300);
+  var passo = n / amostra;
+  var bytes = 0;
+  for (var i = 0; i < amostra; i++) {
+    bytes += JSON.stringify(slim[Math.floor(i * passo)]).length + 1;
+  }
+  var bytesPorLinha = (bytes / amostra) * _DC_SNAPSHOT_FATOR_ENVELOPE;
+  var linhasPorPedaco = Math.max(1, Math.floor(_DC_SNAPSHOT_MAX_ENVELOPE_BYTES / Math.max(1, bytesPorLinha)));
+  var pedacos = [];
+  for (var offset = 0; offset < n; offset += linhasPorPedaco) {
+    pedacos.push(slim.slice(offset, offset + linhasPorPedaco));
+  }
+  return pedacos;
+}
+
 async function dcSalvarSnapshotCliente(eid, origem, vendas, periodoInicio, periodoFim) {
   if (!window.ReportCache || !eid || !Array.isArray(vendas) || !vendas.length) return false;
-  if (!_dcSnapshotCabe(vendas)) {
-    console.info('[snapshot] nao salvo: ' + vendas.length.toLocaleString('pt-BR') + ' linhas passam do limite de corpo do proxy');
-    return false;
-  }
   var slim = vendas.map(_dcSlimVenda);
-  return window.ReportCache.save({
+  var geradoEm = new Date().toISOString();
+  var base = {
     empresa_id: eid,
     tipo: 'dashboard_cliente',
-    cache_key: window.ReportCache.cacheKey(origem),
     origem: origem || 'manual',
     periodo_inicio: periodoInicio || null,
-    periodo_fim: periodoFim || null,
-    total_registros: slim.length,
-    dados: {
-      vendas: slim,
-      origem: origem || 'manual',
+    periodo_fim: periodoFim || null
+  };
+
+  if (_dcSnapshotCabe(vendas)) {
+    return window.ReportCache.save(Object.assign({}, base, {
+      cache_key: window.ReportCache.cacheKey(origem),
       total_registros: slim.length,
-      gerado_em: new Date().toISOString()
-    }
-  });
+      dados: { vendas: slim, origem: origem || 'manual', total_registros: slim.length, gerado_em: geradoEm }
+    }));
+  }
+
+  // Nao cabe numa linha so: divide em pedacos (ReportCache guarda cada um
+  // num tipo separado, nunca confundido com o manifesto por quem le "o mais
+  // recente, de qualquer cache_key") em vez de so desistir de salvar, como
+  // era antes -- empresa grande ficava com o dashboard sempre congelado na
+  // ultima vez que coube, sem nenhum jeito de atualizar de novo.
+  console.info('[snapshot] ' + vendas.length.toLocaleString('pt-BR') + ' linhas passam do limite de uma linha so, salvando em pedacos');
+  return window.ReportCache.saveChunked(Object.assign({}, base, { total_registros: slim.length, gerado_em: geradoEm }), _dcDividirSlimEmPedacos(slim));
 }
 
 // ── Cache local das vendas baixadas do banco ─────────────────────────────────
@@ -2025,12 +2053,13 @@ async function dcCarregarDados(empresa_id_param) {
       var _supaVendas = snapshotRapido.dados.vendas;
       var _supaEm = snapshotRapido.dados.gerado_em || new Date().toISOString();
       var _supaOrigem = snapshotRapido.dados.origem || 'manual';
-      // Empresa grande demais pra salvar snapshot (_dcSnapshotCabe) nunca
-      // gera um novo — esse aqui pode ser de dias atras e, sem isso, ficava
-      // congelado pra sempre: a unica checagem de frescor existente
-      // comparava snapshot contra o PROPRIO snapshot (nunca muda, sempre
-      // "igual"). Trata como o cache do banco: guarda com assinatura e
-      // confere contra a tabela de verdade agora mesmo, em segundo plano.
+      // Mesmo com snapshot sempre atualizavel agora (inclusive em pedacos,
+      // pra empresa grande), sempre existe uma janela entre o ultimo save e
+      // agora em que a tabela pode ter mudado. A unica checagem de frescor
+      // antiga comparava snapshot contra o PROPRIO snapshot (nunca muda,
+      // sempre "igual") -- trata como o cache do banco: guarda com
+      // assinatura e confere contra a tabela de verdade agora mesmo, em
+      // segundo plano.
       var _supaAssinatura = _dcAssinaturaLocal(_supaVendas);
       var _supaEntrada = { fonte: 'banco', origem: _supaOrigem, assinatura: _supaAssinatura, gerado_em: _supaEm, salvo_em: Date.now(), vendas: _supaVendas };
       _dcIdbSet(_dcLsKey, _supaEntrada);
