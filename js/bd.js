@@ -32,14 +32,22 @@ MES_NOME.forEach((m,i) => { MES_IDX[m]=i; MES_IDX[String(i+1).padStart(2,'0')]=i
 
 // ── ESTADO DO FILTRO DO LAUDO_GRUPO ──────────────────────────────────────────
 window.LG = { tipo:'', grupo:'', subgrupo:'' };
-window.REL_FILTER = window.REL_FILTER || { vendedor:'', produto:[], cliente:'', grupo:'', marca:'', ano:'' };
+window.REL_FILTER = window.REL_FILTER || { vendedor:[], produto:[], cliente:[], grupo:[], marca:[], ano:[] };
 window.REL_VP_SORT = window.REL_VP_SORT || { col: 'total', dir: 'desc' };
 window.REL_VENDA_PRODUTO_MODO = window.REL_VENDA_PRODUTO_MODO || 'detalhado';
 
-// Estado do dropdown de multi-seleção de produtos (mantido fora do REL_FILTER
-// porque não é um valor de filtro em si, só a UI do seletor).
-window.REL_PRODUTO_MULTI_OPEN  = window.REL_PRODUTO_MULTI_OPEN  || false;
-window.REL_PRODUTO_MULTI_BUSCA = window.REL_PRODUTO_MULTI_BUSCA || '';
+// Campos do filtro compartilhado entre as abas de relatório, todos com o mesmo
+// funcionamento (estilo Excel: dropdown com busca, checkbox por valor,
+// "Marcar todos"/"Limpar" e "Aplicar"). Estado de UI de cada dropdown (aberto,
+// busca, seleção pendente) fica em REL_MULTI_STATE, fora do REL_FILTER porque
+// não é valor de filtro aplicado, só o rascunho até clicar em Aplicar.
+window.REL_MULTI_CAMPOS = ['vendedor', 'produto', 'cliente', 'grupo', 'marca', 'ano'];
+window.REL_MULTI_STATE = window.REL_MULTI_STATE || {};
+
+function relMultiState(campo) {
+  if (!window.REL_MULTI_STATE[campo]) window.REL_MULTI_STATE[campo] = { open: false, busca: '', pendente: [] };
+  return window.REL_MULTI_STATE[campo];
+}
 
 function lgSetFiltro(campo, val) {
   window.LG[campo] = val;
@@ -67,193 +75,183 @@ function relBaseRows() {
   return (window.BD_DATA && Array.isArray(window.BD_DATA.rows)) ? window.BD_DATA.rows : [];
 }
 
-function relRows() {
+// Valor "canônico" de uma linha pra um campo de filtro (cuida do caso de
+// GRUPO, que cai pra GRUPO_PRODUTO quando a coluna GRUPO vem vazia).
+function relValorCampo(r, campo) {
+  if (campo === 'grupo') return g(r,'grupo') || g(r,'grupoProd');
+  return g(r, campo);
+}
+
+function relSelecionados(campo) {
   const f = window.REL_FILTER || {};
-  const produtos = Array.isArray(f.produto) ? f.produto : (f.produto ? [f.produto] : []);
-  return relBaseRows().filter(r => {
-    if (f.vendedor && g(r,'vendedor') !== f.vendedor) return false;
-    if (produtos.length && !produtos.includes(g(r,'produto'))) return false;
-    if (f.cliente && g(r,'cliente') !== f.cliente) return false;
-    if (f.grupo && (g(r,'grupo') || g(r,'grupoProd')) !== f.grupo) return false;
-    if (f.marca && g(r,'marca') !== f.marca) return false;
-    if (f.ano && g(r,'ano') !== f.ano) return false;
-    return true;
-  });
+  const v = f[campo];
+  return Array.isArray(v) ? v : (v ? [v] : []);
+}
+
+function relRows() {
+  return relBaseRows().filter(r => window.REL_MULTI_CAMPOS.every(campo => {
+    const sel = relSelecionados(campo);
+    return !sel.length || sel.includes(relValorCampo(r, campo));
+  }));
 }
 
 function relUnique(campo) {
-  const vals = relBaseRows().map(r => {
-    if (campo === 'vendedor') return g(r,'vendedor');
-    if (campo === 'produto') return g(r,'produto');
-    if (campo === 'cliente') return g(r,'cliente');
-    if (campo === 'grupo') return g(r,'grupo') || g(r,'grupoProd');
-    if (campo === 'marca') return g(r,'marca');
-    if (campo === 'ano') return g(r,'ano');
-    return '';
-  }).filter(Boolean);
+  const vals = relBaseRows().map(r => relValorCampo(r, campo)).filter(Boolean);
   return [...new Set(vals)].sort((a,b)=>a.localeCompare(b));
 }
 
-function relSetFiltro(campo, valor) {
-  window.REL_FILTER[campo] = valor || '';
-  relRenderAtual();
-}
-
 function relLimparFiltros() {
-  window.REL_FILTER = { vendedor:'', produto:[], cliente:'', grupo:'', marca:'', ano:'' };
-  window.REL_PRODUTO_MULTI_OPEN = false;
-  window.REL_PRODUTO_MULTI_BUSCA = '';
+  window.REL_FILTER = { vendedor:[], produto:[], cliente:[], grupo:[], marca:[], ano:[] };
+  window.REL_MULTI_STATE = {};
   relRenderAtual();
 }
 
-function relFiltroSelect(campo, label) {
-  const atual = (window.REL_FILTER && window.REL_FILTER[campo]) || '';
-  const opts = relUnique(campo).map(v => `<option value="${relEsc(v)}" ${v===atual?'selected':''}>${relEsc((v||'').toUpperCase())}</option>`).join('');
-  return `<label class="rep-filter-field"><span>${label}</span><select onchange="relSetFiltro('${campo}', this.value)">
-    <option value="">Todos</option>${opts}
-  </select></label>`;
-}
-
-// ── FILTRO MULTI-SELEÇÃO DE PRODUTO ─────────────────────────────────────────
-// Dropdown com busca + checkbox por produto. Marcar/desmarcar NÃO filtra a
+// ── FILTRO MULTI-SELEÇÃO ESTILO EXCEL (vendedor/produto/cliente/grupo/marca/ano) ──
+// Dropdown com busca + checkbox por valor. Marcar/desmarcar NÃO filtra a
 // tabela na hora (senão cada clique refaz o relatório inteiro — trava e fica
 // "piscando"). A seleção fica pendente até clicar em Aplicar; só aí a tabela
-// é re-renderizada, uma única vez, e o painel fecha.
+// é re-renderizada, uma única vez, e o painel fecha. Todo campo funciona
+// exatamente da mesma forma.
 
-function relAbrirProdutoDropdown(ev) {
+function relAbrirMultiDropdown(campo, ev) {
   if (ev) ev.stopPropagation();
-  window.REL_PRODUTO_MULTI_PENDENTE = (Array.isArray(window.REL_FILTER.produto) ? window.REL_FILTER.produto : []).slice();
-  window.REL_PRODUTO_MULTI_BUSCA = '';
-  window.REL_PRODUTO_MULTI_OPEN = true;
+  const st = relMultiState(campo);
+  st.pendente = relSelecionados(campo).slice();
+  st.busca = '';
+  window.REL_MULTI_CAMPOS.forEach(c => { if (c !== campo) relMultiState(c).open = false; });
+  st.open = true;
   relRenderAtual();
   setTimeout(function() {
-    var el = document.querySelector('.rel-multi-busca');
+    var el = document.querySelector('.rel-multi-busca[data-campo="' + campo + '"]');
     if (el) el.focus();
   }, 0);
 }
 
-function relFecharProdutoDropdown() {
-  window.REL_PRODUTO_MULTI_OPEN = false;
+function relFecharMultiDropdown(campo) {
+  relMultiState(campo).open = false;
   relRenderAtual();
 }
 
-function relAplicarProdutoDropdown() {
-  window.REL_FILTER.produto = (window.REL_PRODUTO_MULTI_PENDENTE || []).slice();
-  window.REL_PRODUTO_MULTI_OPEN = false;
+function relAplicarMultiDropdown(campo) {
+  window.REL_FILTER[campo] = (relMultiState(campo).pendente || []).slice();
+  relMultiState(campo).open = false;
   relRenderAtual();
 }
 
 // Só regenera o painel (busca/checkbox/contagem) — nunca a tabela inteira.
-function relAtualizarPainelProduto() {
-  var painel = document.getElementById('rel-produto-panel');
+function relAtualizarPainelMulti(campo) {
+  var painel = document.getElementById('rel-panel-' + campo);
   if (!painel) return;
-  painel.outerHTML = relPainelProdutoHtml();
-  var contagem = document.getElementById('rel-produto-contagem-pendente');
-  if (contagem) contagem.textContent = (window.REL_PRODUTO_MULTI_PENDENTE || []).length + ' marcado(s)';
+  painel.outerHTML = relPainelMultiHtml(campo);
+  var contagem = document.getElementById('rel-contagem-' + campo);
+  if (contagem) contagem.textContent = (relMultiState(campo).pendente || []).length + ' marcado(s)';
 }
 
-function relBuscarProdutoItem(valor) {
-  window.REL_PRODUTO_MULTI_BUSCA = valor;
-  relAtualizarPainelProduto();
-  var el = document.querySelector('.rel-multi-busca');
+function relBuscarMultiItem(campo, valor) {
+  relMultiState(campo).busca = valor;
+  relAtualizarPainelMulti(campo);
+  var el = document.querySelector('.rel-multi-busca[data-campo="' + campo + '"]');
   if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
 }
 
-function relToggleProdutoItemPendente(valor, checked) {
-  var arr = window.REL_PRODUTO_MULTI_PENDENTE || [];
+function relToggleMultiItemPendente(campo, valor, checked) {
+  var st = relMultiState(campo);
+  var arr = st.pendente || (st.pendente = []);
   var i = arr.indexOf(valor);
   if (checked && i === -1) arr.push(valor);
   else if (!checked && i !== -1) arr.splice(i, 1);
-  var contagem = document.getElementById('rel-produto-contagem-pendente');
+  var contagem = document.getElementById('rel-contagem-' + campo);
   if (contagem) contagem.textContent = arr.length + ' marcado(s)';
 }
 
-// Produtos disponíveis pro dropdown: só os que aparecem com os OUTROS filtros
-// ativos (vendedor/cliente/grupo/marca/ano), senão "Marcar todos" marca
-// produto que nem existe na seleção filtrada em cima.
-function relProdutosDisponiveisFiltro() {
-  const f = window.REL_FILTER || {};
-  const rows = relBaseRows().filter(r => {
-    if (f.vendedor && g(r,'vendedor') !== f.vendedor) return false;
-    if (f.cliente && g(r,'cliente') !== f.cliente) return false;
-    if (f.grupo && (g(r,'grupo') || g(r,'grupoProd')) !== f.grupo) return false;
-    if (f.marca && g(r,'marca') !== f.marca) return false;
-    if (f.ano && g(r,'ano') !== f.ano) return false;
-    return true;
-  });
-  const vals = rows.map(r => g(r,'produto')).filter(Boolean);
+// Valores disponíveis pro dropdown de um campo: só os que ainda aparecem com
+// os OUTROS filtros já ativos, senão "Marcar todos" marca valor que nem
+// existe mais na seleção filtrada dos demais campos.
+function relOpcoesDisponiveis(campo) {
+  const rows = relBaseRows().filter(r => window.REL_MULTI_CAMPOS.every(outro => {
+    if (outro === campo) return true;
+    const sel = relSelecionados(outro);
+    return !sel.length || sel.includes(relValorCampo(r, outro));
+  }));
+  const vals = rows.map(r => relValorCampo(r, campo)).filter(Boolean);
   return [...new Set(vals)].sort((a,b)=>a.localeCompare(b));
 }
 
-function relProdutoOpcoesVisiveis() {
-  const busca = (window.REL_PRODUTO_MULTI_BUSCA || '').toLowerCase();
-  const todos = relProdutosDisponiveisFiltro();
+function relOpcoesVisiveisMulti(campo) {
+  const busca = (relMultiState(campo).busca || '').toLowerCase();
+  const todos = relOpcoesDisponiveis(campo);
   return busca ? todos.filter(v => v.toLowerCase().includes(busca)) : todos;
 }
 
-function relSelecionarTodosProduto() {
-  const visiveis = relProdutoOpcoesVisiveis();
-  const pend = window.REL_PRODUTO_MULTI_PENDENTE || (window.REL_PRODUTO_MULTI_PENDENTE = []);
+function relSelecionarTodosMulti(campo) {
+  const visiveis = relOpcoesVisiveisMulti(campo);
+  const st = relMultiState(campo);
+  const pend = st.pendente || (st.pendente = []);
   visiveis.forEach(v => { if (!pend.includes(v)) pend.push(v); });
-  relAtualizarPainelProduto();
+  relAtualizarPainelMulti(campo);
 }
 
-function relLimparProduto() {
-  window.REL_PRODUTO_MULTI_PENDENTE = [];
-  relAtualizarPainelProduto();
+function relLimparMulti(campo) {
+  relMultiState(campo).pendente = [];
+  relAtualizarPainelMulti(campo);
 }
 
-function relPainelProdutoHtml() {
-  const pendente = window.REL_PRODUTO_MULTI_PENDENTE || [];
-  const opcoes = relProdutoOpcoesVisiveis();
+function relPainelMultiHtml(campo) {
+  const st = relMultiState(campo);
+  const pendente = st.pendente || [];
+  const opcoes = relOpcoesVisiveisMulti(campo);
   const itens = opcoes.map(v => {
     const marcado = pendente.includes(v);
     return '<label class="rel-multi-item">'
-      + '<input type="checkbox" data-produto="' + relEsc(v) + '" ' + (marcado ? 'checked' : '') + ' onchange="relToggleProdutoItemPendente(this.dataset.produto, this.checked)">'
+      + '<input type="checkbox" data-valor="' + relEsc(v) + '" ' + (marcado ? 'checked' : '') + ' onchange="relToggleMultiItemPendente(\'' + campo + '\', this.dataset.valor, this.checked)">'
       + '<span>' + relEsc((v || '').toUpperCase()) + '</span>'
       + '</label>';
-  }).join('') || '<div class="rel-multi-empty">Nenhum produto encontrado</div>';
+  }).join('') || '<div class="rel-multi-empty">Nenhum valor encontrado</div>';
 
-  return '<div class="rel-multi-panel" id="rel-produto-panel"' + (window.REL_PRODUTO_MULTI_OPEN ? '' : ' hidden') + '>'
-    +   '<input type="text" class="rel-multi-busca" placeholder="Buscar produto..." value="' + relEsc(window.REL_PRODUTO_MULTI_BUSCA || '') + '"'
-    +     ' oninput="relBuscarProdutoItem(this.value)" onclick="event.stopPropagation()">'
+  return '<div class="rel-multi-panel" id="rel-panel-' + campo + '"' + (st.open ? '' : ' hidden') + '>'
+    +   '<input type="text" class="rel-multi-busca" data-campo="' + campo + '" placeholder="Buscar..." value="' + relEsc(st.busca || '') + '"'
+    +     ' oninput="relBuscarMultiItem(\'' + campo + '\', this.value)" onclick="event.stopPropagation()">'
     +   '<div class="rel-multi-actions">'
-    +     '<button type="button" onclick="relSelecionarTodosProduto()">Marcar todos</button>'
-    +     '<button type="button" onclick="relLimparProduto()">Limpar</button>'
+    +     '<button type="button" onclick="relSelecionarTodosMulti(\'' + campo + '\')">Marcar todos</button>'
+    +     '<button type="button" onclick="relLimparMulti(\'' + campo + '\')">Limpar</button>'
     +   '</div>'
     +   '<div class="rel-multi-lista">' + itens + '</div>'
     +   '<div class="rel-multi-footer">'
-    +     '<span id="rel-produto-contagem-pendente">' + pendente.length + ' marcado(s)</span>'
+    +     '<span id="rel-contagem-' + campo + '">' + pendente.length + ' marcado(s)</span>'
     +     '<div class="rel-multi-footer-btns">'
-    +       '<button type="button" class="rel-multi-cancelar" onclick="relFecharProdutoDropdown()">Cancelar</button>'
-    +       '<button type="button" class="rel-multi-aplicar" onclick="relAplicarProdutoDropdown()">Aplicar</button>'
+    +       '<button type="button" class="rel-multi-cancelar" onclick="relFecharMultiDropdown(\'' + campo + '\')">Cancelar</button>'
+    +       '<button type="button" class="rel-multi-aplicar" onclick="relAplicarMultiDropdown(\'' + campo + '\')">Aplicar</button>'
     +     '</div>'
     +   '</div>'
     + '</div>';
 }
 
-function relFiltroProdutoMulti() {
-  const selecionados = Array.isArray(window.REL_FILTER.produto) ? window.REL_FILTER.produto : [];
-  const label = !selecionados.length
+function relFiltroMultiField(campo, label) {
+  const selecionados = relSelecionados(campo);
+  const texto = !selecionados.length
     ? 'Todos'
     : selecionados.length + ' selecionado' + (selecionados.length > 1 ? 's' : '');
+  const st = relMultiState(campo);
 
   return '<div class="rep-filter-field rel-multi-field">'
-    + '<span>Produto</span>'
-    + '<div class="rel-multi-wrap">'
-    +   '<button type="button" class="rel-multi-btn' + (selecionados.length ? ' ativo' : '') + '" onclick="relAbrirProdutoDropdown(event)">'
-    +     '<span class="rel-multi-btn-label">' + relEsc(label) + '</span>'
+    + '<span>' + relEsc(label) + '</span>'
+    + '<div class="rel-multi-wrap" data-campo="' + campo + '">'
+    +   '<button type="button" class="rel-multi-btn' + (selecionados.length ? ' ativo' : '') + '" onclick="relAbrirMultiDropdown(\'' + campo + '\', event)">'
+    +     '<span class="rel-multi-btn-label">' + relEsc(texto) + '</span>'
     +     '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>'
     +   '</button>'
-    +   (window.REL_PRODUTO_MULTI_OPEN ? relPainelProdutoHtml() : '')
+    +   (st.open ? relPainelMultiHtml(campo) : '')
     + '</div>'
     + '</div>';
 }
 
 document.addEventListener('click', function(e) {
-  if (window.REL_PRODUTO_MULTI_OPEN && !e.target.closest('.rel-multi-wrap')) {
-    relFecharProdutoDropdown();
-  }
+  window.REL_MULTI_CAMPOS.forEach(function(campo) {
+    const st = relMultiState(campo);
+    if (st.open && !e.target.closest('.rel-multi-wrap[data-campo="' + campo + '"]')) {
+      relFecharMultiDropdown(campo);
+    }
+  });
 });
 
 function relFiltroHtml(ocultarCampos, mostrarAno) {
@@ -262,12 +260,12 @@ function relFiltroHtml(ocultarCampos, mostrarAno) {
   const total = relBaseRows().length;
   return `<div class="rep-filterbar">
     <div class="rep-filter-grid rel-filter-grid">
-      ${mostrarAno ? relFiltroSelect('ano','Ano') : ''}
-      ${ocultar.has('vendedor') ? '' : relFiltroSelect('vendedor','Vendedor')}
-      ${ocultar.has('produto') ? '' : relFiltroProdutoMulti()}
-      ${ocultar.has('cliente') ? '' : relFiltroSelect('cliente','Cliente')}
-      ${ocultar.has('grupo') ? '' : relFiltroSelect('grupo','Grupo')}
-      ${ocultar.has('marca') ? '' : relFiltroSelect('marca','Marca')}
+      ${mostrarAno ? relFiltroMultiField('ano','Ano') : ''}
+      ${ocultar.has('vendedor') ? '' : relFiltroMultiField('vendedor','Vendedor')}
+      ${ocultar.has('produto') ? '' : relFiltroMultiField('produto','Produto')}
+      ${ocultar.has('cliente') ? '' : relFiltroMultiField('cliente','Cliente')}
+      ${ocultar.has('grupo') ? '' : relFiltroMultiField('grupo','Grupo')}
+      ${ocultar.has('marca') ? '' : relFiltroMultiField('marca','Marca')}
     </div>
     <button class="rep-clear-filter" onclick="relLimparFiltros()">Limpar filtros</button>
     <span class="rep-filter-count">${filtrados.toLocaleString('pt-BR')} de ${total.toLocaleString('pt-BR')} registros</span>
@@ -1400,7 +1398,7 @@ function bdUpdateLaudoGruposAno02() {
   }
   const anos = [...new Set(rows.map(r=>g(r,'ano')).filter(Boolean))].sort();
   if (anos.length < 2) {
-    const dica = window.REL_FILTER.ano ? ' — tire o filtro de Ano acima pra comparar' : '';
+    const dica = relSelecionados('ano').length ? ' — tire o filtro de Ano acima pra comparar' : '';
     pane.innerHTML = `<div class="rel-header-bar">${toggleBtnHtml(null, true)}<div class="rel-title">Comparativo entre 2 anos</div></div><div class="av-rel-placeholder"><p>Comparativo entre 2 anos</p><span>São necessários dados de pelo menos 2 anos diferentes${dica}</span></div>`;
     return;
   }

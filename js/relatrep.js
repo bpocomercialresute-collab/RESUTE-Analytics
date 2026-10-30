@@ -60,9 +60,8 @@ function repResetarAoTrocarEmpresa(eid) {
   // Mesmo vazamento vale pro filtro da aba Relatorios (BD Manual) -- REL_FILTER
   // e global em bd.js e tambem nunca era limpo na troca de empresa.
   if (typeof window.REL_FILTER !== 'undefined') {
-    window.REL_FILTER = { vendedor:'', produto:[], cliente:'', grupo:'', marca:'' };
-    window.REL_PRODUTO_MULTI_OPEN = false;
-    window.REL_PRODUTO_MULTI_BUSCA = '';
+    window.REL_FILTER = { vendedor:[], produto:[], cliente:[], grupo:[], marca:[], ano:[] };
+    window.REL_MULTI_STATE = {};
   }
 }
 
