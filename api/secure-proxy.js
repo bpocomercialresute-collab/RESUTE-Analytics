@@ -81,6 +81,7 @@ const ALLOWED_SUPABASE_PATHS = [
   '/rest/v1/grupos',
   '/rest/v1/empresa_modulos',
   '/rest/v1/empresa_filiais',
+  '/rest/v1/metas',
   '/functions/v1/sync-visual-saef'
 ];
 
@@ -620,6 +621,24 @@ function assertAuthorized(appUser, targetUrl, method, body) {
       }
       if (isWrite && appUser.papel !== 'admin') {
         throw new Error('Apenas super_admin ou admin da empresa pode alterar cadastros.');
+      }
+    }
+    return;
+  }
+
+  if (targetUrl.pathname === '/rest/v1/metas') {
+    // Clientes podem ler as metas da sua empresa (pra acompanhar realizado x
+    // meta); admin da empresa pode ler e escrever; super_admin tudo.
+    if (appUser.papel !== 'super_admin') {
+      var empresaIdsMetas = [
+        ...extractEmpresaIdsFromUrl(targetUrl),
+        ...extractEmpresaIdsFromBody(body)
+      ];
+      if (!empresaIdsMetas.length || !empresaIdsMetas.every(function(id) { return canAccessEmpresa(appUser, id); })) {
+        throw new Error('Filtro de empresa obrigatorio.');
+      }
+      if (isWrite && appUser.papel !== 'admin') {
+        throw new Error('Apenas super_admin ou admin da empresa pode alterar metas.');
       }
     }
     return;
@@ -1316,7 +1335,7 @@ async function handleAdminCompanyDelete(res, appUser, payload, env) {
   const deleteRequests = [
     ...['vendas', 'clientes_cad', 'produtos', 'representantes', 'grupos',
         'fin_lancamentos', 'fin_dre_lancamentos', 'fin_dre_plano_contas',
-        'relatorios_cache', 'empresa_modulos'].map(table => ({
+        'relatorios_cache', 'empresa_modulos', 'metas'].map(table => ({
       label: table,
       url: `${env.supaUrl}/rest/v1/${table}?empresa_id=eq.${encodeURIComponent(companyId)}`
     })),

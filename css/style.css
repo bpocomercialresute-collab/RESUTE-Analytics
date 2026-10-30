@@ -967,6 +967,18 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 }
 .rel-trend.up { color: #34d399; }
 .rel-trend.down { color: #f87171; }
+.rep-meta-cel { vertical-align: top; }
+.rep-meta-realizado { font-weight: 700; }
+.rep-meta-alvo { font-size: 10px; color: #7d91af; margin-top: 2px; }
+.rep-meta-ok .rep-meta-alvo { color: #34d399; font-weight: 700; }
+.rep-meta-alerta .rep-meta-alvo { color: #fbbf24; font-weight: 700; }
+.rep-meta-baixo .rep-meta-alvo { color: #f87171; font-weight: 700; }
+.rep-meta-editavel { cursor: pointer; }
+.rep-meta-editavel:hover { background: rgba(96,165,250,.1); }
+.rep-meta-empresa td { background: rgba(96,165,250,.07); font-weight: 700; }
+.rep-meta-ano { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #8ea3c0; white-space: nowrap; }
+.rep-meta-ano select { height: 28px; border-radius: 6px; border: 1px solid rgba(96,165,250,.2); background: #0b1728; color: #cbd5e1; padding: 0 6px; }
+.rep-meta-dica { font-size: 11px; color: #7d91af; padding: 4px 16px 0; }
 .rel-prod-name {
   display: block;
   max-width: 260px;
@@ -5817,6 +5829,15 @@ textarea:focus {
 .premio-growth-var.down {
   color: #DC2626 !important;
 }
+
+.rep-meta-alvo { color: #5A7A74 !important; }
+.rep-meta-ok .rep-meta-alvo { color: #059669 !important; }
+.rep-meta-alerta .rep-meta-alvo { color: #D97706 !important; }
+.rep-meta-baixo .rep-meta-alvo { color: #DC2626 !important; }
+.rep-meta-empresa td { background: var(--brand-soft-2) !important; }
+.rep-meta-ano { color: var(--brand-ink) !important; }
+.rep-meta-ano select { background: var(--brand-soft) !important; border-color: var(--brand-soft-2) !important; color: var(--brand-ink) !important; }
+.rep-meta-dica { color: #5A7A74 !important; }
 
 .rel-sem-dados,
 .av-rel-placeholder {

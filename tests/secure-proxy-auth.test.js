@@ -53,6 +53,29 @@ test('autorizacao: rota fora da lista e negada', () => {
   assert.throws(() => P.assertAuthorized(superAdmin, url('/rest/v1/tabela_qualquer'), 'GET', null), /Rota nao permitida/);
 });
 
+test('autorizacao metas: cliente le a propria empresa, nao escreve', () => {
+  assert.doesNotThrow(() => P.assertAuthorized(cliente, url('/rest/v1/metas?empresa_id=eq.A'), 'GET', null));
+  assert.throws(() => P.assertAuthorized(cliente, url('/rest/v1/metas?empresa_id=eq.A'), 'POST', '[{"empresa_id":"A"}]'), /Apenas super_admin ou admin/);
+});
+
+test('autorizacao metas: cliente nao le metas de outra empresa', () => {
+  assert.throws(() => P.assertAuthorized(cliente, url('/rest/v1/metas?empresa_id=eq.B'), 'GET', null), /Filtro de empresa|Acesso negado/);
+});
+
+test('autorizacao metas: admin da empresa escreve na propria, nao em outra', () => {
+  assert.doesNotThrow(() => P.assertAuthorized(admin, url('/rest/v1/metas?empresa_id=eq.A'), 'POST', '[{"empresa_id":"A"}]'));
+  assert.throws(() => P.assertAuthorized(admin, url('/rest/v1/metas?empresa_id=eq.B'), 'POST', '[{"empresa_id":"B"}]'), /Filtro de empresa|Acesso negado/);
+});
+
+test('autorizacao metas: super_admin acessa qualquer empresa', () => {
+  assert.doesNotThrow(() => P.assertAuthorized(superAdmin, url('/rest/v1/metas?empresa_id=eq.Z'), 'GET', null));
+  assert.doesNotThrow(() => P.assertAuthorized(superAdmin, url('/rest/v1/metas'), 'POST', '[{"empresa_id":"Z"}]'));
+});
+
+test('autorizacao metas: sem filtro de empresa e negado (nao super_admin)', () => {
+  assert.throws(() => P.assertAuthorized(admin, url('/rest/v1/metas'), 'GET', null), /Filtro de empresa obrigatorio/);
+});
+
 test('extracao: le empresa_id de eq e de in', () => {
   assert.deepEqual(Array.from(P.extractEmpresaIdsFromUrl(url('/rest/v1/vendas?empresa_id=eq.A'))), ['A']);
   assert.deepEqual(Array.from(P.extractEmpresaIdsFromUrl(url('/rest/v1/vendas?empresa_id=in.(A,B)'))), ['A', 'B']);

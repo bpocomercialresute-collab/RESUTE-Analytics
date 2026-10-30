@@ -96,7 +96,9 @@ async function repPremiacaoCarregarCadastroClientes() {
 // Toda leitura de outras empresas passa pelo /api/secure-proxy (SUPA_KEY/SVC_KEY
 // em auth.js são placeholders '__SERVER_ONLY__', não funcionam no navegador).
 
-function repProxyFetch(url, method, headers) {
+function repProxyFetch(url, method, headers, body) {
+  var envelope = { url: url, method: method || 'GET', headers: headers || {} };
+  if (body !== undefined) envelope.body = typeof body === 'string' ? body : JSON.stringify(body);
   return fetch('/api/secure-proxy', {
     method: 'POST',
     headers: {
@@ -104,7 +106,7 @@ function repProxyFetch(url, method, headers) {
       'x-session-token': (window.SESSION && SESSION.token) || '',
       'X-Requested-With': 'XMLHttpRequest'
     },
-    body: JSON.stringify({ url: url, method: method || 'GET', headers: headers || {} })
+    body: JSON.stringify(envelope)
   });
 }
 
@@ -2392,73 +2394,176 @@ function repSem() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// META — Metas por representante
+// META — Realizado x meta por representante e por empresa, mes a mes. Meta
+// e guardada no Supabase (tabela metas, so acessivel via proxy) pra persistir
+// entre sessoes e aparecer igual pra todo mundo da empresa. Carregada sob
+// demanda e cacheada por empresa+ano em REP_METAS_CACHE (evita recarregar a
+// cada re-render da aba).
 // ════════════════════════════════════════════════════════════════════════
+window.REP_METAS_CACHE = window.REP_METAS_CACHE || {};
+window.REP_METAS_ANO = window.REP_METAS_ANO || '';
+
+function repMetasEmpresaAtiva() {
+  return (typeof EMPRESA_ATIVA !== 'undefined' && EMPRESA_ATIVA && EMPRESA_ATIVA.empresa_id)
+    || (window.SESSION && SESSION.empresa_id) || '';
+}
+
+async function repMetasCarregar(eid, ano) {
+  if (!eid) return {};
+  try {
+    const r = await repProxyFetch(
+      SUPA_URL + '/rest/v1/metas?empresa_id=eq.' + encodeURIComponent(eid) + '&ano=eq.' + encodeURIComponent(ano) + '&select=vendedor,mes,valor_meta',
+      'GET', {}
+    );
+    if (!r.ok) return {};
+    const linhas = await r.json();
+    const porVendedor = {};
+    (Array.isArray(linhas) ? linhas : []).forEach(l => {
+      const v = l.vendedor || '';
+      if (!porVendedor[v]) porVendedor[v] = {};
+      porVendedor[v][l.mes] = Number(l.valor_meta) || 0;
+    });
+    return porVendedor;
+  } catch (e) { return {}; }
+}
+
+async function repMetasSalvar(eid, vendedor, ano, mes, valor) {
+  try {
+    const corpo = [{ empresa_id: eid, vendedor: vendedor || '', ano: Number(ano), mes: mes, valor_meta: valor, atualizado_em: new Date().toISOString() }];
+    const r = await repProxyFetch(
+      SUPA_URL + '/rest/v1/metas?on_conflict=empresa_id,vendedor,ano,mes',
+      'POST',
+      { 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      corpo
+    );
+    return r.ok;
+  } catch (e) { return false; }
+}
+
+function repMetasAnosDisponiveis(rows) {
+  const anosDados = [...new Set(rows.map(r => String(r[IDX.ano]||'').trim()).filter(Boolean))];
+  const anoAtual = new Date().getFullYear();
+  const todos = new Set(anosDados.concat([String(anoAtual), String(anoAtual+1)]));
+  return [...todos].sort();
+}
+
+function repMetasSetAno(valor) {
+  window.REP_METAS_ANO = valor;
+  repMeta();
+}
+
+function repMetaAbrirEdicao(el) {
+  const vendedor = el.dataset.vendedor || '';
+  const mes = parseInt(el.dataset.mes, 10);
+  const ano = el.dataset.ano;
+  const eid = repMetasEmpresaAtiva();
+  if (!eid) return;
+  const metas = window.REP_METAS_CACHE[eid + '|' + ano];
+  if (!metas) return;
+  const atual = (metas[vendedor] && metas[vendedor][mes]) || 0;
+  const label = vendedor ? vendedor.toUpperCase() : 'EMPRESA (todos os representantes)';
+  const entrada = prompt('Meta de ' + label + ' em ' + MES_LABEL_PT[mes-1] + '/' + ano + ' (R$):', atual ? String(atual) : '');
+  if (entrada === null) return;
+  const valor = typeof parseSmartNumber === 'function' ? parseSmartNumber(entrada) : parseFloat(entrada.replace(',', '.'));
+  if (!isFinite(valor) || valor < 0) { alert('Valor invalido.'); return; }
+  return repMetasSalvar(eid, vendedor, ano, mes, valor).then(ok => {
+    if (!ok) { alert('Nao foi possivel salvar a meta. Tente novamente.'); return; }
+    if (!metas[vendedor]) metas[vendedor] = {};
+    metas[vendedor][mes] = valor;
+    repMeta();
+  });
+}
+
 function repMeta() {
   const el = document.getElementById('rep-tab-meta');
   if (!el) return;
+  const eid = repMetasEmpresaAtiva();
+  if (!eid) {
+    el.innerHTML = '<div class="av-rel-placeholder"><p>METAS</p><span>Nenhuma empresa selecionada.</span></div>';
+    return;
+  }
+
+  const rows = repDataRows();
+  const anosOpcoes = repMetasAnosDisponiveis(rows);
+  if (!window.REP_METAS_ANO || anosOpcoes.indexOf(window.REP_METAS_ANO) === -1) {
+    window.REP_METAS_ANO = String(new Date().getFullYear());
+  }
+  const ano = window.REP_METAS_ANO;
+  const chaveCache = eid + '|' + ano;
+  let metas = window.REP_METAS_CACHE[chaveCache];
+  if (metas === undefined) {
+    window.REP_METAS_CACHE[chaveCache] = null; // marca "carregando" pra nao disparar fetch duplicado
+    repMetasCarregar(eid, ano).then(dados => {
+      window.REP_METAS_CACHE[chaveCache] = dados;
+      if (document.getElementById('rep-tab-meta')) repMeta();
+    });
+    metas = null;
+  }
+  if (!metas) {
+    el.innerHTML = '<div class="rel-header-bar"><div class="rel-title">METAS — ' + repEsc(ano) + '</div></div>'
+      + '<div class="av-rel-placeholder"><p>Carregando metas...</p></div>';
+    return;
+  }
+
+  const podeEditar = !!(window.SESSION && (SESSION.papel === 'admin' || SESSION.papel === 'super_admin'));
+  const MES_IDX_LOCAL = {jan:0,fev:1,mar:2,abr:3,mai:4,jun:5,jul:6,ago:7,set:8,out:9,nov:10,dez:11};
   const vendedores = repGetVendedores();
-  const hoje = new Date();
-  const anoAtual = String(hoje.getFullYear());
-  const mesAtual = hoje.getMonth();
 
-  // Vendas do mês atual por dia
-  const vendasDia = {};
-  repDataRows().forEach(r => {
-    const dtStr = String(r[IDX.saida]||r[IDX.emissao]||'').trim();
-    const dt = repParseDate(dtStr);
+  const realizado = {};
+  vendedores.forEach(v => { realizado[v] = Array(12).fill(0); });
+  const realizadoEmpresa = Array(12).fill(0);
+  rows.forEach(r => {
+    if (String(r[IDX.ano]||'').trim() !== ano) return;
+    const mi = MES_IDX_LOCAL[String(r[IDX.mes]||'').trim().toLowerCase()];
+    if (mi === undefined) return;
+    const valor = typeof parseSmartNumber === 'function' ? parseSmartNumber(r[IDX.valor]) : (Number(r[IDX.valor]) || 0);
+    realizadoEmpresa[mi] += valor;
     const vend = String(r[IDX.vendedor]||'').trim();
-    if (!dt||!vend) return;
-    if (String(r[IDX.ano]||'')!==anoAtual||dt.getMonth()!==mesAtual) return;
-    const key = `${vend}|${dt.getDate()}`;
-    vendasDia[key] = (vendasDia[key]||0) + repVal(r);
+    if (vend && realizado[vend]) realizado[vend][mi] += valor;
   });
 
-  // Dias do mês
-  const diasDoMes = new Date(hoje.getFullYear(), mesAtual+1, 0).getDate();
-  const diasArr = Array.from({length:diasDoMes}, (_,i)=>i+1);
+  function linhaHtml(vendedorKey, label, realizadoArr, destaque) {
+    const metaVend = metas[vendedorKey] || {};
+    const cels = [];
+    for (let m = 1; m <= 12; m++) {
+      const realizadoVal = realizadoArr[m-1];
+      const metaVal = metaVend[m] || 0;
+      const pct = metaVal > 0 ? (realizadoVal / metaVal) * 100 : null;
+      const corClasse = pct === null ? '' : (pct >= 100 ? 'rep-meta-ok' : (pct >= 70 ? 'rep-meta-alerta' : 'rep-meta-baixo'));
+      const metaTexto = metaVal > 0 ? repFmtFull(metaVal) : '—';
+      const pctTexto = pct === null ? '' : ' (' + pct.toFixed(0) + '%)';
+      const editAttr = podeEditar
+        ? ' data-vendedor="' + repEsc(vendedorKey) + '" data-mes="' + m + '" data-ano="' + repEsc(ano) + '" onclick="repMetaAbrirEdicao(this)" title="Clique pra definir a meta"'
+        : '';
+      cels.push('<td class="rep-meta-cel' + (podeEditar ? ' rep-meta-editavel' : '') + ' ' + corClasse + '"' + editAttr + '>'
+        + '<div class="rep-meta-realizado">' + repFmtFull(realizadoVal) + '</div>'
+        + '<div class="rep-meta-alvo">Meta: ' + metaTexto + pctTexto + '</div>'
+        + '</td>');
+    }
+    return '<tr class="' + (destaque ? 'rep-meta-empresa' : '') + '"><td class="rep-lbl">' + repEsc(label) + '</td>' + cels.join('') + '</tr>';
+  }
 
-  let html = `<div class="rel-header-bar">
-    ${repToggleHtml()}
-    <div class="rel-title">METAS — ${MES_LABEL_PT[mesAtual].toUpperCase()} ${anoAtual}</div>
-  </div><div class="rep-scroll-area"><table class="rep-tbl">
-  <thead>
-    <tr class="rep-th-semana">
-      <td>REPRESENTANTE</td>
-      ${diasArr.map(d=>`<td>${d}</td>`).join('')}
-      <td>MED</td><td>TOTAL</td><td>%</td>
-    </tr>
-    <tr class="rep-th-sem">
-      <td></td>
-      ${diasArr.map(d=>{ const dt=new Date(hoje.getFullYear(),mesAtual,d); return `<td>${['D','S','T','Q','Q','S','S'][dt.getDay()]}</td>`; }).join('')}
-      <td></td><td></td><td></td>
-    </tr>
-  </thead><tbody>`;
+  const linhasVendedores = vendedores.filter(v => {
+    const temRealizado = realizado[v].some(x => x > 0);
+    const temMeta = metas[v] && Object.keys(metas[v]).length > 0;
+    return temRealizado || temMeta;
+  }).map(v => linhaHtml(v, v.toUpperCase(), realizado[v], false)).join('');
 
-  let totalGeral = 0;
-  const totVend = {};
-  vendedores.forEach(v => {
-    totVend[v] = diasArr.reduce((s,d)=>s+(vendasDia[`${v}|${d}`]||0),0);
-    totalGeral += totVend[v];
-  });
-  const maxDiaMeta = Math.max(1, ...vendedores.flatMap(v => diasArr.map(d => vendasDia[`${v}|${d}`] || 0)), ...Object.values(totVend));
+  const html = '<div class="rel-header-bar">'
+    + '<div class="rep-report-tools">' + repFilterHtml() + '</div>'
+    + '<div class="rel-title">METAS — REALIZADO × META</div>'
+    + '<label class="rep-meta-ano"><span>Ano</span><select onchange="repMetasSetAno(this.value)">'
+    +   anosOpcoes.map(a => '<option value="' + a + '"' + (a === ano ? ' selected' : '') + '>' + a + '</option>').join('')
+    + '</select></label>'
+    + '</div>'
+    + (podeEditar ? '<div class="rep-meta-dica">Clique num valor de meta pra definir ou alterar.</div>' : '')
+    + '<div class="rep-scroll-area"><table class="rep-tbl"><thead><tr class="rep-th-semana">'
+    + '<td>REPRESENTANTE</td>' + MES_LABEL_PT.map(m => '<td>' + m.toUpperCase() + '</td>').join('')
+    + '</tr></thead><tbody>'
+    + linhaHtml('', 'EMPRESA (TOTAL)', realizadoEmpresa, true)
+    + linhasVendedores
+    + '</tbody></table></div>';
 
-  vendedores.forEach(vend => {
-    const tot = totVend[vend];
-    if (tot===0) return;
-    const pct = totalGeral>0?(tot/totalGeral*100).toFixed(1):'0.0';
-    const diasComVenda = diasArr.filter(d=>(vendasDia[`${vend}|${d}`]||0)>0).length;
-    const media = diasComVenda>0 ? tot/diasComVenda : 0;
-    html += `<tr>
-      <td class="rep-lbl">${vend.toUpperCase()}</td>
-      ${diasArr.map(d=>`<td>${repMiniCell(vendasDia[`${vend}|${d}`]||0, maxDiaMeta)}</td>`).join('')}
-      <td>${repMiniCell(media, maxDiaMeta)}</td>
-      <td class="rep-total-cell">${repFmtFull(tot)}</td>
-      <td>${repShareCell(tot, totalGeral)}</td>
-    </tr>`;
-  });
-
-  html += '</tbody></table></div>';
   el.innerHTML = html;
 }
 
