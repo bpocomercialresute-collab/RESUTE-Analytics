@@ -1837,6 +1837,99 @@ function repFiltroMultiField(campo, label) {
     + '</div>';
 }
 
+// ── PRESETS DE FILTRO SALVOS (mesmo mecanismo de js/bd.js) ──────────────────
+window.REP_PRESETS_OPEN = window.REP_PRESETS_OPEN || false;
+
+function repPresetsChave() {
+  var eid = (typeof EMPRESA_ATIVA !== 'undefined' && EMPRESA_ATIVA && EMPRESA_ATIVA.empresa_id) || 'geral';
+  return 'resute_rep_presets_' + eid;
+}
+
+function repPresetsCarregar() {
+  try {
+    var lista = JSON.parse(localStorage.getItem(repPresetsChave()) || '[]');
+    return Array.isArray(lista) ? lista : [];
+  } catch (e) { return []; }
+}
+
+function repPresetsGravarLista(lista) {
+  try { localStorage.setItem(repPresetsChave(), JSON.stringify(lista)); } catch (e) {}
+}
+
+function repPresetsAbrir(ev) {
+  if (ev) ev.stopPropagation();
+  window.REP_PRESETS_OPEN = true;
+  repUpdateAll();
+}
+
+function repPresetsFechar() {
+  window.REP_PRESETS_OPEN = false;
+  repUpdateAll();
+}
+
+function repPresetsSalvarAtual() {
+  var nome = prompt('Nome pra esse filtro:');
+  if (!nome) return;
+  nome = nome.trim();
+  if (!nome) return;
+  var filtroAtual = {};
+  window.REP_MULTI_CAMPOS.forEach(function(campo) { filtroAtual[campo] = repSelecionados(campo).slice(); });
+  var lista = repPresetsCarregar();
+  var i = lista.findIndex(function(p) { return p.nome.toLowerCase() === nome.toLowerCase(); });
+  var registro = { nome: nome, filtro: filtroAtual, salvo_em: Date.now() };
+  if (i >= 0) lista[i] = registro; else lista.push(registro);
+  repPresetsGravarLista(lista);
+  repUpdateAll();
+}
+
+function repPresetsAplicar(nome) {
+  var preset = repPresetsCarregar().find(function(p) { return p.nome === nome; });
+  if (!preset) return;
+  var novo = {};
+  window.REP_MULTI_CAMPOS.forEach(function(campo) { novo[campo] = ((preset.filtro || {})[campo] || []).slice(); });
+  window.REP_FILTER = novo;
+  window.REP_MULTI_STATE = {};
+  window.REP_PRESETS_OPEN = false;
+  repUpdateAll();
+}
+
+function repPresetsApagar(nome, ev) {
+  if (ev) ev.stopPropagation();
+  if (!confirm('Apagar o filtro salvo "' + nome + '"?')) return;
+  repPresetsGravarLista(repPresetsCarregar().filter(function(p) { return p.nome !== nome; }));
+  repUpdateAll();
+}
+
+function repPresetsPainelHtml() {
+  var lista = repPresetsCarregar();
+  var itens = lista.map(function(p) {
+    return '<div class="rel-preset-item">'
+      + '<button type="button" class="rel-preset-aplicar" data-nome="' + repEsc(p.nome) + '" onclick="repPresetsAplicar(this.dataset.nome)">' + repEsc(p.nome) + '</button>'
+      + '<button type="button" class="rel-preset-apagar" data-nome="' + repEsc(p.nome) + '" title="Apagar" onclick="repPresetsApagar(this.dataset.nome, event)">✕</button>'
+      + '</div>';
+  }).join('') || '<div class="rel-multi-empty">Nenhum filtro salvo ainda</div>';
+
+  return '<div class="rel-multi-panel rel-presets-panel" id="rep-presets-panel">'
+    +   '<div class="rel-multi-lista">' + itens + '</div>'
+    +   '<div class="rel-multi-actions">'
+    +     '<button type="button" onclick="repPresetsSalvarAtual()">Salvar filtro atual...</button>'
+    +   '</div>'
+    + '</div>';
+}
+
+function repFiltroPresetsField() {
+  return '<div class="rep-filter-field rel-multi-field">'
+    + '<span>Filtros salvos</span>'
+    + '<div class="rel-multi-wrap rel-presets-wrap">'
+    +   '<button type="button" class="rel-multi-btn" onclick="repPresetsAbrir(event)">'
+    +     '<span class="rel-multi-btn-label">Presets</span>'
+    +     '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>'
+    +   '</button>'
+    +   (window.REP_PRESETS_OPEN ? repPresetsPainelHtml() : '')
+    + '</div>'
+    + '</div>';
+}
+
 document.addEventListener('click', function(e) {
   window.REP_MULTI_CAMPOS.forEach(function(campo) {
     const st = repMultiState(campo);
@@ -1844,6 +1937,9 @@ document.addEventListener('click', function(e) {
       repFecharMultiDropdown(campo);
     }
   });
+  if (window.REP_PRESETS_OPEN && !e.target.closest('.rel-presets-wrap')) {
+    repPresetsFechar();
+  }
 });
 
 function repFilterHtml() {
@@ -1851,6 +1947,7 @@ function repFilterHtml() {
   const total = repBaseRows().length;
   return `<div class="rep-filterbar">
     <div class="rep-filter-grid">
+      ${repFiltroPresetsField()}
       ${repFiltroMultiField('vendedor','Vendedor')}
       ${repFiltroMultiField('produto','Produto')}
       ${repFiltroMultiField('cliente','Cliente')}
