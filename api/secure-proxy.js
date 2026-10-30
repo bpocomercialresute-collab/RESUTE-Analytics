@@ -29,22 +29,42 @@ function _getAllowedOrigins() {
     : [];
 }
 
+// Quando ALLOWED_ORIGINS não está configurado na Vercel, NÃO dá pra saber se
+// isso é intencional (dev/preview) ou um esquecimento em produção — refletir
+// qualquer Origin de volta nesse caso deixava o proxy aberto pra qualquer
+// site, silenciosamente, sem log nenhum. Em vez de arriscar derrubar
+// produção adivinhando o domínio certo (ou negar tudo às cegas), o fallback
+// sem configuração é "mesma origem": só aceita se o Origin bater com o próprio Host
+// que atendeu a requisição — é exatamente o caso de toda chamada legítima do
+// app (front e /api/secure-proxy sempre no mesmo domínio), e um site externo
+// jamais consegue forjar isso porque não controla o Host que a Vercel roteou.
+function _origemBateComHost(req) {
+  const origin = req.headers.origin || '';
+  const host = req.headers.host || '';
+  if (!origin || !host) return false;
+  return origin === 'https://' + host || origin === 'http://' + host;
+}
+
 function setCorsHeaders(req, res) {
   const allowed = _getAllowedOrigins();
   const origin = req.headers.origin || '';
-  // Quando ALLOWED_ORIGINS vazio (dev/preview): reflete o origin recebido
   // Quando configurado: só reflete se origin estiver na lista — NUNCA wildcard
-  const corsOrigin = allowed.length === 0 ? origin : (allowed.includes(origin) ? origin : '');
+  // Quando não configurado: só reflete se Origin bater com o Host (mesma origem)
+  const corsOrigin = allowed.length
+    ? (allowed.includes(origin) ? origin : '')
+    : (_origemBateComHost(req) ? origin : '');
   if (corsOrigin) res.setHeader('Access-Control-Allow-Origin', corsOrigin);
   res.setHeader('Vary', 'Origin');
 }
 
 function isOriginAllowed(req) {
   const allowed = _getAllowedOrigins();
-  if (!allowed.length) return true;
-  const origin = req.headers.origin || '';
-  // Comparação exata — sem startsWith para evitar bypass de subdomínio
-  return allowed.includes(origin);
+  if (allowed.length) {
+    const origin = req.headers.origin || '';
+    // Comparação exata — sem startsWith para evitar bypass de subdomínio
+    return allowed.includes(origin);
+  }
+  return _origemBateComHost(req);
 }
 
 const ALLOWED_SUPABASE_PATHS = [
