@@ -785,8 +785,8 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
 }
 .rel-preset-aplicar:hover { background: rgba(96,165,250,.12); }
 .rel-preset-apagar {
-  flex: 0 0 auto; width: 20px; height: 20px; border-radius: 5px; border: none;
-  background: transparent; color: #7d91af; cursor: pointer; font-size: 11px; line-height: 1;
+  flex: 0 0 auto; width: 32px; height: 32px; border-radius: 5px; border: none;
+  background: transparent; color: #7d91af; cursor: pointer; font-size: 13px; line-height: 1;
 }
 .rel-preset-apagar:hover { background: rgba(248,113,113,.15); color: #f87171; }
 .rel-multi-footer {
