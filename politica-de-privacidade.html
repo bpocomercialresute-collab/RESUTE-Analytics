@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Política de Privacidade — RESUTE Analytics</title>
+<style>
+  :root {
+    --brand-blue: #1C64C0;
+    --ink: #0A2F2F;
+    --muted: #5A7A74;
+    --bg: #F5F7FA;
+    --card: #FFFFFF;
+    --border: #E2E8F0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 32px 20px 80px; }
+  .aviso-rascunho {
+    background: #FFF4E5;
+    border: 1px solid #F0B429;
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 13.5px;
+    color: #7A4A00;
+    margin-bottom: 28px;
+  }
+  .aviso-rascunho strong { display: block; margin-bottom: 4px; font-size: 14px; }
+  h1 { font-size: 26px; margin-bottom: 4px; }
+  .atualizado { color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+  h2 { font-size: 18px; margin-top: 36px; color: var(--brand-blue); }
+  h3 { font-size: 15px; margin-top: 22px; }
+  p, li { font-size: 14.5px; }
+  ul { padding-left: 22px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 16px 0;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: .03em; }
+  .contato { background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 10px; padding: 16px 20px; margin-top: 24px; }
+  code { background: #F1F5F9; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="aviso-rascunho">
+    <strong>⚠ Documento de trabalho — ainda não revisado por advogado</strong>
+    Este texto foi montado a partir do funcionamento real do sistema (dados coletados, onde ficam armazenados, por quanto tempo). Antes de publicar esta página ou considerá-la juridicamente válida, é necessário revisão por um profissional de direito digital/LGPD. Este aviso deve ser removido só depois dessa revisão.
+  </div>
+
+  <h1>Política de Privacidade</h1>
+  <p class="atualizado">RESUTE Analytics — rascunho gerado em 2026, referente à versão do sistema em produção nesta data.</p>
+
+  <h2>1. Quem somos e o que este documento cobre</h2>
+  <p>O RESUTE Analytics ("nós", "sistema", "plataforma") é um painel de business intelligence (BI) comercial e financeiro, contratado por empresas ("empresa cliente", "contratante") para organizar e analisar os próprios dados de vendas, clientes, produtos, representantes e lançamentos financeiros.</p>
+  <p>Nesta relação, sob a Lei Geral de Proteção de Dados (LGPD, Lei 13.709/2018):</p>
+  <ul>
+    <li>A <strong>empresa contratante</strong> é a <strong>Controladora</strong> dos dados de seus próprios clientes, vendedores e operações comerciais/financeiras que insere ou sincroniza no sistema.</li>
+    <li>O <strong>RESUTE Analytics</strong> atua como <strong>Operador</strong>: processa esses dados apenas para prestar o serviço contratado, seguindo as instruções da contratante, e não os usa para finalidade própria nem os repassa a terceiros não autorizados.</li>
+  </ul>
+
+  <h2>2. Quais dados o sistema coleta e armazena</h2>
+
+  <h3>2.1 Dados de quem usa o sistema (login)</h3>
+  <table>
+    <tr><th>Dado</th><th>Finalidade</th></tr>
+    <tr><td>Nome, e-mail, papel de acesso (cliente/admin/super_admin)</td><td>Identificação e controle de permissão de acesso</td></tr>
+    <tr><td>Senha</td><td>Autenticação — nunca armazenada em texto puro, gerenciada por serviço de autenticação dedicado (Supabase Auth)</td></tr>
+    <tr><td>Data/hora do último acesso</td><td>Controle operacional e de segurança</td></tr>
+  </table>
+
+  <h3>2.2 Dados comerciais e financeiros inseridos pela empresa contratante</h3>
+  <p>A empresa contratante insere (manualmente ou via integração com seu próprio sistema de vendas) dados sobre sua operação, que podem incluir dados pessoais de <strong>clientes finais e representantes da própria contratante</strong> (não usuários diretos do RESUTE Analytics):</p>
+  <ul>
+    <li>Vendas: produto, quantidade, valor, data, vendedor responsável, cliente associado.</li>
+    <li>Cadastro de clientes: nome/razão social, cidade/UF, e quando fornecido pela contratante, dados de contato (telefone, e-mail).</li>
+    <li>Cadastro de representantes/vendedores: nome, contato, região de atuação.</li>
+    <li>Lançamentos financeiros (módulo DRE, quando contratado): receitas, despesas, contas, datas de vencimento/pagamento.</li>
+  </ul>
+  <p>Esses dados são fornecidos e de responsabilidade da empresa contratante (Controladora) — ela deve ter base legal própria (ex.: execução de contrato com seus clientes) para o tratamento desses dados antes de inseri-los no sistema.</p>
+
+  <h3>2.3 Dados técnicos e de uso</h3>
+  <table>
+    <tr><th>Dado</th><th>Finalidade</th><th>Onde fica</th></tr>
+    <tr><td>Token de sessão</td><td>Manter o usuário autenticado entre páginas</td><td>Armazenamento local do navegador (localStorage)</td></tr>
+    <tr><td>Filtros e preferências salvas pelo usuário (ex.: combinações de filtro com nome)</td><td>Conveniência — evitar reconfigurar os mesmos filtros</td><td>Armazenamento local do navegador, por empresa</td></tr>
+    <tr><td>Cópia local dos dados de vendas da empresa (cache)</td><td>Acelerar o carregamento do painel</td><td>Armazenamento local do navegador (IndexedDB), nunca enviado a terceiros</td></tr>
+    <tr><td>Registros de erro técnico (mensagem, stack de código, URL da página)</td><td>Identificar e corrigir falhas do sistema</td><td>Banco de dados do sistema, acesso restrito à equipe técnica</td></tr>
+    <tr><td>Registro de auditoria administrativa (quem fez o quê, quando)</td><td>Segurança e rastreabilidade de ações administrativas</td><td>Banco de dados do sistema</td></tr>
+  </table>
+
+  <h2>3. Onde os dados ficam armazenados</h2>
+  <p>Os dados são armazenados em infraestrutura de nuvem fornecida pela Supabase (hospedagem de banco de dados), e a aplicação web é hospedada pela Vercel. Dependendo da região contratada do provedor, o armazenamento físico pode ocorrer fora do Brasil — nesse caso, aplica-se o regime de transferência internacional de dados previsto na LGPD (art. 33), e o provedor de infraestrutura possui suas próprias políticas de segurança e conformidade.</p>
+
+  <h2>4. Com quem os dados são compartilhados</h2>
+  <ul>
+    <li><strong>Ninguém, por padrão.</strong> O sistema não vende, aluga nem compartilha dados com anunciantes ou redes de publicidade. Não há rastreadores de terceiros (analytics de publicidade) instalados nas páginas.</li>
+    <li><strong>Provedores de infraestrutura</strong> (Supabase, Vercel) — acessam os dados apenas na medida necessária para operar o serviço contratado, sob seus próprios termos de processamento de dados.</li>
+    <li><strong>Integração com o sistema de vendas da própria empresa contratante</strong> (quando configurada) — dados trafegam entre o sistema de origem da contratante e o RESUTE Analytics, nunca para terceiros externos a essa relação.</li>
+  </ul>
+
+  <h2>5. Por quanto tempo os dados ficam guardados</h2>
+  <p>Os dados comerciais e financeiros permanecem armazenados enquanto durar o contrato com a empresa contratante. Ao término do contrato, [DEFINIR: prazo de retenção pós-contrato e processo de exclusão/exportação — este ponto precisa de decisão de negócio antes de publicar]. Registros de erro técnico são mantidos por período limitado, suficiente apenas para investigação de problemas.</p>
+
+  <h2>6. Segurança</h2>
+  <p>O acesso aos dados é protegido por controle de permissão por papel (cliente só acessa os dados da própria empresa; administradores e super-administradores têm escopo de acesso ampliado conforme a função), e todo acesso ao banco de dados passa por uma camada intermediária própria que nunca expõe credenciais do banco diretamente ao navegador do usuário. Senhas de usuário são gerenciadas por serviço de autenticação dedicado, nunca armazenadas em texto puro pela aplicação.</p>
+
+  <h2>7. Direitos do titular dos dados (LGPD)</h2>
+  <p>Quem tiver seus dados pessoais tratados pelo sistema (usuários cadastrados, ou clientes finais da empresa contratante cujos dados estão no sistema) pode solicitar, nos termos da LGPD: confirmação de tratamento, acesso aos dados, correção de dados incompletos/incorretos, anonimização/bloqueio/eliminação de dados desnecessários, portabilidade e informação sobre compartilhamento. Para usuários diretos do sistema, a solicitação pode ser feita pelo contato abaixo. Para clientes finais de uma empresa contratante, a solicitação deve ser direcionada primeiro à própria empresa contratante (Controladora), que é responsável por atender ao pedido.</p>
+
+  <div class="contato">
+    <strong>Contato para questões de privacidade</strong><br>
+    [DEFINIR: e-mail ou canal oficial de contato do Encarregado de Dados (DPO) ou responsável — obrigatório pela LGPD antes de publicar]
+  </div>
+
+  <h2>8. Alterações nesta política</h2>
+  <p>Esta política pode ser atualizada para refletir mudanças no sistema ou na legislação. A data de "última atualização" no topo desta página será revisada a cada alteração relevante.</p>
+
+</div>
+</body>
+</html>
