@@ -886,6 +886,17 @@ kbd { background:var(--bg); border:1px solid var(--border); border-radius:4px; p
   border-bottom: 1px solid rgba(96,165,250,.16);
   white-space: nowrap;
 }
+/* Toda coluna e numerica, exceto a primeira (nome/identificador da linha --
+   produto, cliente, representante, grupo...). Alinha a direita por padrao,
+   so a primeira coluna de cada linha volta pra esquerda. */
+.av-table tr > :first-child,
+.rep-tbl tr > :first-child {
+  text-align: left;
+}
+.av-table tr > :not(:first-child),
+.rep-tbl tr > :not(:first-child) {
+  text-align: right;
+}
 .rel-th-sort {
   cursor: pointer;
   user-select: none;

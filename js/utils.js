@@ -57,17 +57,20 @@ function parseSmartNumber(value) {
   return negative ? -Math.abs(num) : num;
 }
 
-/** Formata número sem centavos */
+/** Formata valor em R$ (modo VALOR dos relatorios): sempre com 2 casas decimais. */
 const fmtValor = v => {
   const n = parseSmartNumber(v);
   return new Intl.NumberFormat('pt-BR', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(Math.round(n));
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(n);
 };
 
-/** Formata número inteiro com separador de milhar */
-const fmtInt = v => new Intl.NumberFormat('pt-BR').format(v || 0);
+/** Formata quantidade (modo QTD dos relatorios): inteiro, nunca casa decimal. */
+const fmtInt = v => new Intl.NumberFormat('pt-BR', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0
+}).format(Math.round(Number(v) || 0));
 
 /** Normaliza string: maiúsculo, sem acento, trim */
 function normalizeKey(s) {
