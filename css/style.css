@@ -12104,10 +12104,6 @@ body.bpo-admin-mode .admin-status-badge {
     padding: 1px 0 3px !important;
   }
 
-  #view-dash-cliente .dc-header-right::-webkit-scrollbar {
-    display: none !important;
-  }
-
   #view-dash-cliente .dc-filtro {
     flex: 0 0 auto !important;
     width: auto !important;
@@ -12797,10 +12793,6 @@ body.bpo-admin-mode .admin-status-badge {
     overflow-x: visible !important;
     overflow-y: visible !important;
     padding: 0 0 2px !important;
-  }
-
-  #view-dash-financeiro .dc-header-right::-webkit-scrollbar {
-    display: none !important;
   }
 
   #view-dash-financeiro .dc-filtro {
