@@ -1,12 +1,9 @@
 // =============================================================================
-// FINANCEIRO — CORE (FASE 1: espaco reservado)
+// FINANCEIRO — CORE
 // =============================================================================
-// Boot do modulo, estado e carga de dados.
-//
-// FASE 1  : abre a view e mostra o estado "em construcao". Nao le banco.
-// FASE 2  : trocar finCarregarDados() pela leitura real via /api/secure-proxy,
-//           SEMPRE filtrando empresa_id da sessao, e marcar
-//           MODULO_META.financeiro.disponivel = true em js/modulos.js.
+// Boot do modulo, estado e carga de dados. finCarregarDados() le de verdade
+// via fin_dre_plano_contas/fin_dre_lancamentos (sempre filtrando empresa_id
+// da sessao), com cache local (IndexedDB) e revalidacao em segundo plano.
 //
 // Prefixos reservados deste modulo: fin- (CSS/IDs) e financeiro*/fin* (funcoes).
 // Nao colidir com dc-, av-, relat-.
