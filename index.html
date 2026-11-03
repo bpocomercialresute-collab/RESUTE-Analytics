@@ -184,6 +184,7 @@
         <a class="cui-nav-item admin-console-link" data-admin-target="audit" onclick="adminConsoleAbrir('audit', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><span>Registros e auditoria</span></a>
         <a class="cui-nav-item admin-console-link" data-admin-target="security" onclick="adminConsoleAbrir('security', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg><span>Seguran&ccedil;a</span></a>
         <a class="cui-nav-item admin-console-link" data-admin-target="settings" onclick="adminConsoleAbrir('settings', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1z"/></svg><span>Configura&ccedil;&otilde;es</span></a>
+        <a class="cui-nav-item admin-console-link" data-admin-target="sales" onclick="adminConsoleAbrir('sales', this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2-6.3-4.6-6.3 4.6 2.3-7.2-6-4.6h7.6z"/></svg><span>Material de vendas</span></a>
       </div>
       <div class="cui-nav-title">OPERAÇÕES DOS CLIENTES</div>
       <a class="cui-nav-item" data-admin-target="comercial" onclick="abrirAreaComercialAdmin(this)" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Comercial</span></a>
@@ -573,6 +574,38 @@
                 <div class="admin-form-help">Essas prefer&ecirc;ncias ficam somente neste navegador. Configura&ccedil;&otilde;es globais exigem uma tabela administrativa revisada no Supabase.</div>
               </article>
             </div>
+          </section>
+
+          <!-- Material de vendas: visivel so pro super_admin (mesmo guard de
+               adminConsoleAbrir). Referencia pronta pra usar em conversa com
+               cliente novo -- nao e uma pagina publica. Conteudo reflete so
+               o que o sistema realmente faz hoje. -->
+          <section id="admin-section-sales" class="admin-console-section">
+            <article class="admin-panel-card admin-security-checklist">
+              <div class="admin-card-heading"><div><span>PITCH R&Aacute;PIDO</span><h2>O que &eacute; o RESUTE Analytics</h2></div></div>
+              <p>Painel de BI comercial e financeiro, sob medida pra empresa com for&ccedil;a de vendas via representantes. Reune vendas, representantes, produtos, clientes e financeiro/DRE num s&oacute; lugar, com dado atualizado sem precisar mexer em planilha toda hora.</p>
+            </article>
+
+            <div class="admin-permissions-grid">
+              <article class="admin-permission-card featured"><span>M&Oacute;DULO</span><h2>Comercial</h2><p>Vendas, representantes, produtos e clientes num s&oacute; painel: positiva&ccedil;&atilde;o, inatividade, ticket m&eacute;dio, clientes novos, ranking por UF/cidade e premia&ccedil;&atilde;o de representantes.</p><strong>Pra quem gerencia equipe de vendas</strong></article>
+              <article class="admin-permission-card"><span>M&Oacute;DULO</span><h2>Financeiro / DRE</h2><p>Plano de contas e lan&ccedil;amentos numa grade estilo Excel (cola direto, Ctrl+V), resultado operacional por grupo, lauda de grupo e evolu&ccedil;&atilde;o m&ecirc;s a m&ecirc;s em v&aacute;rios anos.</p><strong>Pra quem j&aacute; fecha vendas e quer o financeiro junto</strong></article>
+            </div>
+
+            <article class="admin-panel-card admin-security-checklist">
+              <div class="admin-card-heading"><div><span>DIFERENCIAIS</span><h2>Por que contratar</h2></div></div>
+              <div class="admin-check-grid"><span>Importa colando do Excel, sem layout fixo</span><span>Abre na hora com cache local, mesmo com milhares de linhas</span><span>Relat&oacute;rios exportam em PDF e Excel</span><span>Metas, alertas e premia&ccedil;&atilde;o de representantes</span><span>Cada empresa s&oacute; v&ecirc; o pr&oacute;prio dado (multiempresa isolada)</span><span>Chaves de banco nunca expostas no navegador</span><span>Monitoramento de erro em produ&ccedil;&atilde;o, sem depender de servi&ccedil;o externo</span></div>
+            </article>
+
+            <article class="admin-panel-card admin-security-checklist">
+              <div class="admin-card-heading"><div><span>PARA QUEM</span><h2>Perfil de cliente ideal</h2></div></div>
+              <p>Ind&uacute;stria ou distribuidora que vende por representante comercial e sente falta de enxergar vendas, positiva&ccedil;&atilde;o e financeiro no mesmo lugar, hoje espalhado em planilha e sistema de vendas separados.</p>
+            </article>
+
+            <article class="admin-panel-card">
+              <div class="admin-card-heading"><div><span>COMERCIAL</span><h2>Pra fechar neg&oacute;cio</h2></div></div>
+              <div class="admin-setting-list"><span>Modelo de cobran&ccedil;a <strong>[DEFINIR]</strong></span><span>Valor por m&oacute;dulo <strong>[DEFINIR]</strong></span><span>Prazo pra come&ccedil;ar a usar <strong>[DEFINIR]</strong></span><span>Documentos legais <strong>rascunho pronto (Termos de Uso e Pol&iacute;tica de Privacidade), falta revis&atilde;o jur&iacute;dica</strong></span></div>
+              <div class="admin-form-help">Esta p&aacute;gina &eacute; refer&ecirc;ncia interna pra conversa com cliente novo, n&atilde;o &eacute; p&uacute;blica nem deve ser enviada como link.</div>
+            </article>
           </section>
         </div>
       </div>

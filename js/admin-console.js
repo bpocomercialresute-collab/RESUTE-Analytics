@@ -65,6 +65,10 @@ var ADMIN_SECTION_META = {
   settings: {
     title: 'Configurações',
     subtitle: 'Consulte o ambiente e ajuste preferencias locais da central BPO.'
+  },
+  sales: {
+    title: 'Material de vendas',
+    subtitle: 'Referencia interna pra conversa com cliente novo. So o super_admin ve esta secao.'
   }
 };
 
