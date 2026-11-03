@@ -12083,15 +12083,14 @@ body.bpo-admin-mode .admin-status-badge {
 
   #view-dash-cliente .dc-header-right {
     display: flex !important;
+    flex-wrap: wrap !important;
     align-items: center !important;
     gap: 7px !important;
     width: 100% !important;
     min-width: 0 !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
     padding: 1px 0 3px !important;
-    -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: none !important;
   }
 
   #view-dash-cliente .dc-header-right::-webkit-scrollbar {
@@ -12173,10 +12172,12 @@ body.bpo-admin-mode .admin-status-badge {
 
   #view-dash-cliente .dc-header-status {
     flex: 0 0 auto !important;
-    max-width: 160px !important;
+    max-width: 200px !important;
     min-height: 0 !important;
     font-size: 10px !important;
     white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
   #view-dash-cliente .dc-admin-back {
@@ -12369,17 +12370,6 @@ body.bpo-admin-mode .admin-status-badge {
     font-size: 10px !important;
   }
 
-  /* Com o painel de filtro aberto, o bloco de filtros vira largura 100% e
-     empurra "Voltar ao Admin"/"Sair" pra fora da faixa rolavel (o usuario
-     via o botao Sair cortado na borda da tela). Com o filtro aberto a
-     faixa deixa de rolar e os botoes vao pra proxima linha, sempre visiveis.
-     Classe aplicada em JS (dcToggleFiltrosMobile, js/auth.js) em vez de
-     :has() no CSS -- webview antigo (ex: in-app browser do WhatsApp) pode
-     nao suportar :has() e ignoraria a regra sem avisar erro nenhum. */
-  #view-dash-cliente .dc-header-right.dc-filtro-aberto {
-    flex-wrap: wrap !important;
-    overflow-x: visible !important;
-  }
 }
 
 @media (max-width: 380px) {
@@ -12790,13 +12780,12 @@ body.bpo-admin-mode .admin-status-badge {
 
   #view-dash-financeiro .dc-header-right {
     display: flex !important;
+    flex-wrap: wrap !important;
     align-items: center !important;
     gap: 6px !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
     padding: 0 0 2px !important;
-    scrollbar-width: none !important;
-    -webkit-overflow-scrolling: touch !important;
   }
 
   #view-dash-financeiro .dc-header-right::-webkit-scrollbar {
@@ -12870,15 +12859,6 @@ body.bpo-admin-mode .admin-status-badge {
     grid-column: 1 / -1 !important;
     text-align: center !important;
     font-size: 10px !important;
-  }
-
-  /* Mesmo problema do painel Comercial: filtro aberto empurra "Sair" pra
-     fora da faixa rolavel. Com o filtro aberto, para de rolar e quebra linha.
-     Classe em JS (finToggleFiltrosMobile), nao :has() -- ver explicacao
-     equivalente em #view-dash-cliente .dc-header-right.dc-filtro-aberto. */
-  #view-dash-financeiro .dc-header-right.dc-filtro-aberto {
-    flex-wrap: wrap !important;
-    overflow-x: visible !important;
   }
 
   #view-dash-financeiro .dc-admin-back {

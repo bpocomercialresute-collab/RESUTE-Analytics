@@ -2415,11 +2415,6 @@ function dcToggleFiltrosMobile() {
   if (!grupo || !btn) return;
   var aberto = grupo.classList.toggle('aberto');
   btn.setAttribute('aria-expanded', aberto ? 'true' : 'false');
-  // Classe no PAI (nao :has() no CSS): webview antigo (Android/iOS embutido
-  // no WhatsApp etc) pode nao suportar :has(), e silenciosamente ignora a
-  // regra sem avisar erro nenhum -- classe direta funciona em qualquer navegador.
-  var header = btn.closest('.dc-header-right');
-  if (header) header.classList.toggle('dc-filtro-aberto', aberto);
 }
 
 function dcAtualizarResumoFiltro() {
