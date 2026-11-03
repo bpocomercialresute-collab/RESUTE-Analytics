@@ -1076,9 +1076,9 @@
         </button>
         <div id="dc-filtros-grupo" class="dc-filtros-grupo">
         <!-- Filtros -->
-        <select id="dc-filtro-ano" class="dc-filtro" onchange="dcFiltroAnoAlterado()"><option value="0">Ano</option></select>
+        <select id="dc-filtro-ano" class="dc-filtro" aria-label="Ano" onchange="dcFiltroAnoAlterado()"><option value="0">Ano</option></select>
         <div class="dc-periodo-controles"><span class="dc-periodo-rotulo">Período</span>
-        <select id="dc-filtro-mes" class="dc-filtro" onchange="dcFiltroMesAlterado()">
+        <select id="dc-filtro-mes" class="dc-filtro" aria-label="M&ecirc;s" onchange="dcFiltroMesAlterado()">
           <option value="0">Todos os meses</option>
           <option value="1">Janeiro</option><option value="2">Fevereiro</option>
           <option value="3">Março</option><option value="4">Abril</option>
@@ -1121,7 +1121,7 @@
               <button class="dc-pill-btn" id="dc-pill-produtos" onclick="dcAbrirRelatorio('relat-produtos')">Produtos</button>
               <button class="dc-pill-btn" id="dc-pill-representantes" onclick="dcAbrirRelatorio('relat-representantes')">Representantes</button>
             </div>
-            <select id="dc-ordem-tabelas" class="dc-filtro dc-ordem-select" onchange="dcRenderizar()">
+            <select id="dc-ordem-tabelas" class="dc-filtro dc-ordem-select" aria-label="Ordenar tabelas" onchange="dcRenderizar()">
               <option value="desc">Maior para menor</option>
               <option value="asc">Menor para maior</option>
               <option value="az">A-Z</option>
@@ -1161,8 +1161,8 @@
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
               <div class="dc-card-title" style="margin-bottom:0">Faturamento por Dia da Semana</div>
               <div style="display:flex;gap:5px;flex-wrap:wrap;">
-                <select id="dc-diasem-ano" class="dc-filtro" onchange="_dcDiaSemFiltroChange()"><option value="">Todos os anos</option></select>
-                <select id="dc-diasem-mes" class="dc-filtro" onchange="_dcDiaSemFiltroChange()">
+                <select id="dc-diasem-ano" class="dc-filtro" aria-label="Ano" onchange="_dcDiaSemFiltroChange()"><option value="">Todos os anos</option></select>
+                <select id="dc-diasem-mes" class="dc-filtro" aria-label="M&ecirc;s" onchange="_dcDiaSemFiltroChange()">
                   <option value="">Todos os meses</option>
                   <option value="0">Janeiro</option><option value="1">Fevereiro</option>
                   <option value="2">Março</option><option value="3">Abril</option>
@@ -1171,7 +1171,7 @@
                   <option value="8">Setembro</option><option value="9">Outubro</option>
                   <option value="10">Novembro</option><option value="11">Dezembro</option>
                 </select>
-                <select id="dc-diasem-sem" class="dc-filtro" onchange="_dcDiaSemFiltroChange()" disabled>
+                <select id="dc-diasem-sem" class="dc-filtro" aria-label="Semana" onchange="_dcDiaSemFiltroChange()" disabled>
                   <option value="">Todas as semanas</option>
                   <option value="1">1ª semana</option><option value="2">2ª semana</option>
                   <option value="3">3ª semana</option><option value="4">4ª semana</option>
@@ -1213,7 +1213,7 @@
             <div class="dc-card-title">Ranking Geral</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label>Ordenar
-                <select id="dc-ordem-dc-tab-reps" class="dc-filtro" onchange="dcRenderizar()">
+                <select id="dc-ordem-dc-tab-reps" class="dc-filtro" aria-label="Ordenar representantes" onchange="dcRenderizar()">
                   <option value="desc">Maior faturamento</option>
                   <option value="asc">Menor faturamento</option>
                   <option value="pedidos">Mais pedidos</option>
@@ -1226,22 +1226,22 @@
           <div class="dc-card">
             <div class="dc-card-title">Positivação (clientes únicos)</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
-              <select id="dc-positiv-ano" class="dc-filtro" onchange="_dcPositivFiltroChange()"><option value="">Todos os anos</option></select>
-              <select id="dc-positiv-mes" class="dc-filtro" onchange="_dcPositivFiltroChange()">
+              <select id="dc-positiv-ano" class="dc-filtro" aria-label="Ano" onchange="_dcPositivFiltroChange()"><option value="">Todos os anos</option></select>
+              <select id="dc-positiv-mes" class="dc-filtro" aria-label="M&ecirc;s" onchange="_dcPositivFiltroChange()">
                 <option value="">Todos os meses</option>
                 <option value="0">Janeiro</option><option value="1">Fevereiro</option><option value="2">Março</option>
                 <option value="3">Abril</option><option value="4">Maio</option><option value="5">Junho</option>
                 <option value="6">Julho</option><option value="7">Agosto</option><option value="8">Setembro</option>
                 <option value="9">Outubro</option><option value="10">Novembro</option><option value="11">Dezembro</option>
               </select>
-              <select id="dc-positiv-sem" class="dc-filtro" onchange="_dcTabelaPositivacao()" disabled>
+              <select id="dc-positiv-sem" class="dc-filtro" aria-label="Semana" onchange="_dcTabelaPositivacao()" disabled>
                 <option value="">Todas as semanas</option>
                 <option value="1">1ª semana</option><option value="2">2ª semana</option>
                 <option value="3">3ª semana</option><option value="4">4ª semana</option><option value="5">5ª semana</option>
               </select>
               <input type="text" id="dc-positiv-busca" aria-label="Buscar representante" placeholder="Buscar rep..." class="dc-filtro" oninput="_dcTabelaPositivacao()" style="min-width:110px;padding:4px 8px">
               <label>Ordenar
-                <select id="dc-ordem-positiv" class="dc-filtro" onchange="_dcTabelaPositivacao()">
+                <select id="dc-ordem-positiv" class="dc-filtro" aria-label="Ordenar positiva&ccedil;&atilde;o" onchange="_dcTabelaPositivacao()">
                   <option value="clientes">Mais clientes</option>
                   <option value="pedidos">Mais pedidos</option>
                   <option value="az">A-Z</option>
@@ -1259,7 +1259,7 @@
         <div class="dc-panel-tools dc-panel-tools-inline">
           <label>
             Filtrar cidades por UF
-            <select id="dc-filtro-uf-cidade" class="dc-filtro" onchange="dcRenderizar()">
+            <select id="dc-filtro-uf-cidade" class="dc-filtro" aria-label="Filtrar UF ou cidade" onchange="dcRenderizar()">
               <option value="">Todos os estados</option>
             </select>
           </label>
@@ -1269,7 +1269,7 @@
             <div class="dc-card-title">Faturamento por Estado</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label>Ordenar
-                <select id="dc-ordem-dc-tab-ufs" class="dc-filtro" onchange="dcRenderizar()">
+                <select id="dc-ordem-dc-tab-ufs" class="dc-filtro" aria-label="Ordenar UFs" onchange="dcRenderizar()">
                   <option value="desc">Maior faturamento</option>
                   <option value="asc">Menor faturamento</option>
                   <option value="pedidos">Mais pedidos</option>
@@ -1283,7 +1283,7 @@
             <div class="dc-card-title">Top 10 Cidades</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label>Ordenar
-                <select id="dc-ordem-dc-tab-cidades" class="dc-filtro" onchange="dcRenderizar()">
+                <select id="dc-ordem-dc-tab-cidades" class="dc-filtro" aria-label="Ordenar cidades" onchange="dcRenderizar()">
                   <option value="desc">Maior faturamento</option>
                   <option value="asc">Menor faturamento</option>
                   <option value="pedidos">Mais pedidos</option>
@@ -1304,7 +1304,7 @@
             <div class="dc-card-title">Top 10 Clientes</div>
             <div class="dc-panel-tools dc-panel-tools-compact">
               <label>Ordenar
-                <select id="dc-ordem-dc-tab-cli" class="dc-filtro" onchange="dcRenderizar()">
+                <select id="dc-ordem-dc-tab-cli" class="dc-filtro" aria-label="Ordenar clientes" onchange="dcRenderizar()">
                   <option value="desc">Maior faturamento</option>
                   <option value="asc">Menor faturamento</option>
                   <option value="pedidos">Mais pedidos</option>
@@ -1321,13 +1321,13 @@
                 <input type="number" id="dc-inat-dias" aria-label="Dias sem compra" class="dc-filtro" min="0" value="30" placeholder="dias" style="width:58px;padding:4px 6px"> dias
               </label>
               <label>Representante
-                <select id="dc-inat-rep" class="dc-filtro" style="max-width:160px">
+                <select id="dc-inat-rep" class="dc-filtro" aria-label="Filtrar representante" style="max-width:160px">
                   <option value="">Todos</option>
                 </select>
               </label>
               <input type="text" id="dc-inat-busca" aria-label="Buscar cliente inativo" placeholder="Buscar cliente..." class="dc-filtro" style="min-width:130px;padding:4px 8px">
               <label>Ordenar por dias
-                <select id="dc-inat-ordem" class="dc-filtro">
+                <select id="dc-inat-ordem" class="dc-filtro" aria-label="Ordenar clientes inativos">
                   <option value="dias_asc">Menor</option>
                   <option value="dias">Maior</option>
                 </select>
@@ -1354,7 +1354,7 @@
               </label>
               <input type="text" id="dc-novos-busca" aria-label="Buscar cliente novo" placeholder="Buscar cliente..." class="dc-filtro" style="min-width:120px;padding:4px 8px">
               <label>Organizar
-                <select id="dc-ordem-novos" class="dc-filtro">
+                <select id="dc-ordem-novos" class="dc-filtro" aria-label="Ordenar clientes novos">
                   <option value="recente">Mais recentes</option>
                   <option value="antigo">Mais antigos</option>
                   <option value="maior">Maior valor</option>
@@ -1375,7 +1375,7 @@
               </label>
               <input type="text" id="dc-ticket-busca" aria-label="Buscar cliente no ticket médio" placeholder="Buscar cliente..." class="dc-filtro" oninput="_dcTabelaTicketCliente()" style="min-width:130px;padding:4px 8px">
               <label>Ordenar
-                <select id="dc-ordem-ticket" class="dc-filtro" onchange="_dcTabelaTicketCliente()">
+                <select id="dc-ordem-ticket" class="dc-filtro" aria-label="Ordenar ticket m&eacute;dio" onchange="_dcTabelaTicketCliente()">
                   <option value="ticket">Maior ticket</option>
                   <option value="fat">Maior faturamento</option>
                   <option value="pedidos">Mais pedidos</option>
