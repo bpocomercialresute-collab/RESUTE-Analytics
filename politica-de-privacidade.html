@@ -101,6 +101,16 @@
     <tr><td>Registro de auditoria administrativa (quem fez o quê, quando)</td><td>Segurança e rastreabilidade de ações administrativas</td><td>Banco de dados do sistema</td></tr>
   </table>
 
+  <h3>2.4 Cookies e tecnologias similares</h3>
+  <p>O RESUTE Analytics <strong>não usa cookies de rastreamento, publicidade ou análise de terceiros</strong>. Não existe banner de "aceitar cookies" porque não há cookies não essenciais para aceitar ou recusar.</p>
+  <p>O sistema usa apenas armazenamento local do próprio navegador (localStorage e IndexedDB, descritos na tabela acima) para funcionar — manter a sessão logada, lembrar filtros e acelerar o carregamento. Essas informações:</p>
+  <ul>
+    <li>Nunca saem do navegador do usuário — não são enviadas a nenhum servidor de publicidade, rede social ou analytics externo.</li>
+    <li>São estritamente necessárias ao funcionamento do sistema (sem elas, seria preciso fazer login a cada página e recarregar tudo do zero a cada acesso).</li>
+    <li>Podem ser apagadas a qualquer momento pelo próprio usuário, nas configurações de dados de navegação do navegador — isso desloga o usuário e limpa o cache local, sem afetar os dados já salvos no servidor.</li>
+  </ul>
+  <p>Provedores de infraestrutura (Vercel, Supabase) podem registrar cookies técnicos próprios (ex.: balanceamento de carga), fora do controle direto do RESUTE Analytics — sujeitos às políticas de privacidade desses provedores.</p>
+
   <h2>3. Onde os dados ficam armazenados</h2>
   <p>Os dados são armazenados em infraestrutura de nuvem fornecida pela Supabase (hospedagem de banco de dados), e a aplicação web é hospedada pela Vercel. Dependendo da região contratada do provedor, o armazenamento físico pode ocorrer fora do Brasil — nesse caso, aplica-se o regime de transferência internacional de dados previsto na LGPD (art. 33), e o provedor de infraestrutura possui suas próprias políticas de segurança e conformidade.</p>
 
