@@ -205,6 +205,11 @@ async function _finAplicarDadosCarregados(plano, lancamentos) {
     ano: null
   });
 
+  // Mesma logica de recorte por data (Inicio/Fim) que o painel DRE do admin
+  // ja usa (js/dre/dre-view.js) — so faltava o campo existir aqui pro cliente.
+  // _dreLigarDateInputs() ja checa os elementos e sai sem erro se nao existirem,
+  // entao essa chamada e segura mesmo antes do HTML ter os campos.
+  if (typeof _dreLigarDateInputs === 'function') _dreLigarDateInputs();
   _finLigarResumoFiltroDRE();
   finAtualizarResumoFiltroDRE();
 
@@ -282,7 +287,7 @@ async function finCarregarDados(empresaId) {
  *  via DRE.init -> montarFiltros — os listeners sao marcados no proprio
  *  elemento para acompanhar remontagens sem duplicar handlers). */
 function _finLigarResumoFiltroDRE() {
-  ['fin-filtro-ano', 'fin-filtro-mes'].forEach(function(id) {
+  ['fin-filtro-ano', 'fin-filtro-mes', 'fin-filtro-inicio', 'fin-filtro-fim'].forEach(function(id) {
     var el = document.getElementById(id);
     if (!el || el.dataset.finResumoListener === '1') return;
     el.addEventListener('change', finAtualizarResumoFiltroDRE);
@@ -298,6 +303,20 @@ function _finLigarResumoFiltroDRE() {
 function finAtualizarResumoFiltroDRE() {
   var el = document.getElementById('fin-filtro-resumo-texto');
   if (!el) return;
+  var elInicio = document.getElementById('fin-filtro-inicio');
+  var elFim = document.getElementById('fin-filtro-fim');
+  // Recorte por data manda mais que ano/mes: e o mesmo campo que _dreLigarDateInputs
+  // (js/dre/dre-view.js) usa pra sobrescrever o recorte quando preenchido.
+  if (elInicio && elFim && (elInicio.value || elFim.value)) {
+    var fmtIso = function(iso) {
+      var p = String(iso || '').split('-');
+      return p.length === 3 ? (p[2] + '/' + p[1] + '/' + p[0]) : '';
+    };
+    var di = fmtIso(elInicio.value);
+    var df = fmtIso(elFim.value);
+    el.textContent = di && df ? (di + ' – ' + df) : (di || df);
+    return;
+  }
   var selAno = document.getElementById('fin-filtro-ano');
   var selMes = document.getElementById('fin-filtro-mes');
   var ano = selAno ? parseInt(selAno.value, 10) || 0 : 0;

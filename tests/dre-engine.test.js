@@ -84,6 +84,39 @@ test('DRE soma despesa de grupo órfão com sinal negativo no aviso de "grupo n�
   assert.equal(orfaos.total, -300);
 });
 
+test('DRE soma corretamente um recorte de datas que atravessa a virada do ano', () => {
+  // Filtro novo do cliente (fin-filtro-inicio/fim) pode gerar Nov/2025 -> Jan/2026.
+  // O motor já suportava multi-ano (admin), mas nunca foi exercitado por teste.
+  DRE.estado.plano = [
+    { cod: 'REC01', conta: 'Venda de produtos', grupo: 'RECEITA OPERACIONAL', fv: 'F', di: 'D' }
+  ];
+  DRE.estado.lancamentos = [
+    lancamento('Venda de produtos', 100, '2025-10-15'), // fora do recorte (antes)
+    lancamento('Venda de produtos', 200, '2025-11-20'), // dentro
+    lancamento('Venda de produtos', 300, '2025-12-10'), // dentro
+    lancamento('Venda de produtos', 400, '2026-01-05'), // dentro
+    lancamento('Venda de produtos', 500, '2026-02-01')  // fora do recorte (depois)
+  ];
+  DRE.estado.ano = 2025;
+  DRE.estado.anoInicio = 2025;
+  DRE.estado.anoFim = 2026;
+  DRE.estado.mesInicio = 10; // novembro
+  DRE.estado.mesFim = 0;     // janeiro
+  DRE.estado.cnpj = 1;
+  DRE.estado.slots = [];
+  DRE.montarBDDRE();
+
+  assert.deepEqual(DRE.estado.slots, [
+    { ano: 2025, mes: 10 },
+    { ano: 2025, mes: 11 },
+    { ano: 2026, mes: 0 }
+  ]);
+
+  const grupo = DRE.totalGrupo('RECEITA OPERACIONAL');
+  assert.equal(grupo.total, 900); // 200 + 300 + 400, sem o de out/25 nem fev/26
+  assert.deepEqual(grupo.meses, [200, 300, 400]);
+});
+
 test('DRE exclui do relatório lançamento sem vencimento ou sem valor', () => {
   prepararEstado([
     lancamento('Venda de produtos', 500),

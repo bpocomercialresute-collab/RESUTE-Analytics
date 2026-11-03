@@ -12368,6 +12368,15 @@ body.bpo-admin-mode .admin-status-badge {
     text-align: center !important;
     font-size: 10px !important;
   }
+
+  /* Com o painel de filtro aberto, o bloco de filtros vira largura 100% e
+     empurra "Voltar ao Admin"/"Sair" pra fora da faixa rolavel (o usuario
+     via o botao Sair cortado na borda da tela). Com o filtro aberto a
+     faixa deixa de rolar e os botoes vao pra proxima linha, sempre visiveis. */
+  #view-dash-cliente .dc-header-right:has(.dc-filtros-grupo.aberto) {
+    flex-wrap: wrap !important;
+    overflow-x: visible !important;
+  }
 }
 
 @media (max-width: 380px) {
@@ -12858,6 +12867,13 @@ body.bpo-admin-mode .admin-status-badge {
     grid-column: 1 / -1 !important;
     text-align: center !important;
     font-size: 10px !important;
+  }
+
+  /* Mesmo problema do painel Comercial: filtro aberto empurra "Sair" pra
+     fora da faixa rolavel. Com o filtro aberto, para de rolar e quebra linha. */
+  #view-dash-financeiro .dc-header-right:has(.dc-filtros-grupo.aberto) {
+    flex-wrap: wrap !important;
+    overflow-x: visible !important;
   }
 
   #view-dash-financeiro .dc-admin-back {
