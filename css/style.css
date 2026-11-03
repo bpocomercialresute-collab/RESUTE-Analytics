@@ -12372,8 +12372,11 @@ body.bpo-admin-mode .admin-status-badge {
   /* Com o painel de filtro aberto, o bloco de filtros vira largura 100% e
      empurra "Voltar ao Admin"/"Sair" pra fora da faixa rolavel (o usuario
      via o botao Sair cortado na borda da tela). Com o filtro aberto a
-     faixa deixa de rolar e os botoes vao pra proxima linha, sempre visiveis. */
-  #view-dash-cliente .dc-header-right:has(.dc-filtros-grupo.aberto) {
+     faixa deixa de rolar e os botoes vao pra proxima linha, sempre visiveis.
+     Classe aplicada em JS (dcToggleFiltrosMobile, js/auth.js) em vez de
+     :has() no CSS -- webview antigo (ex: in-app browser do WhatsApp) pode
+     nao suportar :has() e ignoraria a regra sem avisar erro nenhum. */
+  #view-dash-cliente .dc-header-right.dc-filtro-aberto {
     flex-wrap: wrap !important;
     overflow-x: visible !important;
   }
@@ -12870,8 +12873,10 @@ body.bpo-admin-mode .admin-status-badge {
   }
 
   /* Mesmo problema do painel Comercial: filtro aberto empurra "Sair" pra
-     fora da faixa rolavel. Com o filtro aberto, para de rolar e quebra linha. */
-  #view-dash-financeiro .dc-header-right:has(.dc-filtros-grupo.aberto) {
+     fora da faixa rolavel. Com o filtro aberto, para de rolar e quebra linha.
+     Classe em JS (finToggleFiltrosMobile), nao :has() -- ver explicacao
+     equivalente em #view-dash-cliente .dc-header-right.dc-filtro-aberto. */
+  #view-dash-financeiro .dc-header-right.dc-filtro-aberto {
     flex-wrap: wrap !important;
     overflow-x: visible !important;
   }
