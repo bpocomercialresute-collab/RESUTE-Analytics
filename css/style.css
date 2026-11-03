@@ -3115,22 +3115,12 @@ body.rep-roleta-presentation-open { overflow: hidden; }
 .dc-header-empresa { font-size: 10px; font-weight: 700; color: #3b82f6; text-transform: uppercase; letter-spacing: .12em; }
 .dc-header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 .dc-filtro-resumo { display: none; }
-/* Agrupa ano/periodo/mes/datas visualmente num "cartao" so, em vez de ficarem
-   soltos junto com modulos/loja/status/sair na mesma fileira (ficava uma
-   parede de controles sem separacao nenhuma em tela larga). */
-.dc-filtros-grupo {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  background: var(--brand-soft, #F5F7FA);
-  border: 1px solid var(--border, #DCE3EC);
-  border-radius: 12px;
-  padding: 6px 10px;
-}
+.dc-filtros-grupo { display: contents; }
 
-/* Divisoria sutil antes do "Sair" (e "Voltar ao Admin", quando aparece),
-   pra separar visualmente dos modulos/filtros que vem antes na mesma fileira. */
+/* Divisorias sutis (sem caixa/fundo compartilhado -- misturar select, input
+   de data, badge de status e botao dentro de uma mesma caixa cinza ficou
+   confuso). So separa em 3 zonas com uma linha fina: filtros | status+acoes | sair. */
+.dc-filtros-grupo > .dc-sync-badge,
 .dc-header-right > .dc-admin-back,
 .dc-header-right > .dc-btn-sair {
   margin-left: 4px;
