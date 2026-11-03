@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=header-agrupado-2" />
+  <link rel="stylesheet" href="css/style.css?v=header-agrupado-3" />
   <!-- Grade estilo Excel do DRE (js/dre/dre-grid.js) — overlay do console admin, carrega normal (nao e escopada via CSSOM como o dre-painel.css). -->
   <link rel="stylesheet" href="css/dre-grid.css" />
   <link rel="icon" href="assets/resute-brand/SIMBOLO.png" type="image/png" />
@@ -1078,7 +1078,7 @@
         </button>
         <div id="dc-filtros-grupo" class="dc-filtros-grupo">
         <!-- Filtros -->
-        <select id="dc-filtro-ano" class="dc-filtro" onchange="dcFiltroAnoAlterado()"></select>
+        <select id="dc-filtro-ano" class="dc-filtro" onchange="dcFiltroAnoAlterado()"><option value="0">Ano</option></select>
         <div class="dc-periodo-controles"><span class="dc-periodo-rotulo">Período</span>
         <select id="dc-filtro-mes" class="dc-filtro" onchange="dcFiltroMesAlterado()">
           <option value="0">Todos os meses</option>
@@ -1430,7 +1430,7 @@
              (js/dre/dre-engine.js, DRE.init -> montarFiltros). Sem
              onchange inline aqui de proposito, pra nao duplicar handler. -->
         <label for="fin-filtro-ano" class="dc-filtro-rotulo">Ano</label>
-        <select id="fin-filtro-ano" class="dc-filtro"></select>
+        <select id="fin-filtro-ano" class="dc-filtro"><option>Ano</option></select>
         <label for="fin-filtro-mes" class="dc-filtro-rotulo">Mês</label>
         <select id="fin-filtro-mes" class="dc-filtro"></select>
         <label for="fin-filtro-inicio" class="dc-filtro-rotulo">Início</label>
