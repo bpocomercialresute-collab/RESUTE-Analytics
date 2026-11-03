@@ -215,7 +215,7 @@
       <div class="cui-header-right">
         <div id="sync-area" style="display:none" class="cui-sync-area">
           <span id="sync-status" class="cui-sync-status"></span>
-          <select id="sync-empresa-select" class="sync-empresa-select" style="display:none">
+          <select id="sync-empresa-select" class="sync-empresa-select" aria-label="Empresa para sincronizar" style="display:none">
             <option value="">Selecionar empresa...</option>
           </select>
           <button id="btn-sync" class="cui-btn-sync" onclick="sincronizarAPI()">
@@ -315,8 +315,8 @@
           <section id="admin-section-companies" class="admin-console-section">
             <div class="admin-section-toolbar">
               <div class="admin-search-wrap"><input id="admin-company-search" type="search" placeholder="Buscar empresa..." oninput="adminConsoleFiltrarEmpresas()"></div>
-              <select id="admin-company-status" onchange="adminConsoleFiltrarEmpresas()"><option value="">Todos os status</option><option value="active">Ativas</option><option value="inactive">Inativas</option></select>
-              <select id="admin-company-origin" onchange="adminConsoleFiltrarEmpresas()"><option value="">Todas as origens</option><option value="api">API</option><option value="manual">Manual</option></select>
+              <select id="admin-company-status" aria-label="Status da empresa" onchange="adminConsoleFiltrarEmpresas()"><option value="">Todos os status</option><option value="active">Ativas</option><option value="inactive">Inativas</option></select>
+              <select id="admin-company-origin" aria-label="Origem dos dados" onchange="adminConsoleFiltrarEmpresas()"><option value="">Todas as origens</option><option value="api">API</option><option value="manual">Manual</option></select>
               <span id="admin-company-result" class="admin-result-count">0 empresas</span>
               <button class="admin-btn-primary" onclick="adminConsoleNovaEmpresa()">Adicionar empresa</button>
             </div>
@@ -341,7 +341,7 @@
             </div>
             <div class="admin-section-toolbar">
               <div class="admin-search-wrap"><input id="admin-module-search" type="search" placeholder="Buscar empresa..." oninput="adminConsoleRenderModulos()"></div>
-              <select id="admin-module-filter" onchange="adminConsoleRenderModulos()"><option value="">Todos os m&oacute;dulos</option><option value="comercial">Com Comercial</option><option value="financeiro">Com Financeiro</option><option value="nenhum">Sem m&oacute;dulo ativo</option></select>
+              <select id="admin-module-filter" aria-label="Filtrar por m&oacute;dulo contratado" onchange="adminConsoleRenderModulos()"><option value="">Todos os m&oacute;dulos</option><option value="comercial">Com Comercial</option><option value="financeiro">Com Financeiro</option><option value="nenhum">Sem m&oacute;dulo ativo</option></select>
               <span id="admin-module-result" class="admin-result-count">0 empresas</span>
             </div>
             <div id="admin-modules-grid" class="admin-modules-grid"></div>
@@ -350,9 +350,9 @@
           <section id="admin-section-users" class="admin-console-section">
             <div class="admin-section-toolbar">
               <div class="admin-search-wrap"><input id="admin-user-search" type="search" placeholder="Buscar nome ou e-mail..." oninput="adminConsoleFiltrarUsuarios(true)"></div>
-              <select id="admin-user-role" onchange="adminConsoleFiltrarUsuarios(true)"><option value="">Todos os pap&eacute;is</option><option value="super_admin">Super admin</option><option value="admin">Admin</option><option value="cliente">Cliente</option></select>
-              <select id="admin-user-company" onchange="adminConsoleFiltrarUsuarios(true)"><option value="">Todas as empresas</option></select>
-              <select id="admin-user-status" onchange="adminConsoleFiltrarUsuarios(true)"><option value="">Todos os status</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select>
+              <select id="admin-user-role" aria-label="Filtrar por papel de acesso" onchange="adminConsoleFiltrarUsuarios(true)"><option value="">Todos os pap&eacute;is</option><option value="super_admin">Super admin</option><option value="admin">Admin</option><option value="cliente">Cliente</option></select>
+              <select id="admin-user-company" aria-label="Filtrar por empresa" onchange="adminConsoleFiltrarUsuarios(true)"><option value="">Todas as empresas</option></select>
+              <select id="admin-user-status" aria-label="Filtrar por status" onchange="adminConsoleFiltrarUsuarios(true)"><option value="">Todos os status</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select>
               <span id="admin-user-result" class="admin-result-count">0 usu&aacute;rios</span>
               <button class="admin-btn-primary" onclick="adminConsoleNovoUsuario()">Adicionar usu&aacute;rio</button>
             </div>
@@ -522,8 +522,8 @@
             <!-- Histórico -->
             <div class="admin-sync-history-head">Histórico de sincronizações</div>
             <div class="admin-section-toolbar">
-              <select id="admin-sync-company" onchange="adminConsoleFiltrarSync()"><option value="">Todas as empresas</option></select>
-              <select id="admin-sync-status-filter" onchange="adminConsoleFiltrarSync()"><option value="">Todos os status</option><option value="sucesso">Sucesso</option><option value="erro">Erro</option><option value="sincronizando">Sincronizando</option></select>
+              <select id="admin-sync-company" aria-label="Filtrar por empresa" onchange="adminConsoleFiltrarSync()"><option value="">Todas as empresas</option></select>
+              <select id="admin-sync-status-filter" aria-label="Filtrar por status da sincroniza&ccedil;&atilde;o" onchange="adminConsoleFiltrarSync()"><option value="">Todos os status</option><option value="sucesso">Sucesso</option><option value="erro">Erro</option><option value="sincronizando">Sincronizando</option></select>
               <input id="admin-sync-date-from" type="date" aria-label="Data inicial" onchange="adminConsoleFiltrarSync()">
               <input id="admin-sync-date-to" type="date" aria-label="Data final" onchange="adminConsoleFiltrarSync()">
               <span id="admin-sync-result" class="admin-result-count">0 registros</span>
@@ -535,7 +535,7 @@
             <div class="admin-section-intro"><div><span>RASTREABILIDADE</span><h2>Registros e auditoria</h2><p>Eventos da sess&atilde;o atual e registros operacionais existentes no Supabase, sem credenciais ou tokens.</p></div><button class="admin-btn-secondary" onclick="adminConsoleLimparFiltroAuditoria()">Limpar filtros</button></div>
             <div class="admin-section-toolbar">
               <div class="admin-search-wrap"><input id="admin-audit-search" type="search" placeholder="Buscar evento, empresa ou respons&aacute;vel..." oninput="adminConsoleRenderAuditoria()"></div>
-              <select id="admin-audit-type" onchange="adminConsoleRenderAuditoria()"><option value="">Todos os eventos</option><option value="usuario">Usu&aacute;rios</option><option value="empresa">Empresas</option><option value="integracao">Integra&ccedil;&otilde;es</option><option value="sincronizacao">Sincroniza&ccedil;&otilde;es</option><option value="erro">Erros</option></select>
+              <select id="admin-audit-type" aria-label="Filtrar por tipo de evento" onchange="adminConsoleRenderAuditoria()"><option value="">Todos os eventos</option><option value="usuario">Usu&aacute;rios</option><option value="empresa">Empresas</option><option value="integracao">Integra&ccedil;&otilde;es</option><option value="sincronizacao">Sincroniza&ccedil;&otilde;es</option><option value="erro">Erros</option></select>
             </div>
             <div id="admin-audit-list" class="admin-audit-list"></div>
             <article class="admin-panel-card admin-migration-note"><div><span>AUDITORIA PERSISTENTE</span><h2>Registro somente para consulta</h2><p>Os registros desta tela n&atilde;o podem ser alterados pela interface.</p></div></article>
