@@ -99,25 +99,48 @@ function isFinanceiroPath(pathname) {
 
 const ALLOWED_VISUAL_PATHS = [
   '/api/v1/login',
+  '/login',
   '/logonsaef/logincore',
   '/logonsaef/login4',
   '/logonsaef/AuthorizationForUse',
   '/api/v1/relacaovendaitem',
+  '/relacaovendaitem',
   '/api/v1/cliente',
   '/api/v1/cliente-parceiro',
   '/api/v1/produto',
-  '/api/v1/vendedor'
+  '/api/v1/vendedor',
+  '/cadastrocliente',
+  '/cadastroclienteparceiro',
+  '/cadastroproduto',
+  '/cadastrovendedor'
 ];
 
 const VISUAL_CADASTRO_PATHS = new Set([
   '/api/v1/cliente',
   '/api/v1/cliente-parceiro',
   '/api/v1/produto',
-  '/api/v1/vendedor'
+  '/api/v1/vendedor',
+  '/cadastrocliente',
+  '/cadastroclienteparceiro',
+  '/cadastroproduto',
+  '/cadastrovendedor'
 ]);
 
 function isVisualLoginPath(pathname) {
-  return pathname === '/api/v1/login';
+  return pathname === '/api/v1/login' || pathname === '/login';
+}
+
+function visualLoginPathFor(baseUrl, requestedPath) {
+  if (requestedPath === '/login') return '/login';
+  try {
+    return /(^|\.)api-vmtre\.visualsaef\.com$/i.test(new URL(baseUrl).hostname)
+      ? '/login'
+      : '/api/v1/login';
+  } catch (error) {
+    return /api-vmtre\.visualsaef\.com/i.test(String(baseUrl || ''))
+      ? '/login'
+      : '/api/v1/login';
+  }
 }
 
 function normalizeVisualSaefBaseUrl(value) {
@@ -127,7 +150,7 @@ function normalizeVisualSaefBaseUrl(value) {
     const parsed = new URL(raw);
     parsed.hash = '';
     parsed.search = '';
-    if (/^\/scalar(?:\/|$)/i.test(parsed.pathname)
+    if (/^\/(?:scalar|swagger)(?:\/|$)/i.test(parsed.pathname)
       || /^\/api\/v1(?:\/|$)/i.test(parsed.pathname)) {
       parsed.pathname = '/';
     }
@@ -358,7 +381,7 @@ async function getVisualLoginToken(env, clientId, clientSecret, baseUrl) {
   }
 
   const upstream = await fetch(
-    `${loginBase}/api/v1/login?client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}`,
+    `${loginBase}${visualLoginPathFor(loginBase, '')}?client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}`,
     {
       method: 'GET',
       headers: { 'Accept': 'application/json' }
@@ -933,10 +956,10 @@ async function proxyExternalGeneric(req, res, targetUrl, method, incomingHeaders
   if (incomingHeaders['x-visual-codigo-empresa']) forwardHeaders['x-visual-codigo-empresa'] = incomingHeaders['x-visual-codigo-empresa'];
   if (incomingHeaders['content-type']) forwardHeaders['Content-Type'] = incomingHeaders['content-type'];
 
-  // Para /api/v1/login: injeta credenciais da api_config como query params.
+  // Para o login legado ou v1, injeta credenciais da api_config como query params.
   let finalHref = targetUrl.href;
   if (isVisualLoginPath(targetUrl.pathname) && cfg && cfg.api_user && cfg.api_pass) {
-    const loginUrl = new URL(authorizedUrl + '/api/v1/login');
+    const loginUrl = new URL(authorizedUrl + visualLoginPathFor(authorizedUrl, targetUrl.pathname));
     loginUrl.searchParams.set('client_id', cfg.api_user);
     loginUrl.searchParams.set('client_secret', cfg.api_pass);
     finalHref = loginUrl.toString();
@@ -996,7 +1019,7 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, emp
     const loginClientSecret = (cfg && cfg.api_pass) ? cfg.api_pass : env.visualClientSecret;
 
     upstream = await fetch(
-      `${baseUrl}/api/v1/login?client_id=${encodeURIComponent(loginClientId)}&client_secret=${encodeURIComponent(loginClientSecret)}`,
+      `${baseUrl}${visualLoginPathFor(baseUrl, targetUrl.pathname)}?client_id=${encodeURIComponent(loginClientId)}&client_secret=${encodeURIComponent(loginClientSecret)}`,
       { method: 'GET', headers: { 'Accept': 'application/json' } }
     );
   } else if (isVisualCadastroPath(targetUrl.pathname)) {

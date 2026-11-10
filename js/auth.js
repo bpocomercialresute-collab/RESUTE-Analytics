@@ -50,7 +50,7 @@ function _visualSaefBaseUrl(apiUrl) {
     var parsed = new URL(base);
     parsed.hash = '';
     parsed.search = '';
-    if (/^\/scalar(?:\/|$)/i.test(parsed.pathname)
+    if (/^\/(?:scalar|swagger)(?:\/|$)/i.test(parsed.pathname)
         || /^\/api\/v1(?:\/|$)/i.test(parsed.pathname)) {
       parsed.pathname = '/';
     }
@@ -58,9 +58,38 @@ function _visualSaefBaseUrl(apiUrl) {
   } catch (e) {
     return base
       .replace(/\/scalar(?:\/.*)?$/i, '')
+      .replace(/\/swagger(?:\/.*)?$/i, '')
       .replace(/\/api\/v1(?:\/.*)?$/i, '')
       .replace(/\/$/, '');
   }
+}
+
+function _visualSaefIsLegacy(apiUrl) {
+  var base = _visualSaefBaseUrl(apiUrl);
+  try {
+    return /(^|\.)api-vmtre\.visualsaef\.com$/i.test(new URL(base).hostname);
+  } catch (e) {
+    return /api-vmtre\.visualsaef\.com/i.test(base);
+  }
+}
+
+function _visualSaefRoutes(apiUrl) {
+  if (_visualSaefIsLegacy(apiUrl)) {
+    return {
+      login: '/login',
+      vendas: '/relacaovendaitem',
+      clientes: ['/cadastrocliente'],
+      produtos: ['/cadastroproduto'],
+      representantes: ['/cadastrovendedor']
+    };
+  }
+  return {
+    login: '/api/v1/login',
+    vendas: '/api/v1/relacaovendaitem',
+    clientes: ['/api/v1/cliente'],
+    produtos: ['/api/v1/produto'],
+    representantes: ['/api/v1/vendedor']
+  };
 }
 
 function _normalizeFetchHeaders(headers) {
@@ -4642,7 +4671,7 @@ function _adminObterPeriodoSync() {
 }
 
 var VS_ENDPOINTS = {
-  // Endpoints da API Visual Saef Core 10 (contrato /api/v1/openapi.json)
+  // Mantido para compatibilidade; o adapter escolhe as rotas pela api_url da empresa.
   clientes: ['/api/v1/cliente'],
   produtos: ['/api/v1/produto'],
   representantes: ['/api/v1/vendedor']
@@ -5176,10 +5205,11 @@ async function _adminReplaceOrigemTable(table, rows) {
 
 async function _adminSincronizarCadastrosApi(token, dataInicio, dataFim) {
   var codigoEmpresaVisual = _getVisualCodigoEmpresa();
+  var vsRoutes = _visualSaefRoutes(EMPRESA_ATIVA && EMPRESA_ATIVA.api_url || '');
   var jobs = [
-    { key: 'clientes', tables: CADASTRO_TABLES.clientes, candidates: VS_ENDPOINTS.clientes, mapper: _adminMapClientesApi },
-    { key: 'produtos', tables: CADASTRO_TABLES.produtos, candidates: VS_ENDPOINTS.produtos, mapper: _adminMapProdutosApi },
-    { key: 'representantes', tables: CADASTRO_TABLES.representantes, candidates: VS_ENDPOINTS.representantes, mapper: _adminMapRepresentantesApi }
+    { key: 'clientes', tables: CADASTRO_TABLES.clientes, candidates: vsRoutes.clientes, mapper: _adminMapClientesApi },
+    { key: 'produtos', tables: CADASTRO_TABLES.produtos, candidates: vsRoutes.produtos, mapper: _adminMapProdutosApi },
+    { key: 'representantes', tables: CADASTRO_TABLES.representantes, candidates: vsRoutes.representantes, mapper: _adminMapRepresentantesApi }
   ];
   var summary = {};
 
@@ -5965,7 +5995,8 @@ var SYNC_ADAPTERS = {};
 SYNC_ADAPTERS.visual_saef = {
   nome: 'Visual Saef',
   login: async function(apiUrl) {
-    var r = await _fetchApiProxy(_visualSaefBaseUrl(apiUrl), '/api/v1/login', null, { Accept: 'application/json' });
+    var routes = _visualSaefRoutes(apiUrl);
+    var r = await _fetchApiProxy(_visualSaefBaseUrl(apiUrl), routes.login, null, { Accept: 'application/json' });
     if (!r.ok) throw new Error('Login Visual Saef falhou: HTTP ' + r.status);
     var d = await r.json();
     var token = d.token || d.Token || d.access_token || d.accessToken;
@@ -5973,6 +6004,7 @@ SYNC_ADAPTERS.visual_saef = {
     return token;
   },
   fetchVendas: async function(apiUrl, token, DI, DF) {
+    var routes = _visualSaefRoutes(apiUrl);
     // Parse DDMMYYYY
     var pD = function(s) { return new Date(parseInt(s.slice(4)), parseInt(s.slice(2,4)) - 1, parseInt(s.slice(0,2))); };
     var fD = function(d) { return String(d.getDate()).padStart(2,'0') + String(d.getMonth()+1).padStart(2,'0') + String(d.getFullYear()); };
@@ -5987,7 +6019,7 @@ SYNC_ADAPTERS.visual_saef = {
     while (cur <= fim) {
       var mFim = new Date(cur.getFullYear(), cur.getMonth() + 1, 0);
       if (mFim > fim) mFim = new Date(fim);
-      var r = await _fetchApiProxy(_visualSaefBaseUrl(apiUrl), '/api/v1/relacaovendaitem?DataInicio=' + fD(cur) + '&DataTermino=' + fD(mFim), token, { Accept: 'application/json' });
+      var r = await _fetchApiProxy(_visualSaefBaseUrl(apiUrl), routes.vendas + '?DataInicio=' + fD(cur) + '&DataTermino=' + fD(mFim), token, { Accept: 'application/json' });
       if (!r.ok) throw new Error('Busca de vendas falhou: HTTP ' + r.status + ' (período ' + fD(cur) + '-' + fD(mFim) + ')');
       var raw = await r.json();
       var items = Array.isArray(raw) ? raw : (raw.data || raw.itens || raw.items || raw.result || raw.dados || []);
