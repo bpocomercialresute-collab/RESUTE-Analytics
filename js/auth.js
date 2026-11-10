@@ -6,7 +6,9 @@ console.log('%c[RESUTE] auth.js carregado', 'color:#1C64C0;font-weight:bold;font
 const SUPA_URL = 'https://glfzevdsmmdvrwhplzkc.supabase.co';
 const SUPA_KEY = '__SERVER_ONLY__';
 const SVC_KEY  = '__SERVER_ONLY__';
-// API URL vem de EMPRESA_ATIVA.api_url (configurada por empresa no admin)
+// API URL vem de EMPRESA_ATIVA.api_url (configurada por empresa no admin).
+// A Visual Saef atual publica o contrato em /api/v1; a URL salva pode ser
+// tanto a raiz da API quanto o link da documentacao Scalar.
 
 const NATIVE_FETCH = window.fetch.bind(window);
 
@@ -39,6 +41,26 @@ function _getVisualCodigoEmpresa() {
     }
   }
   return '';
+}
+
+function _visualSaefBaseUrl(apiUrl) {
+  var base = String(apiUrl || '').trim();
+  if (!base) return base;
+  try {
+    var parsed = new URL(base);
+    parsed.hash = '';
+    parsed.search = '';
+    if (/^\/scalar(?:\/|$)/i.test(parsed.pathname)
+        || /^\/api\/v1(?:\/|$)/i.test(parsed.pathname)) {
+      parsed.pathname = '/';
+    }
+    return parsed.toString().replace(/\/$/, '');
+  } catch (e) {
+    return base
+      .replace(/\/scalar(?:\/.*)?$/i, '')
+      .replace(/\/api\/v1(?:\/.*)?$/i, '')
+      .replace(/\/$/, '');
+  }
 }
 
 function _normalizeFetchHeaders(headers) {
@@ -4620,10 +4642,10 @@ function _adminObterPeriodoSync() {
 }
 
 var VS_ENDPOINTS = {
-  // Endpoints dedicados de cadastro na Visual Saef
-  clientes: ['/cadastrocliente'],
-  produtos: ['/cadastroproduto'],
-  representantes: ['/cadastrovendedor']
+  // Endpoints da API Visual Saef Core 10 (contrato /api/v1/openapi.json)
+  clientes: ['/api/v1/cliente'],
+  produtos: ['/api/v1/produto'],
+  representantes: ['/api/v1/vendedor']
 };
 
 var CADASTRO_TABLES = {
@@ -4686,7 +4708,7 @@ async function _vsFetchCandidate(token, endpoint, params) {
   // e o corpo ainda vem em JSON serializado. Mantemos esse formato aqui
   // para replicar exatamente a chamada validada manualmente.
   var codigoEmpresa = _getVisualCodigoEmpresa();
-  var _vsApiUrl = (EMPRESA_ATIVA && EMPRESA_ATIVA.api_url || '').replace(/\/$/, '');
+  var _vsApiUrl = _visualSaefBaseUrl(EMPRESA_ATIVA && EMPRESA_ATIVA.api_url || '');
   var useProxyFirst = !!codigoEmpresa;
   var firstResp = null;
   var firstText = '';
@@ -5087,7 +5109,7 @@ async function _adminCarregarCadastrosApiSalvos() {
       ok: typeof BD_DATA !== 'undefined' && BD_DATA.rows && BD_DATA.rows.length > 0,
       pending: !(typeof BD_DATA !== 'undefined' && BD_DATA.rows && BD_DATA.rows.length > 0),
       count: typeof BD_DATA !== 'undefined' && BD_DATA.rows ? BD_DATA.rows.length : 0,
-      endpoint: '/relacaovendaitem',
+      endpoint: '/api/v1/relacaovendaitem',
       message: 'Base principal pronta para gerar relatórios.'
     }
   };
@@ -5943,7 +5965,7 @@ var SYNC_ADAPTERS = {};
 SYNC_ADAPTERS.visual_saef = {
   nome: 'Visual Saef',
   login: async function(apiUrl) {
-    var r = await _fetchApiProxy(apiUrl, '/login', null, { Accept: 'application/json' });
+    var r = await _fetchApiProxy(_visualSaefBaseUrl(apiUrl), '/api/v1/login', null, { Accept: 'application/json' });
     if (!r.ok) throw new Error('Login Visual Saef falhou: HTTP ' + r.status);
     var d = await r.json();
     var token = d.token || d.Token || d.access_token || d.accessToken;
@@ -5965,7 +5987,7 @@ SYNC_ADAPTERS.visual_saef = {
     while (cur <= fim) {
       var mFim = new Date(cur.getFullYear(), cur.getMonth() + 1, 0);
       if (mFim > fim) mFim = new Date(fim);
-      var r = await _fetchApiProxy(apiUrl, '/relacaovendaitem?DataInicio=' + fD(cur) + '&DataTermino=' + fD(mFim), token, { Accept: 'application/json' });
+      var r = await _fetchApiProxy(_visualSaefBaseUrl(apiUrl), '/api/v1/relacaovendaitem?DataInicio=' + fD(cur) + '&DataTermino=' + fD(mFim), token, { Accept: 'application/json' });
       if (!r.ok) throw new Error('Busca de vendas falhou: HTTP ' + r.status + ' (período ' + fD(cur) + '-' + fD(mFim) + ')');
       var raw = await r.json();
       var items = Array.isArray(raw) ? raw : (raw.data || raw.itens || raw.items || raw.result || raw.dados || []);
@@ -6182,7 +6204,7 @@ adminSincronizar = async function() {
       vendas: {
         ok: true,
         count: inseridos,
-        endpoint: '/relacaovendaitem',
+        endpoint: '/api/v1/relacaovendaitem',
         message: 'Base de vendas sincronizada para alimentar dashboards e relatórios.'
       }
     }, cadastrosResumo || {}));

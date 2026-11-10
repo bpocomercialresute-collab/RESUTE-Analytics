@@ -11,6 +11,7 @@ const root = path.resolve(__dirname, '..');
 // HTTP nao e executado aqui.
 function loadProxy() {
   const src = fs.readFileSync(path.join(root, 'api/secure-proxy.js'), 'utf8')
+    .replace(/^import .*$/m, '')
     .replace(/^export default /m, '');
   const context = { URL, URLSearchParams, Map, Set, JSON, Date, decodeURIComponent, console };
   vm.createContext(context);

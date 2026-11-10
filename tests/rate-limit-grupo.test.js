@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, '..');
 
 function load() {
   const src = fs.readFileSync(path.join(root, 'api/secure-proxy.js'), 'utf8')
+    .replace(/^import .*$/m, '')
     .replace(/^export default /m, '');
   const context = { process: { env: {} }, console, Buffer, URL, URLSearchParams, Map, Date };
   vm.createContext(context);

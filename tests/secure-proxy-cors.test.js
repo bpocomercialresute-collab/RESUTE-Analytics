@@ -10,6 +10,7 @@ const root = path.resolve(__dirname, '..');
 // como script comum e expoe as funcoes de CORS pra testar isoladas do handler HTTP.
 function loadProxy() {
   const src = fs.readFileSync(path.join(root, 'api/secure-proxy.js'), 'utf8')
+    .replace(/^import .*$/m, '')
     .replace(/^export default /m, '');
   const context = { URL, URLSearchParams, Map, Set, JSON, Date, decodeURIComponent, console, process };
   vm.createContext(context);

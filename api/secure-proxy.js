@@ -1,3 +1,5 @@
+import { createHash, randomBytes } from 'node:crypto';
+
 // Logo da empresa e salva como data URL (ver adminConsoleLogoParaDataUrl): so
 // aceita PNG/JPEG/WEBP em base64, com teto de tamanho, pra nao virar um
 // campo de texto livre no banco.
@@ -83,6 +85,7 @@ const ALLOWED_SUPABASE_PATHS = [
   '/rest/v1/empresa_filiais',
   '/rest/v1/metas',
   '/rest/v1/error_log',
+  '/rest/v1/api_keys',
   '/functions/v1/sync-visual-saef'
 ];
 
@@ -95,33 +98,47 @@ function isFinanceiroPath(pathname) {
 }
 
 const ALLOWED_VISUAL_PATHS = [
-  '/login',
+  '/api/v1/login',
   '/logonsaef/logincore',
   '/logonsaef/login4',
   '/logonsaef/AuthorizationForUse',
-  '/relacaovendaitem',
-  '/clientes',
-  '/cliente',
-  '/relacaocliente',
-  '/cadastrocliente',
-  '/cadastroclienteparceiro',
-  '/produtos',
-  '/produto',
-  '/relacaoproduto',
-  '/cadastroproduto',
-  '/cadastrovendedor',
-  '/representantes',
-  '/vendedores',
-  '/vendedor',
-  '/relacaorepresentante'
+  '/api/v1/relacaovendaitem',
+  '/api/v1/cliente',
+  '/api/v1/cliente-parceiro',
+  '/api/v1/produto',
+  '/api/v1/vendedor'
 ];
 
 const VISUAL_CADASTRO_PATHS = new Set([
-  '/cadastrocliente',
-  '/cadastroclienteparceiro',
-  '/cadastroproduto',
-  '/cadastrovendedor'
+  '/api/v1/cliente',
+  '/api/v1/cliente-parceiro',
+  '/api/v1/produto',
+  '/api/v1/vendedor'
 ]);
+
+function isVisualLoginPath(pathname) {
+  return pathname === '/api/v1/login';
+}
+
+function normalizeVisualSaefBaseUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return raw;
+  try {
+    const parsed = new URL(raw);
+    parsed.hash = '';
+    parsed.search = '';
+    if (/^\/scalar(?:\/|$)/i.test(parsed.pathname)
+      || /^\/api\/v1(?:\/|$)/i.test(parsed.pathname)) {
+      parsed.pathname = '/';
+    }
+    return parsed.toString().replace(/\/$/, '');
+  } catch (error) {
+    return raw
+      .replace(/\/scalar(?:\/.*)?$/i, '')
+      .replace(/\/api\/v1(?:\/.*)?$/i, '')
+      .replace(/\/$/, '');
+  }
+}
 
 const VISUAL_LOGIN_TOKEN_CACHE = new Map();
 const VISUAL_AUTH_CACHE = new Map();
@@ -333,7 +350,7 @@ async function getVisualLoginToken(env, clientId, clientSecret, baseUrl) {
     };
   }
 
-  const loginBase = (baseUrl || env.visualUrl || '').replace(/\/+$/, '');
+  const loginBase = normalizeVisualSaefBaseUrl(baseUrl || env.visualUrl || '');
   const cacheKey = `${loginBase}:${clientId}:${clientSecret}`;
   const cached = VISUAL_LOGIN_TOKEN_CACHE.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
@@ -341,7 +358,7 @@ async function getVisualLoginToken(env, clientId, clientSecret, baseUrl) {
   }
 
   const upstream = await fetch(
-    `${loginBase}/login?client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}`,
+    `${loginBase}/api/v1/login?client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}`,
     {
       method: 'GET',
       headers: { 'Accept': 'application/json' }
@@ -575,6 +592,19 @@ function assertAuthorized(appUser, targetUrl, method, body) {
     }
     if (isWrite) {
       throw new Error('error_log nao pode ser alterado pelo navegador.');
+    }
+    return;
+  }
+
+  if (targetUrl.pathname === '/rest/v1/api_keys') {
+    // Criar/revogar chave so via handleAdminAction (api_key_create/api_key_revoke),
+    // que gera a chave em texto puro uma unica vez e grava so o hash -- nunca
+    // pelo navegador direto, pra nao arriscar gravar a chave crua por engano.
+    if (appUser.papel !== 'super_admin') {
+      throw new Error('Apenas super_admin pode acessar esta rota.');
+    }
+    if (isWrite) {
+      throw new Error('api_keys nao pode ser alterado direto pelo navegador.');
     }
     return;
   }
@@ -888,7 +918,7 @@ async function proxyExternalGeneric(req, res, targetUrl, method, incomingHeaders
   );
   const cfgData = cfgResp.ok ? await cfgResp.json() : [];
   const cfg = cfgData && cfgData[0];
-  const authorizedUrl = cfg && cfg.api_url ? cfg.api_url.replace(/\/$/, '') : null;
+  const authorizedUrl = cfg && cfg.api_url ? normalizeVisualSaefBaseUrl(cfg.api_url) : null;
   if (!authorizedUrl) {
     return res.status(403).json({ erro: 'Nenhuma API configurada e ativa para esta empresa.' });
   }
@@ -903,10 +933,10 @@ async function proxyExternalGeneric(req, res, targetUrl, method, incomingHeaders
   if (incomingHeaders['x-visual-codigo-empresa']) forwardHeaders['x-visual-codigo-empresa'] = incomingHeaders['x-visual-codigo-empresa'];
   if (incomingHeaders['content-type']) forwardHeaders['Content-Type'] = incomingHeaders['content-type'];
 
-  // Para /login: injeta credenciais da api_config como query params (padrão Visual Saef)
+  // Para /api/v1/login: injeta credenciais da api_config como query params.
   let finalHref = targetUrl.href;
-  if (targetUrl.pathname === '/login' && cfg && cfg.api_user && cfg.api_pass) {
-    const loginUrl = new URL(authorizedUrl + '/login');
+  if (isVisualLoginPath(targetUrl.pathname) && cfg && cfg.api_user && cfg.api_pass) {
+    const loginUrl = new URL(authorizedUrl + '/api/v1/login');
     loginUrl.searchParams.set('client_id', cfg.api_user);
     loginUrl.searchParams.set('client_secret', cfg.api_pass);
     finalHref = loginUrl.toString();
@@ -958,15 +988,15 @@ async function proxyVisualSaef(req, res, targetUrl, method, incomingHeaders, emp
   // inteiro numa unica conta/URL do Visual Saef. Sem config por empresa,
   // cai pras globais (env.visual*), mesmo comportamento de sempre.
   const cfg = await buscarApiConfigEmpresa(env, empresaId);
-  const baseUrl = (cfg && cfg.api_url ? cfg.api_url : env.visualUrl).replace(/\/+$/, '');
+  const baseUrl = normalizeVisualSaefBaseUrl(cfg && cfg.api_url ? cfg.api_url : env.visualUrl);
 
   let upstream;
-  if (targetUrl.pathname === '/login') {
+  if (isVisualLoginPath(targetUrl.pathname)) {
     const loginClientId = (cfg && cfg.api_user) ? cfg.api_user : env.visualClientId;
     const loginClientSecret = (cfg && cfg.api_pass) ? cfg.api_pass : env.visualClientSecret;
 
     upstream = await fetch(
-      `${baseUrl}/login?client_id=${encodeURIComponent(loginClientId)}&client_secret=${encodeURIComponent(loginClientSecret)}`,
+      `${baseUrl}/api/v1/login?client_id=${encodeURIComponent(loginClientId)}&client_secret=${encodeURIComponent(loginClientSecret)}`,
       { method: 'GET', headers: { 'Accept': 'application/json' } }
     );
   } else if (isVisualCadastroPath(targetUrl.pathname)) {
@@ -1593,6 +1623,91 @@ async function handleAdminModuleToggle(res, appUser, payload, env) {
   });
 }
 
+/**
+ * Gera uma chave de API nova (leitura, /api/v1/*) pra uma empresa. A chave em
+ * texto puro so existe aqui, nesta resposta -- o banco guarda so o hash
+ * (sha256), igual senha. Perdeu a chave, so revogando e gerando outra.
+ */
+async function handleApiKeyCreate(res, appUser, payload, env) {
+  const input = payload || {};
+  const empresaId = String(input.empresa_id || '').trim();
+  const nome = String(input.nome || 'Chave de API').trim().slice(0, 120) || 'Chave de API';
+
+  if (!/^[a-zA-Z0-9-]{8,80}$/.test(empresaId)) {
+    throw new Error('Empresa invalida.');
+  }
+
+  const companyResponse = await fetch(
+    `${env.supaUrl}/rest/v1/empresas?id=eq.${encodeURIComponent(empresaId)}&select=id,nome&limit=1`,
+    { headers: adminActionHeaders(env) }
+  );
+  const companyRows = await adminActionReadJson(companyResponse);
+  const company = Array.isArray(companyRows) ? companyRows[0] : null;
+  if (!company) throw new Error('Empresa nao encontrada.');
+
+  const chave = 'resute_live_' + randomBytes(24).toString('hex');
+  const hash = createHash('sha256').update(chave, 'utf8').digest('hex');
+  const prefixo = chave.slice(0, 20) + '…';
+
+  const insertResponse = await fetch(
+    `${env.supaUrl}/rest/v1/api_keys`,
+    {
+      method: 'POST',
+      headers: { ...adminActionHeaders(env, 'application/json'), 'Prefer': 'return=representation' },
+      body: JSON.stringify({ empresa_id: empresaId, nome, chave_hash: hash, chave_prefixo: prefixo, ativo: true })
+    }
+  );
+  const saved = await adminActionReadJson(insertResponse);
+  const registro = Array.isArray(saved) ? saved[0] : saved;
+  if (!registro || !registro.id) throw new Error('Falha ao gravar a chave.');
+
+  await writeAdminAudit(env, appUser, {
+    action: 'api_key.criada',
+    entity: 'api_keys',
+    entityId: registro.id,
+    empresaId,
+    summary: `Chave de API "${nome}" criada para ${company.nome || empresaId}`,
+    metadata: { nome, chave_prefixo: prefixo }
+  });
+
+  return res.status(200).json({
+    ok: true,
+    chave, // so aparece aqui, uma vez -- navegador mostra e nunca mais consegue recuperar
+    registro: { id: registro.id, nome, chave_prefixo: prefixo, empresa_id: empresaId, criado_em: registro.criado_em },
+    mensagem: `Chave criada para ${company.nome || empresaId}. Copie agora: nao sera mostrada de novo.`
+  });
+}
+
+/** Revoga (desativa) uma chave de API. Nunca apaga a linha -- fica no historico, so para de funcionar. */
+async function handleApiKeyRevoke(res, appUser, payload, env) {
+  const input = payload || {};
+  const keyId = String(input.id || '').trim();
+  if (!/^[a-zA-Z0-9-]{8,80}$/.test(keyId)) throw new Error('Chave invalida.');
+
+  const updateResponse = await fetch(
+    `${env.supaUrl}/rest/v1/api_keys?id=eq.${encodeURIComponent(keyId)}`,
+    {
+      method: 'PATCH',
+      headers: { ...adminActionHeaders(env, 'application/json'), 'Prefer': 'return=representation' },
+      body: JSON.stringify({ ativo: false, revogada_em: new Date().toISOString() })
+    }
+  );
+  const saved = await adminActionReadJson(updateResponse);
+  const registro = Array.isArray(saved) ? saved[0] : saved;
+  if (!registro || !registro.id) throw new Error('Chave nao encontrada.');
+
+  await writeAdminAudit(env, appUser, {
+    action: 'api_key.revogada',
+    entity: 'api_keys',
+    entityId: registro.id,
+    empresaId: registro.empresa_id,
+    summary: `Chave de API "${registro.nome || registro.id}" revogada`,
+    metadata: { chave_prefixo: registro.chave_prefixo }
+  });
+
+  return res.status(200).json({ ok: true, mensagem: 'Chave revogada.' });
+}
+
 // Planos comerciais = combinacao de modulos. E assim que o super_admin decide
 // o que cada empresa enxerga, sem precisar ligar modulo por modulo.
 const PLANOS = {
@@ -1708,6 +1823,12 @@ async function handleAdminAction(req, res, action, payload, env) {
   if (action === 'admin-module-toggle') {
     return handleAdminModuleToggle(res, appUser, payload, env);
   }
+  if (action === 'api-key-create') {
+    return handleApiKeyCreate(res, appUser, payload, env);
+  }
+  if (action === 'api-key-revoke') {
+    return handleApiKeyRevoke(res, appUser, payload, env);
+  }
   return res.status(400).json({ erro: 'Acao administrativa invalida.' });
 }
 
@@ -1747,7 +1868,7 @@ export default async function handler(req, res) {
     supaUrl: process.env.SUPABASE_URL,
     anonKey: process.env.SUPABASE_ANON_KEY,
     serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    visualUrl: process.env.VISUAL_SAEF_API_URL || 'https://api-plastrio.visualsaef.com',
+    visualUrl: normalizeVisualSaefBaseUrl(process.env.VISUAL_SAEF_API_URL || 'https://api-plastrio.visualsaef.com'),
     visualClientId: process.env.VISUAL_SAEF_CLIENT_ID,
     visualClientSecret: process.env.VISUAL_SAEF_CLIENT_SECRET,
     visualCadastroClientId: process.env.VISUAL_SAEF_CADASTRO_CLIENT_ID || process.env.VISUAL_SAEF_CLIENT_ID,

@@ -69,6 +69,10 @@ var ADMIN_SECTION_META = {
   sales: {
     title: 'Material de vendas',
     subtitle: 'Referencia interna pra conversa com cliente novo. So o super_admin ve esta secao.'
+  },
+  apikeys: {
+    title: 'Chaves de API',
+    subtitle: 'Gere ou revogue chaves de leitura (/api/v1/*) por empresa, pra sistema externo do cliente consumir.'
   }
 };
 
@@ -446,6 +450,7 @@ function adminConsoleAbrir(section, navItem) {
 
   if (!ADMIN_CONSOLE.loaded) adminConsoleInicializar();
   if (target === 'sync' && ADMIN_CONSOLE.loaded) _adminConsoleSyncPopularEmpresas();
+  if (target === 'apikeys' && ADMIN_CONSOLE.loaded) _adminConsoleApiKeysPopularEmpresas();
   if (target === 'modules' || target === 'financeiro') adminConsoleCarregarModulos();
   if (target === 'financeiro' && typeof finAdminCarregarResumo === 'function') finAdminCarregarResumo();
   if (target === 'financeiro' && typeof dreAdminCarregarResumo === 'function') dreAdminCarregarResumo();
@@ -474,6 +479,7 @@ function adminConsoleRenderTudo() {
   adminConsoleRenderIntegracoes();
   adminConsoleFiltrarSync();
   _adminConsoleSyncPopularEmpresas();
+  _adminConsoleApiKeysPopularEmpresas();
   adminConsoleRenderAtividades();
   adminConsoleRenderAuditoria();
   adminConsoleRenderSeguranca();
@@ -2169,5 +2175,122 @@ async function adminConsoleDispararSyncEmpresa(empresaId) {
     setTimeout(function(){ adminConsoleAtualizar(true); }, 2000);
   } catch(e) {
     adminConsoleAviso('Erro no sync: ' + e.message, 'error');
+  }
+}
+
+// ── CHAVES DE API (/api/v1/*) ────────────────────────────────────────────────
+
+function _adminConsoleApiKeysPopularEmpresas() {
+  var select = document.getElementById('admin-apikeys-empresa');
+  if (!select) return;
+  var atual = select.value;
+  var options = '<option value="">Selecione a empresa...</option>' + (ADMIN_CONSOLE.companies || []).map(function(company) {
+    var id = company.id || company.empresa_id;
+    return '<option value="' + adminConsoleEscape(id) + '">' + adminConsoleEscape(company.nome) + '</option>';
+  }).join('');
+  select.innerHTML = options;
+  if (atual) select.value = atual;
+}
+
+async function adminConsoleApiKeysCarregar() {
+  var select = document.getElementById('admin-apikeys-empresa');
+  var body = document.getElementById('admin-apikeys-body');
+  var btnGerar = document.getElementById('admin-apikeys-gerar-btn');
+  var resultEl = document.getElementById('admin-apikeys-result');
+  var empresaId = select ? select.value : '';
+  if (btnGerar) btnGerar.disabled = !empresaId;
+  if (!body) return;
+
+  if (!empresaId) {
+    body.innerHTML = '<tr><td colspan="6">Selecione uma empresa acima.</td></tr>';
+    if (resultEl) resultEl.textContent = '';
+    return;
+  }
+
+  body.innerHTML = '<tr><td colspan="6">Carregando...</td></tr>';
+  try {
+    var r = await adminConsoleFetch(
+      '/rest/v1/api_keys?empresa_id=eq.' + encodeURIComponent(empresaId)
+      + '&select=id,nome,chave_prefixo,ativo,criado_em,ultimo_uso_em&order=criado_em.desc'
+    );
+    var linhas = Array.isArray(r.data) ? r.data : [];
+    if (resultEl) resultEl.textContent = linhas.length + (linhas.length === 1 ? ' chave' : ' chaves');
+    if (!linhas.length) {
+      body.innerHTML = '<tr><td colspan="6">Nenhuma chave gerada ainda pra essa empresa.</td></tr>';
+      return;
+    }
+    body.innerHTML = linhas.map(function(k) {
+      return '<tr>'
+        + '<td>' + adminConsoleEscape(k.nome || 'Chave de API') + '</td>'
+        + '<td><code>' + adminConsoleEscape(k.chave_prefixo || '') + '</code></td>'
+        + '<td>' + adminConsoleEscape(adminConsoleDate(k.criado_em, true)) + '</td>'
+        + '<td>' + (k.ultimo_uso_em ? adminConsoleEscape(adminConsoleDate(k.ultimo_uso_em, true)) : 'Nunca usada') + '</td>'
+        + '<td>' + adminConsoleBadge(k.ativo ? 'Ativa' : 'Revogada', k.ativo ? 'ok' : 'neutral') + '</td>'
+        + '<td class="admin-table-actions">' + (k.ativo ? '<button class="admin-table-action admin-table-action-danger" onclick="adminConsoleApiKeyRevogar(' + adminConsoleJsArg(k.id) + ')">Revogar</button>' : '—') + '</td>'
+        + '</tr>';
+    }).join('');
+  } catch (e) {
+    body.innerHTML = '<tr><td colspan="6">Erro ao carregar: ' + adminConsoleEscape(e.message) + '</td></tr>';
+  }
+}
+
+function adminConsoleApiKeyGerar() {
+  var select = document.getElementById('admin-apikeys-empresa');
+  var empresaId = select ? select.value : '';
+  if (!empresaId) return;
+  var empresaNome = select.options[select.selectedIndex] ? select.options[select.selectedIndex].text : '';
+
+  adminConsoleAbrirModal('CHAVE DE API', 'Gerar chave para ' + empresaNome,
+    '<label class="admin-field"><span>Nome da chave (pra você identificar depois)</span>'
+    + '<input name="nome" type="text" placeholder="Ex: Integração contábil" maxlength="120" required></label>'
+    + '<div class="admin-form-help">A chave dá acesso de leitura (/api/v1/vendas) só aos dados dessa empresa.</div>'
+    + '<div class="admin-modal-actions"><button type="button" onclick="adminConsoleFecharModal()">Cancelar</button><button class="admin-btn-primary" type="submit">Gerar chave</button></div>',
+    async function(formData) {
+      var nome = String(formData.get('nome') || '').trim() || 'Chave de API';
+      try {
+        var resultado = await adminConsoleAction('api-key-create', { empresa_id: empresaId, nome: nome });
+        adminConsoleFecharModal();
+        adminConsoleMostrarChaveGerada(resultado.chave, empresaNome);
+        adminConsoleApiKeysCarregar();
+      } catch (e) {
+        adminConsoleAviso('Erro ao gerar chave: ' + e.message, 'error');
+      }
+    }
+  );
+}
+
+// Mostra a chave em texto puro UMA vez -- depois disso o banco so tem o hash,
+// entao nao tem como recuperar. Modal separado (nao reaproveita o de criar)
+// pra nao sumir sem querer atras de outra acao.
+function adminConsoleMostrarChaveGerada(chave, empresaNome) {
+  adminConsoleAbrirModal('COPIE AGORA', 'Chave gerada para ' + empresaNome,
+    '<div class="admin-form-help" style="color:#b91c1c;font-weight:700">Essa chave não vai aparecer de novo. Copie e guarde num lugar seguro antes de fechar.</div>'
+    + '<label class="admin-field"><span>Chave de API</span>'
+    + '<input id="admin-apikeys-chave-gerada" type="text" readonly value="' + adminConsoleEscape(chave) + '" onclick="this.select()" style="font-family:monospace"></label>'
+    + '<div class="admin-modal-actions"><button type="button" class="admin-btn-primary" onclick="adminConsoleCopiarChaveGerada(this)">Copiar chave</button><button type="button" onclick="adminConsoleFecharModal()">Fechar</button></div>',
+    function() { adminConsoleFecharModal(); }
+  );
+}
+
+function adminConsoleCopiarChaveGerada(botao) {
+  var input = document.getElementById('admin-apikeys-chave-gerada');
+  if (!input) return;
+  input.select();
+  try {
+    navigator.clipboard.writeText(input.value);
+    if (botao) { var original = botao.textContent; botao.textContent = 'Copiado!'; setTimeout(function() { botao.textContent = original; }, 1500); }
+  } catch (e) {
+    document.execCommand('copy');
+  }
+}
+
+async function adminConsoleApiKeyRevogar(id) {
+  if (!window.confirm('Revogar essa chave? Quem estiver usando ela pra integrar para de conseguir ler os dados na hora.')) return;
+  try {
+    await adminConsoleAction('api-key-revoke', { id: id });
+    adminConsoleAviso('Chave revogada.', 'success');
+    adminConsoleApiKeysCarregar();
+  } catch (e) {
+    adminConsoleAviso('Erro ao revogar: ' + e.message, 'error');
   }
 }
