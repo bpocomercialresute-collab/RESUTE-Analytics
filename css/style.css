@@ -13844,3 +13844,29 @@ html body .cui-sidebar-footer .cui-sidebar-logout:hover {
     min-width: 420px !important;
   }
 }
+
+/* Relatorios de produtos, laudos e representantes seguem a mesma regra
+   visual: a primeira coluna identifica a linha e as demais ficam enxutas. */
+.av-table,
+.rep-tbl,
+.laudo-tbl {
+  table-layout: auto;
+}
+
+.av-table th,
+.av-table td,
+.rep-tbl th,
+.rep-tbl td,
+.laudo-tbl th,
+.laudo-tbl td {
+  padding-left: 8px;
+  padding-right: 8px;
+  vertical-align: middle;
+}
+
+.av-table tr > :not(:first-child):not([colspan]),
+.rep-tbl tr > :not(:first-child):not([colspan]) {
+  width: 1%;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
