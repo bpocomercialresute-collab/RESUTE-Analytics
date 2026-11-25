@@ -13734,3 +13734,63 @@ html body .cui-sidebar-footer .cui-sidebar-logout:hover {
 }
 @keyframes adminOwnerShimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .admin-owner-summary-card strong.is-loading { animation: none; } }
+
+/* Regioes: manter pedidos, faturamento e percentual visualmente proximos.
+   As tabelas antigas deixavam o navegador distribuir o espaco livre de forma
+   desigual, empurrando os valores numericos para longe uns dos outros. */
+#dc-tab-ufs .dc-tabela,
+#dc-tab-cidades .dc-tabela {
+  table-layout: fixed;
+  min-width: 0;
+}
+
+#dc-tab-ufs .dc-tabela th,
+#dc-tab-ufs .dc-tabela td,
+#dc-tab-cidades .dc-tabela th,
+#dc-tab-cidades .dc-tabela td {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+#dc-tab-ufs .dc-tabela th:nth-child(1),
+#dc-tab-ufs .dc-tabela td:nth-child(1),
+#dc-tab-cidades .dc-tabela th:nth-child(1),
+#dc-tab-cidades .dc-tabela td:nth-child(1) {
+  width: 6%;
+}
+
+#dc-tab-ufs .dc-tabela th:nth-child(2),
+#dc-tab-ufs .dc-tabela td:nth-child(2) {
+  width: 23%;
+}
+
+#dc-tab-cidades .dc-tabela th:nth-child(2),
+#dc-tab-cidades .dc-tabela td:nth-child(2) {
+  width: 29%;
+}
+
+#dc-tab-ufs .dc-tabela th:nth-child(3),
+#dc-tab-ufs .dc-tabela td:nth-child(3),
+#dc-tab-cidades .dc-tabela th:nth-child(3),
+#dc-tab-cidades .dc-tabela td:nth-child(3) {
+  width: 15%;
+  text-align: center;
+}
+
+#dc-tab-ufs .dc-tabela th:nth-child(4),
+#dc-tab-ufs .dc-tabela td:nth-child(4),
+#dc-tab-cidades .dc-tabela th:nth-child(4),
+#dc-tab-cidades .dc-tabela td:nth-child(4) {
+  width: 30%;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+#dc-tab-ufs .dc-tabela th:nth-child(5),
+#dc-tab-ufs .dc-tabela td:nth-child(5),
+#dc-tab-cidades .dc-tabela th:nth-child(5),
+#dc-tab-cidades .dc-tabela td:nth-child(5) {
+  width: 26%;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
