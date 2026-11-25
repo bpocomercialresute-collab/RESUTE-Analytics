@@ -27,6 +27,43 @@ body.bpo-admin-mode .admin-health-list {
   width: 100% !important;
 }
 
+/* Contraste final: a navegacao e os cards nao dependem de qual tema antigo
+   ganhou a cascata antes desta camada. */
+body.bpo-admin-mode .cui-sidebar .cui-nav .cui-nav-item {
+  color: #F3F6FB !important;
+  opacity: 1 !important;
+}
+
+body.bpo-admin-mode .cui-sidebar .cui-nav .cui-nav-item svg {
+  color: currentColor !important;
+  opacity: 1 !important;
+}
+
+body.bpo-admin-mode .cui-sidebar .cui-nav .cui-nav-title,
+body.bpo-admin-mode .cui-sidebar .cui-brand-sub,
+body.bpo-admin-mode .cui-sidebar .cui-sidebar-user-empresa {
+  color: #CCD6E6 !important;
+  opacity: 1 !important;
+}
+
+body.bpo-admin-mode .admin-panel-card,
+body.bpo-admin-mode .admin-panel-card h2,
+body.bpo-admin-mode .admin-panel-card strong {
+  color: var(--admin-ink, #0E1424) !important;
+}
+
+body.bpo-admin-mode .admin-panel-card p,
+body.bpo-admin-mode .admin-panel-card small {
+  color: var(--admin-muted, #5A7A74) !important;
+}
+
+body.bpo-admin-mode .admin-console-hero h1,
+body.bpo-admin-mode .admin-console-hero p,
+body.bpo-admin-mode .admin-console-session strong,
+body.bpo-admin-mode .admin-console-session small {
+  color: #FFFFFF !important;
+}
+
 @media (max-width: 980px) {
   body.bpo-admin-mode .admin-overview-grid {
     grid-template-columns: 1fr !important;
