@@ -1,0 +1,190 @@
+/* Camada responsiva final dos paineis do cliente.
+   Mantem desktop intacto e impede que filtros e tabelas disputem o mesmo espaco. */
+
+@media (max-width: 720px) {
+  #view-dash-cliente .dc-header-right,
+  #view-dash-financeiro .dc-header-right {
+    align-content: flex-start !important;
+    min-height: 0 !important;
+  }
+
+  #view-dash-cliente .dc-filtro-resumo,
+  #view-dash-financeiro .dc-filtro-resumo {
+    flex: 0 0 auto !important;
+    margin-left: auto !important;
+    order: 1 !important;
+    min-height: 32px !important;
+    white-space: nowrap !important;
+  }
+
+  #view-dash-cliente .dc-modulos,
+  #view-dash-financeiro .dc-modulos {
+    order: 0 !important;
+  }
+
+  #view-dash-cliente .dc-header-right > .dc-admin-back,
+  #view-dash-cliente .dc-header-right > .dc-btn-sair,
+  #view-dash-financeiro .dc-header-right > .dc-admin-back,
+  #view-dash-financeiro .dc-header-right > .dc-btn-sair {
+    order: 2 !important;
+  }
+
+  #view-dash-cliente .dc-filtros-grupo,
+  #view-dash-financeiro .dc-filtros-grupo {
+    flex: 1 0 100% !important;
+    order: 3 !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  #view-dash-cliente .dc-filtros-grupo.aberto,
+  #view-dash-financeiro .dc-filtros-grupo.aberto {
+    align-items: center !important;
+    box-sizing: border-box !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    padding: 7px 0 2px !important;
+    width: 100% !important;
+  }
+
+  #view-dash-cliente .dc-filtros-grupo .dc-periodo-controles {
+    display: contents !important;
+  }
+
+  #view-dash-cliente .dc-filtros-grupo .dc-periodo-rotulo,
+  #view-dash-financeiro .dc-filtros-grupo .dc-filtro-rotulo {
+    display: none !important;
+  }
+
+  #view-dash-cliente .dc-filtros-grupo > .dc-filtro,
+  #view-dash-cliente .dc-filtros-grupo .dc-periodo-controles > .dc-filtro,
+  #view-dash-financeiro .dc-filtros-grupo > .dc-filtro {
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    height: 35px !important;
+    padding: 6px 8px !important;
+  }
+
+  #view-dash-cliente .dc-filtros-grupo > .dc-loja-selector,
+  #view-dash-cliente .dc-filtros-grupo > .dc-sync-badge,
+  #view-dash-cliente .dc-filtros-grupo > .dc-btn-atualizar,
+  #view-dash-cliente .dc-filtros-grupo > .dc-header-status,
+  #view-dash-financeiro .dc-filtros-grupo > .dc-btn-atualizar,
+  #view-dash-financeiro .dc-filtros-grupo > .dc-header-status {
+    grid-column: 1 / -1 !important;
+    justify-self: stretch !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  #view-dash-cliente .dc-filtros-grupo > .dc-loja-selector {
+    justify-content: flex-start !important;
+    overflow-x: auto !important;
+    padding-bottom: 1px !important;
+  }
+
+  #view-dash-cliente .dc-filtros-grupo > .dc-sync-badge,
+  #view-dash-financeiro .dc-filtros-grupo > .dc-header-status {
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  #view-dash-cliente .dc-filtros-grupo > .dc-btn-atualizar,
+  #view-dash-financeiro .dc-filtros-grupo > .dc-btn-atualizar {
+    justify-content: center !important;
+    min-height: 35px !important;
+  }
+
+  #view-dash-cliente .dc-main,
+  #view-dash-financeiro .dc-main {
+    box-sizing: border-box !important;
+    min-height: 0 !important;
+    width: 100% !important;
+  }
+
+  #view-dash-cliente .dc-hero,
+  #view-dash-financeiro .dc-hero,
+  #view-dash-cliente .dc-card,
+  #view-dash-financeiro .dc-card,
+  #view-dash-financeiro .fin-wrap {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  #view-dash-cliente .dc-hero-title,
+  #view-dash-financeiro .dc-hero-title {
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  #view-dash-cliente .dc-kpis-grid,
+  #view-dash-financeiro .dc-kpis-grid {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  #view-dash-cliente .dc-chart-box,
+  #view-dash-cliente .dc-chart-box-tall,
+  #view-dash-financeiro .dc-chart-box,
+  #view-dash-financeiro .dc-chart-box-tall {
+    min-width: 0 !important;
+  }
+
+  #view-dash-financeiro .fin-main {
+    padding-inline: 10px !important;
+  }
+
+  #view-dash-financeiro .fin-wrap {
+    padding-inline: 0 !important;
+    overflow: hidden !important;
+  }
+
+  #view-dash-financeiro .fin-tabs {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+  }
+
+  #view-dash-financeiro .fin-dre-corpo {
+    min-width: 0 !important;
+    overflow: visible !important;
+  }
+
+  #view-dash-financeiro .fin-dre-bloco,
+  #view-dash-financeiro .fin-dre-resultado-bloco,
+  #view-dash-financeiro .fin-balanco-wrap {
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  #view-dash-financeiro .fin-dre-bloco-scroll,
+  #view-dash-financeiro .fin-balanco-scroll {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: thin !important;
+  }
+
+  #view-dash-financeiro .fin-dre-tabela,
+  #view-dash-financeiro .fin-balanco-tabela {
+    width: max-content !important;
+    min-width: 620px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  #view-dash-cliente .dc-filtros-grupo.aberto,
+  #view-dash-financeiro .dc-filtros-grupo.aberto {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  #view-dash-cliente .dc-filtros-grupo > .dc-filtro,
+  #view-dash-cliente .dc-filtros-grupo .dc-periodo-controles > .dc-filtro,
+  #view-dash-financeiro .dc-filtros-grupo > .dc-filtro {
+    grid-column: 1 !important;
+  }
+}
