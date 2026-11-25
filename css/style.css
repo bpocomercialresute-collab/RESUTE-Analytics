@@ -13794,3 +13794,53 @@ html body .cui-sidebar-footer .cui-sidebar-logout:hover {
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+
+/* Relatorios: manter identificadores e numeros proximos em todas as tabelas.
+   As tabelas antigas distribuíam o espaco livre por igual, deixando pedidos,
+   faturamento e percentuais visualmente afastados. */
+#view-dash-cliente .dc-tabela,
+#view-dash-financeiro .dc-tabela {
+  table-layout: auto;
+  min-width: 100% !important;
+}
+
+#view-dash-cliente .dc-tabela th,
+#view-dash-cliente .dc-tabela td,
+#view-dash-financeiro .dc-tabela th,
+#view-dash-financeiro .dc-tabela td {
+  padding-left: 8px;
+  padding-right: 8px;
+  vertical-align: middle;
+}
+
+#view-dash-cliente .dc-tabela th:first-child,
+#view-dash-cliente .dc-tabela td:first-child,
+#view-dash-financeiro .dc-tabela th:first-child,
+#view-dash-financeiro .dc-tabela td:first-child {
+  width: 1%;
+  white-space: nowrap;
+}
+
+#view-dash-cliente .dc-tabela th.num,
+#view-dash-cliente .dc-tabela td.num,
+#view-dash-financeiro .dc-tabela th.num,
+#view-dash-financeiro .dc-tabela td.num {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Grades com muitas colunas continuam legiveis sem forcar o card a crescer. */
+#view-dash-cliente .dc-tabela-wrap,
+#view-dash-financeiro .dc-tabela-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 700px) {
+  #view-dash-cliente .dc-tabela,
+  #view-dash-financeiro .dc-tabela {
+    min-width: 420px !important;
+  }
+}
